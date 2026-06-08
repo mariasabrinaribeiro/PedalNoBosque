@@ -1067,6 +1067,12 @@ public class GameUIController : MonoBehaviour
         baseRect.position = pos;
         joystickKnob.anchoredPosition = Vector2.zero;
         baseRect.gameObject.SetActive(true);
+
+        if (carDriver != null)
+        {
+            carDriver.SetDragging(true);
+            carDriver.SetDragDisplacement(Vector2.zero);
+        }
     }
 
     private void UpdateJoystickDrag(Vector2 pos, Vector2 delta, RectTransform baseRect)
@@ -1078,7 +1084,7 @@ public class GameUIController : MonoBehaviour
 
         if (carDriver != null)
         {
-            carDriver.ApplySwipeDelta(delta);
+            carDriver.SetDragDisplacement(clampedDelta);
         }
     }
 
@@ -1094,6 +1100,8 @@ public class GameUIController : MonoBehaviour
         
         if (carDriver != null)
         {
+            carDriver.SetDragging(false);
+            carDriver.SetDragDisplacement(Vector2.zero);
             carDriver.SetMobileSteer(0f);
             carDriver.SetMobileMove(0f);
         }
