@@ -1084,13 +1084,17 @@ public class GameUIController : MonoBehaviour
         {
             if (result.gameObject != null)
             {
-                if (result.gameObject.layer == 5 || result.gameObject.GetComponent<RectTransform>() != null)
+                if (joystickContainer != null && (result.gameObject == joystickContainer || result.gameObject.transform.IsChildOf(joystickContainer.transform)))
                 {
-                    // Ignore elements inside the joystick UI itself so we can drag the joystick
-                    if (joystickContainer != null && (result.gameObject == joystickContainer || result.gameObject.transform.IsChildOf(joystickContainer.transform)))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
+
+                // Check if the object or any of its parents has a Button or EventTrigger component
+                Button btn = result.gameObject.GetComponentInParent<Button>();
+                EventTrigger trigger = result.gameObject.GetComponentInParent<EventTrigger>();
+                
+                if (btn != null || trigger != null)
+                {
                     return true;
                 }
             }

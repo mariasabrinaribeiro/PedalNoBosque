@@ -80,9 +80,10 @@ public class driverpro : MonoBehaviour
         // Convert screen delta to world delta for orthographic camera
         float worldHeight = cam.orthographicSize * 2f;
         float worldWidth = worldHeight * cam.aspect;
+        float speedMultiplier = 2.5f; // Increase this to make the car move faster relative to finger speed
         Vector3 worldDelta = new Vector3(
-            (screenDelta.x / Screen.width) * worldWidth,
-            (screenDelta.y / Screen.height) * worldHeight,
+            (screenDelta.x / Screen.width) * worldWidth * speedMultiplier,
+            (screenDelta.y / Screen.height) * worldHeight * speedMultiplier,
             0f
         );
 
