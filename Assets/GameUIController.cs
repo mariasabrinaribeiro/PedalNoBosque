@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 public class GameUIController : MonoBehaviour
 {
@@ -76,6 +78,16 @@ public class GameUIController : MonoBehaviour
                 controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
             }
         }
+    }
+
+    private void OnEnable()
+    {
+        EnhancedTouchSupport.Enable();
+    }
+
+    private void OnDisable()
+    {
+        EnhancedTouchSupport.Disable();
     }
 
     private void Awake()
@@ -886,26 +898,27 @@ public class GameUIController : MonoBehaviour
 
         RectTransform baseRect = joystickContainer.transform.Find("Base").GetComponent<RectTransform>();
 
-        // Check touches for multi-touch support
+        // Check touches for multi-touch support using new Input System's EnhancedTouch
         bool foundJoystickTouch = false;
+        var activeTouches = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches;
 
-        if (Input.touchCount > 0)
+        if (activeTouches.Count > 0)
         {
             // 1. If we are already dragging, try to find our touch
             if (isDraggingJoystick && joystickFingerId >= 0)
             {
-                for (int i = 0; i < Input.touchCount; i++)
+                for (int i = 0; i < activeTouches.Count; i++)
                 {
-                    Touch t = Input.GetTouch(i);
-                    if (t.fingerId == joystickFingerId)
+                    var t = activeTouches[i];
+                    if (t.touchId == joystickFingerId)
                     {
-                        if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
+                        if (t.phase == UnityEngine.InputSystem.TouchPhase.Ended || t.phase == UnityEngine.InputSystem.TouchPhase.Canceled)
                         {
                             StopJoystickDrag(baseRect);
                         }
                         else
                         {
-                            UpdateJoystickDrag(t.position, baseRect);
+                            UpdateJoystickDrag(t.screenPosition, baseRect);
                         }
                         foundJoystickTouch = true;
                         break;
@@ -920,44 +933,55 @@ public class GameUIController : MonoBehaviour
             // 2. If we are NOT dragging, look for a new touch that is not over UI
             else if (!isDraggingJoystick)
             {
-                for (int i = 0; i < Input.touchCount; i++)
+                for (int i = 0; i < activeTouches.Count; i++)
                 {
-                    Touch t = Input.GetTouch(i);
+                    var t = activeTouches[i];
                     
                     // Don't start a joystick drag if the user is pressing UI buttons (like Pause or Shoot)
-                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(t.fingerId))
+                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(t.touchId))
                     {
                         continue;
                     }
 
-                    StartJoystickDrag(t.position, t.fingerId, baseRect);
+                    StartJoystickDrag(t.screenPosition, t.touchId, baseRect);
                     break;
                 }
             }
         }
         else
         {
-            // No touches, fall back to mouse input for testing in editor/browser
-            if (isDraggingJoystick && joystickFingerId == -2)
+            // No touches, fall back to Mouse input using the new Input System for testing in editor/browser
+            Mouse mouse = Mouse.current;
+            if (mouse != null)
             {
-                if (Input.GetMouseButton(0))
+                bool leftPressed = mouse.leftButton.isPressed;
+                Vector2 mousePos = mouse.position.ReadValue();
+
+                if (isDraggingJoystick && joystickFingerId == -2)
                 {
-                    UpdateJoystickDrag(Input.mousePosition, baseRect);
+                    if (leftPressed)
+                    {
+                        UpdateJoystickDrag(mousePos, baseRect);
+                    }
+                    else
+                    {
+                        StopJoystickDrag(baseRect);
+                    }
                 }
-                else
+                else if (!isDraggingJoystick && leftPressed)
+                {
+                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                    {
+                        // Over UI, do nothing
+                    }
+                    else
+                    {
+                        StartJoystickDrag(mousePos, -2, baseRect);
+                    }
+                }
+                else if (isDraggingJoystick)
                 {
                     StopJoystickDrag(baseRect);
-                }
-            }
-            else if (!isDraggingJoystick && Input.GetMouseButton(0))
-            {
-                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-                {
-                    // Over UI, do nothing
-                }
-                else
-                {
-                    StartJoystickDrag(Input.mousePosition, -2, baseRect);
                 }
             }
             else if (isDraggingJoystick)
