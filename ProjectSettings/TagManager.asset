@@ -8,6 +8,8 @@ TagManager:
   - Customer
   - ParticlesSystem
   - Boost item
+  - Enemy
+  - Obstacle
   layers:
   - Default
   - TransparentFX

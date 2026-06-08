@@ -997,8 +997,6 @@ public class GameUIController : MonoBehaviour
         if (carDriver == null) return;
 
         navArrow = new GameObject("NavPointerArrow");
-        navArrow.transform.SetParent(carDriver.transform, false);
-        navArrow.transform.localPosition = new Vector3(0, 1.4f, 0); // Orbiting offset ahead
         navArrow.transform.localScale = Vector3.one * 0.7f;
 
         navArrowSR = navArrow.AddComponent<SpriteRenderer>();
@@ -1006,6 +1004,14 @@ public class GameUIController : MonoBehaviour
         navArrowSR.sprite = CreateArrowSprite(48, 48, candyPink, candyPurple, 4);
         navArrowSR.sortingOrder = 6;
         navArrow.SetActive(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (navArrow != null)
+        {
+            Destroy(navArrow);
+        }
     }
 
     private void UpdateNavigationPointer()
@@ -1043,7 +1049,7 @@ public class GameUIController : MonoBehaviour
             Vector3 direction = target.transform.position - carDriver.transform.position;
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f; // Subtract 90 since arrow sprite points UP
 
-            // Orbit positioning
+            // Orbit positioning in world space
             navArrow.transform.position = carDriver.transform.position + direction.normalized * 1.5f;
             navArrow.transform.rotation = Quaternion.Euler(0, 0, angle);
         }
@@ -1063,7 +1069,7 @@ public class GameUIController : MonoBehaviour
 
         foreach (GameObject t in targets)
         {
-            if (t == null) continue;
+            if (t == null || t == carDriver.gameObject) continue; // EXCLUDE the player car itself!
             float dist = Vector3.Distance(t.transform.position, playerPos);
             if (dist < minDist)
             {
