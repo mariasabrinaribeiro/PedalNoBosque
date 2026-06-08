@@ -12,7 +12,7 @@ public class GameUIController : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private bool forceMobileUI = true; // Enabled by default in Editor for testing
-    private bool useSwipeMode = false; // Toggle between swipe/drag and on-screen buttons
+    private bool useSwipeMode = true; // Toggle between swipe/drag and on-screen buttons
 
     [Header("Candy Palette Colors")]
     public Color candyPink = new Color(1f, 0.482f, 0.773f, 1f); // #ff7bc5 (Bubblegum Pink)
@@ -134,6 +134,7 @@ public class GameUIController : MonoBehaviour
         FindDriver();
         EnhanceDeliveryZone();
         CreateNavigationArrow();
+        DisableNonInteractiveRaycasts();
 
         // Start game in main menu state (paused)
         SetGameState(true);
@@ -297,7 +298,7 @@ public class GameUIController : MonoBehaviour
         txtRect.anchoredPosition = Vector2.zero;
 
         TextMeshProUGUI toggleTxt = toggleTxtObj.AddComponent<TextMeshProUGUI>();
-        toggleTxt.text = "CONTROLE: BOTÕES";
+        toggleTxt.text = useSwipeMode ? "CONTROLE: DESLIZAR" : "CONTROLE: BOTÕES";
         toggleTxt.font = GetTMProFont();
         toggleTxt.fontSize = 22;
         toggleTxt.fontStyle = FontStyles.Bold;
@@ -922,73 +923,89 @@ public class GameUIController : MonoBehaviour
         RectTransform baseRect = joystickContainer.transform.Find("Base").GetComponent<RectTransform>();
 
         // Check touches for multi-touch support using new Input System's Touchscreen
-        bool foundJoystickTouch = false;
+        bool processedTouch = false;
         Touchscreen touchscreen = Touchscreen.current;
 
         if (touchscreen != null)
         {
-            // 1. If we are already dragging, check if this touch is our joystick touch
-            if (isDraggingJoystick && joystickFingerId >= 0)
+            // Check if there are any active touches (phase is not None)
+            bool hasActiveTouch = false;
+            for (int i = 0; i < touchscreen.touches.Count; i++)
             {
-                for (int i = 0; i < touchscreen.touches.Count; i++)
+                if (touchscreen.touches[i].phase.ReadValue() != UnityEngine.InputSystem.TouchPhase.None)
                 {
-                    var t = touchscreen.touches[i];
-                    var phase = t.phase.ReadValue();
-                    
-                    if (phase == UnityEngine.InputSystem.TouchPhase.None)
-                    {
-                        continue;
-                    }
-
-                    int tid = t.touchId.ReadValue();
-                    if (tid == joystickFingerId)
-                    {
-                        if (phase == UnityEngine.InputSystem.TouchPhase.Ended || phase == UnityEngine.InputSystem.TouchPhase.Canceled)
-                        {
-                            StopJoystickDrag(baseRect);
-                        }
-                        else
-                        {
-                            UpdateJoystickDrag(t.position.ReadValue(), t.delta.ReadValue(), baseRect);
-                        }
-                        foundJoystickTouch = true;
-                        break;
-                    }
-                }
-
-                if (!foundJoystickTouch)
-                {
-                    StopJoystickDrag(baseRect);
+                    hasActiveTouch = true;
+                    break;
                 }
             }
-            // 2. If we are NOT dragging, look for a new touch that is not over UI
-            else if (!isDraggingJoystick)
+
+            if (hasActiveTouch)
             {
-                for (int i = 0; i < touchscreen.touches.Count; i++)
+                // 1. If we are already dragging, check if this touch is our joystick touch
+                if (isDraggingJoystick && joystickFingerId >= 0)
                 {
-                    var t = touchscreen.touches[i];
-                    var phase = t.phase.ReadValue();
-                    
-                    if (phase == UnityEngine.InputSystem.TouchPhase.Began || phase == UnityEngine.InputSystem.TouchPhase.Moved || phase == UnityEngine.InputSystem.TouchPhase.Stationary)
+                    for (int i = 0; i < touchscreen.touches.Count; i++)
                     {
-                        Vector2 touchPos = t.position.ReadValue();
+                        var t = touchscreen.touches[i];
+                        var phase = t.phase.ReadValue();
                         
-                        // Check if touch is over UI buttons
-                        if (IsPointerOverUI(touchPos))
+                        if (phase == UnityEngine.InputSystem.TouchPhase.None)
                         {
                             continue;
                         }
 
                         int tid = t.touchId.ReadValue();
-                        StartJoystickDrag(touchPos, tid, baseRect);
-                        break;
+                        if (tid == joystickFingerId)
+                        {
+                            if (phase == UnityEngine.InputSystem.TouchPhase.Ended || phase == UnityEngine.InputSystem.TouchPhase.Canceled)
+                            {
+                                StopJoystickDrag(baseRect);
+                            }
+                            else
+                            {
+                                UpdateJoystickDrag(t.position.ReadValue(), t.delta.ReadValue(), baseRect);
+                            }
+                            processedTouch = true;
+                            break;
+                        }
+                    }
+
+                    if (!processedTouch)
+                    {
+                        StopJoystickDrag(baseRect);
+                    }
+                }
+                // 2. If we are NOT dragging, look for a new touch that is not over UI
+                else if (!isDraggingJoystick)
+                {
+                    for (int i = 0; i < touchscreen.touches.Count; i++)
+                    {
+                        var t = touchscreen.touches[i];
+                        var phase = t.phase.ReadValue();
+                        
+                        if (phase == UnityEngine.InputSystem.TouchPhase.Began || phase == UnityEngine.InputSystem.TouchPhase.Moved || phase == UnityEngine.InputSystem.TouchPhase.Stationary)
+                        {
+                            Vector2 touchPos = t.position.ReadValue();
+                            
+                            // Check if touch is over UI buttons
+                            if (IsPointerOverUI(touchPos))
+                            {
+                                continue;
+                            }
+
+                            int tid = t.touchId.ReadValue();
+                            StartJoystickDrag(touchPos, tid, baseRect);
+                            processedTouch = true;
+                            break;
+                        }
                     }
                 }
             }
         }
-        else
+
+        // If no touchscreen touch was processed, fall back to Mouse/Trackpad input
+        if (!processedTouch)
         {
-            // No touchscreen, fall back to Mouse input using the new Input System for testing in editor/browser
             Mouse mouse = Mouse.current;
             if (mouse != null)
             {
@@ -1375,5 +1392,36 @@ public class GameUIController : MonoBehaviour
             font = TMP_Settings.defaultFontAsset;
         }
         return font;
+    }
+
+    private void DisableNonInteractiveRaycasts()
+    {
+        Graphic[] graphics = FindObjectsOfType<Graphic>(true);
+        foreach (var graphic in graphics)
+        {
+            // Determine if the graphic is inside MenuPanel or GameOverPanel
+            bool isInsideMenuOrGameOver = false;
+            Transform parent = graphic.transform;
+            while (parent != null)
+            {
+                if (parent.name == "MenuPanel" || parent.name == "GameOverPanel")
+                {
+                    isInsideMenuOrGameOver = true;
+                    break;
+                }
+                parent = parent.parent;
+            }
+
+            if (!isInsideMenuOrGameOver &&
+                graphic.GetComponentInParent<Button>() == null &&
+                graphic.GetComponentInParent<EventTrigger>() == null &&
+                graphic.GetComponentInParent<TMP_InputField>() == null &&
+                !graphic.name.Contains("Joystick") &&
+                !graphic.name.Contains("Knob") &&
+                !graphic.name.Contains("Base"))
+            {
+                graphic.raycastTarget = false;
+            }
+        }
     }
 }
