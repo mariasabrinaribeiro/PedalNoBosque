@@ -44,42 +44,56 @@ public class driverpro : MonoBehaviour
     //bool correndo = false;
     int correndo = 0;
 
+    // Mobile inputs set by UI touch buttons
+    private float mobileMoveInput = 0f;
+    private float mobileSteerInput = 0f;
+
+    public void SetMobileMove(float val)
+    {
+        mobileMoveInput = val;
+    }
+
+    public void SetMobileSteer(float val)
+    {
+        mobileSteerInput = val;
+    }
+
     // Update is called once per frame
     void Update()
     {
         float steer = 0f;
         float move = 0f;
 
-        if (Keyboard.current.wKey.isPressed)
+        if (Keyboard.current != null)
         {
-            move = 1f;
-            //correndo++;// = true;
-        }
-        else if (Keyboard.current.sKey.isPressed)
-        {
-            move=-1;
-            //correndo--;// = false;
-        }
-        if (Keyboard.current.aKey.isPressed)
-        {
-            steer = 1f;
-        }
-        else if (Keyboard.current.dKey.isPressed)
-        {
-            steer = -1f;
+            if (Keyboard.current.wKey.isPressed)
+            {
+                move = 1f;
+            }
+            else if (Keyboard.current.sKey.isPressed)
+            {
+                move = -1f;
+            }
+
+            if (Keyboard.current.aKey.isPressed)
+            {
+                steer = 1f;
+            }
+            else if (Keyboard.current.dKey.isPressed)
+            {
+                steer = -1f;
+            }
         }
 
-       
-            //move = correndo * 0.01f;        
+        // Combine inputs and clamp them
+        move = Mathf.Clamp(move + mobileMoveInput, -1f, 1f);
+        steer = Mathf.Clamp(steer + mobileSteerInput, -1f, 1f);
 
         float moveAmount = move * currentSpeed * Time.deltaTime;
-    float steerAmount = steer * steerSpeed * Time.deltaTime;
-//float steerAmount = steer * steerSpeed * Time.deltaTime * (correndo * 0.1f); // Só vira se estiver movendo!
-        //rotate é o que da a direcao que o objeto esta olhando
-        transform.Translate(0,moveAmount, 0);
-        transform.Rotate(0, 0, steerAmount );
+        float steerAmount = steer * steerSpeed * Time.deltaTime;
 
-        //translate é o que move o objeto
-     
+        // Translate moves the object, rotate rotates it
+        transform.Translate(0, moveAmount, 0);
+        transform.Rotate(0, 0, steerAmount);
     }
 }
