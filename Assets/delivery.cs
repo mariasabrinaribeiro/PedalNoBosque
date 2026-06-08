@@ -2,32 +2,60 @@ using UnityEngine;
 
 public class Delivery : MonoBehaviour
 {
-    bool hasPackage;
-    [SerializeField] float delay = 1f;
+    [SerializeField] float delay = 0.2f;
+    private driverpro driver;
+
+    void Start()
+    {
+        driver = GetComponent<driverpro>();
+    }
 
     void OnTriggerEnter2D(Collider2D collision)
     {
-
-        // if (the tag is package)
-        //then ("print picked up package")
-        if (collision.CompareTag("package") && !hasPackage)
-
+        if (collision.CompareTag("package"))
         {
-
-            Debug.Log("Pickep up package");
-            hasPackage = true;
-            GetComponent<ParticleSystem>().Play();
-            Destroy(collision.gameObject, delay);
-        }
-        if (collision.CompareTag("Customer") && hasPackage)
+            if (driver != null)
             {
-            Debug.Log("Deliveredpackage");
-            hasPackage = false;
-            GetComponent<ParticleSystem>().Stop();
-            Destroy(collision.gameObject);
-        }
+                if (driver.cargo < driver.maxCargo)
+                {
+                    driver.cargo++;
+                    Debug.Log("Picked up package. Cargo: " + driver.cargo);
 
-        
+                    ParticleSystem ps = GetComponent<ParticleSystem>();
+                    if (ps != null) ps.Play();
+
+                    Destroy(collision.gameObject, delay);
+                }
+                else
+                {
+                    GameUIController ui = FindObjectOfType<GameUIController>();
+                    if (ui != null)
+                    {
+                        ui.ShowWarning("CARGA CHEIA! VÁ ATÉ A CASA ROSA!");
+                    }
+                }
+            }
+        }
+        else if (collision.CompareTag("Customer"))
+        {
+            if (driver != null && driver.cargo > 0)
+            {
+                int itemsDelivered = driver.cargo;
+                driver.score += itemsDelivered * 50;
+                driver.cargo = 0;
+
+                Debug.Log("Delivered " + itemsDelivered + " packages. Score: " + driver.score);
+
+                ParticleSystem ps = GetComponent<ParticleSystem>();
+                if (ps != null) ps.Play();
+
+                // Show delivery message in HUD
+                GameUIController ui = FindObjectOfType<GameUIController>();
+                if (ui != null)
+                {
+                    ui.ShowDeliveryMessage("ENTREGUE! +" + (itemsDelivered * 50) + " PONTOS");
+                }
+            }
+        }
     }
-   
 }

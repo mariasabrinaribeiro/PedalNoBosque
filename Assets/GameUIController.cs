@@ -7,14 +7,18 @@ using TMPro;
 
 public class GameUIController : MonoBehaviour
 {
+    public static GameUIController Instance { get; private set; }
+
     [Header("Settings")]
     [SerializeField] private bool forceMobileUI = true; // Enabled by default in Editor for testing
+    private bool useSwipeMode = false; // Toggle between swipe/drag and on-screen buttons
 
     [Header("Candy Palette Colors")]
     public Color candyPink = new Color(1f, 0.482f, 0.773f, 1f); // #ff7bc5 (Bubblegum Pink)
     public Color candyPurple = new Color(0.368f, 0.235f, 0.502f, 1f); // #5e3c80 (Dark Theme Purple)
     public Color candyLightPurple = new Color(0.545f, 0.373f, 0.663f, 1f); // #8b5fa9 (Light Purple)
     public Color shadowColor = new Color(0.2f, 0.118f, 0.294f, 0.5f); // Deep semi-transparent shadow
+    public Color candyGreen = new Color(0.4f, 0.9f, 0.6f, 1f); // For score rewards
 
     private Transform playButton;
     private Transform pauseButton;
@@ -22,23 +26,41 @@ public class GameUIController : MonoBehaviour
     private Canvas mainCanvas;
     private driverpro carDriver;
 
-    // Mobile inputs state
+    // Mobile inputs state (for buttons mode)
     private bool isLeftPressed = false;
     private bool isRightPressed = false;
     private bool isForwardPressed = false;
     private bool isReversePressed = false;
 
-    private List<GameObject> mobileHUDButtons = new List<GameObject>();
+    // UI elements references
     private GameObject menuPanel;
+    private GameObject hudPanel;
+    private GameObject gameOverPanel;
+    private GameObject joystickContainer;
+    private RectTransform joystickKnob;
+    private TextMeshProUGUI warningText;
+    private float warningFadeTime = -1f;
+
+    // HUD child references
+    private Slider healthSlider;
+    private TextMeshProUGUI cargoText;
+    private TextMeshProUGUI scoreText;
+
+    // Navigation Pointer
+    private GameObject navArrow;
+    private SpriteRenderer navArrowSR;
+
+    private List<GameObject> mobileHUDButtons = new List<GameObject>();
+    private Vector2 startTouchPos;
+    private bool isDraggingJoystick = false;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void OnSceneLoaded()
     {
-        // Find if there is a Canvas in the scene
         Canvas canvas = FindObjectOfType<Canvas>();
         if (canvas == null) return;
 
-        // Check if this is the scene containing the menu buttons
+        // Check if this is the gameplay scene (has Play, Pause, or Exit buttons)
         Transform play = canvas.transform.Find("Play");
         Transform pause = canvas.transform.Find("Pause");
         Transform exit = canvas.transform.Find("Exit");
@@ -50,13 +72,33 @@ public class GameUIController : MonoBehaviour
             {
                 controllerObj = new GameObject("GameUIController");
                 controllerObj.AddComponent<GameUIController>();
+                controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
             }
         }
     }
 
     private void Awake()
     {
-        // Ensure EventSystem exists so buttons are clickable
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+
+        // Copy sprites to Resources dynamically in editor
+#if UNITY_EDITOR
+        string resourcesDir = Application.dataPath + "/Resources";
+        if (!System.IO.Directory.Exists(resourcesDir))
+        {
+            System.IO.Directory.CreateDirectory(resourcesDir);
+        }
+        // Copy pink house sprite
+        string srcHouse = Application.dataPath + "/GameDev.tv - Delivery Dash Assets/Houses/house3frontpink.png";
+        string destHouse = resourcesDir + "/house3frontpink.png";
+        if (System.IO.File.Exists(srcHouse) && !System.IO.File.Exists(destHouse))
+        {
+            System.IO.File.Copy(srcHouse, destHouse);
+            UnityEditor.AssetDatabase.Refresh();
+        }
+#endif
+
         if (FindObjectOfType<EventSystem>() == null)
         {
             GameObject eventSystem = new GameObject("EventSystem");
@@ -70,20 +112,46 @@ public class GameUIController : MonoBehaviour
     private void Start()
     {
         FindDriver();
+        EnhanceDeliveryZone();
+        CreateNavigationArrow();
+
         // Start game in main menu state (paused)
         SetGameState(true);
     }
 
     private void Update()
     {
-        // Update driver inputs from mobile buttons
-        if (carDriver != null)
+        if (carDriver == null) return;
+
+        // 1. Update HUD stats
+        if (healthSlider != null) healthSlider.value = carDriver.health;
+        if (cargoText != null) cargoText.text = "SORVETES: " + carDriver.cargo + " / " + carDriver.maxCargo;
+        if (scoreText != null) scoreText.text = "PONTOS: " + carDriver.score;
+
+        // 2. Handle Warning fadeout
+        if (warningText != null && Time.unscaledTime > warningFadeTime)
         {
-            float steer = (isLeftPressed ? 1f : 0f) + (isRightPressed ? -1f : 0f);
-            float move = (isForwardPressed ? 1f : 0f) + (isReversePressed ? -1f : 0f);
-            
-            carDriver.SetMobileSteer(steer);
-            carDriver.SetMobileMove(move);
+            warningText.text = "";
+        }
+
+        // 3. Handle Navigation Pointer
+        UpdateNavigationPointer();
+
+        // 4. Handle Mobile Touch/Swipe controls if enabled
+        if (Time.timeScale > 0.01f)
+        {
+            if (useSwipeMode)
+            {
+                HandleSwipeControls();
+            }
+            else
+            {
+                // Buttons mode logic
+                float steer = (isLeftPressed ? 1f : 0f) + (isRightPressed ? -1f : 0f);
+                float move = (isForwardPressed ? 1f : 0f) + (isReversePressed ? -1f : 0f);
+                carDriver.SetMobileSteer(steer);
+                carDriver.SetMobileMove(move);
+            }
         }
     }
 
@@ -97,33 +165,48 @@ public class GameUIController : MonoBehaviour
         mainCanvas = FindObjectOfType<Canvas>();
         if (mainCanvas == null) return;
 
-        // Force CanvasScaler to scale with screen size for responsive mobile layout
         CanvasScaler scaler = mainCanvas.GetComponent<CanvasScaler>();
         if (scaler == null) scaler = mainCanvas.gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1080, 1920); // Portrait or adaptive landscape
+        scaler.referenceResolution = new Vector2(1080, 1920);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
 
-        // Find buttons
+        // Find standard buttons in scene
         playButton = mainCanvas.transform.Find("Play");
         pauseButton = mainCanvas.transform.Find("Pause");
         exitButton = mainCanvas.transform.Find("Exit");
 
-        // Style existing buttons dynamically
+        // Style buttons
         StyleButton(playButton, "JOGAR", candyPink);
         StyleButton(pauseButton, "||", candyPink);
         StyleButton(exitButton, "SAIR", candyPink);
 
-        // Group Play and Exit in a centered menu panel
-        CreateMenuPanel();
-
-        // Spawn mobile control HUD if on mobile platform or forced in editor
-        bool isMobile = Application.isMobilePlatform || forceMobileUI;
-        if (isMobile)
+        // Remove the buggy "Game over" button parented to tree in the scene if it exists!
+        // This stops it from showing in world space. We find it by name.
+        GameObject buggyGameOver = GameObject.Find("tree2 (10)/Button");
+        if (buggyGameOver != null)
         {
-            SpawnMobileHUD();
+            Destroy(buggyGameOver);
         }
+        else
+        {
+            // Try to find any other world space Button named "Button"
+            GameObject worldButton = GameObject.Find("Button");
+            if (worldButton != null && worldButton.transform.parent != null && !worldButton.transform.parent.name.Contains("Canvas") && !worldButton.transform.parent.name.Contains("Panel"))
+            {
+                Destroy(worldButton);
+            }
+        }
+
+        // Create UI panels
+        CreateMenuPanel();
+        CreateHUDPanel();
+        CreateGameOverPanel();
+        CreateJoystickUI();
+
+        // Spawn mobile controls
+        SpawnMobileHUD();
     }
 
     private void CreateMenuPanel()
@@ -136,9 +219,8 @@ public class GameUIController : MonoBehaviour
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
-        panelRect.sizeDelta = new Vector2(500, 600);
+        panelRect.sizeDelta = new Vector2(600, 750);
 
-        // Add a beautiful semi-transparent purple panel background
         Image panelImage = menuPanel.AddComponent<Image>();
         panelImage.sprite = CreateRoundedRectSprite(400, 500, 32, new Color(0.368f, 0.235f, 0.502f, 0.85f), candyPink, 4, shadowColor);
         panelImage.type = Image.Type.Sliced;
@@ -148,35 +230,351 @@ public class GameUIController : MonoBehaviour
         {
             playButton.SetParent(menuPanel.transform, false);
             RectTransform playRect = playButton.GetComponent<RectTransform>();
-            playRect.anchoredPosition = new Vector2(0, 80);
-            playRect.sizeDelta = new Vector2(300, 90);
+            playRect.anchoredPosition = new Vector2(0, 120);
+            playRect.sizeDelta = new Vector2(350, 95);
         }
 
         if (exitButton != null)
         {
             exitButton.SetParent(menuPanel.transform, false);
             RectTransform exitRect = exitButton.GetComponent<RectTransform>();
-            exitRect.anchoredPosition = new Vector2(0, -80);
-            exitRect.sizeDelta = new Vector2(300, 90);
+            exitRect.anchoredPosition = new Vector2(0, -220);
+            exitRect.sizeDelta = new Vector2(350, 95);
         }
 
-        // Add a Title text to the menu
+        // Add Control mode toggle button
+        GameObject toggleBtnObj = new GameObject("BtnControlToggle");
+        toggleBtnObj.transform.SetParent(menuPanel.transform, false);
+        RectTransform toggleRect = toggleBtnObj.AddComponent<RectTransform>();
+        toggleRect.anchoredPosition = new Vector2(0, -50);
+        toggleRect.sizeDelta = new Vector2(350, 95);
+
+        Button toggleBtn = toggleBtnObj.AddComponent<Button>();
+        Image toggleImg = toggleBtnObj.AddComponent<Image>();
+        toggleImg.sprite = CreateRoundedRectSprite(350, 95, 20, candyLightPurple, candyPurple, 4, shadowColor);
+        toggleImg.type = Image.Type.Simple;
+
+        GameObject toggleTxtObj = new GameObject("Text");
+        toggleTxtObj.transform.SetParent(toggleBtnObj.transform, false);
+        RectTransform txtRect = toggleTxtObj.AddComponent<RectTransform>();
+        txtRect.sizeDelta = new Vector2(350, 95);
+        txtRect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI toggleTxt = toggleTxtObj.AddComponent<TextMeshProUGUI>();
+        toggleTxt.text = "CONTROLE: BOTÕES";
+        toggleTxt.font = GetTMProFont();
+        toggleTxt.fontSize = 22;
+        toggleTxt.fontStyle = FontStyles.Bold;
+        toggleTxt.alignment = TextAlignmentOptions.Center;
+        toggleTxt.color = Color.white;
+        toggleTxt.outlineColor = candyPurple;
+        toggleTxt.outlineWidth = 0.2f;
+
+        toggleBtn.onClick.AddListener(() => {
+            useSwipeMode = !useSwipeMode;
+            toggleTxt.text = useSwipeMode ? "CONTROLE: DESLIZAR" : "CONTROLE: BOTÕES";
+            // Refresh HUD layout
+            SetGameState(true);
+        });
+
+        AddJuicyAnimations(toggleBtnObj);
+
+        // Add Title Text
         GameObject titleObj = new GameObject("MenuTitle");
         titleObj.transform.SetParent(menuPanel.transform, false);
         RectTransform titleRect = titleObj.AddComponent<RectTransform>();
-        titleRect.anchoredPosition = new Vector2(0, 200);
-        titleRect.sizeDelta = new Vector2(400, 100);
+        titleRect.anchoredPosition = new Vector2(0, 260);
+        titleRect.sizeDelta = new Vector2(500, 100);
 
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         titleText.text = "CARRINHO DE SORVETE";
         titleText.font = GetTMProFont();
-        titleText.fontSize = 32;
+        titleText.fontSize = 36;
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.color = Color.white;
-
         titleText.outlineColor = candyPurple;
-        titleText.outlineWidth = 0.2f;
+        titleText.outlineWidth = 0.25f;
+    }
+
+    private void CreateHUDPanel()
+    {
+        hudPanel = new GameObject("HUDPanel");
+        hudPanel.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform rect = hudPanel.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0, -20);
+        rect.sizeDelta = new Vector2(950, 130);
+
+        Image img = hudPanel.AddComponent<Image>();
+        img.sprite = CreateRoundedRectSprite(950, 130, 24, new Color(0.368f, 0.235f, 0.502f, 0.8f), candyPink, 3, shadowColor);
+        img.type = Image.Type.Sliced;
+
+        // 1. Health slider (Slider de Vida)
+        GameObject sliderObj = new GameObject("HealthSlider");
+        sliderObj.transform.SetParent(hudPanel.transform, false);
+        RectTransform sliderRect = sliderObj.AddComponent<RectTransform>();
+        sliderRect.anchorMin = new Vector2(0f, 0.5f);
+        sliderRect.anchorMax = new Vector2(0f, 0.5f);
+        sliderRect.pivot = new Vector2(0f, 0.5f);
+        sliderRect.anchoredPosition = new Vector2(50, 0);
+        sliderRect.sizeDelta = new Vector2(250, 30);
+
+        healthSlider = sliderObj.AddComponent<Slider>();
+
+        GameObject bgObj = new GameObject("Background");
+        bgObj.transform.SetParent(sliderObj.transform, false);
+        RectTransform bgRect = bgObj.AddComponent<RectTransform>();
+        bgRect.sizeDelta = Vector2.zero; // Stretch
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        Image bgImg = bgObj.AddComponent<Image>();
+        bgImg.sprite = CreateRoundedRectSprite(250, 30, 8, candyPurple, candyPurple, 0, new Color(0,0,0,0));
+
+        GameObject fillArea = new GameObject("Fill Area");
+        fillArea.transform.SetParent(sliderObj.transform, false);
+        RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
+        fillAreaRect.anchorMin = Vector2.zero;
+        fillAreaRect.anchorMax = Vector2.one;
+        fillAreaRect.sizeDelta = Vector2.zero;
+
+        GameObject fillObj = new GameObject("Fill");
+        fillObj.transform.SetParent(fillArea.transform, false);
+        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
+        fillRect.sizeDelta = Vector2.zero;
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        Image fillImg = fillObj.AddComponent<Image>();
+        fillImg.sprite = CreateRoundedRectSprite(250, 30, 8, candyPink, candyPink, 0, new Color(0,0,0,0));
+
+        healthSlider.fillRect = fillRect;
+        healthSlider.minValue = 0;
+        healthSlider.maxValue = 100;
+        healthSlider.value = 100;
+
+        // Health text label
+        GameObject hpLabelObj = new GameObject("Label");
+        hpLabelObj.transform.SetParent(sliderObj.transform, false);
+        RectTransform hpLabelRect = hpLabelObj.AddComponent<RectTransform>();
+        hpLabelRect.anchoredPosition = new Vector2(0, 35);
+        hpLabelRect.sizeDelta = new Vector2(250, 40);
+        TextMeshProUGUI hpLabel = hpLabelObj.AddComponent<TextMeshProUGUI>();
+        hpLabel.text = "VIDA";
+        hpLabel.font = GetTMProFont();
+        hpLabel.fontSize = 20;
+        hpLabel.fontStyle = FontStyles.Bold;
+        hpLabel.alignment = TextAlignmentOptions.Left;
+        hpLabel.color = Color.white;
+        hpLabel.outlineColor = candyPurple;
+        hpLabel.outlineWidth = 0.2f;
+
+        // 2. Cargo Text
+        GameObject cargoObj = new GameObject("TxtCargo");
+        cargoObj.transform.SetParent(hudPanel.transform, false);
+        RectTransform cargoRect = cargoObj.AddComponent<RectTransform>();
+        cargoRect.anchorMin = new Vector2(0.5f, 0.5f);
+        cargoRect.anchorMax = new Vector2(0.5f, 0.5f);
+        cargoRect.pivot = new Vector2(0.5f, 0.5f);
+        cargoRect.anchoredPosition = new Vector2(-60, 0);
+        cargoRect.sizeDelta = new Vector2(300, 80);
+
+        cargoText = cargoObj.AddComponent<TextMeshProUGUI>();
+        cargoText.text = "SORVETES: 0 / 3";
+        cargoText.font = GetTMProFont();
+        cargoText.fontSize = 24;
+        cargoText.fontStyle = FontStyles.Bold;
+        cargoText.alignment = TextAlignmentOptions.Center;
+        cargoText.color = Color.white;
+        cargoText.outlineColor = candyPurple;
+        cargoText.outlineWidth = 0.2f;
+
+        // 3. Score Text
+        GameObject scoreObj = new GameObject("TxtScore");
+        scoreObj.transform.SetParent(hudPanel.transform, false);
+        RectTransform scoreRect = scoreObj.AddComponent<RectTransform>();
+        scoreRect.anchorMin = new Vector2(1f, 0.5f);
+        scoreRect.anchorMax = new Vector2(1f, 0.5f);
+        scoreRect.pivot = new Vector2(1f, 0.5f);
+        scoreRect.anchoredPosition = new Vector2(-50, 0);
+        scoreRect.sizeDelta = new Vector2(250, 80);
+
+        scoreText = scoreObj.AddComponent<TextMeshProUGUI>();
+        scoreText.text = "PONTOS: 0";
+        scoreText.font = GetTMProFont();
+        scoreText.fontSize = 24;
+        scoreText.fontStyle = FontStyles.Bold;
+        scoreText.alignment = TextAlignmentOptions.Right;
+        scoreText.color = Color.white;
+        scoreText.outlineColor = candyPurple;
+        scoreText.outlineWidth = 0.2f;
+
+        // 4. Center Screen Warning Text
+        GameObject warnObj = new GameObject("TxtWarning");
+        warnObj.transform.SetParent(mainCanvas.transform, false);
+        RectTransform warnRect = warnObj.AddComponent<RectTransform>();
+        warnRect.anchorMin = new Vector2(0.5f, 0.7f);
+        warnRect.anchorMax = new Vector2(0.5f, 0.7f);
+        warnRect.pivot = new Vector2(0.5f, 0.5f);
+        warnRect.anchoredPosition = Vector2.zero;
+        warnRect.sizeDelta = new Vector2(900, 150);
+
+        warningText = warnObj.AddComponent<TextMeshProUGUI>();
+        warningText.text = "";
+        warningText.font = GetTMProFont();
+        warningText.fontSize = 32;
+        warningText.fontStyle = FontStyles.Bold;
+        warningText.alignment = TextAlignmentOptions.Center;
+        warningText.color = candyPink;
+        warningText.outlineColor = candyPurple;
+        warningText.outlineWidth = 0.25f;
+    }
+
+    private void CreateGameOverPanel()
+    {
+        gameOverPanel = new GameObject("GameOverPanel");
+        gameOverPanel.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform panelRect = gameOverPanel.AddComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.anchoredPosition = Vector2.zero;
+        panelRect.sizeDelta = new Vector2(600, 750);
+
+        Image panelImage = gameOverPanel.AddComponent<Image>();
+        panelImage.sprite = CreateRoundedRectSprite(400, 500, 32, new Color(0.368f, 0.235f, 0.502f, 0.95f), candyPink, 4, shadowColor);
+        panelImage.type = Image.Type.Sliced;
+
+        // GameOver Title Text
+        GameObject titleObj = new GameObject("GameOverTitle");
+        titleObj.transform.SetParent(gameOverPanel.transform, false);
+        RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+        titleRect.anchoredPosition = new Vector2(0, 240);
+        titleRect.sizeDelta = new Vector2(500, 100);
+
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        titleText.text = "FIM DE JOGO";
+        titleText.font = GetTMProFont();
+        titleText.fontSize = 44;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = candyPink;
+        titleText.outlineColor = candyPurple;
+        titleText.outlineWidth = 0.25f;
+
+        // Score Text Label
+        GameObject scoreLabelObj = new GameObject("GameOverScore");
+        scoreLabelObj.transform.SetParent(gameOverPanel.transform, false);
+        RectTransform scoreLabelRect = scoreLabelObj.AddComponent<RectTransform>();
+        scoreLabelRect.anchoredPosition = new Vector2(0, 110);
+        scoreLabelRect.sizeDelta = new Vector2(500, 80);
+
+        TextMeshProUGUI scoreLabel = scoreLabelObj.AddComponent<TextMeshProUGUI>();
+        scoreLabel.text = "PONTUAÇÃO: 0";
+        scoreLabel.font = GetTMProFont();
+        scoreLabel.fontSize = 28;
+        scoreLabel.fontStyle = FontStyles.Bold;
+        scoreLabel.alignment = TextAlignmentOptions.Center;
+        scoreLabel.color = Color.white;
+        scoreLabel.outlineColor = candyPurple;
+        scoreLabel.outlineWidth = 0.2f;
+
+        // Restart button (RECOMEÇAR)
+        GameObject restartBtnObj = new GameObject("BtnRestart");
+        restartBtnObj.transform.SetParent(gameOverPanel.transform, false);
+        RectTransform restartRect = restartBtnObj.AddComponent<RectTransform>();
+        restartRect.anchoredPosition = new Vector2(0, -60);
+        restartRect.sizeDelta = new Vector2(350, 95);
+
+        Button restartBtn = restartBtnObj.AddComponent<Button>();
+        Image restartImg = restartBtnObj.AddComponent<Image>();
+        restartImg.sprite = CreateRoundedRectSprite(350, 95, 20, candyPink, candyPurple, 4, shadowColor);
+        restartImg.type = Image.Type.Simple;
+
+        GameObject restartTxtObj = new GameObject("Text");
+        restartTxtObj.transform.SetParent(restartBtnObj.transform, false);
+        RectTransform restartTxtRect = restartTxtObj.AddComponent<RectTransform>();
+        restartTxtRect.sizeDelta = new Vector2(350, 95);
+        restartTxtRect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI restartTxt = restartTxtObj.AddComponent<TextMeshProUGUI>();
+        restartTxt.text = "RECOMEÇAR";
+        restartTxt.font = GetTMProFont();
+        restartTxt.fontSize = 24;
+        restartTxt.fontStyle = FontStyles.Bold;
+        restartTxt.alignment = TextAlignmentOptions.Center;
+        restartTxt.color = Color.white;
+        restartTxt.outlineColor = candyPurple;
+        restartTxt.outlineWidth = 0.2f;
+
+        restartBtn.onClick.AddListener(() => RestartLevel());
+        AddJuicyAnimations(restartBtnObj);
+
+        // Exit button (SAIR)
+        GameObject exitBtnObj = new GameObject("BtnGameOverExit");
+        exitBtnObj.transform.SetParent(gameOverPanel.transform, false);
+        RectTransform exitRect = exitBtnObj.AddComponent<RectTransform>();
+        exitRect.anchoredPosition = new Vector2(0, -200);
+        exitRect.sizeDelta = new Vector2(350, 95);
+
+        Button exitBtn = exitBtnObj.AddComponent<Button>();
+        Image exitImg = exitBtnObj.AddComponent<Image>();
+        exitImg.sprite = CreateRoundedRectSprite(350, 95, 20, candyLightPurple, candyPurple, 4, shadowColor);
+        exitImg.type = Image.Type.Simple;
+
+        GameObject exitTxtObj = new GameObject("Text");
+        exitTxtObj.transform.SetParent(exitBtnObj.transform, false);
+        RectTransform exitTxtRect = exitTxtObj.AddComponent<RectTransform>();
+        exitTxtRect.sizeDelta = new Vector2(350, 95);
+        exitTxtRect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI exitTxt = exitTxtObj.AddComponent<TextMeshProUGUI>();
+        exitTxt.text = "SAIR";
+        exitTxt.font = GetTMProFont();
+        exitTxt.fontSize = 24;
+        exitTxt.fontStyle = FontStyles.Bold;
+        exitTxt.alignment = TextAlignmentOptions.Center;
+        exitTxt.color = Color.white;
+        exitTxt.outlineColor = candyPurple;
+        exitTxt.outlineWidth = 0.2f;
+
+        exitBtn.onClick.AddListener(() => QuitGame());
+        AddJuicyAnimations(exitBtnObj);
+
+        gameOverPanel.SetActive(false);
+    }
+
+    private void CreateJoystickUI()
+    {
+        joystickContainer = new GameObject("JoystickContainer");
+        joystickContainer.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform containerRect = joystickContainer.AddComponent<RectTransform>();
+        containerRect.anchorMin = Vector2.zero;
+        containerRect.anchorMax = Vector2.one;
+        containerRect.sizeDelta = Vector2.zero; // Fullscreen touch capture area
+
+        // Visual Joystick Base
+        GameObject baseObj = new GameObject("Base");
+        baseObj.transform.SetParent(joystickContainer.transform, false);
+        RectTransform baseRect = baseObj.AddComponent<RectTransform>();
+        baseRect.sizeDelta = new Vector2(180, 180);
+        Image baseImg = baseObj.AddComponent<Image>();
+        baseImg.sprite = CreateRoundedRectSprite(180, 180, 90, new Color(0.368f, 0.235f, 0.502f, 0.4f), candyPink, 3, new Color(0,0,0,0));
+
+        // Visual Joystick Knob
+        GameObject knobObj = new GameObject("Knob");
+        knobObj.transform.SetParent(baseObj.transform, false);
+        joystickKnob = knobObj.AddComponent<RectTransform>();
+        joystickKnob.sizeDelta = new Vector2(80, 80);
+        joystickKnob.anchoredPosition = Vector2.zero;
+        Image knobImg = knobObj.AddComponent<Image>();
+        knobImg.sprite = CreateRoundedRectSprite(80, 80, 40, candyPink, candyPurple, 2, new Color(0,0,0,0));
+
+        joystickContainer.SetActive(false);
     }
 
     private void StyleButton(Transform btnTrans, string labelText, Color buttonColor)
@@ -189,11 +587,9 @@ public class GameUIController : MonoBehaviour
         Image img = btnTrans.GetComponent<Image>();
         if (img == null) img = btnTrans.gameObject.AddComponent<Image>();
 
-        // Apply our custom generated procedural sprite
         img.sprite = CreateRoundedRectSprite(300, 90, 20, buttonColor, candyPurple, 4, shadowColor);
         img.type = Image.Type.Simple;
 
-        // Configure button transitions (juicy tinting)
         button.transition = Button.Transition.ColorTint;
         ColorBlock colors = button.colors;
         colors.normalColor = Color.white;
@@ -202,36 +598,31 @@ public class GameUIController : MonoBehaviour
         colors.selectedColor = Color.white;
         button.colors = colors;
 
-        // Dynamic Text styling
         Text txt = btnTrans.GetComponentInChildren<Text>();
-        if (txt != null)
-        {
-            txt.text = labelText;
-            txt.fontSize = 24;
-            txt.fontStyle = FontStyle.Bold;
-            txt.color = Color.white;
-            txt.alignment = TextAnchor.MiddleCenter;
+        if (txt != null) Destroy(txt.gameObject); // replace with TMP
 
-            // Add drop shadow
-            Outline outline = txt.gameObject.GetComponent<Outline>();
-            if (outline == null) outline = txt.gameObject.AddComponent<Outline>();
-            outline.effectColor = candyPurple;
-            outline.effectDistance = new Vector2(2, -2);
-        }
-        else
+        TextMeshProUGUI tmpTxt = btnTrans.GetComponentInChildren<TextMeshProUGUI>();
+        if (tmpTxt == null)
         {
-            TMP_Text tmpTxt = btnTrans.GetComponentInChildren<TMP_Text>();
-            if (tmpTxt != null)
-            {
-                tmpTxt.text = labelText;
-                tmpTxt.fontSize = 24;
-                tmpTxt.color = Color.white;
-                tmpTxt.alignment = TextAlignmentOptions.Center;
-                tmpTxt.fontStyle = FontStyles.Bold;
-            }
+            GameObject tObj = new GameObject("TextTMP");
+            tObj.transform.SetParent(btnTrans, false);
+            RectTransform tr = tObj.AddComponent<RectTransform>();
+            tr.sizeDelta = btnTrans.GetComponent<RectTransform>().sizeDelta;
+            tr.anchoredPosition = Vector2.zero;
+
+            tmpTxt = tObj.AddComponent<TextMeshProUGUI>();
         }
 
-        // Setup click events
+        tmpTxt.text = labelText;
+        tmpTxt.fontSize = 24;
+        tmpTxt.color = Color.white;
+        tmpTxt.alignment = TextAlignmentOptions.Center;
+        tmpTxt.fontStyle = FontStyles.Bold;
+        tmpTxt.font = GetTMProFont();
+        tmpTxt.outlineColor = candyPurple;
+        tmpTxt.outlineWidth = 0.2f;
+
+        // Click listeners
         button.onClick.RemoveAllListeners();
         if (btnTrans.name == "Play")
         {
@@ -246,7 +637,6 @@ public class GameUIController : MonoBehaviour
             button.onClick.AddListener(() => QuitGame());
         }
 
-        // Add micro-animations (bounce on hover and press)
         AddJuicyAnimations(btnTrans.gameObject);
     }
 
@@ -255,25 +645,21 @@ public class GameUIController : MonoBehaviour
         EventTrigger trigger = btnObj.GetComponent<EventTrigger>();
         if (trigger == null) trigger = btnObj.AddComponent<EventTrigger>();
 
-        // On pointer enter, scale up
         EventTrigger.Entry enter = new EventTrigger.Entry();
         enter.eventID = EventTriggerType.PointerEnter;
         enter.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one * 1.08f; });
         trigger.triggers.Add(enter);
 
-        // On pointer exit, scale back to normal
         EventTrigger.Entry exit = new EventTrigger.Entry();
         exit.eventID = EventTriggerType.PointerExit;
         exit.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one; });
         trigger.triggers.Add(exit);
 
-        // On pointer down, squeeze a bit
         EventTrigger.Entry down = new EventTrigger.Entry();
         down.eventID = EventTriggerType.PointerDown;
         down.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one * 0.95f; });
         trigger.triggers.Add(down);
 
-        // On pointer up, restore hover scale
         EventTrigger.Entry up = new EventTrigger.Entry();
         up.eventID = EventTriggerType.PointerUp;
         up.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one * 1.08f; });
@@ -282,13 +668,13 @@ public class GameUIController : MonoBehaviour
 
     private void SetGameState(bool isPaused)
     {
-        // Manage active states
         if (menuPanel != null) menuPanel.SetActive(isPaused);
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        if (hudPanel != null) hudPanel.SetActive(!isPaused);
+
         if (pauseButton != null)
         {
             pauseButton.gameObject.SetActive(!isPaused);
-            
-            // Re-anchor pause button to top-right corner, out of way
             RectTransform pauseRect = pauseButton.GetComponent<RectTransform>();
             pauseRect.anchorMin = new Vector2(1, 1);
             pauseRect.anchorMax = new Vector2(1, 1);
@@ -297,14 +683,55 @@ public class GameUIController : MonoBehaviour
             pauseRect.sizeDelta = new Vector2(80, 80);
         }
 
-        // Show/hide mobile HUD
+        // Handle mobile HUD visibility
+        bool isMobile = Application.isMobilePlatform || forceMobileUI;
+        bool showButtonsHUD = isMobile && !useSwipeMode && !isPaused;
+
         foreach (var hudBtn in mobileHUDButtons)
         {
-            hudBtn.SetActive(!isPaused);
+            hudBtn.SetActive(showButtonsHUD);
         }
 
-        // Set timescale
+        // Hide joystick when paused
+        if (joystickContainer != null)
+        {
+            joystickContainer.SetActive(false);
+            isDraggingJoystick = false;
+        }
+
         Time.timeScale = isPaused ? 0f : 1f;
+    }
+
+    public void ShowGameOver()
+    {
+        Time.timeScale = 0f;
+
+        if (hudPanel != null) hudPanel.SetActive(false);
+        if (menuPanel != null) menuPanel.SetActive(false);
+        if (pauseButton != null) pauseButton.gameObject.SetActive(false);
+
+        foreach (var hudBtn in mobileHUDButtons)
+        {
+            hudBtn.SetActive(false);
+        }
+
+        if (joystickContainer != null) joystickContainer.SetActive(false);
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+            TextMeshProUGUI finalScoreText = gameOverPanel.transform.Find("GameOverScore").GetComponent<TextMeshProUGUI>();
+            if (finalScoreText != null && carDriver != null)
+            {
+                finalScoreText.text = "PONTUAÇÃO FINAL: " + carDriver.score;
+            }
+        }
+    }
+
+    private void RestartLevel()
+    {
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
     }
 
     private void QuitGame()
@@ -316,27 +743,49 @@ public class GameUIController : MonoBehaviour
 #endif
     }
 
+    public void ShowWarning(string msg)
+    {
+        if (warningText != null)
+        {
+            warningText.text = msg;
+            warningText.color = candyPink;
+            warningFadeTime = Time.unscaledTime + 2f;
+        }
+    }
+
+    public void ShowDeliveryMessage(string msg)
+    {
+        if (warningText != null)
+        {
+            warningText.text = msg;
+            warningText.color = candyGreen;
+            warningFadeTime = Time.unscaledTime + 2.5f;
+        }
+    }
+
     private void SpawnMobileHUD()
     {
-        // Create Left button
+        // Spawns Left, Right, Accelerate, Reverse, and Shoot buttons
         GameObject leftBtn = CreateHUDButton("BtnLeft", "◀", new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(80, 80), 120, 120);
         AddHUDEvent(leftBtn, (pressed) => isLeftPressed = pressed);
         mobileHUDButtons.Add(leftBtn);
 
-        // Create Right button
         GameObject rightBtn = CreateHUDButton("BtnRight", "▶", new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(220, 80), 120, 120);
         AddHUDEvent(rightBtn, (pressed) => isRightPressed = pressed);
         mobileHUDButtons.Add(rightBtn);
 
-        // Create Accelerate button
         GameObject accelBtn = CreateHUDButton("BtnAccelerate", "▲", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, 80), 120, 120);
         AddHUDEvent(accelBtn, (pressed) => isForwardPressed = pressed);
         mobileHUDButtons.Add(accelBtn);
 
-        // Create Reverse button
         GameObject revBtn = CreateHUDButton("BtnReverse", "▼", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-80, 80), 120, 120);
         AddHUDEvent(revBtn, (pressed) => isReversePressed = pressed);
         mobileHUDButtons.Add(revBtn);
+
+        // ATIRAR (Shoot) button placed on the right side above drive buttons
+        GameObject shootBtn = CreateHUDButton("BtnShoot", "🎯", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-150, 230), 140, 140);
+        AddHUDShootEvent(shootBtn);
+        mobileHUDButtons.Add(shootBtn);
     }
 
     private GameObject CreateHUDButton(string name, string text, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPos, float width, float height)
@@ -352,8 +801,8 @@ public class GameUIController : MonoBehaviour
         rect.sizeDelta = new Vector2(width, height);
 
         Image img = btnObj.AddComponent<Image>();
-        Color semiTransPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.6f); // Semi-transparent for overlay
-        img.sprite = CreateRoundedRectSprite((int)width, (int)height, 24, semiTransPink, candyPurple, 4, new Color(0, 0, 0, 0));
+        Color semiTransPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.65f);
+        img.sprite = CreateRoundedRectSprite((int)width, (int)height, 24, semiTransPink, candyPurple, 4, new Color(0,0,0,0));
         img.type = Image.Type.Simple;
 
         GameObject txtObj = new GameObject("Text");
@@ -369,12 +818,10 @@ public class GameUIController : MonoBehaviour
         txt.fontStyle = FontStyles.Bold;
         txt.alignment = TextAlignmentOptions.Center;
         txt.color = Color.white;
-
         txt.outlineColor = candyPurple;
         txt.outlineWidth = 0.2f;
 
-        btnObj.AddComponent<CanvasGroup>(); // Required for pointer handling in Canvas
-
+        btnObj.AddComponent<CanvasGroup>();
         AddJuicyAnimations(btnObj);
 
         return btnObj;
@@ -401,11 +848,237 @@ public class GameUIController : MonoBehaviour
         trigger.triggers.Add(exit);
     }
 
-    // Mathematical rounded rect texture generator
+    private void AddHUDShootEvent(GameObject btnObj)
+    {
+        EventTrigger trigger = btnObj.GetComponent<EventTrigger>();
+        if (trigger == null) trigger = btnObj.AddComponent<EventTrigger>();
+
+        EventTrigger.Entry down = new EventTrigger.Entry();
+        down.eventID = EventTriggerType.PointerDown;
+        down.callback.AddListener((data) => { if (carDriver != null) carDriver.SetMobileShoot(true); });
+        trigger.triggers.Add(down);
+
+        EventTrigger.Entry up = new EventTrigger.Entry();
+        up.eventID = EventTriggerType.PointerUp;
+        up.callback.AddListener((data) => { if (carDriver != null) carDriver.SetMobileShoot(false); });
+        trigger.triggers.Add(up);
+
+        EventTrigger.Entry exit = new EventTrigger.Entry();
+        exit.eventID = EventTriggerType.PointerExit;
+        exit.callback.AddListener((data) => { if (carDriver != null) carDriver.SetMobileShoot(false); });
+        trigger.triggers.Add(exit);
+    }
+
+    private void HandleSwipeControls()
+    {
+        // Display visual touch area container when playing
+        if (!joystickContainer.activeSelf)
+        {
+            joystickContainer.SetActive(true);
+        }
+
+        Vector2 touchPos = Vector2.zero;
+        bool touchStarted = false;
+        bool touchHeld = false;
+        bool touchEnded = false;
+
+        // Support both mouse (editor) and actual touch inputs
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+            touchPos = touch.position;
+            if (touch.phase == TouchPhase.Began) touchStarted = true;
+            if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary) touchHeld = true;
+            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) touchEnded = true;
+        }
+        else
+        {
+            touchPos = Input.mousePosition;
+            if (Input.GetMouseButtonDown(0)) touchStarted = true;
+            if (Input.GetMouseButton(0)) touchHeld = true;
+            if (Input.GetMouseButtonUp(0)) touchEnded = true;
+        }
+
+        // Joystick control logic
+        RectTransform baseRect = joystickContainer.transform.Find("Base").GetComponent<RectTransform>();
+
+        if (touchStarted)
+        {
+            // Position joystick base at the touch position
+            startTouchPos = touchPos;
+            baseRect.position = touchPos;
+            joystickKnob.anchoredPosition = Vector2.zero;
+            baseRect.gameObject.SetActive(true);
+            isDraggingJoystick = true;
+        }
+        else if (touchHeld && isDraggingJoystick)
+        {
+            Vector2 delta = touchPos - startTouchPos;
+            float maxDrag = 100f; // maximum displacement radius
+            Vector2 clampedDelta = Vector2.ClampMagnitude(delta, maxDrag);
+            joystickKnob.anchoredPosition = clampedDelta;
+
+            // Drive inputs map:
+            // steering (Left is positive steer in driverpro, Right is negative steer)
+            float steer = -Mathf.Clamp(clampedDelta.x / maxDrag, -1f, 1f);
+            // speed (Up is positive, Down is negative)
+            float move = Mathf.Clamp(clampedDelta.y / maxDrag, -1f, 1f);
+
+            carDriver.SetMobileSteer(steer);
+            carDriver.SetMobileMove(move);
+        }
+        else if (touchEnded)
+        {
+            baseRect.gameObject.SetActive(false);
+            isDraggingJoystick = false;
+            
+            // Reset inputs
+            carDriver.SetMobileSteer(0f);
+            carDriver.SetMobileMove(0f);
+        }
+    }
+
+    private void EnhanceDeliveryZone()
+    {
+        // Replaces the grass block with a candy house at start
+        GameObject[] customers = GameObject.FindGameObjectsWithTag("Customer");
+        Sprite candyHouseSprite = Resources.Load<Sprite>("house3frontpink");
+
+        foreach (GameObject cust in customers)
+        {
+            SpriteRenderer sr = cust.GetComponent<SpriteRenderer>();
+            if (sr != null && candyHouseSprite != null)
+            {
+                sr.sprite = candyHouseSprite;
+                cust.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
+            }
+
+            // Spawn dynamic glowing candy circle under it
+            GameObject matObj = new GameObject("CandyDeliveryZoneMat");
+            matObj.transform.SetParent(cust.transform, false);
+            matObj.transform.localPosition = new Vector3(0, -0.6f, 0); // front door
+            matObj.transform.localScale = new Vector3(1.2f, 1.2f, 1f);
+
+            SpriteRenderer matSR = matObj.AddComponent<SpriteRenderer>();
+            Color semiPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.45f);
+            matSR.sprite = CreateRoundedRectSprite(160, 80, 20, semiPink, candyPurple, 4, new Color(0,0,0,0));
+            matSR.sortingOrder = 1;
+
+            // Create floating unload world-space canvas text
+            GameObject cObj = new GameObject("UnloadWorldCanvas");
+            cObj.transform.SetParent(cust.transform, false);
+            cObj.transform.localPosition = new Vector3(0, 1.5f, 0);
+            cObj.transform.localScale = new Vector3(0.015f, 0.015f, 1f); // scale down World Canvas
+
+            Canvas worldCanvas = cObj.AddComponent<Canvas>();
+            worldCanvas.renderMode = RenderMode.WorldSpace;
+            cObj.AddComponent<CanvasScaler>();
+
+            GameObject tObj = new GameObject("Text");
+            tObj.transform.SetParent(cObj.transform, false);
+            RectTransform tr = tObj.AddComponent<RectTransform>();
+            tr.sizeDelta = new Vector2(400, 100);
+            tr.anchoredPosition = Vector2.zero;
+
+            TextMeshProUGUI tmp = tObj.AddComponent<TextMeshProUGUI>();
+            tmp.text = "DESCARREGAR AQUI";
+            tmp.font = GetTMProFont();
+            tmp.fontSize = 28;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white;
+            tmp.outlineColor = candyPurple;
+            tmp.outlineWidth = 0.2f;
+        }
+    }
+
+    private void CreateNavigationArrow()
+    {
+        if (carDriver == null) return;
+
+        navArrow = new GameObject("NavPointerArrow");
+        navArrow.transform.SetParent(carDriver.transform, false);
+        navArrow.transform.localPosition = new Vector3(0, 1.4f, 0); // Orbiting offset ahead
+        navArrow.transform.localScale = Vector3.one * 0.7f;
+
+        navArrowSR = navArrow.AddComponent<SpriteRenderer>();
+        // Draw pixel-art arrow pointing UP
+        navArrowSR.sprite = CreateArrowSprite(48, 48, candyPink, candyPurple, 4);
+        navArrowSR.sortingOrder = 6;
+        navArrow.SetActive(false);
+    }
+
+    private void UpdateNavigationPointer()
+    {
+        if (carDriver == null || navArrow == null || Time.timeScale < 0.01f)
+        {
+            if (navArrow != null) navArrow.SetActive(false);
+            return;
+        }
+
+        GameObject target = null;
+
+        // If carrying cargo, point to the nearest delivery customer. Else point to nearest package.
+        if (carDriver.cargo > 0)
+        {
+            GameObject[] customers = GameObject.FindGameObjectsWithTag("Customer");
+            target = FindNearest(customers);
+            
+            // Set glowing hot pink for delivery pointer
+            navArrowSR.color = candyPink;
+        }
+        else
+        {
+            GameObject[] packages = GameObject.FindGameObjectsWithTag("package");
+            target = FindNearest(packages);
+            
+            // Set glowing yellow for pickup pointer
+            navArrowSR.color = new Color(1f, 0.9f, 0.2f, 1f);
+        }
+
+        if (target != null)
+        {
+            navArrow.SetActive(true);
+
+            Vector3 direction = target.transform.position - carDriver.transform.position;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f; // Subtract 90 since arrow sprite points UP
+
+            // Orbit positioning
+            navArrow.transform.position = carDriver.transform.position + direction.normalized * 1.5f;
+            navArrow.transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
+        else
+        {
+            navArrow.SetActive(false);
+        }
+    }
+
+    private GameObject FindNearest(GameObject[] targets)
+    {
+        if (targets == null || targets.Length == 0) return null;
+
+        GameObject nearest = null;
+        float minDist = Mathf.Infinity;
+        Vector3 playerPos = carDriver.transform.position;
+
+        foreach (GameObject t in targets)
+        {
+            if (t == null) continue;
+            float dist = Vector3.Distance(t.transform.position, playerPos);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearest = t;
+            }
+        }
+        return nearest;
+    }
+
+    // Dynamic sprite generators
     private Sprite CreateRoundedRectSprite(int width, int height, int cornerRadius, Color baseColor, Color borderColor, int borderWidth, Color shadowColor)
     {
         Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Point; // Keep pixel boundaries sharp!
+        tex.filterMode = FilterMode.Point;
 
         for (int y = 0; y < height; y++)
         {
@@ -416,16 +1089,12 @@ public class GameUIController : MonoBehaviour
         }
 
         int shadowOffset = 6;
-        
-        // 1. Draw shadow if color is not transparent
         if (shadowColor.a > 0.01f)
         {
             DrawRoundedRect(tex, shadowOffset, -shadowOffset, width, height, cornerRadius, shadowColor, shadowColor, 0);
         }
 
-        // 2. Draw main button rounded rectangle with border
         DrawRoundedRect(tex, 0, 0, width, height, cornerRadius, baseColor, borderColor, borderWidth);
-
         tex.Apply();
         return Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 100f);
     }
@@ -442,15 +1111,14 @@ public class GameUIController : MonoBehaviour
                 if (targetX < 0 || targetX >= tex.width || targetY < 0 || targetY >= tex.height)
                     continue;
 
-                // Check rounded corner bounds
                 bool inside = true;
-                if (x < r && y < r) // bottom-left
+                if (x < r && y < r)
                     inside = (x - r) * (x - r) + (y - r) * (y - r) <= r * r;
-                else if (x >= w - r && y < r) // bottom-right
+                else if (x >= w - r && y < r)
                     inside = (x - (w - r)) * (x - (w - r)) + (y - r) * (y - r) <= r * r;
-                else if (x < r && y >= h - r) // top-left
+                else if (x < r && y >= h - r)
                     inside = (x - r) * (x - r) + (y - (h - r)) * (y - (h - r)) <= r * r;
-                else if (x >= w - r && y >= h - r) // top-right
+                else if (x >= w - r && y >= h - r)
                     inside = (x - (w - r)) * (x - (w - r)) + (y - (h - r)) * (y - (h - r)) <= r * r;
 
                 if (inside)
@@ -478,11 +1146,87 @@ public class GameUIController : MonoBehaviour
                             if (!insideInner) isBorder = true;
                         }
                     }
-
                     tex.SetPixel(targetX, targetY, isBorder ? borderColor : fillColor);
                 }
             }
         }
+    }
+
+    private Sprite CreateArrowSprite(int w, int h, Color fillColor, Color borderColor, int borderWidth)
+    {
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                tex.SetPixel(x, y, Color.clear);
+            }
+        }
+
+        // Draw pixel arrow pointing UP
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                bool inside = false;
+                // Triangle top head
+                if (y >= h / 2)
+                {
+                    float ratio = (y - h / 2f) / (h / 2f);
+                    int halfW = Mathf.RoundToInt((1f - ratio) * (w / 2f));
+                    if (Mathf.Abs(x - w / 2) <= halfW)
+                    {
+                        inside = true;
+                    }
+                }
+                // Rect bottom stem
+                else
+                {
+                    int stemW = w / 6;
+                    if (Mathf.Abs(x - w / 2) <= stemW)
+                    {
+                        inside = true;
+                    }
+                }
+
+                if (inside)
+                {
+                    // Basic border outline check
+                    bool isBorder = false;
+                    if (borderWidth > 0)
+                    {
+                        if (y < borderWidth || y >= h - borderWidth || x < borderWidth || x >= w - borderWidth)
+                        {
+                            isBorder = true;
+                        }
+                        else
+                        {
+                            // Check stem boundaries
+                            int stemW = w / 6;
+                            if (y < h / 2 && (Mathf.Abs(x - w / 2) >= stemW - borderWidth))
+                            {
+                                isBorder = true;
+                            }
+                            // Check triangle boundaries
+                            else if (y >= h / 2)
+                            {
+                                float ratio = (y - h / 2f) / (h / 2f);
+                                int halfW = Mathf.RoundToInt((1f - ratio) * (w / 2f));
+                                if (Mathf.Abs(x - w / 2) >= halfW - borderWidth)
+                                {
+                                    isBorder = true;
+                                }
+                            }
+                        }
+                    }
+                    tex.SetPixel(x, y, isBorder ? borderColor : fillColor);
+                }
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
     }
 
     private TMP_FontAsset GetTMProFont()
