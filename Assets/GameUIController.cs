@@ -56,6 +56,11 @@ public class GameUIController : MonoBehaviour
     private bool isDraggingJoystick = false;
     private int joystickFingerId = -1; // -1 means not dragging. -2 means mouse drag.
 
+    private GameObject debugPanel;
+    private TextMeshProUGUI sliderLabel;
+    private TextMeshProUGUI logTextArea;
+    private List<string> debugLogs = new List<string>();
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void OnSceneLoaded()
     {
@@ -228,6 +233,9 @@ public class GameUIController : MonoBehaviour
 
         // Spawn mobile controls
         SpawnMobileHUD();
+
+        // Create Debug Console Panel
+        CreateDebugPanel();
     }
 
     private void CreateMenuPanel()
@@ -729,6 +737,10 @@ public class GameUIController : MonoBehaviour
             if (hudBtn.name == "BtnShoot")
             {
                 hudBtn.SetActive(isMobile && !isPaused);
+            }
+            else if (hudBtn.name == "BtnDebugToggle")
+            {
+                hudBtn.SetActive(!isPaused);
             }
             else
             {
@@ -1399,12 +1411,12 @@ public class GameUIController : MonoBehaviour
         Graphic[] graphics = FindObjectsOfType<Graphic>(true);
         foreach (var graphic in graphics)
         {
-            // Determine if the graphic is inside MenuPanel or GameOverPanel
+            // Determine if the graphic is inside MenuPanel, GameOverPanel, or DebugPanel
             bool isInsideMenuOrGameOver = false;
             Transform parent = graphic.transform;
             while (parent != null)
             {
-                if (parent.name == "MenuPanel" || parent.name == "GameOverPanel")
+                if (parent.name == "MenuPanel" || parent.name == "GameOverPanel" || parent.name == "DebugPanel")
                 {
                     isInsideMenuOrGameOver = true;
                     break;
@@ -1423,5 +1435,217 @@ public class GameUIController : MonoBehaviour
                 graphic.raycastTarget = false;
             }
         }
+    }
+
+    private void OnEnable()
+    {
+        Application.logMessageReceived += HandleLog;
+    }
+
+    private void OnDisable()
+    {
+        Application.logMessageReceived -= HandleLog;
+    }
+
+    private void HandleLog(string logString, string stackTrace, LogType type)
+    {
+        string color = "white";
+        if (type == LogType.Error || type == LogType.Exception) color = "#ff5555";
+        else if (type == LogType.Warning) color = "#ffcc00";
+
+        debugLogs.Add($"<color={color}>[{type}] {logString}</color>");
+        if (debugLogs.Count > 18)
+        {
+            debugLogs.RemoveAt(0);
+        }
+
+        UpdateLogText();
+    }
+
+    private void UpdateLogText()
+    {
+        if (logTextArea != null)
+        {
+            logTextArea.text = string.Join("\n", debugLogs);
+        }
+    }
+
+    private void CreateDebugPanel()
+    {
+        // 1. Create Debug Toggle Button
+        GameObject toggleBtnObj = CreateHUDButton("BtnDebugToggle", "DEBUG", new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(20, -180), 120, 60);
+        Image toggleImg = toggleBtnObj.GetComponent<Image>();
+        toggleImg.sprite = CreateRoundedRectSprite(120, 60, 12, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPurple, 2, new Color(0,0,0,0));
+        
+        Button btn = toggleBtnObj.GetComponent<Button>();
+        btn.onClick.RemoveAllListeners();
+        btn.onClick.AddListener(() => {
+            if (debugPanel != null)
+            {
+                debugPanel.SetActive(!debugPanel.activeSelf);
+                if (debugPanel.activeSelf && carDriver != null)
+                {
+                    Slider s = debugPanel.transform.Find("SensitivitySlider").GetComponent<Slider>();
+                    s.value = carDriver.GetSwipeSpeedMultiplier();
+                    sliderLabel.text = "SENSIBILIDADE: " + s.value.ToString("F1");
+                }
+            }
+        });
+        mobileHUDButtons.Add(toggleBtnObj);
+
+        // 2. Create Debug Panel (on the left side of the screen)
+        debugPanel = new GameObject("DebugPanel");
+        debugPanel.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform panelRect = debugPanel.AddComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0, 0.5f);
+        panelRect.anchorMax = new Vector2(0, 0.5f);
+        panelRect.pivot = new Vector2(0, 0.5f);
+        panelRect.anchoredPosition = new Vector2(20, 0);
+        panelRect.sizeDelta = new Vector2(480, 800);
+
+        Image panelImg = debugPanel.AddComponent<Image>();
+        panelImg.sprite = CreateRoundedRectSprite(480, 800, 24, new Color(0.15f, 0.1f, 0.2f, 0.95f), candyPink, 3, shadowColor);
+        panelImg.type = Image.Type.Sliced;
+
+        // Title text
+        GameObject titleObj = new GameObject("Title");
+        titleObj.transform.SetParent(debugPanel.transform, false);
+        RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+        titleRect.anchoredPosition = new Vector2(0, 350);
+        titleRect.sizeDelta = new Vector2(440, 50);
+
+        TextMeshProUGUI titleTxt = titleObj.AddComponent<TextMeshProUGUI>();
+        titleTxt.text = "PAINEL DE DEPURAÇÃO";
+        titleTxt.font = GetTMProFont();
+        titleTxt.fontSize = 24;
+        titleTxt.fontStyle = FontStyles.Bold;
+        titleTxt.alignment = TextAlignmentOptions.Center;
+        titleTxt.color = Color.white;
+
+        // Sensitivity Label
+        GameObject labelObj = new GameObject("SensitivityLabel");
+        labelObj.transform.SetParent(debugPanel.transform, false);
+        RectTransform labelRect = labelObj.AddComponent<RectTransform>();
+        labelRect.anchoredPosition = new Vector2(0, 280);
+        labelRect.sizeDelta = new Vector2(440, 40);
+
+        sliderLabel = labelObj.AddComponent<TextMeshProUGUI>();
+        sliderLabel.text = "SENSIBILIDADE: 6.5";
+        sliderLabel.font = GetTMProFont();
+        sliderLabel.fontSize = 20;
+        sliderLabel.fontStyle = FontStyles.Bold;
+        sliderLabel.alignment = TextAlignmentOptions.Center;
+        sliderLabel.color = candyPink;
+
+        // Slider
+        GameObject sliderObj = new GameObject("SensitivitySlider");
+        sliderObj.transform.SetParent(debugPanel.transform, false);
+        RectTransform sliderRect = sliderObj.AddComponent<RectTransform>();
+        sliderRect.anchoredPosition = new Vector2(0, 230);
+        sliderRect.sizeDelta = new Vector2(400, 30);
+
+        Slider slider = sliderObj.AddComponent<Slider>();
+
+        GameObject bgObj = new GameObject("Background");
+        bgObj.transform.SetParent(sliderObj.transform, false);
+        RectTransform bgRect = bgObj.AddComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.sizeDelta = Vector2.zero;
+        Image bgImg = bgObj.AddComponent<Image>();
+        bgImg.sprite = CreateRoundedRectSprite(400, 30, 8, candyPurple, candyPurple, 0, new Color(0,0,0,0));
+
+        GameObject fillArea = new GameObject("Fill Area");
+        fillArea.transform.SetParent(sliderObj.transform, false);
+        RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
+        fillAreaRect.anchorMin = Vector2.zero;
+        fillAreaRect.anchorMax = Vector2.one;
+        fillAreaRect.sizeDelta = Vector2.zero;
+
+        GameObject fillObj = new GameObject("Fill");
+        fillObj.transform.SetParent(fillArea.transform, false);
+        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.sizeDelta = Vector2.zero;
+        Image fillImg = fillObj.AddComponent<Image>();
+        fillImg.sprite = CreateRoundedRectSprite(400, 30, 8, candyPink, candyPink, 0, new Color(0,0,0,0));
+
+        GameObject handleArea = new GameObject("Handle Slide Area");
+        handleArea.transform.SetParent(sliderObj.transform, false);
+        RectTransform handleAreaRect = handleArea.AddComponent<RectTransform>();
+        handleAreaRect.anchorMin = Vector2.zero;
+        handleAreaRect.anchorMax = Vector2.one;
+        handleAreaRect.sizeDelta = Vector2.zero;
+
+        GameObject handleObj = new GameObject("Handle");
+        handleObj.transform.SetParent(handleArea.transform, false);
+        RectTransform handleRect = handleObj.AddComponent<RectTransform>();
+        handleRect.sizeDelta = new Vector2(40, 40);
+        Image handleImg = handleObj.AddComponent<Image>();
+        handleImg.sprite = CreateRoundedRectSprite(40, 40, 20, Color.white, candyPurple, 2, new Color(0,0,0,0));
+
+        slider.fillRect = fillRect;
+        slider.handleRect = handleRect;
+        slider.minValue = 1f;
+        slider.maxValue = 30f;
+        slider.value = 6.5f;
+
+        slider.onValueChanged.AddListener((val) => {
+            if (carDriver != null)
+            {
+                carDriver.SetSwipeSpeedMultiplier(val);
+            }
+            sliderLabel.text = "SENSIBILIDADE: " + val.ToString("F1");
+        });
+
+        // Console area title
+        GameObject consoleTitleObj = new GameObject("ConsoleTitle");
+        consoleTitleObj.transform.SetParent(debugPanel.transform, false);
+        RectTransform consoleTitleRect = consoleTitleObj.AddComponent<RectTransform>();
+        consoleTitleRect.anchoredPosition = new Vector2(0, 160);
+        consoleTitleRect.sizeDelta = new Vector2(440, 40);
+
+        TextMeshProUGUI consoleTitleTxt = consoleTitleObj.AddComponent<TextMeshProUGUI>();
+        consoleTitleTxt.text = "LOGS DO CONSOLE (ERROS):";
+        consoleTitleTxt.font = GetTMProFont();
+        consoleTitleTxt.fontSize = 18;
+        consoleTitleTxt.fontStyle = FontStyles.Bold;
+        consoleTitleTxt.alignment = TextAlignmentOptions.Left;
+        consoleTitleTxt.color = Color.white;
+
+        // Console background panel
+        GameObject consoleBgObj = new GameObject("ConsoleBackground");
+        consoleBgObj.transform.SetParent(debugPanel.transform, false);
+        RectTransform consoleBgRect = consoleBgObj.AddComponent<RectTransform>();
+        consoleBgRect.anchoredPosition = new Vector2(0, -110);
+        consoleBgRect.sizeDelta = new Vector2(440, 460);
+
+        Image consoleBgImg = consoleBgObj.AddComponent<Image>();
+        consoleBgImg.sprite = CreateRoundedRectSprite(440, 460, 12, new Color(0.08f, 0.05f, 0.12f, 0.9f), candyPurple, 2, new Color(0,0,0,0));
+
+        // Console Text
+        GameObject consoleTxtObj = new GameObject("ConsoleText");
+        consoleTxtObj.transform.SetParent(consoleBgObj.transform, false);
+        RectTransform consoleTxtRect = consoleTxtObj.AddComponent<RectTransform>();
+        consoleTxtRect.anchorMin = Vector2.zero;
+        consoleTxtRect.anchorMax = Vector2.one;
+        consoleTxtRect.sizeDelta = new Vector2(-20, -20);
+        consoleTxtRect.anchoredPosition = Vector2.zero;
+
+        logTextArea = consoleTxtObj.AddComponent<TextMeshProUGUI>();
+        logTextArea.font = GetTMProFont();
+        logTextArea.fontSize = 14;
+        logTextArea.alignment = TextAlignmentOptions.TopLeft;
+        logTextArea.color = Color.white;
+        logTextArea.overflowMode = TextOverflowModes.Masking;
+        logTextArea.enableWordWrapping = true;
+
+        // Initialize logs view
+        UpdateLogText();
+
+        // Start closed
+        debugPanel.SetActive(false);
     }
 }
