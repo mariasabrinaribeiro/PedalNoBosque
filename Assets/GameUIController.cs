@@ -1478,6 +1478,7 @@ public class GameUIController : MonoBehaviour
         toggleImg.sprite = CreateRoundedRectSprite(120, 60, 12, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPurple, 2, new Color(0,0,0,0));
         
         Button btn = toggleBtnObj.GetComponent<Button>();
+        if (btn == null) btn = toggleBtnObj.AddComponent<Button>();
         btn.onClick.RemoveAllListeners();
         btn.onClick.AddListener(() => {
             if (debugPanel != null)
