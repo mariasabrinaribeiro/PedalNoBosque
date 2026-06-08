@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.EnhancedTouch;
 
 public class GameUIController : MonoBehaviour
 {
@@ -78,16 +77,6 @@ public class GameUIController : MonoBehaviour
                 controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
             }
         }
-    }
-
-    private void OnEnable()
-    {
-        EnhancedTouchSupport.Enable();
-    }
-
-    private void OnDisable()
-    {
-        EnhancedTouchSupport.Disable();
     }
 
     private void Awake()
@@ -803,7 +792,7 @@ public class GameUIController : MonoBehaviour
         mobileHUDButtons.Add(revBtn);
 
         // ATIRAR (Shoot) button placed on the right side above drive buttons
-        GameObject shootBtn = CreateHUDButton("BtnShoot", "🎯", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-150, 230), 140, 140);
+        GameObject shootBtn = CreateHUDButton("BtnShoot", "ATIRAR", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-150, 230), 140, 140);
         AddHUDShootEvent(shootBtn);
         mobileHUDButtons.Add(shootBtn);
     }
@@ -834,7 +823,7 @@ public class GameUIController : MonoBehaviour
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
         txt.text = text;
         txt.font = GetTMProFont();
-        txt.fontSize = 40;
+        txt.fontSize = text.Length > 2 ? 24 : 40;
         txt.fontStyle = FontStyles.Bold;
         txt.alignment = TextAlignmentOptions.Center;
         txt.color = Color.white;
@@ -898,33 +887,41 @@ public class GameUIController : MonoBehaviour
 
         RectTransform baseRect = joystickContainer.transform.Find("Base").GetComponent<RectTransform>();
 
-        // Check touches for multi-touch support using new Input System's EnhancedTouch
+        // Check touches for multi-touch support using new Input System's Touchscreen
         bool foundJoystickTouch = false;
-        var activeTouches = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches;
+        Touchscreen touchscreen = Touchscreen.current;
 
-        if (activeTouches.Count > 0)
+        if (touchscreen != null)
         {
-            // 1. If we are already dragging, try to find our touch
+            // 1. If we are already dragging, check if this touch is our joystick touch
             if (isDraggingJoystick && joystickFingerId >= 0)
             {
-                for (int i = 0; i < activeTouches.Count; i++)
+                for (int i = 0; i < touchscreen.touches.Count; i++)
                 {
-                    var t = activeTouches[i];
-                    if (t.touchId == joystickFingerId)
+                    var t = touchscreen.touches[i];
+                    var phase = t.phase.ReadValue();
+                    
+                    if (phase == UnityEngine.InputSystem.TouchPhase.None)
                     {
-                        if (t.phase == UnityEngine.InputSystem.TouchPhase.Ended || t.phase == UnityEngine.InputSystem.TouchPhase.Canceled)
+                        continue;
+                    }
+
+                    int tid = t.touchId.ReadValue();
+                    if (tid == joystickFingerId)
+                    {
+                        if (phase == UnityEngine.InputSystem.TouchPhase.Ended || phase == UnityEngine.InputSystem.TouchPhase.Canceled)
                         {
                             StopJoystickDrag(baseRect);
                         }
                         else
                         {
-                            UpdateJoystickDrag(t.screenPosition, baseRect);
+                            UpdateJoystickDrag(t.position.ReadValue(), baseRect);
                         }
                         foundJoystickTouch = true;
                         break;
                     }
                 }
-                
+
                 if (!foundJoystickTouch)
                 {
                     StopJoystickDrag(baseRect);
@@ -933,24 +930,31 @@ public class GameUIController : MonoBehaviour
             // 2. If we are NOT dragging, look for a new touch that is not over UI
             else if (!isDraggingJoystick)
             {
-                for (int i = 0; i < activeTouches.Count; i++)
+                for (int i = 0; i < touchscreen.touches.Count; i++)
                 {
-                    var t = activeTouches[i];
+                    var t = touchscreen.touches[i];
+                    var phase = t.phase.ReadValue();
                     
-                    // Don't start a joystick drag if the user is pressing UI buttons (like Pause or Shoot)
-                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(t.touchId))
+                    if (phase == UnityEngine.InputSystem.TouchPhase.Began || phase == UnityEngine.InputSystem.TouchPhase.Moved || phase == UnityEngine.InputSystem.TouchPhase.Stationary)
                     {
-                        continue;
-                    }
+                        Vector2 touchPos = t.position.ReadValue();
+                        
+                        // Check if touch is over UI buttons
+                        if (IsPointerOverUI(touchPos))
+                        {
+                            continue;
+                        }
 
-                    StartJoystickDrag(t.screenPosition, t.touchId, baseRect);
-                    break;
+                        int tid = t.touchId.ReadValue();
+                        StartJoystickDrag(touchPos, tid, baseRect);
+                        break;
+                    }
                 }
             }
         }
         else
         {
-            // No touches, fall back to Mouse input using the new Input System for testing in editor/browser
+            // No touchscreen, fall back to Mouse input using the new Input System for testing in editor/browser
             Mouse mouse = Mouse.current;
             if (mouse != null)
             {
@@ -970,7 +974,7 @@ public class GameUIController : MonoBehaviour
                 }
                 else if (!isDraggingJoystick && leftPressed)
                 {
-                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                    if (IsPointerOverUI(mousePos))
                     {
                         // Over UI, do nothing
                     }
@@ -1037,6 +1041,34 @@ public class GameUIController : MonoBehaviour
             carDriver.SetMobileSteer(0f);
             carDriver.SetMobileMove(0f);
         }
+    }
+
+    private bool IsPointerOverUI(Vector2 screenPosition)
+    {
+        if (EventSystem.current == null) return false;
+
+        PointerEventData eventDataCurrentPosition = new PointerEventData(EventSystem.current);
+        eventDataCurrentPosition.position = screenPosition;
+
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventDataCurrentPosition, results);
+        
+        foreach (var result in results)
+        {
+            if (result.gameObject != null)
+            {
+                if (result.gameObject.layer == 5 || result.gameObject.GetComponent<RectTransform>() != null)
+                {
+                    // Ignore elements inside the joystick UI itself so we can drag the joystick
+                    if (joystickContainer != null && (result.gameObject == joystickContainer || result.gameObject.transform.IsChildOf(joystickContainer.transform)))
+                    {
+                        continue;
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void EnhanceDeliveryZone()
