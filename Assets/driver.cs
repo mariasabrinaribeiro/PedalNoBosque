@@ -10,6 +10,7 @@ public class driverpro : MonoBehaviour
     [SerializeField] float steerSpeed = 200f;
     [SerializeField] float boostSpeed = 10f;
     [SerializeField] float regularSpeed = 5f;
+    [SerializeField] float swipeSpeedMultiplier = 6.5f; // Sensitivity for finger/mouse swipe controls
 
     [SerializeField] TMP_Text boostText;
 
@@ -79,10 +80,9 @@ public class driverpro : MonoBehaviour
         // Convert screen delta to world delta for orthographic camera
         float worldHeight = cam.orthographicSize * 2f;
         float worldWidth = worldHeight * cam.aspect;
-        float speedMultiplier = 2.5f; // Increase this to make the car move faster relative to finger speed
         Vector3 worldDelta = new Vector3(
-            (screenDelta.x / Screen.width) * worldWidth * speedMultiplier,
-            (screenDelta.y / Screen.height) * worldHeight * speedMultiplier,
+            (screenDelta.x / Screen.width) * worldWidth * swipeSpeedMultiplier,
+            (screenDelta.y / Screen.height) * worldHeight * swipeSpeedMultiplier,
             0f
         );
 
