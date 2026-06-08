@@ -59,6 +59,21 @@ public class GameUIController : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void OnSceneLoaded()
     {
+        // Subscribe to sceneLoaded event so it runs on every reload/scene change
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoadedCallback;
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoadedCallback;
+
+        // Run initially for the active scene
+        InitializeControllerForActiveScene();
+    }
+
+    private static void OnSceneLoadedCallback(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        InitializeControllerForActiveScene();
+    }
+
+    private static void InitializeControllerForActiveScene()
+    {
         Canvas canvas = FindObjectOfType<Canvas>();
         if (canvas == null) return;
 
@@ -82,7 +97,11 @@ public class GameUIController : MonoBehaviour
     private void Awake()
     {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
 
         // Copy sprites to Resources dynamically in editor
 #if UNITY_EDITOR
@@ -97,7 +116,6 @@ public class GameUIController : MonoBehaviour
         if (System.IO.File.Exists(srcHouse) && !System.IO.File.Exists(destHouse))
         {
             System.IO.File.Copy(srcHouse, destHouse);
-            UnityEditor.AssetDatabase.Refresh();
         }
 #endif
 
