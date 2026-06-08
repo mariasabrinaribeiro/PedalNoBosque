@@ -53,6 +53,7 @@ public class GameUIController : MonoBehaviour
     private List<GameObject> mobileHUDButtons = new List<GameObject>();
     private Vector2 startTouchPos;
     private bool isDraggingJoystick = false;
+    private int joystickFingerId = -1; // -1 means not dragging. -2 means mouse drag.
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void OnSceneLoaded()
@@ -689,7 +690,14 @@ public class GameUIController : MonoBehaviour
 
         foreach (var hudBtn in mobileHUDButtons)
         {
-            hudBtn.SetActive(showButtonsHUD);
+            if (hudBtn.name == "BtnShoot")
+            {
+                hudBtn.SetActive(isMobile && !isPaused);
+            }
+            else
+            {
+                hudBtn.SetActive(showButtonsHUD);
+            }
         }
 
         // Hide joystick when paused
@@ -871,68 +879,137 @@ public class GameUIController : MonoBehaviour
 
     private void HandleSwipeControls()
     {
-        // Display visual touch area container when playing
         if (!joystickContainer.activeSelf)
         {
             joystickContainer.SetActive(true);
         }
 
-        Vector2 touchPos = Vector2.zero;
-        bool touchStarted = false;
-        bool touchHeld = false;
-        bool touchEnded = false;
+        RectTransform baseRect = joystickContainer.transform.Find("Base").GetComponent<RectTransform>();
 
-        // Support both mouse (editor) and actual touch inputs
+        // Check touches for multi-touch support
+        bool foundJoystickTouch = false;
+
         if (Input.touchCount > 0)
         {
-            Touch touch = Input.GetTouch(0);
-            touchPos = touch.position;
-            if (touch.phase == TouchPhase.Began) touchStarted = true;
-            if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary) touchHeld = true;
-            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) touchEnded = true;
+            // 1. If we are already dragging, try to find our touch
+            if (isDraggingJoystick && joystickFingerId >= 0)
+            {
+                for (int i = 0; i < Input.touchCount; i++)
+                {
+                    Touch t = Input.GetTouch(i);
+                    if (t.fingerId == joystickFingerId)
+                    {
+                        if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
+                        {
+                            StopJoystickDrag(baseRect);
+                        }
+                        else
+                        {
+                            UpdateJoystickDrag(t.position, baseRect);
+                        }
+                        foundJoystickTouch = true;
+                        break;
+                    }
+                }
+                
+                if (!foundJoystickTouch)
+                {
+                    StopJoystickDrag(baseRect);
+                }
+            }
+            // 2. If we are NOT dragging, look for a new touch that is not over UI
+            else if (!isDraggingJoystick)
+            {
+                for (int i = 0; i < Input.touchCount; i++)
+                {
+                    Touch t = Input.GetTouch(i);
+                    
+                    // Don't start a joystick drag if the user is pressing UI buttons (like Pause or Shoot)
+                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(t.fingerId))
+                    {
+                        continue;
+                    }
+
+                    StartJoystickDrag(t.position, t.fingerId, baseRect);
+                    break;
+                }
+            }
         }
         else
         {
-            touchPos = Input.mousePosition;
-            if (Input.GetMouseButtonDown(0)) touchStarted = true;
-            if (Input.GetMouseButton(0)) touchHeld = true;
-            if (Input.GetMouseButtonUp(0)) touchEnded = true;
+            // No touches, fall back to mouse input for testing in editor/browser
+            if (isDraggingJoystick && joystickFingerId == -2)
+            {
+                if (Input.GetMouseButton(0))
+                {
+                    UpdateJoystickDrag(Input.mousePosition, baseRect);
+                }
+                else
+                {
+                    StopJoystickDrag(baseRect);
+                }
+            }
+            else if (!isDraggingJoystick && Input.GetMouseButton(0))
+            {
+                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                {
+                    // Over UI, do nothing
+                }
+                else
+                {
+                    StartJoystickDrag(Input.mousePosition, -2, baseRect);
+                }
+            }
+            else if (isDraggingJoystick)
+            {
+                StopJoystickDrag(baseRect);
+            }
         }
+    }
 
-        // Joystick control logic
-        RectTransform baseRect = joystickContainer.transform.Find("Base").GetComponent<RectTransform>();
+    private void StartJoystickDrag(Vector2 pos, int fingerId, RectTransform baseRect)
+    {
+        isDraggingJoystick = true;
+        joystickFingerId = fingerId;
+        startTouchPos = pos;
+        
+        baseRect.position = pos;
+        joystickKnob.anchoredPosition = Vector2.zero;
+        baseRect.gameObject.SetActive(true);
+    }
 
-        if (touchStarted)
+    private void UpdateJoystickDrag(Vector2 pos, RectTransform baseRect)
+    {
+        Vector2 delta = pos - startTouchPos;
+        float maxDrag = 100f; // maximum displacement radius
+        Vector2 clampedDelta = Vector2.ClampMagnitude(delta, maxDrag);
+        joystickKnob.anchoredPosition = clampedDelta;
+
+        // Drive inputs map:
+        // steering (Left is positive steer in driverpro, Right is negative steer)
+        float steer = -Mathf.Clamp(clampedDelta.x / maxDrag, -1f, 1f);
+        // speed (Up is positive, Down is negative)
+        float move = Mathf.Clamp(clampedDelta.y / maxDrag, -1f, 1f);
+
+        if (carDriver != null)
         {
-            // Position joystick base at the touch position
-            startTouchPos = touchPos;
-            baseRect.position = touchPos;
-            joystickKnob.anchoredPosition = Vector2.zero;
-            baseRect.gameObject.SetActive(true);
-            isDraggingJoystick = true;
-        }
-        else if (touchHeld && isDraggingJoystick)
-        {
-            Vector2 delta = touchPos - startTouchPos;
-            float maxDrag = 100f; // maximum displacement radius
-            Vector2 clampedDelta = Vector2.ClampMagnitude(delta, maxDrag);
-            joystickKnob.anchoredPosition = clampedDelta;
-
-            // Drive inputs map:
-            // steering (Left is positive steer in driverpro, Right is negative steer)
-            float steer = -Mathf.Clamp(clampedDelta.x / maxDrag, -1f, 1f);
-            // speed (Up is positive, Down is negative)
-            float move = Mathf.Clamp(clampedDelta.y / maxDrag, -1f, 1f);
-
             carDriver.SetMobileSteer(steer);
             carDriver.SetMobileMove(move);
         }
-        else if (touchEnded)
+    }
+
+    private void StopJoystickDrag(RectTransform baseRect)
+    {
+        isDraggingJoystick = false;
+        joystickFingerId = -1;
+        
+        if (baseRect != null)
         {
             baseRect.gameObject.SetActive(false);
-            isDraggingJoystick = false;
-            
-            // Reset inputs
+        }
+        
+        if (carDriver != null)
+        {
             carDriver.SetMobileSteer(0f);
             carDriver.SetMobileMove(0f);
         }
