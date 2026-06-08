@@ -940,55 +940,23 @@ public class GameUIController : MonoBehaviour
 
     private void EnhanceDeliveryZone()
     {
-        // Replaces the grass block with a candy house at start
+        // Find all delivery spots
         GameObject[] customers = GameObject.FindGameObjectsWithTag("Customer");
-        Sprite candyHouseSprite = Resources.Load<Sprite>("house3frontpink");
 
         foreach (GameObject cust in customers)
         {
-            SpriteRenderer sr = cust.GetComponent<SpriteRenderer>();
-            if (sr != null && candyHouseSprite != null)
-            {
-                sr.sprite = candyHouseSprite;
-                cust.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
-            }
-
-            // Spawn dynamic glowing candy circle under it
+            // Do NOT change the customer sprite/scale to avoid blocking roads.
+            // Just spawn a flat, glowing pink candy circle centered on the delivery spot!
             GameObject matObj = new GameObject("CandyDeliveryZoneMat");
-            matObj.transform.SetParent(cust.transform, false);
-            matObj.transform.localPosition = new Vector3(0, -0.6f, 0); // front door
-            matObj.transform.localScale = new Vector3(1.2f, 1.2f, 1f);
+            matObj.transform.position = cust.transform.position;
+            matObj.transform.localScale = new Vector3(2.2f, 2.2f, 1f);
 
             SpriteRenderer matSR = matObj.AddComponent<SpriteRenderer>();
-            Color semiPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.45f);
-            matSR.sprite = CreateRoundedRectSprite(160, 80, 20, semiPink, candyPurple, 4, new Color(0,0,0,0));
-            matSR.sortingOrder = 1;
-
-            // Create floating unload world-space canvas text
-            GameObject cObj = new GameObject("UnloadWorldCanvas");
-            cObj.transform.SetParent(cust.transform, false);
-            cObj.transform.localPosition = new Vector3(0, 1.5f, 0);
-            cObj.transform.localScale = new Vector3(0.015f, 0.015f, 1f); // scale down World Canvas
-
-            Canvas worldCanvas = cObj.AddComponent<Canvas>();
-            worldCanvas.renderMode = RenderMode.WorldSpace;
-            cObj.AddComponent<CanvasScaler>();
-
-            GameObject tObj = new GameObject("Text");
-            tObj.transform.SetParent(cObj.transform, false);
-            RectTransform tr = tObj.AddComponent<RectTransform>();
-            tr.sizeDelta = new Vector2(400, 100);
-            tr.anchoredPosition = Vector2.zero;
-
-            TextMeshProUGUI tmp = tObj.AddComponent<TextMeshProUGUI>();
-            tmp.text = "DESCARREGAR AQUI";
-            tmp.font = GetTMProFont();
-            tmp.fontSize = 28;
-            tmp.fontStyle = FontStyles.Bold;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = Color.white;
-            tmp.outlineColor = candyPurple;
-            tmp.outlineWidth = 0.2f;
+            Color semiPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.55f);
+            
+            // Create a perfect 128x128 circle by setting cornerRadius to 64
+            matSR.sprite = CreateRoundedRectSprite(128, 128, 64, semiPink, candyPurple, 4, new Color(0, 0, 0, 0));
+            matSR.sortingOrder = 1; // Under the car (which is sorting order 2 or higher)
         }
     }
 
