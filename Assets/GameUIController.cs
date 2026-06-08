@@ -237,7 +237,7 @@ public class GameUIController : MonoBehaviour
         RectTransform panelRect = menuPanel.AddComponent<RectTransform>();
         Image panelImage = menuPanel.AddComponent<Image>();
 
-        Sprite coverSprite = Resources.Load<Sprite>("title_screen_cover");
+        Sprite coverSprite = Resources.Load<Sprite>("art/title_screen_cover");
         if (coverSprite != null)
         {
             panelRect.anchorMin = Vector2.zero;
