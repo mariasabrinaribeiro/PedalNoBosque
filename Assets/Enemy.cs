@@ -100,16 +100,85 @@ public class Enemy : MonoBehaviour
             }
         }
 
-        // Play explosion particles if possible
-        ParticleSystem parentPS = FindObjectOfType<ParticleSystem>(); // fallback
-        if (parentPS != null)
-        {
-            // Instantiate particles at our position
-            ParticleSystem ps = Instantiate(parentPS, transform.position, Quaternion.identity);
-            ps.Play();
-            Destroy(ps.gameObject, 2f);
-        }
+        // Play candy-themed explosion particles
+        SpawnExplosionEffect(transform.position);
 
         Destroy(gameObject);
+    }
+
+    private void SpawnExplosionEffect(Vector3 pos)
+    {
+        Color candyPink = new Color(1f, 0.482f, 0.773f, 1f);
+        Color candyPurple = new Color(0.368f, 0.235f, 0.502f, 1f);
+
+        // Spawn 8 tiny candy particles flying outward
+        for (int i = 0; i < 8; i++)
+        {
+            GameObject p = new GameObject("ExplosionParticle");
+            p.transform.position = pos;
+            
+            float angle = i * (360f / 8f) * Mathf.Deg2Rad;
+            Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
+            
+            SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
+            sr.sprite = CreateParticleSprite(8, 8, (i % 2 == 0) ? candyPink : candyPurple);
+            sr.sortingOrder = 5;
+            
+            ExplosionParticle particleScript = p.AddComponent<ExplosionParticle>();
+            particleScript.direction = dir;
+            particleScript.speed = Random.Range(3f, 6f);
+        }
+    }
+
+    private Sprite CreateParticleSprite(int w, int h, Color color)
+    {
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float dx = x - w / 2f;
+                float dy = y - h / 2f;
+                if (dx * dx + dy * dy <= (w / 2f) * (w / 2f))
+                {
+                    tex.SetPixel(x, y, color);
+                }
+                else
+                {
+                    tex.SetPixel(x, y, Color.clear);
+                }
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+    }
+}
+
+public class ExplosionParticle : MonoBehaviour
+{
+    public Vector3 direction;
+    public float speed;
+    private float fadeSpeed = 3f;
+    private SpriteRenderer sr;
+
+    void Start()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        Destroy(gameObject, 0.5f); // auto destroy after half a second
+    }
+
+    void Update()
+    {
+        transform.position += direction * speed * Time.deltaTime;
+        
+        // Fade out
+        if (sr != null)
+        {
+            Color c = sr.color;
+            c.a -= fadeSpeed * Time.deltaTime;
+            sr.color = c;
+        }
     }
 }
