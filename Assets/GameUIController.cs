@@ -235,15 +235,31 @@ public class GameUIController : MonoBehaviour
         menuPanel.transform.SetParent(mainCanvas.transform, false);
 
         RectTransform panelRect = menuPanel.AddComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-        panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.anchoredPosition = Vector2.zero;
-        panelRect.sizeDelta = new Vector2(600, 750);
-
         Image panelImage = menuPanel.AddComponent<Image>();
-        panelImage.sprite = CreateRoundedRectSprite(400, 500, 32, new Color(0.368f, 0.235f, 0.502f, 0.85f), candyPink, 4, shadowColor);
-        panelImage.type = Image.Type.Sliced;
+
+        Sprite coverSprite = Resources.Load<Sprite>("title_screen_cover");
+        if (coverSprite != null)
+        {
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = Vector2.zero; // Fullscreen
+
+            panelImage.sprite = coverSprite;
+            panelImage.type = Image.Type.Simple;
+        }
+        else
+        {
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(600, 750);
+
+            panelImage.sprite = CreateRoundedRectSprite(400, 500, 32, new Color(0.368f, 0.235f, 0.502f, 0.85f), candyPink, 4, shadowColor);
+            panelImage.type = Image.Type.Sliced;
+        }
 
         // Reparent Play and Exit to this panel
         if (playButton != null)
