@@ -307,7 +307,7 @@ public class GameUIController : MonoBehaviour
         titleRect.sizeDelta = new Vector2(500, 100);
 
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        titleText.text = "CARRINHO DE SORVETE";
+        titleText.text = "GIRL POWER";
         titleText.font = GetTMProFont();
         titleText.fontSize = 36;
         titleText.fontStyle = FontStyles.Bold;
