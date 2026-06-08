@@ -949,7 +949,7 @@ public class GameUIController : MonoBehaviour
                         }
                         else
                         {
-                            UpdateJoystickDrag(t.position.ReadValue(), baseRect);
+                            UpdateJoystickDrag(t.position.ReadValue(), t.delta.ReadValue(), baseRect);
                         }
                         foundJoystickTouch = true;
                         break;
@@ -999,7 +999,7 @@ public class GameUIController : MonoBehaviour
                 {
                     if (leftPressed)
                     {
-                        UpdateJoystickDrag(mousePos, baseRect);
+                        UpdateJoystickDrag(mousePos, mouse.delta.ReadValue(), baseRect);
                     }
                     else
                     {
@@ -1040,23 +1040,16 @@ public class GameUIController : MonoBehaviour
         baseRect.gameObject.SetActive(true);
     }
 
-    private void UpdateJoystickDrag(Vector2 pos, RectTransform baseRect)
+    private void UpdateJoystickDrag(Vector2 pos, Vector2 delta, RectTransform baseRect)
     {
-        Vector2 delta = pos - startTouchPos;
+        Vector2 displacement = pos - startTouchPos;
         float maxDrag = 100f; // maximum displacement radius
-        Vector2 clampedDelta = Vector2.ClampMagnitude(delta, maxDrag);
+        Vector2 clampedDelta = Vector2.ClampMagnitude(displacement, maxDrag);
         joystickKnob.anchoredPosition = clampedDelta;
-
-        // Drive inputs map:
-        // steering (Left is positive steer in driverpro, Right is negative steer)
-        float steer = -Mathf.Clamp(clampedDelta.x / maxDrag, -1f, 1f);
-        // speed (Up is positive, Down is negative)
-        float move = Mathf.Clamp(clampedDelta.y / maxDrag, -1f, 1f);
 
         if (carDriver != null)
         {
-            carDriver.SetMobileSteer(steer);
-            carDriver.SetMobileMove(move);
+            carDriver.ApplySwipeDelta(delta);
         }
     }
 

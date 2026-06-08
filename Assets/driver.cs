@@ -71,6 +71,42 @@ public class driverpro : MonoBehaviour
         mobileShootPressed = val;
     }
 
+    public void ApplySwipeDelta(Vector2 screenDelta)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) cam = FindObjectOfType<Camera>();
+        if (cam == null) return;
+
+        // Convert screen delta to world delta for orthographic camera
+        float worldHeight = cam.orthographicSize * 2f;
+        float worldWidth = worldHeight * cam.aspect;
+        Vector3 worldDelta = new Vector3(
+            (screenDelta.x / Screen.width) * worldWidth,
+            (screenDelta.y / Screen.height) * worldHeight,
+            0f
+        );
+
+        // Move the car directly (bypassing forces/gravity)
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero; // reset velocity to isolate from other forces
+            rb.angularVelocity = 0f;
+            rb.MovePosition(rb.position + (Vector2)worldDelta);
+        }
+        else
+        {
+            transform.position += worldDelta;
+        }
+
+        // Rotate the car to face the drag direction
+        if (worldDelta.sqrMagnitude > 0.0001f)
+        {
+            float angle = Mathf.Atan2(worldDelta.y, worldDelta.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        }
+    }
+
     public void TakeDamage(int damage)
     {
         health = Mathf.Max(health - damage, 0);
