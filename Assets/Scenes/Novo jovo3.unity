@@ -271,7 +271,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6677830
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1743,7 +1743,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &55070409
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1864,7 +1864,7 @@ GameObject:
   - component: {fileID: 63801193}
   m_Layer: 0
   m_Name: carro
-  m_TagString: package
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1930,7 +1930,7 @@ Transform:
   m_GameObject: {fileID: 63801185}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 1, w: 0}
-  m_LocalPosition: {x: 41.9, y: -8.2, z: 1.2750455}
+  m_LocalPosition: {x: 41.9, y: -6.0, z: 1.2750455}
   m_LocalScale: {x: 0.24032748, y: 0.24032748, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -18711,7 +18711,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &429900280
 RectTransform:
   m_ObjectHideFlags: 0
@@ -46479,7 +46479,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1499094437
 RectTransform:
   m_ObjectHideFlags: 0
@@ -62011,7 +62011,7 @@ GameObject:
   - component: {fileID: 2044709712}
   m_Layer: 0
   m_Name: house3frontpinkmonster
-  m_TagString: Untagged
+  m_TagString: Customer
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -62112,7 +62112,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}

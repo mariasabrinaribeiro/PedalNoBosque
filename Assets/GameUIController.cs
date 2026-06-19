@@ -37,6 +37,7 @@ public class GameUIController : MonoBehaviour
     private GameObject menuPanel;
     private GameObject hudPanel;
     private GameObject gameOverPanel;
+    private GameObject victoryPanel;
     private GameObject joystickContainer;
     private RectTransform joystickKnob;
     private TextMeshProUGUI warningText;
@@ -46,6 +47,18 @@ public class GameUIController : MonoBehaviour
     private Slider healthSlider;
     private TextMeshProUGUI cargoText;
     private TextMeshProUGUI scoreText;
+    private TextMeshProUGUI hpLabelText;
+
+    private RawImage vignetteImage;
+    private float nextHeartbeatTime = 0f;
+
+    private GameObject missionPanel;
+    private TextMeshProUGUI missionDescText;
+    private TextMeshProUGUI missionProgressText;
+
+    private GameObject bossHealthPanel;
+    private Image bossHealthFillImage;
+    private TextMeshProUGUI bossHealthText;
 
     // Navigation Pointer
     private GameObject navArrow;
@@ -56,10 +69,16 @@ public class GameUIController : MonoBehaviour
     private bool isDraggingJoystick = false;
     private int joystickFingerId = -1; // -1 means not dragging. -2 means mouse drag.
 
+    private GameObject gameplayToggleBtnObj;
+    private TextMeshProUGUI gameplayToggleTxt;
+
     private GameObject debugPanel;
     private TextMeshProUGUI sliderLabel;
     private TextMeshProUGUI logTextArea;
     private List<string> debugLogs = new List<string>();
+
+    private float lastTapTime = 0f;
+    private float lastClickTime = 0f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void OnSceneLoaded()
@@ -79,23 +98,16 @@ public class GameUIController : MonoBehaviour
 
     private static void InitializeControllerForActiveScene()
     {
-        Canvas canvas = FindObjectOfType<Canvas>();
-        if (canvas == null) return;
+        // Check if there is a player car in the scene. If so, this is a gameplay scene!
+        driverpro player = FindObjectOfType<driverpro>();
+        if (player == null) return;
 
-        // Check if this is the gameplay scene (has Play, Pause, or Exit buttons)
-        Transform play = canvas.transform.Find("Play");
-        Transform pause = canvas.transform.Find("Pause");
-        Transform exit = canvas.transform.Find("Exit");
-
-        if (play != null || pause != null || exit != null)
+        GameObject controllerObj = GameObject.Find("GameUIController");
+        if (controllerObj == null)
         {
-            GameObject controllerObj = GameObject.Find("GameUIController");
-            if (controllerObj == null)
-            {
-                controllerObj = new GameObject("GameUIController");
-                controllerObj.AddComponent<GameUIController>();
-                controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
-            }
+            controllerObj = new GameObject("GameUIController");
+            controllerObj.AddComponent<GameUIController>();
+            controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
         }
     }
 
@@ -151,19 +163,43 @@ public class GameUIController : MonoBehaviour
 
         // 1. Update HUD stats
         if (healthSlider != null) healthSlider.value = carDriver.health;
+        if (hpLabelText != null) hpLabelText.text = "VIDA: " + carDriver.health + "%";
         if (cargoText != null) cargoText.text = "SORVETES: " + carDriver.cargo + " / " + carDriver.maxCargo;
-        if (scoreText != null) scoreText.text = "PONTOS: " + carDriver.score;
+        if (scoreText != null) scoreText.text = "PONTOS: " + carDriver.score + "   VEL: " + (carDriver.displaySpeed * 10f).ToString("F0") + " km/h";
 
-        // 2. Handle Warning fadeout
+        // 2. Handle Vignette low-health pulse and heartbeat audio
+        if (vignetteImage != null)
+        {
+            if (carDriver.health < 20)
+            {
+                float pulse = Mathf.PingPong(Time.time * 3f, 1f);
+                vignetteImage.color = Color.Lerp(new Color(0f, 0f, 0f, 0.55f), new Color(0.65f, 0f, 0f, 0.45f), pulse);
+
+                if (Time.time > nextHeartbeatTime)
+                {
+                    nextHeartbeatTime = Time.time + 0.8f;
+                    if (GameAudioController.Instance != null)
+                    {
+                        GameAudioController.Instance.PlayHeartbeat();
+                    }
+                }
+            }
+            else
+            {
+                vignetteImage.color = new Color(0f, 0f, 0f, 0.55f);
+            }
+        }
+
+        // 3. Handle Warning fadeout
         if (warningText != null && Time.unscaledTime > warningFadeTime)
         {
             warningText.text = "";
         }
 
-        // 3. Handle Navigation Pointer
+        // 4. Handle Navigation Pointer
         UpdateNavigationPointer();
 
-        // 4. Handle Mobile Touch/Swipe controls if enabled
+        // 5. Handle Mobile Touch/Swipe controls if enabled
         if (Time.timeScale > 0.01f)
         {
             if (useSwipeMode)
@@ -188,7 +224,31 @@ public class GameUIController : MonoBehaviour
 
     private void SetupUI()
     {
+        // Dynamically attach GameCameraController to the Main Camera
+        Camera mainCam = Camera.main;
+        if (mainCam == null) mainCam = FindObjectOfType<Camera>();
+        if (mainCam != null)
+        {
+            if (mainCam.GetComponent<GameCameraController>() == null)
+            {
+                mainCam.gameObject.AddComponent<GameCameraController>();
+            }
+        }
+
         mainCanvas = FindObjectOfType<Canvas>();
+        
+        // Fix EventSystem StandaloneInputModule crash under New Input System
+        UnityEngine.EventSystems.EventSystem eventSystem = FindObjectOfType<UnityEngine.EventSystems.EventSystem>();
+        if (eventSystem != null)
+        {
+            var oldModule = eventSystem.GetComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            if (oldModule != null)
+            {
+                Destroy(oldModule);
+                eventSystem.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            }
+        }
+
         if (mainCanvas == null) return;
 
         CanvasScaler scaler = mainCanvas.GetComponent<CanvasScaler>();
@@ -198,10 +258,45 @@ public class GameUIController : MonoBehaviour
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
 
+        // Deactivate original scene UI elements (Panel and Pause) to prevent overlap
+        Transform originalPanel = mainCanvas.transform.Find("Panel");
+        if (originalPanel != null)
+        {
+            originalPanel.gameObject.SetActive(false);
+        }
+        Transform originalPause = mainCanvas.transform.Find("Pause");
+        if (originalPause != null)
+        {
+            originalPause.gameObject.SetActive(false);
+        }
+
         // Find standard buttons in scene
         playButton = mainCanvas.transform.Find("Play");
         pauseButton = mainCanvas.transform.Find("Pause");
         exitButton = mainCanvas.transform.Find("Exit");
+
+        // Dynamically create standard buttons if they are missing (e.g. in new scenes like aula 3)
+        if (playButton == null)
+        {
+            GameObject playObj = new GameObject("Play");
+            playObj.transform.SetParent(mainCanvas.transform, false);
+            playObj.AddComponent<RectTransform>();
+            playButton = playObj.transform;
+        }
+        if (pauseButton == null)
+        {
+            GameObject pauseObj = new GameObject("Pause");
+            pauseObj.transform.SetParent(mainCanvas.transform, false);
+            pauseObj.AddComponent<RectTransform>();
+            pauseButton = pauseObj.transform;
+        }
+        if (exitButton == null)
+        {
+            GameObject exitObj = new GameObject("Exit");
+            exitObj.transform.SetParent(mainCanvas.transform, false);
+            exitObj.AddComponent<RectTransform>();
+            exitButton = exitObj.transform;
+        }
 
         // Style buttons
         StyleButton(playButton, "JOGAR", candyPink);
@@ -225,17 +320,40 @@ public class GameUIController : MonoBehaviour
             }
         }
 
+        // Destroy the duplicate Canvas-based "Button" (Game over text) if it exists, to avoid overlapping
+        if (mainCanvas != null)
+        {
+            Transform staticGameOverBtn = mainCanvas.transform.Find("Button");
+            if (staticGameOverBtn != null)
+            {
+                Destroy(staticGameOverBtn.gameObject);
+            }
+        }
+
         // Create UI panels
         CreateMenuPanel();
         CreateHUDPanel();
         CreateGameOverPanel();
+        CreateVictoryPanel();
         CreateJoystickUI();
+
+        CreateVignetteOverlay();
+        CreateMissionPanel();
+        CreateBossHealthBarUI();
+
+        // Attach TextJuice dynamically to HUD text counters
+        if (cargoText != null && cargoText.GetComponent<TextJuice>() == null) cargoText.gameObject.AddComponent<TextJuice>();
+        if (scoreText != null && scoreText.GetComponent<TextJuice>() == null) scoreText.gameObject.AddComponent<TextJuice>();
+        if (hpLabelText != null && hpLabelText.GetComponent<TextJuice>() == null) hpLabelText.gameObject.AddComponent<TextJuice>();
 
         // Spawn mobile controls
         SpawnMobileHUD();
 
         // Create Debug Console Panel
         CreateDebugPanel();
+
+        // Create Gameplay Control Toggle Button
+        CreateGameplayControlToggle();
     }
 
     private void CreateMenuPanel()
@@ -283,46 +401,9 @@ public class GameUIController : MonoBehaviour
         {
             exitButton.SetParent(menuPanel.transform, false);
             RectTransform exitRect = exitButton.GetComponent<RectTransform>();
-            exitRect.anchoredPosition = new Vector2(0, -220);
+            exitRect.anchoredPosition = new Vector2(0, -60);
             exitRect.sizeDelta = new Vector2(350, 95);
         }
-
-        // Add Control mode toggle button
-        GameObject toggleBtnObj = new GameObject("BtnControlToggle");
-        toggleBtnObj.transform.SetParent(menuPanel.transform, false);
-        RectTransform toggleRect = toggleBtnObj.AddComponent<RectTransform>();
-        toggleRect.anchoredPosition = new Vector2(0, -50);
-        toggleRect.sizeDelta = new Vector2(350, 95);
-
-        Button toggleBtn = toggleBtnObj.AddComponent<Button>();
-        Image toggleImg = toggleBtnObj.AddComponent<Image>();
-        toggleImg.sprite = CreateRoundedRectSprite(350, 95, 20, candyLightPurple, candyPurple, 4, shadowColor);
-        toggleImg.type = Image.Type.Simple;
-
-        GameObject toggleTxtObj = new GameObject("Text");
-        toggleTxtObj.transform.SetParent(toggleBtnObj.transform, false);
-        RectTransform txtRect = toggleTxtObj.AddComponent<RectTransform>();
-        txtRect.sizeDelta = new Vector2(350, 95);
-        txtRect.anchoredPosition = Vector2.zero;
-
-        TextMeshProUGUI toggleTxt = toggleTxtObj.AddComponent<TextMeshProUGUI>();
-        toggleTxt.text = useSwipeMode ? "CONTROLE: DESLIZAR" : "CONTROLE: BOTÕES";
-        toggleTxt.font = GetTMProFont();
-        toggleTxt.fontSize = 22;
-        toggleTxt.fontStyle = FontStyles.Bold;
-        toggleTxt.alignment = TextAlignmentOptions.Center;
-        toggleTxt.color = Color.white;
-        toggleTxt.outlineColor = candyPurple;
-        toggleTxt.outlineWidth = 0.2f;
-
-        toggleBtn.onClick.AddListener(() => {
-            useSwipeMode = !useSwipeMode;
-            toggleTxt.text = useSwipeMode ? "CONTROLE: DESLIZAR" : "CONTROLE: BOTÕES";
-            // Refresh HUD layout
-            SetGameState(true);
-        });
-
-        AddJuicyAnimations(toggleBtnObj);
 
         // Add Title Text
         GameObject titleObj = new GameObject("MenuTitle");
@@ -406,15 +487,15 @@ public class GameUIController : MonoBehaviour
         RectTransform hpLabelRect = hpLabelObj.AddComponent<RectTransform>();
         hpLabelRect.anchoredPosition = new Vector2(0, 35);
         hpLabelRect.sizeDelta = new Vector2(250, 40);
-        TextMeshProUGUI hpLabel = hpLabelObj.AddComponent<TextMeshProUGUI>();
-        hpLabel.text = "VIDA";
-        hpLabel.font = GetTMProFont();
-        hpLabel.fontSize = 20;
-        hpLabel.fontStyle = FontStyles.Bold;
-        hpLabel.alignment = TextAlignmentOptions.Left;
-        hpLabel.color = Color.white;
-        hpLabel.outlineColor = candyPurple;
-        hpLabel.outlineWidth = 0.2f;
+        hpLabelText = hpLabelObj.AddComponent<TextMeshProUGUI>();
+        hpLabelText.text = "VIDA: 100%";
+        hpLabelText.font = GetTMProFont();
+        hpLabelText.fontSize = 20;
+        hpLabelText.fontStyle = FontStyles.Bold;
+        hpLabelText.alignment = TextAlignmentOptions.Left;
+        hpLabelText.color = Color.white;
+        hpLabelText.outlineColor = candyPurple;
+        hpLabelText.outlineWidth = 0.2f;
 
         // 2. Cargo Text
         GameObject cargoObj = new GameObject("TxtCargo");
@@ -625,6 +706,7 @@ public class GameUIController : MonoBehaviour
     private void StyleButton(Transform btnTrans, string labelText, Color buttonColor)
     {
         if (btnTrans == null) return;
+        btnTrans.gameObject.SetActive(true); // Ensure it is active at runtime if disabled in scene editor
 
         Button button = btnTrans.GetComponent<Button>();
         if (button == null) button = btnTrans.gameObject.AddComponent<Button>();
@@ -687,35 +769,19 @@ public class GameUIController : MonoBehaviour
 
     private void AddJuicyAnimations(GameObject btnObj)
     {
-        EventTrigger trigger = btnObj.GetComponent<EventTrigger>();
-        if (trigger == null) trigger = btnObj.AddComponent<EventTrigger>();
-
-        EventTrigger.Entry enter = new EventTrigger.Entry();
-        enter.eventID = EventTriggerType.PointerEnter;
-        enter.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one * 1.08f; });
-        trigger.triggers.Add(enter);
-
-        EventTrigger.Entry exit = new EventTrigger.Entry();
-        exit.eventID = EventTriggerType.PointerExit;
-        exit.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one; });
-        trigger.triggers.Add(exit);
-
-        EventTrigger.Entry down = new EventTrigger.Entry();
-        down.eventID = EventTriggerType.PointerDown;
-        down.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one * 0.95f; });
-        trigger.triggers.Add(down);
-
-        EventTrigger.Entry up = new EventTrigger.Entry();
-        up.eventID = EventTriggerType.PointerUp;
-        up.callback.AddListener((data) => { btnObj.transform.localScale = Vector3.one * 1.08f; });
-        trigger.triggers.Add(up);
+        if (btnObj != null && btnObj.GetComponent<ButtonJuice>() == null)
+        {
+            btnObj.AddComponent<ButtonJuice>();
+        }
     }
 
     private void SetGameState(bool isPaused)
     {
         if (menuPanel != null) menuPanel.SetActive(isPaused);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        if (victoryPanel != null) victoryPanel.SetActive(false);
         if (hudPanel != null) hudPanel.SetActive(!isPaused);
+        if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(!isPaused);
 
         if (pauseButton != null)
         {
@@ -765,6 +831,7 @@ public class GameUIController : MonoBehaviour
         if (hudPanel != null) hudPanel.SetActive(false);
         if (menuPanel != null) menuPanel.SetActive(false);
         if (pauseButton != null) pauseButton.gameObject.SetActive(false);
+        if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(false);
 
         foreach (var hudBtn in mobileHUDButtons)
         {
@@ -777,6 +844,158 @@ public class GameUIController : MonoBehaviour
         {
             gameOverPanel.SetActive(true);
             TextMeshProUGUI finalScoreText = gameOverPanel.transform.Find("GameOverScore").GetComponent<TextMeshProUGUI>();
+            if (finalScoreText != null && carDriver != null)
+            {
+                finalScoreText.text = "PONTUAÇÃO FINAL: " + carDriver.score;
+            }
+        }
+    }
+
+    private void CreateVictoryPanel()
+    {
+        victoryPanel = new GameObject("VictoryPanel");
+        victoryPanel.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform panelRect = victoryPanel.AddComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.anchoredPosition = Vector2.zero;
+        panelRect.sizeDelta = new Vector2(600, 750);
+
+        Image panelImage = victoryPanel.AddComponent<Image>();
+        Color goldTheme = new Color(1f, 0.85f, 0f, 0.95f);
+        panelImage.sprite = CreateRoundedRectSprite(400, 500, 32, new Color(0.2f, 0.15f, 0.3f, 0.95f), goldTheme, 4, shadowColor);
+        panelImage.type = Image.Type.Sliced;
+
+        // Victory Title Text
+        GameObject titleObj = new GameObject("VictoryTitle");
+        titleObj.transform.SetParent(victoryPanel.transform, false);
+        RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+        titleRect.anchoredPosition = new Vector2(0, 240);
+        titleRect.sizeDelta = new Vector2(500, 100);
+
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        titleText.text = "VITÓRIA!";
+        titleText.font = GetTMProFont();
+        titleText.fontSize = 48;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = goldTheme;
+        titleText.outlineColor = candyPurple;
+        titleText.outlineWidth = 0.25f;
+
+        // Subtitle Text
+        GameObject subObj = new GameObject("VictorySubtitle");
+        subObj.transform.SetParent(victoryPanel.transform, false);
+        RectTransform subRect = subObj.AddComponent<RectTransform>();
+        subRect.anchoredPosition = new Vector2(0, 170);
+        subRect.sizeDelta = new Vector2(500, 60);
+
+        TextMeshProUGUI subText = subObj.AddComponent<TextMeshProUGUI>();
+        subText.text = "VOCÊ VENCEU O BARÃO!";
+        subText.font = GetTMProFont();
+        subText.fontSize = 20;
+        subText.fontStyle = FontStyles.Bold;
+        subText.alignment = TextAlignmentOptions.Center;
+        subText.color = Color.white;
+
+        // Score Text Label
+        GameObject scoreLabelObj = new GameObject("VictoryScore");
+        scoreLabelObj.transform.SetParent(victoryPanel.transform, false);
+        RectTransform scoreLabelRect = scoreLabelObj.AddComponent<RectTransform>();
+        scoreLabelRect.anchoredPosition = new Vector2(0, 90);
+        scoreLabelRect.sizeDelta = new Vector2(500, 80);
+
+        TextMeshProUGUI scoreLabel = scoreLabelObj.AddComponent<TextMeshProUGUI>();
+        scoreLabel.text = "PONTUAÇÃO: 0";
+        scoreLabel.font = GetTMProFont();
+        scoreLabel.fontSize = 28;
+        scoreLabel.fontStyle = FontStyles.Bold;
+        scoreLabel.alignment = TextAlignmentOptions.Center;
+        scoreLabel.color = Color.white;
+
+        // Restart button
+        GameObject restartBtnObj = new GameObject("BtnVictoryRestart");
+        restartBtnObj.transform.SetParent(victoryPanel.transform, false);
+        RectTransform restartRect = restartBtnObj.AddComponent<RectTransform>();
+        restartRect.anchoredPosition = new Vector2(0, -60);
+        restartRect.sizeDelta = new Vector2(350, 95);
+
+        Button restartBtn = restartBtnObj.AddComponent<Button>();
+        Image restartImg = restartBtnObj.AddComponent<Image>();
+        restartImg.sprite = CreateRoundedRectSprite(350, 95, 20, candyPink, candyPurple, 4, shadowColor);
+        restartImg.type = Image.Type.Simple;
+
+        GameObject restartTxtObj = new GameObject("Text");
+        restartTxtObj.transform.SetParent(restartBtnObj.transform, false);
+        RectTransform restartTxtRect = restartTxtObj.AddComponent<RectTransform>();
+        restartTxtRect.sizeDelta = new Vector2(350, 95);
+        restartTxtRect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI restartTxt = restartTxtObj.AddComponent<TextMeshProUGUI>();
+        restartTxt.text = "JOGAR DE NOVO";
+        restartTxt.font = GetTMProFont();
+        restartTxt.fontSize = 24;
+        restartTxt.fontStyle = FontStyles.Bold;
+        restartTxt.alignment = TextAlignmentOptions.Center;
+        restartTxt.color = Color.white;
+
+        restartBtn.onClick.AddListener(() => RestartLevel());
+        AddJuicyAnimations(restartBtnObj);
+
+        // Exit button
+        GameObject exitBtnObj = new GameObject("BtnVictoryExit");
+        exitBtnObj.transform.SetParent(victoryPanel.transform, false);
+        RectTransform exitRect = exitBtnObj.AddComponent<RectTransform>();
+        exitRect.anchoredPosition = new Vector2(0, -200);
+        exitRect.sizeDelta = new Vector2(350, 95);
+
+        Button exitBtn = exitBtnObj.AddComponent<Button>();
+        Image exitImg = exitBtnObj.AddComponent<Image>();
+        exitImg.sprite = CreateRoundedRectSprite(350, 95, 20, candyLightPurple, candyPurple, 4, shadowColor);
+        exitImg.type = Image.Type.Simple;
+
+        GameObject exitTxtObj = new GameObject("Text");
+        exitTxtObj.transform.SetParent(exitBtnObj.transform, false);
+        RectTransform exitTxtRect = exitTxtObj.AddComponent<RectTransform>();
+        exitTxtRect.sizeDelta = new Vector2(350, 95);
+        exitTxtRect.anchoredPosition = Vector2.zero;
+
+        TextMeshProUGUI exitTxt = exitTxtObj.AddComponent<TextMeshProUGUI>();
+        exitTxt.text = "SAIR";
+        exitTxt.font = GetTMProFont();
+        exitTxt.fontSize = 24;
+        exitTxt.fontStyle = FontStyles.Bold;
+        exitTxt.alignment = TextAlignmentOptions.Center;
+        exitTxt.color = Color.white;
+
+        exitBtn.onClick.AddListener(() => QuitGame());
+        AddJuicyAnimations(exitBtnObj);
+
+        victoryPanel.SetActive(false);
+    }
+
+    public void ShowVictory()
+    {
+        Time.timeScale = 0f;
+
+        if (hudPanel != null) hudPanel.SetActive(false);
+        if (menuPanel != null) menuPanel.SetActive(false);
+        if (pauseButton != null) pauseButton.gameObject.SetActive(false);
+        if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(false);
+
+        foreach (var hudBtn in mobileHUDButtons)
+        {
+            hudBtn.SetActive(false);
+        }
+
+        if (joystickContainer != null) joystickContainer.SetActive(false);
+
+        if (victoryPanel != null)
+        {
+            victoryPanel.SetActive(true);
+            TextMeshProUGUI finalScoreText = victoryPanel.transform.Find("VictoryScore").GetComponent<TextMeshProUGUI>();
             if (finalScoreText != null && carDriver != null)
             {
                 finalScoreText.text = "PONTUAÇÃO FINAL: " + carDriver.score;
@@ -846,6 +1065,7 @@ public class GameUIController : MonoBehaviour
 
     private GameObject CreateHUDButton(string name, string text, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPos, float width, float height)
     {
+        // 1. Parent button captures events with a larger touch target hitbox (25% larger)
         GameObject btnObj = new GameObject(name);
         btnObj.transform.SetParent(mainCanvas.transform, false);
 
@@ -854,15 +1074,26 @@ public class GameUIController : MonoBehaviour
         rect.anchorMax = anchorMax;
         rect.pivot = pivot;
         rect.anchoredPosition = anchoredPos;
-        rect.sizeDelta = new Vector2(width, height);
+        rect.sizeDelta = new Vector2(width * 1.25f, height * 1.25f);
 
-        Image img = btnObj.AddComponent<Image>();
+        Image raycastImg = btnObj.AddComponent<Image>();
+        raycastImg.color = Color.clear;
+
+        // 2. Visual container holds the actual graphics and animates scale
+        GameObject visualContainer = new GameObject("Visuals");
+        visualContainer.transform.SetParent(btnObj.transform, false);
+        RectTransform visualRect = visualContainer.AddComponent<RectTransform>();
+        visualRect.anchoredPosition = Vector2.zero;
+        visualRect.sizeDelta = new Vector2(width, height);
+
+        Image visualImg = visualContainer.AddComponent<Image>();
         Color semiTransPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.65f);
-        img.sprite = CreateRoundedRectSprite((int)width, (int)height, 24, semiTransPink, candyPurple, 4, new Color(0,0,0,0));
-        img.type = Image.Type.Simple;
+        visualImg.sprite = CreateRoundedRectSprite((int)width, (int)height, 24, semiTransPink, candyPurple, 4, new Color(0,0,0,0));
+        visualImg.type = Image.Type.Simple;
 
+        // 3. Text label inside visuals
         GameObject txtObj = new GameObject("Text");
-        txtObj.transform.SetParent(btnObj.transform, false);
+        txtObj.transform.SetParent(visualContainer.transform, false);
         RectTransform txtRect = txtObj.AddComponent<RectTransform>();
         txtRect.anchoredPosition = Vector2.zero;
         txtRect.sizeDelta = new Vector2(width, height);
@@ -878,7 +1109,9 @@ public class GameUIController : MonoBehaviour
         txt.outlineWidth = 0.2f;
 
         btnObj.AddComponent<CanvasGroup>();
-        AddJuicyAnimations(btnObj);
+        
+        // Add ButtonJuice to parent (will animate "Visuals" child)
+        btnObj.AddComponent<ButtonJuice>();
 
         return btnObj;
     }
@@ -1005,6 +1238,18 @@ public class GameUIController : MonoBehaviour
                                 continue;
                             }
 
+                            if (phase == UnityEngine.InputSystem.TouchPhase.Began)
+                            {
+                                if (Time.unscaledTime - lastTapTime < 0.35f)
+                                {
+                                    if (carDriver != null)
+                                    {
+                                        carDriver.Shoot();
+                                    }
+                                }
+                                lastTapTime = Time.unscaledTime;
+                            }
+
                             int tid = t.touchId.ReadValue();
                             StartJoystickDrag(touchPos, tid, baseRect);
                             processedTouch = true;
@@ -1043,6 +1288,18 @@ public class GameUIController : MonoBehaviour
                     }
                     else
                     {
+                        if (mouse.leftButton.wasPressedThisFrame)
+                        {
+                            if (Time.unscaledTime - lastClickTime < 0.35f)
+                            {
+                                if (carDriver != null)
+                                {
+                                    carDriver.Shoot();
+                                }
+                            }
+                            lastClickTime = Time.unscaledTime;
+                        }
+
                         StartJoystickDrag(mousePos, -2, baseRect);
                     }
                 }
@@ -1078,13 +1335,20 @@ public class GameUIController : MonoBehaviour
     private void UpdateJoystickDrag(Vector2 pos, Vector2 delta, RectTransform baseRect)
     {
         Vector2 displacement = pos - startTouchPos;
-        float maxDrag = 100f; // maximum displacement radius
+        
+        // Calculate max drag radius based on physical screen DPI for consistency across mobile and desktop
+        float dpi = Screen.dpi;
+        if (dpi <= 0) dpi = 96f; // Fallback for desktops / undefined DPIs
+        float maxDrag = 0.6f * dpi; // Maximum physical drag is 0.6 inches
+        if (maxDrag < 50f) maxDrag = 50f; // safety floor
+        
         Vector2 clampedDelta = Vector2.ClampMagnitude(displacement, maxDrag);
         joystickKnob.anchoredPosition = clampedDelta;
 
         if (carDriver != null)
         {
-            carDriver.SetDragDisplacement(clampedDelta);
+            // Pass the normalized displacement (0 to 1 magnitude) to ensure identical speed on all devices
+            carDriver.SetDragDisplacement(clampedDelta / maxDrag);
         }
     }
 
@@ -1142,7 +1406,18 @@ public class GameUIController : MonoBehaviour
     private void EnhanceDeliveryZone()
     {
         // Find all delivery spots
-        GameObject[] customers = GameObject.FindGameObjectsWithTag("Customer");
+        System.Collections.Generic.List<GameObject> customers = new System.Collections.Generic.List<GameObject>();
+        customers.AddRange(GameObject.FindGameObjectsWithTag("Customer"));
+        customers.AddRange(GameObject.FindGameObjectsWithTag("Pink House"));
+        
+        // Also look by name for "Descarga de sorvete"
+        foreach (GameObject go in FindObjectsOfType<GameObject>())
+        {
+            if (go.name.Contains("Descarga de sorvete"))
+            {
+                if (!customers.Contains(go)) customers.Add(go);
+            }
+        }
 
         foreach (GameObject cust in customers)
         {
@@ -1150,14 +1425,14 @@ public class GameUIController : MonoBehaviour
             // Just spawn a flat, glowing pink candy circle centered on the delivery spot!
             GameObject matObj = new GameObject("CandyDeliveryZoneMat");
             matObj.transform.position = cust.transform.position;
-            matObj.transform.localScale = new Vector3(2.2f, 2.2f, 1f);
+            matObj.transform.localScale = new Vector3(3.0f, 3.0f, 1f);
 
             SpriteRenderer matSR = matObj.AddComponent<SpriteRenderer>();
             Color semiPink = new Color(candyPink.r, candyPink.g, candyPink.b, 0.55f);
             
             // Create a perfect 128x128 circle by setting cornerRadius to 64
             matSR.sprite = CreateRoundedRectSprite(128, 128, 64, semiPink, candyPurple, 4, new Color(0, 0, 0, 0));
-            matSR.sortingOrder = 1; // Under the car (which is sorting order 2 or higher)
+            matSR.sortingOrder = 5; // Render on top of road/grass layer
         }
     }
 
@@ -1171,7 +1446,7 @@ public class GameUIController : MonoBehaviour
         navArrowSR = navArrow.AddComponent<SpriteRenderer>();
         // Draw pixel-art arrow pointing UP
         navArrowSR.sprite = CreateArrowSprite(48, 48, candyPink, candyPurple, 4);
-        navArrowSR.sortingOrder = 6;
+        navArrowSR.sortingOrder = 25;
         navArrow.SetActive(false);
     }
 
@@ -1196,8 +1471,18 @@ public class GameUIController : MonoBehaviour
         // If carrying cargo, point to the nearest delivery customer. Else point to nearest package.
         if (carDriver.cargo > 0)
         {
-            GameObject[] customers = GameObject.FindGameObjectsWithTag("Customer");
-            target = FindNearest(customers);
+            System.Collections.Generic.List<GameObject> customers = new System.Collections.Generic.List<GameObject>();
+            customers.AddRange(GameObject.FindGameObjectsWithTag("Customer"));
+            customers.AddRange(GameObject.FindGameObjectsWithTag("Pink House"));
+            
+            foreach (GameObject go in FindObjectsOfType<GameObject>())
+            {
+                if (go.name.Contains("Descarga de sorvete"))
+                {
+                    if (!customers.Contains(go)) customers.Add(go);
+                }
+            }
+            target = FindNearest(customers.ToArray());
             
             // Set glowing hot pink for delivery pointer
             navArrowSR.color = candyPink;
@@ -1540,7 +1825,7 @@ public class GameUIController : MonoBehaviour
         labelRect.sizeDelta = new Vector2(440, 40);
 
         sliderLabel = labelObj.AddComponent<TextMeshProUGUI>();
-        sliderLabel.text = "SENSIBILIDADE: 6.5";
+        sliderLabel.text = "SENSIBILIDADE: 1.2";
         sliderLabel.font = GetTMProFont();
         sliderLabel.fontSize = 20;
         sliderLabel.fontStyle = FontStyles.Bold;
@@ -1599,7 +1884,7 @@ public class GameUIController : MonoBehaviour
         slider.handleRect = handleRect;
         slider.minValue = 1f;
         slider.maxValue = 30f;
-        slider.value = 6.5f;
+        slider.value = 1.2f;
 
         slider.onValueChanged.AddListener((val) => {
             if (carDriver != null)
@@ -1656,5 +1941,224 @@ public class GameUIController : MonoBehaviour
 
         // Start closed
         debugPanel.SetActive(false);
+    }
+
+    private void CreateGameplayControlToggle()
+    {
+        // Create subtle Control Toggle Button in the top-right next to Pause button
+        gameplayToggleBtnObj = new GameObject("BtnControlToggleGameplay");
+        gameplayToggleBtnObj.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform toggleRect = gameplayToggleBtnObj.AddComponent<RectTransform>();
+        toggleRect.anchorMin = new Vector2(1, 1);
+        toggleRect.anchorMax = new Vector2(1, 1);
+        toggleRect.pivot = new Vector2(1, 1);
+        toggleRect.anchoredPosition = new Vector2(-150, -40); // 150px left of top-right corner, Pause is at -40px
+        toggleRect.sizeDelta = new Vector2(210, 80);
+
+        Image img = gameplayToggleBtnObj.AddComponent<Image>();
+        // Subtle dark color with bubblegum pink border
+        img.sprite = CreateRoundedRectSprite(210, 80, 16, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPink, 3, shadowColor);
+        img.type = Image.Type.Simple;
+
+        GameObject txtObj = new GameObject("Text");
+        txtObj.transform.SetParent(gameplayToggleBtnObj.transform, false);
+        RectTransform txtRect = txtObj.AddComponent<RectTransform>();
+        txtRect.anchoredPosition = Vector2.zero;
+        txtRect.sizeDelta = new Vector2(210, 80);
+
+        gameplayToggleTxt = txtObj.AddComponent<TextMeshProUGUI>();
+        gameplayToggleTxt.text = useSwipeMode ? "👆 ARRUST" : "🕹️ BOTÕES";
+        gameplayToggleTxt.font = GetTMProFont();
+        gameplayToggleTxt.fontSize = 20;
+        gameplayToggleTxt.fontStyle = FontStyles.Bold;
+        gameplayToggleTxt.alignment = TextAlignmentOptions.Center;
+        gameplayToggleTxt.color = Color.white;
+        gameplayToggleTxt.outlineColor = candyPurple;
+        gameplayToggleTxt.outlineWidth = 0.2f;
+
+        Button btn = gameplayToggleBtnObj.AddComponent<Button>();
+        btn.onClick.AddListener(() => {
+            useSwipeMode = !useSwipeMode;
+            gameplayToggleTxt.text = useSwipeMode ? "👆 ARRUST" : "🕹️ BOTÕES";
+            SetGameState(false); // Refreshes active UI HUD layout immediately
+        });
+
+        AddJuicyAnimations(gameplayToggleBtnObj);
+    }
+
+    private void CreateVignetteOverlay()
+    {
+        GameObject vigObj = new GameObject("FullscreenVignette");
+        vigObj.transform.SetParent(mainCanvas.transform, false);
+        vigObj.transform.SetAsFirstSibling(); // Draw in background of other UI elements
+
+        RectTransform rect = vigObj.AddComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.sizeDelta = Vector2.zero;
+
+        vignetteImage = vigObj.AddComponent<RawImage>();
+        vignetteImage.texture = CreateVignetteTexture(256, 256);
+        vignetteImage.color = new Color(0f, 0f, 0f, 0.55f);
+        vignetteImage.raycastTarget = false;
+    }
+
+    private Texture2D CreateVignetteTexture(int w, int h)
+    {
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        tex.wrapMode = TextureWrapMode.Clamp;
+
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                float dx = (x - w / 2f) / (w / 2f);
+                float dy = (y - h / 2f) / (h / 2f);
+                float dist = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+                float alpha = Mathf.SmoothStep(0f, 1f, dist);
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+            }
+        }
+        tex.Apply();
+        return tex;
+    }
+
+    private void CreateMissionPanel()
+    {
+        missionPanel = new GameObject("MissionPanel");
+        missionPanel.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform rect = missionPanel.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(20, -170);
+        rect.sizeDelta = new Vector2(300, 100);
+
+        Image bg = missionPanel.AddComponent<Image>();
+        bg.sprite = CreateRoundedRectSprite(300, 100, 16, new Color(0.368f, 0.235f, 0.502f, 0.75f), candyPink, 2, new Color(0,0,0,0));
+
+        GameObject titleObj = new GameObject("Title");
+        titleObj.transform.SetParent(missionPanel.transform, false);
+        RectTransform tRect = titleObj.AddComponent<RectTransform>();
+        tRect.anchoredPosition = new Vector2(0, 20);
+        tRect.sizeDelta = new Vector2(280, 30);
+        TextMeshProUGUI title = titleObj.AddComponent<TextMeshProUGUI>();
+        title.text = "MISSÃO ATIVA";
+        title.font = GetTMProFont();
+        title.fontSize = 16;
+        title.fontStyle = FontStyles.Bold;
+        title.alignment = TextAlignmentOptions.Center;
+        title.color = candyPink;
+
+        GameObject descObj = new GameObject("Desc");
+        descObj.transform.SetParent(missionPanel.transform, false);
+        RectTransform dRect = descObj.AddComponent<RectTransform>();
+        dRect.anchoredPosition = new Vector2(0, -5);
+        dRect.sizeDelta = new Vector2(280, 25);
+        missionDescText = descObj.AddComponent<TextMeshProUGUI>();
+        missionDescText.text = "Aguardando Missão...";
+        missionDescText.font = GetTMProFont();
+        missionDescText.fontSize = 14;
+        missionDescText.fontStyle = FontStyles.Bold;
+        missionDescText.alignment = TextAlignmentOptions.Center;
+        missionDescText.color = Color.white;
+
+        GameObject progObj = new GameObject("Progress");
+        progObj.transform.SetParent(missionPanel.transform, false);
+        RectTransform pRect = progObj.AddComponent<RectTransform>();
+        pRect.anchoredPosition = new Vector2(0, -25);
+        pRect.sizeDelta = new Vector2(280, 25);
+        missionProgressText = progObj.AddComponent<TextMeshProUGUI>();
+        missionProgressText.text = "0 / 0";
+        missionProgressText.font = GetTMProFont();
+        missionProgressText.fontSize = 14;
+        missionProgressText.fontStyle = FontStyles.Bold;
+        missionProgressText.alignment = TextAlignmentOptions.Center;
+        missionProgressText.color = Color.yellow;
+    }
+
+    public void UpdateMissionPanel(string desc, string progress)
+    {
+        if (missionDescText != null) missionDescText.text = desc;
+        if (missionProgressText != null) missionProgressText.text = progress;
+    }
+
+    private void CreateBossHealthBarUI()
+    {
+        bossHealthPanel = new GameObject("BossHealthBarPanel");
+        bossHealthPanel.transform.SetParent(mainCanvas.transform, false);
+
+        RectTransform rect = bossHealthPanel.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0, -170);
+        rect.sizeDelta = new Vector2(450, 60);
+
+        Image bg = bossHealthPanel.AddComponent<Image>();
+        bg.sprite = CreateRoundedRectSprite(450, 60, 12, new Color(0.12f, 0.12f, 0.12f, 0.9f), Color.grey, 2, new Color(0,0,0,0));
+
+        GameObject sliderBg = new GameObject("SliderBg");
+        sliderBg.transform.SetParent(bossHealthPanel.transform, false);
+        RectTransform sBgRect = sliderBg.AddComponent<RectTransform>();
+        sBgRect.anchoredPosition = new Vector2(0, -12);
+        sBgRect.sizeDelta = new Vector2(410, 20);
+        Image sBgImg = sliderBg.AddComponent<Image>();
+        sBgImg.sprite = CreateRoundedRectSprite(410, 20, 6, new Color(0.2f, 0.2f, 0.2f, 1f), new Color(0.2f, 0.2f, 0.2f, 1f), 0, new Color(0,0,0,0));
+
+        GameObject sliderFill = new GameObject("SliderFill");
+        sliderFill.transform.SetParent(sliderBg.transform, false);
+        RectTransform sFillRect = sliderFill.AddComponent<RectTransform>();
+        sFillRect.anchorMin = new Vector2(0f, 0.5f);
+        sFillRect.anchorMax = new Vector2(0f, 0.5f);
+        sFillRect.pivot = new Vector2(0f, 0.5f);
+        sFillRect.anchoredPosition = new Vector2(0f, 0f);
+        sFillRect.sizeDelta = new Vector2(410, 20);
+        bossHealthFillImage = sliderFill.AddComponent<Image>();
+        bossHealthFillImage.sprite = CreateRoundedRectSprite(410, 20, 6, Color.red, Color.red, 0, new Color(0,0,0,0));
+        bossHealthFillImage.type = Image.Type.Filled;
+        bossHealthFillImage.fillMethod = Image.FillMethod.Horizontal;
+        bossHealthFillImage.fillAmount = 1f;
+
+        GameObject labelObj = new GameObject("Label");
+        labelObj.transform.SetParent(bossHealthPanel.transform, false);
+        RectTransform labelRect = labelObj.AddComponent<RectTransform>();
+        labelRect.anchoredPosition = new Vector2(0, 15);
+        labelRect.sizeDelta = new Vector2(410, 25);
+        bossHealthText = labelObj.AddComponent<TextMeshProUGUI>();
+        bossHealthText.text = "BARÃO AMARGO";
+        bossHealthText.font = GetTMProFont();
+        bossHealthText.fontSize = 16;
+        bossHealthText.fontStyle = FontStyles.Bold;
+        bossHealthText.alignment = TextAlignmentOptions.Center;
+        bossHealthText.color = Color.white;
+        bossHealthText.outlineColor = Color.black;
+        bossHealthText.outlineWidth = 0.22f;
+
+        bossHealthPanel.SetActive(false);
+    }
+
+    private float bossMaxHp = 2500f;
+    public void ShowBossHealthBar(float maxHp)
+    {
+        bossMaxHp = maxHp;
+        if (bossHealthPanel != null) bossHealthPanel.SetActive(true);
+        if (bossHealthFillImage != null) bossHealthFillImage.fillAmount = 1f;
+    }
+
+    public void UpdateBossHealthBar(float currentHp)
+    {
+        if (bossHealthFillImage != null)
+        {
+            bossHealthFillImage.fillAmount = Mathf.Clamp01(currentHp / bossMaxHp);
+        }
+    }
+
+    public void HideBossHealthBar()
+    {
+        if (bossHealthPanel != null) bossHealthPanel.SetActive(false);
     }
 }
