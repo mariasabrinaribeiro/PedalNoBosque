@@ -11919,7 +11919,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-<<<<<<< Updated upstream
+
 --- !u!114 &384681056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11951,9 +11951,7 @@ MonoBehaviour:
   m_PointerBehavior: 0
   m_CursorLockBehavior: 0
 --- !u!1 &386376254
-=======
---- !u!1 &391061595
->>>>>>> Stashed changes
+
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
