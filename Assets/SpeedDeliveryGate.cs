@@ -9,11 +9,69 @@ public class SpeedDeliveryGate : MonoBehaviour
 
     private float pulseTime = 0f;
 
+    // Static Cache to prevent GC spikes and memory leaks
+    private static Sprite cachedPostSprite;
+    private static Sprite cachedWhiteSprite;
+
+    private static Sprite GetWhiteSprite()
+    {
+        if (cachedWhiteSprite == null)
+        {
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < 2; x++)
+                {
+                    tex.SetPixel(x, y, Color.white);
+                }
+            }
+            tex.Apply();
+            cachedWhiteSprite = Sprite.Create(tex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f), 100f);
+        }
+        return cachedWhiteSprite;
+    }
+
+    private static Sprite GetPostSprite()
+    {
+        if (cachedPostSprite == null)
+        {
+            int w = 16;
+            int h = 48;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+
+            Color pink = new Color(1f, 0.45f, 0.75f, 1f);
+            Color white = Color.white;
+
+            for (int y = 0; y < h; y++)
+            {
+                Color c = ((y / 6) % 2 == 0) ? pink : white;
+                for (int x = 0; x < w; x++)
+                {
+                    if (y >= h - 4)
+                    {
+                        float dx = x - w / 2f;
+                        float dy = y - (h - 4);
+                        if (dx * dx + dy * dy > (w / 2f) * (w / 2f))
+                        {
+                            tex.SetPixel(x, y, Color.clear);
+                            continue;
+                        }
+                    }
+                    tex.SetPixel(x, y, c);
+                }
+            }
+            tex.Apply();
+            cachedPostSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0f), 100f);
+        }
+        return cachedPostSprite;
+    }
+
     void Awake()
     {
         gameObject.name = "SpeedDeliveryGate";
 
-        // 1. Create left and right post child GameObjects
         leftPost = new GameObject("LeftPost");
         leftPost.transform.SetParent(transform);
         leftPost.transform.localPosition = new Vector3(-2.2f, 0f, 0f);
@@ -22,24 +80,20 @@ public class SpeedDeliveryGate : MonoBehaviour
         rightPost.transform.SetParent(transform);
         rightPost.transform.localPosition = new Vector3(2.2f, 0f, 0f);
 
-        // Add SpriteRenderers to posts
         SpriteRenderer srL = leftPost.AddComponent<SpriteRenderer>();
         SpriteRenderer srR = rightPost.AddComponent<SpriteRenderer>();
 
-        Sprite postSprite = CreatePostSprite(16, 48);
-        srL.sprite = postSprite;
-        srR.sprite = postSprite;
+        srL.sprite = GetPostSprite();
+        srR.sprite = GetPostSprite();
         srL.sortingOrder = 3;
         srR.sortingOrder = 3;
 
-        // 2. Set up BoxCollider2D trigger zone between posts
         col = GetComponent<BoxCollider2D>();
         if (col == null) col = gameObject.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
         col.size = new Vector2(4.0f, 0.4f);
         col.offset = new Vector2(0f, 0.2f);
 
-        // 3. Set up LineRenderer for the glowing neon energy line
         energyLine = GetComponent<LineRenderer>();
         if (energyLine == null) energyLine = gameObject.AddComponent<LineRenderer>();
         
@@ -48,12 +102,10 @@ public class SpeedDeliveryGate : MonoBehaviour
         energyLine.endWidth = 0.18f;
         energyLine.useWorldSpace = false;
         
-        // Connect the top of the posts
         energyLine.SetPosition(0, new Vector3(-2.2f, 0.8f, 0f));
         energyLine.SetPosition(1, new Vector3(2.2f, 0.8f, 0f));
         energyLine.sortingOrder = 4;
 
-        // Assign unlit color shader to line
         Shader unlitShader = Shader.Find("Sprites/Default");
         if (unlitShader != null)
         {
@@ -80,7 +132,6 @@ public class SpeedDeliveryGate : MonoBehaviour
 
     void Update()
     {
-        // Pulsate energy line width and opacity to represent high-energy glow
         pulseTime += Time.deltaTime * 6f;
         float pulse = Mathf.PingPong(pulseTime, 0.1f) + 0.12f;
         if (energyLine != null)
@@ -88,7 +139,6 @@ public class SpeedDeliveryGate : MonoBehaviour
             energyLine.startWidth = pulse;
             energyLine.endWidth = pulse;
             
-            // oscilate color intensity
             float alpha = Mathf.PingPong(pulseTime * 0.5f, 0.3f) + 0.5f;
             Color c = new Color(1f, 0.2f, 0.8f, alpha);
             energyLine.startColor = c;
@@ -106,42 +156,33 @@ public class SpeedDeliveryGate : MonoBehaviour
             {
                 float currentSpeed = player.displaySpeed;
                 
-                // Speed threshold: 4.8f (fast, requires boost or full speed steering)
                 if (currentSpeed >= 4.8f)
                 {
-                    // Success!
                     player.score += 100;
-                    player.ActivateGirlPower(5f); // 5s Girl Power!
+                    player.ActivateGirlPower(5f); 
 
-                    // Alert HUD
                     GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
                         ui.ShowDeliveryMessage("ENTREGA DE ALTA VELOCIDADE! +100 PONTOS / GIRL POWER!");
                     }
 
-                    // Play arpeggio sound
                     if (GameAudioController.Instance != null)
                     {
                         GameAudioController.Instance.PlayGirlPower();
                     }
 
-                    // Particle splash
                     SpawnSuccessParticles();
-
-                    // Deactivate speed gate back to pool
                     gameObject.SetActive(false);
                 }
                 else
                 {
-                    // Too slow!
                     GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
                         ui.ShowWarning("MUITO LENTO! CORRA MAIS PARA ENTREGAR!");
                     }
 
-                    // Play warning SFX
                     if (GameAudioController.Instance != null)
                     {
                         GameAudioController.Instance.PlayWarning();
@@ -156,6 +197,8 @@ public class SpeedDeliveryGate : MonoBehaviour
         Color pinkColor = new Color(1f, 0.2f, 0.8f, 1f);
         Color goldColor = new Color(1f, 0.843f, 0f, 1f);
 
+        Sprite whiteSprite = GetWhiteSprite();
+
         for (int i = 0; i < 12; i++)
         {
             GameObject p = new GameObject("GateParticle");
@@ -165,58 +208,13 @@ public class SpeedDeliveryGate : MonoBehaviour
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
-            particleSr.sprite = CreateTinySprite(6, 6, (i % 2 == 0) ? pinkColor : goldColor);
+            particleSr.sprite = whiteSprite;
+            particleSr.color = (i % 2 == 0) ? pinkColor : goldColor; 
             particleSr.sortingOrder = 6;
 
             ExplosionParticle script = p.AddComponent<ExplosionParticle>();
             script.direction = dir;
             script.speed = Random.Range(3f, 7f);
         }
-    }
-
-    private Sprite CreatePostSprite(int w, int h)
-    {
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Point;
-
-        Color pink = new Color(1f, 0.45f, 0.75f, 1f);
-        Color white = Color.white;
-
-        for (int y = 0; y < h; y++)
-        {
-            // Pink and white stripes pattern based on y coordinates
-            Color c = ((y / 6) % 2 == 0) ? pink : white;
-            for (int x = 0; x < w; x++)
-            {
-                // Rounded top
-                if (y >= h - 4)
-                {
-                    float dx = x - w / 2f;
-                    float dy = y - (h - 4);
-                    if (dx * dx + dy * dy > (w / 2f) * (w / 2f))
-                    {
-                        tex.SetPixel(x, y, Color.clear);
-                        continue;
-                    }
-                }
-                tex.SetPixel(x, y, c);
-            }
-        }
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0f), 100f);
-    }
-
-    private Sprite CreateTinySprite(int w, int h, Color color)
-    {
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                tex.SetPixel(x, y, color);
-            }
-        }
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
     }
 }
