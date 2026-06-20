@@ -70,11 +70,13 @@ public class EnemySpawner : MonoBehaviour
     {
         if (Time.timeScale < 0.01f || player == null) return;
 
-        // 1. Boss Trigger Check
+        // 1. Boss Trigger Check - DISABLED to make game lighter
+        /*
         if (player.score >= scoreForNextBoss && !bossActive)
         {
             SpawnBossFight();
         }
+        */
 
         if (bossActive)
         {

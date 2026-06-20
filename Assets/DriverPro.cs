@@ -181,13 +181,15 @@ public class DriverPro : MonoBehaviour
         speedTrail.endColor = new Color(1f, 0.482f, 0.773f, 0f);
         speedTrail.sortingOrder = 2; // draw just behind car
 
-        // 3. Add engine sound loop synthesizer
-        gameObject.AddComponent<EngineSound>();
+        // 3. Add engine sound loop synthesizer - DISABLED per user request to make game lighter
+        // gameObject.AddComponent<EngineSound>();
 
-        // 4. Hook up environment scanner
-        GameObject scanner = new GameObject("DynamicEnvironmentScanner");
-        scanner.AddComponent<DynamicEnvironmentInitializer>();
-        // Add ambient sugar dust particles
+        // 4. Hook up environment scanner - DISABLED per user request to make game lighter
+        // GameObject scanner = new GameObject("DynamicEnvironmentScanner");
+        // scanner.AddComponent<DynamicEnvironmentInitializer>();
+        
+        // Add ambient sugar dust particles - DISABLED per user request to make game lighter
+        /*
         if (Camera.main != null)
         {
             Camera.main.gameObject.AddComponent<AmbientGlitterManager>();
@@ -196,6 +198,7 @@ public class DriverPro : MonoBehaviour
         {
             Debug.LogWarning("driverpro: Camera.main not found. AmbientGlitterManager was not added.");
         }
+        */
 
         // Cache procedural sprites to prevent memory leaks and GC spikes
         // cachedStarSprite = CreateStarSparkSprite(8, 8, new Color(1f, 0.85f, 0f, 0.8f)); // Disabled to save memory
