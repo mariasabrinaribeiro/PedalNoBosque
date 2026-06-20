@@ -50209,18 +50209,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   soundEvents:
-  - name: Tiro
-    clip: {fileID: 8300000, guid: f00d8eb9c3082419eb8f03706d6e7105, type: 3}
-  - name: Som do fundo
+  - name: Musica de fundo
     clip: {fileID: 8300000, guid: 53b0ea0831ea14dbda6cb1c0b93737f1, type: 3}
-  - name: Som do carro
-    clip: {fileID: 8300000, guid: 0bf59f8d67e714b48be1b9b5b6a72801, type: 3}
-  - name: Som do Start
-    clip: {fileID: 8300000, guid: ca129908ce91eed49b48adbca49a14a5, type: 3}
-  - name: Som do game over
-    clip: {fileID: 8300000, guid: b4c442f769f149a42837f122ac1e1b4b, type: 3}
-  - name: Som do carro
-    clip: {fileID: 8300000, guid: 0bf59f8d67e714b48be1b9b5b6a72801, type: 3}
 --- !u!4 &1953799018
 Transform:
   m_ObjectHideFlags: 0
