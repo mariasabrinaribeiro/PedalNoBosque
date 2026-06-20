@@ -128,7 +128,7 @@ public class driver : MonoBehaviour
         {
             rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             // Prevent jitter from unwanted rotation by freezing rotation on the car's rigidbody.
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            rb.constraints = RigidbodyConstraints2D.None; // Permite rotação livre para o carro girar
         }
 
         // 2. Add speed trail dynamically
