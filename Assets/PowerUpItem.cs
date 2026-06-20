@@ -8,6 +8,31 @@ public class PowerUpItem : MonoBehaviour
     private SpriteRenderer sr;
     private Vector3 basePosition;
 
+    // Static Cache for sprites to prevent GC spikes and memory leak
+    private static Sprite cachedMagnetSprite;
+    private static Sprite cachedShieldSprite;
+    private static Sprite cachedTripleShotSprite;
+    private static Sprite cachedWhiteSprite;
+
+    private static Sprite GetWhiteSprite()
+    {
+        if (cachedWhiteSprite == null)
+        {
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < 2; x++)
+                {
+                    tex.SetPixel(x, y, Color.white);
+                }
+            }
+            tex.Apply();
+            cachedWhiteSprite = Sprite.Create(tex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f), 100f);
+        }
+        return cachedWhiteSprite;
+    }
+
     void Start()
     {
         sr = GetComponent<SpriteRenderer>();
@@ -44,23 +69,36 @@ public class PowerUpItem : MonoBehaviour
         switch (type)
         {
             case PowerUpType.Magnet:
-                mainColor = new Color(1f, 0.843f, 0f, 1f); // Gold
-                outlineColor = new Color(0.6f, 0.4f, 0f, 1f);
+                if (cachedMagnetSprite == null)
+                {
+                    mainColor = new Color(1f, 0.843f, 0f, 1f); // Gold
+                    outlineColor = new Color(0.6f, 0.4f, 0f, 1f);
+                    cachedMagnetSprite = CreatePowerUpSprite(mainColor, outlineColor);
+                }
+                sr.sprite = cachedMagnetSprite;
                 gameObject.name = "PowerUp_Magnet";
                 break;
             case PowerUpType.Shield:
-                mainColor = new Color(0f, 0.9f, 1f, 1f); // Cyan
-                outlineColor = new Color(0f, 0.5f, 0.8f, 1f);
+                if (cachedShieldSprite == null)
+                {
+                    mainColor = new Color(0f, 0.9f, 1f, 1f); // Cyan
+                    outlineColor = new Color(0f, 0.5f, 0.8f, 1f);
+                    cachedShieldSprite = CreatePowerUpSprite(mainColor, outlineColor);
+                }
+                sr.sprite = cachedShieldSprite;
                 gameObject.name = "PowerUp_Shield";
                 break;
             case PowerUpType.TripleShot:
-                mainColor = new Color(1f, 0.2f, 0.8f, 1f); // Magenta
-                outlineColor = new Color(0.5f, 0f, 0.4f, 1f);
+                if (cachedTripleShotSprite == null)
+                {
+                    mainColor = new Color(1f, 0.2f, 0.8f, 1f); // Magenta
+                    outlineColor = new Color(0.5f, 0f, 0.4f, 1f);
+                    cachedTripleShotSprite = CreatePowerUpSprite(mainColor, outlineColor);
+                }
+                sr.sprite = cachedTripleShotSprite;
                 gameObject.name = "PowerUp_TripleShot";
                 break;
         }
-
-        sr.sprite = CreatePowerUpSprite(mainColor, outlineColor);
     }
 
     void Update()
@@ -112,7 +150,7 @@ public class PowerUpItem : MonoBehaviour
             // Spawn colored particle burst
             SpawnCollectParticles();
 
-            // Destroy item (using pooled logic or destroy if dynamically instantiated)
+            // Destroy item
             Destroy(gameObject);
         }
     }
@@ -124,6 +162,8 @@ public class PowerUpItem : MonoBehaviour
         else if (type == PowerUpType.Shield) particleColor = Color.cyan;
         else if (type == PowerUpType.TripleShot) particleColor = Color.magenta;
 
+        Sprite whiteSprite = GetWhiteSprite();
+
         for (int i = 0; i < 8; i++)
         {
             GameObject p = new GameObject("PowerUpParticle");
@@ -133,7 +173,8 @@ public class PowerUpItem : MonoBehaviour
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
-            particleSr.sprite = CreateParticleSprite(6, 6, particleColor);
+            particleSr.sprite = whiteSprite;
+            particleSr.color = particleColor;
             particleSr.sortingOrder = 6;
 
             ExplosionParticle script = p.AddComponent<ExplosionParticle>();
@@ -182,20 +223,6 @@ public class PowerUpItem : MonoBehaviour
                 {
                     tex.SetPixel(x, y, Color.clear);
                 }
-            }
-        }
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
-    }
-
-    private Sprite CreateParticleSprite(int w, int h, Color color)
-    {
-        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                tex.SetPixel(x, y, color);
             }
         }
         tex.Apply();
