@@ -435,8 +435,8 @@ public class driver : MonoBehaviour
                 // Set the forward component to the desired moveAmount
                 localVelocity.y = moveAmount;
                 
-                // Damp sideways velocity to prevent drifting, but preserve enough for sliding against obstacles
-                localVelocity.x *= 0.15f;
+                // Zera a velocidade lateral completamente para eliminar o deslizamento
+                localVelocity.x = 0f;
                 
                 // Reapply in world coordinates
                 rb.velocity = transform.TransformDirection(localVelocity);
