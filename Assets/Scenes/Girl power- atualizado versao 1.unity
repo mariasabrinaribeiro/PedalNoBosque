@@ -1781,11 +1781,11 @@ Transform:
   m_GameObject: {fileID: 63801185}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 1, w: 0}
-  m_LocalPosition: {x: 29.11, y: -5.42, z: 1.2750455}
+  m_LocalPosition: {x: -5.4403076, y: -1.450531, z: -0.29567242}
   m_LocalScale: {x: 0.43431, y: 0.43431, z: 0.43431}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 856356656}
+  m_Father: {fileID: 449665357}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
 --- !u!114 &63801188
 MonoBehaviour:
@@ -1912,7 +1912,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 0bf59f8d67e714b48be1b9b5b6a72801, type: 3}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -12990,6 +12990,7 @@ GameObject:
   m_Component:
   - component: {fileID: 449665357}
   - component: {fileID: 449665358}
+  - component: {fileID: 449665359}
   m_Layer: 0
   m_Name: 'Som do carro '
   m_TagString: Untagged
@@ -13009,7 +13010,8 @@ Transform:
   m_LocalPosition: {x: -816.5403, y: -464.2981, z: 0.29567242}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 63801187}
   m_Father: {fileID: 21109236}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!82 &449665358
@@ -13023,7 +13025,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 0bf59f8d67e714b48be1b9b5b6a72801, type: 3}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -13108,6 +13110,24 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &449665359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 449665356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe8849abff9fd4de08e58777891fa61d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  forceMobileUI: 1
+  candyPink: {r: 1, g: 0.482, b: 0.773, a: 1}
+  candyPurple: {r: 0.368, g: 0.235, b: 0.502, a: 1}
+  candyLightPurple: {r: 0.545, g: 0.373, b: 0.663, a: 1}
+  shadowColor: {r: 0.2, g: 0.118, b: 0.294, a: 0.5}
+  candyGreen: {r: 0.4, g: 0.9, b: 0.6, a: 1}
 --- !u!1 &450038376
 GameObject:
   m_ObjectHideFlags: 0
@@ -23381,7 +23401,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 370579507}
-  - {fileID: 63801187}
   - {fileID: 1873497917}
   - {fileID: 1413943470}
   m_Father: {fileID: 0}
@@ -25211,7 +25230,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: b4c442f769f149a42837f122ac1e1b4b, type: 3}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -36495,6 +36514,53 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1.14, y: 0.75}
   m_EdgeRadius: 0
+--- !u!1 &1392583686
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1392583688}
+  - component: {fileID: 1392583687}
+  m_Layer: 0
+  m_Name: ControladorJogo
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1392583687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1392583686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eff7bc49e64015a4891e8a5d7fd993c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  audioFundo: {fileID: 768543925}
+  audioCarro: {fileID: 63801193}
+  audioGameOver: {fileID: 954441782}
+--- !u!4 &1392583688
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1392583686}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 51.959743, y: 24.201906, z: 0.29567242}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1394888790
 GameObject:
   m_ObjectHideFlags: 0
@@ -56601,3 +56667,4 @@ SceneRoots:
   - {fileID: 2116961756}
   - {fileID: 2136497875}
   - {fileID: 1953799018}
+  - {fileID: 1392583688}

@@ -349,6 +349,12 @@ public class DriverPro : MonoBehaviour
 
         if (health <= 0)
         {
+            // Controla os sons de game over
+            if (ControladorJogo.Instance != null)
+            {
+                ControladorJogo.Instance.GameOver();
+            }
+
             GameUIController uiController = FindObjectOfType<GameUIController>();
             if (uiController != null)
             {
