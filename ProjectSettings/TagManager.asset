@@ -13,6 +13,7 @@ TagManager:
   - SlowZone
   - Pink House
   - Carro
+  - Delivery
   layers:
   - Default
   - TransparentFX

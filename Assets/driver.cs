@@ -124,6 +124,27 @@ public class driverpro : MonoBehaviour
         if (rb != null)
         {
             rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+            // Prevent jitter from unwanted rotation by freezing rotation on the car's rigidbody.
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+            // Diagnostic output: list any Rigidbody2D / Collider2D in children to detect duplicates
+            Rigidbody2D[] childRBs = GetComponentsInChildren<Rigidbody2D>(true);
+            Collider2D[] childCols = GetComponentsInChildren<Collider2D>(true);
+            Debug.Log("driverpro: main Rigidbody found on '" + gameObject.name + "'. Child Rigidbody count: " + (childRBs.Length - 1) + ", child Collider count: " + (childCols.Length - 1));
+            for (int i = 0; i < childRBs.Length; i++)
+            {
+                if (childRBs[i] != rb)
+                {
+                    Debug.Log("driverpro: child Rigidbody on '" + childRBs[i].gameObject.name + "' (isKinematic=" + childRBs[i].bodyType + ")");
+                }
+            }
+            for (int i = 0; i < childCols.Length; i++)
+            {
+                if (childCols[i].gameObject != gameObject)
+                {
+                    Debug.Log("driverpro: child Collider on '" + childCols[i].gameObject.name + "' isTrigger=" + childCols[i].isTrigger);
+                }
+            }
         }
 
         // 2. Add speed trail dynamically
