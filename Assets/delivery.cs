@@ -42,7 +42,9 @@ public class Delivery : MonoBehaviour
                 }
             }
         }
-        else if (collision.CompareTag("Customer") || collision.CompareTag("Pink House") || collision.name.Contains("Descarga de sorvete"))
+        else if (collision.CompareTag("Customer") || collision.CompareTag("Pink House") || 
+                 collision.name.ToLower().Contains("descarga") || 
+                 collision.name.ToLower().Contains("tapete"))
         {
             if (driver != null && driver.cargo > 0)
             {
