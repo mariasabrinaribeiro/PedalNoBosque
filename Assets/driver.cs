@@ -39,6 +39,8 @@ public class driverpro : MonoBehaviour
     // Speed trails and continuous sound
     private TrailRenderer speedTrail;
     private bool isSlowed = false;
+    private Sprite cachedStarSprite;
+    private Sprite cachedShieldSprite;
 
     // Input state
     private bool isDragging = false;
@@ -171,13 +173,26 @@ public class driverpro : MonoBehaviour
         GameObject scanner = new GameObject("DynamicEnvironmentScanner");
         scanner.AddComponent<DynamicEnvironmentInitializer>();
         // Add ambient sugar dust particles
-        Camera.main.gameObject.AddComponent<AmbientGlitterManager>();
+        if (Camera.main != null)
+        {
+            Camera.main.gameObject.AddComponent<AmbientGlitterManager>();
+        }
+        else
+        {
+            Debug.LogWarning("driverpro: Camera.main not found. AmbientGlitterManager was not added.");
+        }
 
-        // Enforce a minimum cargo capacity of 5
+        // Cache procedural sprites to prevent memory leaks and GC spikes
+        // cachedStarSprite = CreateStarSparkSprite(8, 8, new Color(1f, 0.85f, 0f, 0.8f)); // Disabled to save memory
+        cachedShieldSprite = CreateShieldVisualSprite();
+
+        // Enforce a minimum cargo capacity of 5 - REMOVED per user request to allow custom values like 3
+        /*
         if (maxCargo < 5)
         {
             maxCargo = 5;
         }
+        */
     }
 
     void OnTriggerEnter2D(Collider2D collision)
@@ -197,7 +212,8 @@ public class driverpro : MonoBehaviour
         }
         else if (collision.GetComponent<SlowZone>() != null)
         {
-            isSlowed = true;
+            // Speed reduction disabled per user request
+            isSlowed = false;
         }
     }
 
@@ -230,7 +246,7 @@ public class driverpro : MonoBehaviour
     {
         float speedToUse = currentSpeed;
         if (girlPowerTimer > 0f) speedToUse = boostSpeed;
-        if (isSlowed) speedToUse *= 0.4f;
+        // Speed reduction from isSlowed completely disabled for free movement
 
         float dragMagnitude = Mathf.Clamp01(dragDisplacement.magnitude);
 
@@ -264,9 +280,17 @@ public class driverpro : MonoBehaviour
             }
 
             float targetAngle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg - 90f;
-            float currentAngle = transform.rotation.eulerAngles.z;
+            float currentAngle = rb != null ? rb.rotation : transform.rotation.eulerAngles.z;
             float smoothAngle = Mathf.LerpAngle(currentAngle, targetAngle, 12f * Time.fixedDeltaTime);
-            transform.rotation = Quaternion.Euler(0f, 0f, smoothAngle);
+            
+            if (rb != null)
+            {
+                rb.MoveRotation(smoothAngle);
+            }
+            else
+            {
+                transform.rotation = Quaternion.Euler(0f, 0f, smoothAngle);
+            }
         }
         else
         {
@@ -346,11 +370,13 @@ public class driverpro : MonoBehaviour
                 speedTrail.endColor = new Color(rainbowColor.r, rainbowColor.g, rainbowColor.b, 0f);
             }
 
-            // Emit sparkly stars randomly
+            // Emit sparkly stars randomly - DISABLED to make game lighter
+            /*
             if (Random.value < 0.15f)
             {
                 SpawnGoldStarSpark();
             }
+            */
         }
         else
         {
@@ -406,7 +432,7 @@ public class driverpro : MonoBehaviour
         {
             float speedToUse = currentSpeed;
             if (girlPowerTimer > 0f) speedToUse = boostSpeed;
-            if (isSlowed) speedToUse *= 0.4f;
+            // Speed reduction from isSlowed completely disabled for free movement
 
             float moveAmount = moveInput * speedToUse;
             float steerAmount = steerInput * steerSpeed * Time.fixedDeltaTime;
@@ -460,7 +486,7 @@ public class driverpro : MonoBehaviour
         spark.transform.position = transform.position + (Vector3)Random.insideUnitCircle * 0.4f;
 
         SpriteRenderer sparkSr = spark.AddComponent<SpriteRenderer>();
-        sparkSr.sprite = CreateStarSparkSprite(8, 8, new Color(1f, 0.85f, 0f, 0.8f));
+        sparkSr.sprite = cachedStarSprite;
         sparkSr.sortingOrder = 4;
 
         ExplosionParticle p = spark.AddComponent<ExplosionParticle>();
@@ -489,7 +515,7 @@ public class driverpro : MonoBehaviour
         shieldVisualInstance.transform.localScale = new Vector3(1.6f, 1.6f, 1f);
 
         SpriteRenderer sr = shieldVisualInstance.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateShieldVisualSprite();
+        sr.sprite = cachedShieldSprite;
         sr.sortingOrder = 4; // render above car
     }
 
@@ -503,11 +529,13 @@ public class driverpro : MonoBehaviour
             GameAudioController.Instance.PlayGirlPower();
         }
 
-        // Particle burst
+        // Particle burst - DISABLED to make game lighter
+        /*
         for (int i = 0; i < 12; i++)
         {
             SpawnGoldStarSpark();
         }
+        */
     }
 
     public void Shoot()

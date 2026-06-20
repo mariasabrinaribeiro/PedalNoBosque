@@ -22,6 +22,8 @@ public class Enemy : MonoBehaviour
     private float baseScale = 1.0f;
     private bool isKnockedBack = false; 
     private bool isExploding = false;
+    private static Sprite cachedPinkParticleSprite;
+    private static Sprite cachedPurpleParticleSprite;
 
     void Awake()
     {
@@ -399,6 +401,15 @@ public class Enemy : MonoBehaviour
         Color candyPurple = new Color(0.368f, 0.235f, 0.502f, 1f);
         int count = large ? 16 : 8;
 
+        if (cachedPinkParticleSprite == null)
+        {
+            cachedPinkParticleSprite = CreateParticleSprite(8, 8, candyPink);
+        }
+        if (cachedPurpleParticleSprite == null)
+        {
+            cachedPurpleParticleSprite = CreateParticleSprite(8, 8, candyPurple);
+        }
+
         for (int i = 0; i < count; i++)
         {
             GameObject p = new GameObject("ExplosionParticle");
@@ -408,7 +419,7 @@ public class Enemy : MonoBehaviour
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
             
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
-            particleSr.sprite = CreateParticleSprite(8, 8, (i % 2 == 0) ? candyPink : candyPurple);
+            particleSr.sprite = (i % 2 == 0) ? cachedPinkParticleSprite : cachedPurpleParticleSprite;
             particleSr.sortingOrder = 5;
             
             ExplosionParticle particleScript = p.AddComponent<ExplosionParticle>();
