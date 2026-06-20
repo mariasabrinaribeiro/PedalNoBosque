@@ -10,6 +10,10 @@ TagManager:
   - Boost item
   - Enemy
   - Obstacle
+  - SlowZone
+  - Pink House
+  - Carro
+  - Delivery
   layers:
   - Default
   - TransparentFX

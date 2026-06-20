@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/GameDev.tv - Delivery Dash Assets/Background Tiles/image-removebg-preview (6).png.meta
+guid: 74a1b2f55879544eab2259af194021de
+========
 guid: 707408bc964aaeb498b3164a2335aba7
+>>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros/A_imagem_apresenta_uma_ilustração_202606171623.jpeg.meta
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -91,6 +95,22 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
+<<<<<<<< HEAD:Assets/GameDev.tv - Delivery Dash Assets/Background Tiles/image-removebg-preview (6).png.meta
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+========
+>>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros/A_imagem_apresenta_uma_ilustração_202606171623.jpeg.meta
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:

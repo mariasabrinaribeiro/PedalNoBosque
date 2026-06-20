@@ -1,5 +1,13 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+<<<<<<<< HEAD:Assets/art.meta
+guid: f8952001d93ce4ef49c633a35e1233d5
+========
+guid: 98e230ad60257ce46b16d150650818b0
+>>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros.meta
+=======
 guid: 4a4f82dbf3dff114ba22a1dc03255063
+>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
