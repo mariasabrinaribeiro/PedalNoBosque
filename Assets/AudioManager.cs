@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class AudioManager : MonoBehaviour
@@ -17,6 +18,7 @@ public class AudioManager : MonoBehaviour
 
     private AudioSource sfxSource;
     private AudioSource musicSource;
+    private Coroutine fadeCoroutine;
 
     private void Awake()
     {
@@ -65,6 +67,13 @@ public class AudioManager : MonoBehaviour
         AudioClip clip = Instance.FindClip(name);
         if (clip != null)
         {
+            if (Instance.fadeCoroutine != null)
+            {
+                Instance.StopCoroutine(Instance.fadeCoroutine);
+                Instance.fadeCoroutine = null;
+            }
+            Instance.musicSource.volume = 1f;
+
             if (Instance.musicSource.clip == clip && Instance.musicSource.isPlaying)
             {
                 return; // already playing this music
@@ -98,5 +107,40 @@ public class AudioManager : MonoBehaviour
             }
         }
         return null;
+    }
+
+    public static void FadeOutMusic(float duration, System.Action onComplete = null)
+    {
+        if (Instance == null)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        if (Instance.fadeCoroutine != null)
+        {
+            Instance.StopCoroutine(Instance.fadeCoroutine);
+        }
+        Instance.fadeCoroutine = Instance.StartCoroutine(Instance.FadeOutCoroutine(duration, onComplete));
+    }
+
+    private IEnumerator FadeOutCoroutine(float duration, System.Action onComplete)
+    {
+        float startVolume = musicSource.volume;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            musicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / duration);
+            yield return null;
+        }
+
+        musicSource.volume = 0f;
+        musicSource.Stop();
+        musicSource.volume = 1f; // Reseta o volume para as próximas músicas
+        fadeCoroutine = null;
+
+        onComplete?.Invoke();
     }
 }
