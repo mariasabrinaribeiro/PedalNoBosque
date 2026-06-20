@@ -5,7 +5,7 @@ public class MenuAudioController : MonoBehaviour
 {
     [Header("Configurações de Transição")]
     [Tooltip("O nome da cena de gameplay a ser carregada após o fade out terminar.")]
-    [SerializeField] private string gameplaySceneName = "aula 3";
+    [SerializeField] private string gameplaySceneName = "Girl power 1- Sorvete";
 
     [Header("Configurações de Áudio")]
     [Tooltip("O nome do evento de música configurado no AudioManager.")]
