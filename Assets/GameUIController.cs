@@ -1433,6 +1433,14 @@ public class GameUIController : MonoBehaviour
             // Create a perfect 128x128 circle by setting cornerRadius to 64
             matSR.sprite = CreateRoundedRectSprite(128, 128, 64, semiPink, candyPurple, 4, new Color(0, 0, 0, 0));
             matSR.sortingOrder = 5; // Render on top of road/grass layer
+
+            // Name and collider: give the mat a delivery-friendly name and trigger collider
+            // so delivery detection (by name search or trigger) works when the car drives over it.
+            matObj.name = "Descarga de sorvete";
+            CircleCollider2D matCollider = matObj.AddComponent<CircleCollider2D>();
+            matCollider.isTrigger = true;
+            // Set a reasonable radius that roughly matches the visual mat (adjustable)
+            matCollider.radius = 1.5f;
         }
     }
 
