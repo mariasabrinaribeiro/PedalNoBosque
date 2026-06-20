@@ -33,7 +33,7 @@ public class Enemy : MonoBehaviour
 
     void Start()
     {
-        driver player = FindObjectOfType<driver>();
+        driver player = driver.Instance;
         if (player != null)
         {
             playerTransform = player.transform;
@@ -57,7 +57,7 @@ public class Enemy : MonoBehaviour
         if (sr == null) sr = GetComponent<SpriteRenderer>();
         if (rb == null) rb = GetComponent<Rigidbody2D>();
 
-        driver player = FindObjectOfType<driver>();
+        driver player = driver.Instance;
         if (player != null)
         {
             playerTransform = player.transform;
@@ -190,7 +190,7 @@ public class Enemy : MonoBehaviour
                 {
                     playerScript.TakeDamage(collisionDamage);
                     
-                    GameUIController ui = FindObjectOfType<GameUIController>();
+                    GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
                         ui.ShowWarning($"EXPLOSÃO DO MONSTRO! -{collisionDamage} VIDA");
@@ -227,7 +227,7 @@ public class Enemy : MonoBehaviour
             player.TakeDamage(collisionDamage);
             
             // Spawn warning text on HUD
-            GameUIController ui = FindObjectOfType<GameUIController>();
+            GameUIController ui = GameUIController.Instance;
             if (ui != null)
             {
                 ui.ShowWarning($"BATEU NO MONSTRO! -{collisionDamage} VIDA");
@@ -363,13 +363,13 @@ public class Enemy : MonoBehaviour
     {
         if (giveRewards)
         {
-            driver player = FindObjectOfType<driver>();
+            driver player = driver.Instance;
             if (player != null)
             {
                 player.score += scoreReward;
                 player.health = Mathf.Min(player.health + healthReward, player.maxHealth);
                 
-                GameUIController ui = FindObjectOfType<GameUIController>();
+                GameUIController ui = GameUIController.Instance;
                 if (ui != null)
                 {
                     ui.ShowDeliveryMessage($"MONSTRO DESTRUÍDO! +{scoreReward} PTS / +{healthReward} VIDA");

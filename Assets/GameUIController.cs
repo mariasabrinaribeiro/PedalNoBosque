@@ -219,7 +219,7 @@ public class GameUIController : MonoBehaviour
 
     private void FindDriver()
     {
-        carDriver = FindObjectOfType<driver>();
+        carDriver = driver.Instance;
     }
 
     private void SetupUI()

@@ -54,7 +54,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        player = FindObjectOfType<driver>();
+        player = driver.Instance;
         nextSpawnTime = Time.time + 1.5f;
 
         nextPowerUpSpawnTime = Time.time + 5.0f;

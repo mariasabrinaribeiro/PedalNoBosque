@@ -52,8 +52,11 @@ public class driver : MonoBehaviour
     private float mobileSteerInput = 0f;
     private bool mobileShootPressed = false;
 
+    public static driver Instance { get; private set; }
+
     void Awake()
     {
+        if (Instance == null) Instance = this;
         rb = GetComponent<Rigidbody2D>();
     }
 
@@ -310,7 +313,7 @@ public class driver : MonoBehaviour
             hasShield = false;
             if (shieldVisualInstance != null) Destroy(shieldVisualInstance);
 
-            GameUIController uiController = FindObjectOfType<GameUIController>();
+            GameUIController uiController = GameUIController.Instance;
             if (uiController != null)
             {
                 uiController.ShowWarning("ESCUDO BLOQUEOU O DANO!");
@@ -338,7 +341,7 @@ public class driver : MonoBehaviour
                 ControladorJogo.Instance.GameOver();
             }
 
-            GameUIController uiController = FindObjectOfType<GameUIController>();
+            GameUIController uiController = GameUIController.Instance;
             if (uiController != null)
             {
                 uiController.ShowGameOver();
@@ -481,14 +484,15 @@ public class driver : MonoBehaviour
 
     private void AttractPackages()
     {
-        GameObject[] packages = GameObject.FindGameObjectsWithTag("package");
-        foreach (var pkg in packages)
+        // Usar física local OverlapCircleAll para encontrar pacotes próximos (raio 6.0f)
+        // Isso evita varrer toda a cena com FindGameObjectsWithTag a cada frame.
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, 6.0f);
+        foreach (var col in colliders)
         {
-            // Attraction radius: 6.0 units
-            if (Vector3.Distance(transform.position, pkg.transform.position) < 6.0f)
+            if (col.CompareTag("package"))
             {
-                // Pull package smoothly to car center
-                pkg.transform.position = Vector3.MoveTowards(pkg.transform.position, transform.position, 8f * Time.deltaTime);
+                // Puxa o pacote suavemente para o centro do carrinho
+                col.transform.position = Vector3.MoveTowards(col.transform.position, transform.position, 8f * Time.deltaTime);
             }
         }
     }

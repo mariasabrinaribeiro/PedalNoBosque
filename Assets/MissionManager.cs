@@ -29,8 +29,8 @@ public class MissionManager : MonoBehaviour
 
     void Start()
     {
-        playerDriver = FindObjectOfType<driver>();
-        uiController = FindObjectOfType<GameUIController>();
+        playerDriver = driver.Instance;
+        uiController = GameUIController.Instance;
 
         AssignNewMission();
     }
@@ -39,7 +39,7 @@ public class MissionManager : MonoBehaviour
     {
         if (playerDriver == null)
         {
-            playerDriver = FindObjectOfType<driver>();
+            playerDriver = driver.Instance;
             return;
         }
 
@@ -154,7 +154,7 @@ public class MissionManager : MonoBehaviour
             playerDriver.ActivateGirlPower(5f); // 5 seconds of Girl Power!
         }
 
-        if (uiController == null) uiController = FindObjectOfType<GameUIController>();
+        if (uiController == null) uiController = GameUIController.Instance;
         if (uiController != null)
         {
             uiController.ShowDeliveryMessage("MISSÃO CONCLUÍDA! +100 PONTOS / GIRL POWER 5s!");
@@ -172,7 +172,7 @@ public class MissionManager : MonoBehaviour
 
     private void UpdateHUD()
     {
-        if (uiController == null) uiController = FindObjectOfType<GameUIController>();
+        if (uiController == null) uiController = GameUIController.Instance;
         if (uiController != null)
         {
             uiController.UpdateMissionPanel(GetMissionDescription(), GetMissionProgressText());

@@ -79,7 +79,7 @@ public class PowerUpItem : MonoBehaviour
         driver player = collision.GetComponent<driver>();
         if (player != null)
         {
-            GameUIController ui = FindObjectOfType<GameUIController>();
+            GameUIController ui = GameUIController.Instance;
             string msg = "";
 
             switch (type)

@@ -42,7 +42,7 @@ public class BossBitterBaron : MonoBehaviour
 
         transform.localScale = new Vector3(2.8f, 2.8f, 1f);
 
-        driver driverInstance = FindObjectOfType<driver>();
+        driver driverInstance = driver.Instance;
         if (driverInstance != null)
         {
             playerTransform = driverInstance.transform;
@@ -52,7 +52,7 @@ public class BossBitterBaron : MonoBehaviour
         ConfigureVisuals();
 
         // Show Boss Health Bar in HUD
-        GameUIController ui = FindObjectOfType<GameUIController>();
+        GameUIController ui = GameUIController.Instance;
         if (ui != null)
         {
             ui.ShowBossHealthBar(maxHealth);
@@ -151,7 +151,7 @@ public class BossBitterBaron : MonoBehaviour
         currentHealth = Mathf.Max(currentHealth - damage, 0);
 
         // Update health bar in HUD
-        GameUIController ui = FindObjectOfType<GameUIController>();
+        GameUIController ui = GameUIController.Instance;
         if (ui != null)
         {
             ui.UpdateBossHealthBar(currentHealth);
@@ -185,7 +185,7 @@ public class BossBitterBaron : MonoBehaviour
         }
 
         // Hide Boss Health Bar
-        GameUIController ui = FindObjectOfType<GameUIController>();
+        GameUIController ui = GameUIController.Instance;
         if (ui != null)
         {
             ui.HideBossHealthBar();

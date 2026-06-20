@@ -34,7 +34,7 @@ public class Delivery : MonoBehaviour
                 }
                 else
                 {
-                    GameUIController ui = FindObjectOfType<GameUIController>();
+                    GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
                         ui.ShowWarning("CARGA CHEIA! VÁ ATÉ A ÁREA DE DESCARGA!");
@@ -68,7 +68,7 @@ public class Delivery : MonoBehaviour
                 }
 
                 // Show delivery message in HUD
-                GameUIController ui = FindObjectOfType<GameUIController>();
+                GameUIController ui = GameUIController.Instance;
                 if (ui != null)
                 {
                     ui.ShowDeliveryMessage("ENTREGUE! GIRL POWER ATIVADO! +" + (itemsDelivered * 50) + " PONTOS");

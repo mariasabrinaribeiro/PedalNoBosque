@@ -114,7 +114,7 @@ public class SpeedDeliveryGate : MonoBehaviour
                     player.ActivateGirlPower(5f); // 5s Girl Power!
 
                     // Alert HUD
-                    GameUIController ui = FindObjectOfType<GameUIController>();
+                    GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
                         ui.ShowDeliveryMessage("ENTREGA DE ALTA VELOCIDADE! +100 PONTOS / GIRL POWER!");
@@ -135,7 +135,7 @@ public class SpeedDeliveryGate : MonoBehaviour
                 else
                 {
                     // Too slow!
-                    GameUIController ui = FindObjectOfType<GameUIController>();
+                    GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
                         ui.ShowWarning("MUITO LENTO! CORRA MAIS PARA ENTREGAR!");

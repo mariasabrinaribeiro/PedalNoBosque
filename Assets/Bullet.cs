@@ -113,7 +113,7 @@ public class Bullet : MonoBehaviour
                 {
                     GameCameraController.Instance.TriggerShake(0.15f, 0.25f);
                 }
-                GameUIController ui = FindObjectOfType<GameUIController>();
+                GameUIController ui = GameUIController.Instance;
                 if (ui != null)
                 {
                     ui.ShowWarning("TIRO CRÍTICO!");
