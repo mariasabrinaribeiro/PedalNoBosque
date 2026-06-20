@@ -3,11 +3,11 @@ using UnityEngine;
 public class Delivery : MonoBehaviour
 {
     [SerializeField] float delay = 0.2f;
-    private DriverPro driver;
+    private driver driver;
 
     void Start()
     {
-        driver = GetComponent<DriverPro>();
+        driver = GetComponent<driver>();
     }
 
     void OnTriggerEnter2D(Collider2D collision)

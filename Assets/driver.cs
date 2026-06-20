@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 using TMPro;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class DriverPro : MonoBehaviour
+public class driver : MonoBehaviour
 {
     [SerializeField] float currentSpeed = 3.5f;
     [SerializeField] float steerSpeed = 200f;
@@ -39,8 +39,6 @@ public class DriverPro : MonoBehaviour
 
     // Speed trails and continuous sound
     private TrailRenderer speedTrail;
-    private bool isSlowed = false;
-    private Sprite cachedStarSprite;
     private Sprite cachedShieldSprite;
 
     // Cached Components
@@ -61,28 +59,13 @@ public class DriverPro : MonoBehaviour
 
     void Start()
     {
-#if UNITY_EDITOR
-        try
+        // Verificar se o carrinho foi acidentalmente arrastado para dentro de um Canvas de UI
+        Canvas parentCanvas = GetComponentInParent<Canvas>();
+        if (parentCanvas != null)
         {
-            // Copy icecreamvan sprite to Resources folder dynamically if not present
-            string resourcesDir = Application.dataPath + "/Resources";
-            if (!System.IO.Directory.Exists(resourcesDir))
-            {
-                System.IO.Directory.CreateDirectory(resourcesDir);
-            }
-            string srcPath = Application.dataPath + "/GameDev.tv - Delivery Dash Assets/Vehicle/icecreamvan.png";
-            string destPath = resourcesDir + "/icecreamvan.png";
-            if (System.IO.File.Exists(srcPath) && !System.IO.File.Exists(destPath))
-            {
-                System.IO.File.Copy(srcPath, destPath);
-                UnityEditor.AssetDatabase.Refresh();
-            }
+            Debug.LogError($"[ALERTA IMPORTANTE] O objeto '{gameObject.name}' está dentro do Canvas de UI '{parentCanvas.name}'. Isso tira o carrinho da pista e deixa a tela azul! Por favor, arraste o '{gameObject.name}' para fora do Canvas na janela Hierarchy.");
         }
-        catch (System.Exception ex)
-        {
-            Debug.LogWarning("DriverPro: Failed to copy editor assets: " + ex.Message);
-        }
-#endif
+
 
         // Check if there is a child GameObject named "CarroSprite" or containing "Sprite"
         Transform customSpriteChild = null;
@@ -231,7 +214,6 @@ public class DriverPro : MonoBehaviour
         else if (collision.GetComponent<SlowZone>() != null)
         {
             // Speed reduction disabled per user request
-            isSlowed = false;
         }
     }
 
@@ -239,7 +221,7 @@ public class DriverPro : MonoBehaviour
     {
         if (collision.GetComponent<SlowZone>() != null)
         {
-            isSlowed = false;
+            // Speed reduction disabled per user request
         }
     }
 
@@ -271,7 +253,8 @@ public class DriverPro : MonoBehaviour
         if (dragMagnitude > 0.05f)
         {
             Vector2 moveDirection = dragDisplacement.normalized;
-            float speed = dragMagnitude * speedToUse * swipeSpeedMultiplier;
+            // Garantir que a velocidade de arraste seja limitada para evitar que o carrinho voe ou saia do cenário
+            float speed = Mathf.Clamp(dragMagnitude * speedToUse * swipeSpeedMultiplier, 0f, boostSpeed * 1.5f);
             displaySpeed = speed;
 
             Vector2 nextPos = (Vector2)transform.position + moveDirection * (speed * Time.fixedDeltaTime);
@@ -298,7 +281,7 @@ public class DriverPro : MonoBehaviour
 
             float targetAngle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg - 90f;
             float currentAngle = rb != null ? rb.rotation : transform.rotation.eulerAngles.z;
-            float smoothAngle = Mathf.LerpAngle(currentAngle, targetAngle, 12f * Time.fixedDeltaTime);
+            float smoothAngle = Mathf.LerpAngle(currentAngle, targetAngle, swipeLerpFactor * Time.fixedDeltaTime);
             
             if (rb != null)
             {
@@ -484,6 +467,16 @@ public class DriverPro : MonoBehaviour
                 transform.Rotate(0, 0, steerAmount);
             }
         }
+
+        // Limita a velocidade física máxima para evitar que o carrinho voe ou saia do cenário por bugs físicos/colisão
+        if (rb != null)
+        {
+            float maxVelocityLimit = boostSpeed * 1.5f;
+            if (rb.velocity.magnitude > maxVelocityLimit)
+            {
+                rb.velocity = Vector2.ClampMagnitude(rb.velocity, maxVelocityLimit);
+            }
+        }
     }
 
     private void AttractPackages()
@@ -500,6 +493,7 @@ public class DriverPro : MonoBehaviour
         }
     }
 
+    /*
     private void SpawnGoldStarSpark()
     {
         GameObject spark = new GameObject("StarSpark");
@@ -513,6 +507,7 @@ public class DriverPro : MonoBehaviour
         p.direction = new Vector3(Random.Range(-0.5f, 0.5f), Random.Range(-0.5f, 0.5f), 0f).normalized;
         p.speed = Random.Range(1f, 3f);
     }
+    */
 
     public void ActivateMagnet(float duration)
     {
@@ -560,8 +555,8 @@ public class DriverPro : MonoBehaviour
 
     public void Shoot()
     {
-        // Adjust shooting speed cooldown under Girl Power
-        float currentCooldown = (girlPowerTimer > 0f) ? 0.15f : shootCooldown;
+        // Adjust shooting speed cooldown under Girl Power (shoots twice as fast at 0.04s)
+        float currentCooldown = (girlPowerTimer > 0f) ? 0.04f : shootCooldown;
 
         if (Time.time - lastShootTime < currentCooldown) return;
         lastShootTime = Time.time;

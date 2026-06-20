@@ -98,7 +98,7 @@ public class SpeedDeliveryGate : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        DriverPro player = collision.GetComponent<DriverPro>();
+        driver player = collision.GetComponent<driver>();
         if (player != null)
         {
             Rigidbody2D rb = player.GetComponent<Rigidbody2D>();

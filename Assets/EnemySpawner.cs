@@ -11,7 +11,7 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private float minSpawnDist = 8f;
     [SerializeField] private float maxSpawnDist = 16f;
 
-    private DriverPro player;
+    private driver player;
     private float nextSpawnTime;
     private Sprite enemySprite;
 
@@ -54,7 +54,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        player = FindObjectOfType<DriverPro>();
+        player = FindObjectOfType<driver>();
         nextSpawnTime = Time.time + 1.5f;
 
         nextPowerUpSpawnTime = Time.time + 5.0f;

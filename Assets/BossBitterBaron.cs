@@ -8,7 +8,7 @@ public class BossBitterBaron : MonoBehaviour
     public int currentHealth;
 
     private Transform playerTransform;
-    private DriverPro playerDriver;
+    private driver playerDriver;
     private SpriteRenderer sr;
     private Rigidbody2D rb;
 
@@ -42,11 +42,11 @@ public class BossBitterBaron : MonoBehaviour
 
         transform.localScale = new Vector3(2.8f, 2.8f, 1f);
 
-        DriverPro driver = FindObjectOfType<DriverPro>();
-        if (driver != null)
+        driver driverInstance = FindObjectOfType<driver>();
+        if (driverInstance != null)
         {
-            playerTransform = driver.transform;
-            playerDriver = driver;
+            playerTransform = driverInstance.transform;
+            playerDriver = driverInstance;
         }
 
         ConfigureVisuals();

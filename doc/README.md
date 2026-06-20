@@ -82,7 +82,7 @@ Quando o jogador atinge **1500 pontos** (e subsequentemente a cada 1500 pontos a
 
 O código-fonte do jogo é modular e foca em otimização de performance e efeitos dinâmicos:
 
-*   [driver.cs (driverpro)](file:///Users/renato/Documents/CarrinhoSorvete_Aula1/Assets/driver.cs): Script principal do jogador. Controla física do carro (`Rigidbody2D` com interpolação), processamento de entradas, aplicação de efeitos de colisão, controle de vida/escudo e gerenciamento de temporizadores de melhorias.
+*   [driver.cs (driver)](file:///Users/renato/Documents/CarrinhoSorvete_Aula1/Assets/driver.cs): Script principal do jogador. Controla física do carro (`Rigidbody2D` com interpolação), processamento de entradas, aplicação de efeitos de colisão, controle de vida/escudo e gerenciamento de temporizadores de melhorias.
 *   [delivery.cs (Delivery)](file:///Users/renato/Documents/CarrinhoSorvete_Aula1/Assets/delivery.cs): Gerencia a coleta de pacotes com limites de carga e a entrega dos sorvetes nos pontos de descarga, atualizando a pontuação e aplicando o bônus do Girl Power.
 *   [Enemy.cs (Enemy)](file:///Users/renato/Documents/CarrinhoSorvete_Aula1/Assets/Enemy.cs): Controla o ciclo de vida dos monstros comuns (Standard, Slow, Fast, Explosive), seus estados de perseguição, flash de cor ao sofrer dano, empurrão de física (*knockback*) e explosão de partículas procedurais.
 *   [BossBitterBaron.cs (BossBitterBaron)](file:///Users/renato/Documents/CarrinhoSorvete_Aula1/Assets/BossBitterBaron.cs): Implementa a inteligência artificial do chefe, incluindo a barra de vida específica, lançamento de projéteis e invocação de minions.
