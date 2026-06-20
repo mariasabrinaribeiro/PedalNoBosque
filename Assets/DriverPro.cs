@@ -589,7 +589,11 @@ public class DriverPro : MonoBehaviour
         }
 
         // Play shoot audio
-        if (GameAudioController.Instance != null)
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.PlaySFX("Tiro");
+        }
+        else if (GameAudioController.Instance != null)
         {
             GameAudioController.Instance.PlayShoot();
         }
