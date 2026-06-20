@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Editor.meta
 guid: 8c2bc6a0f9d7c42e7b004029a2e5e9cb
+========
+guid: d90b7467a27810b46b2b018babf02efd
+>>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/A colheita de sorvete.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

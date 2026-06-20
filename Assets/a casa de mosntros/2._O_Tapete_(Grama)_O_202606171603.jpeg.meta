@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-<<<<<<< HEAD:Assets/GameDev.tv - Delivery Dash Assets/Props & Stuff/image-removebg-preview (1).png.meta
-guid: 34fdaa384bfda4ea3b87f0f33372c45c
-=======
+<<<<<<<< HEAD:Assets/GameDev.tv - Delivery Dash Assets/Background Tiles/image-removebg-preview (5).png.meta
+guid: c1aa41a9875204de9b5d08b7eef03c07
+========
 guid: f505fa2b48015634fac24b9ca1c14d9c
->>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros/2._O_Tapete_(Grama)_O_202606171603.jpeg.meta
+>>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros/2._O_Tapete_(Grama)_O_202606171603.jpeg.meta
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -95,7 +95,7 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
-<<<<<<< HEAD:Assets/GameDev.tv - Delivery Dash Assets/Props & Stuff/image-removebg-preview (1).png.meta
+<<<<<<<< HEAD:Assets/GameDev.tv - Delivery Dash Assets/Background Tiles/image-removebg-preview (5).png.meta
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -109,8 +109,8 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
-=======
->>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros/2._O_Tapete_(Grama)_O_202606171603.jpeg.meta
+========
+>>>>>>>> 3770a1ecc3b4a27e736019c55b929d8ef585fc4d:Assets/a casa de mosntros/2._O_Tapete_(Grama)_O_202606171603.jpeg.meta
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
