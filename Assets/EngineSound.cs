@@ -9,12 +9,12 @@ public class EngineSound : MonoBehaviour
     public float volume = 0.05f;
 
     private Rigidbody2D rb;
-    private driverpro driver;
+    private DriverPro driver;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        driver = GetComponent<driverpro>();
+        driver = GetComponent<DriverPro>();
 
         AudioSource audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = true;

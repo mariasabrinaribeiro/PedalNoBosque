@@ -11,7 +11,7 @@ public class MissionManager : MonoBehaviour
     public int currentProgress;
     private float speedTimer = 0f;
 
-    private driverpro playerDriver;
+    private DriverPro playerDriver;
     private GameUIController uiController;
 
     private void Awake()
@@ -29,7 +29,7 @@ public class MissionManager : MonoBehaviour
 
     void Start()
     {
-        playerDriver = FindObjectOfType<driverpro>();
+        playerDriver = FindObjectOfType<DriverPro>();
         uiController = FindObjectOfType<GameUIController>();
 
         AssignNewMission();
@@ -39,7 +39,7 @@ public class MissionManager : MonoBehaviour
     {
         if (playerDriver == null)
         {
-            playerDriver = FindObjectOfType<driverpro>();
+            playerDriver = FindObjectOfType<DriverPro>();
             return;
         }
 

@@ -402,7 +402,6 @@ public class DriverPro : MonoBehaviour
         }
 
         // 2. Adjust Speed Trail intensity based on car velocity
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null && speedTrail != null)
         {
             float speedRatio = Mathf.Clamp01(rb.velocity.magnitude / 6.5f);
@@ -452,7 +451,6 @@ public class DriverPro : MonoBehaviour
 
             displaySpeed = Mathf.Abs(moveInput) * speedToUse;
 
-            Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)
             {
                 // Convert current velocity to local space

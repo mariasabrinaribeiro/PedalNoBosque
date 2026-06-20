@@ -20,7 +20,7 @@ public class WobbleOnPass : MonoBehaviour
     {
         originalRotation = transform.localRotation;
         
-        driverpro player = FindObjectOfType<driverpro>();
+        DriverPro player = FindObjectOfType<DriverPro>();
         if (player != null)
         {
             playerTransform = player.transform;
@@ -32,7 +32,7 @@ public class WobbleOnPass : MonoBehaviour
         if (playerTransform == null)
         {
             // Try to find player if not set
-            driverpro player = FindObjectOfType<driverpro>();
+            DriverPro player = FindObjectOfType<DriverPro>();
             if (player != null) playerTransform = player.transform;
             return;
         }

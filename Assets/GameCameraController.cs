@@ -42,7 +42,7 @@ public class GameCameraController : MonoBehaviour
     {
         if (target == null)
         {
-            driverpro driver = FindObjectOfType<driverpro>();
+            DriverPro driver = FindObjectOfType<DriverPro>();
             if (driver != null) target = driver.transform;
         }
     }
