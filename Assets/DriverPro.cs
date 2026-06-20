@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 
-public class driverpro : MonoBehaviour
+[RequireComponent(typeof(Rigidbody2D))]
+public class DriverPro : MonoBehaviour
 {
     [SerializeField] float currentSpeed = 3.5f;
     [SerializeField] float steerSpeed = 200f;
@@ -42,6 +43,9 @@ public class driverpro : MonoBehaviour
     private Sprite cachedStarSprite;
     private Sprite cachedShieldSprite;
 
+    // Cached Components
+    private Rigidbody2D rb;
+
     // Input state
     private bool isDragging = false;
     private Vector2 dragDisplacement = Vector2.zero;
@@ -50,21 +54,33 @@ public class driverpro : MonoBehaviour
     private float mobileSteerInput = 0f;
     private bool mobileShootPressed = false;
 
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
     void Start()
     {
 #if UNITY_EDITOR
-        // Copy icecreamvan sprite to Resources folder dynamically if not present
-        string resourcesDir = Application.dataPath + "/Resources";
-        if (!System.IO.Directory.Exists(resourcesDir))
+        try
         {
-            System.IO.Directory.CreateDirectory(resourcesDir);
+            // Copy icecreamvan sprite to Resources folder dynamically if not present
+            string resourcesDir = Application.dataPath + "/Resources";
+            if (!System.IO.Directory.Exists(resourcesDir))
+            {
+                System.IO.Directory.CreateDirectory(resourcesDir);
+            }
+            string srcPath = Application.dataPath + "/GameDev.tv - Delivery Dash Assets/Vehicle/icecreamvan.png";
+            string destPath = resourcesDir + "/icecreamvan.png";
+            if (System.IO.File.Exists(srcPath) && !System.IO.File.Exists(destPath))
+            {
+                System.IO.File.Copy(srcPath, destPath);
+                UnityEditor.AssetDatabase.Refresh();
+            }
         }
-        string srcPath = Application.dataPath + "/GameDev.tv - Delivery Dash Assets/Vehicle/icecreamvan.png";
-        string destPath = resourcesDir + "/icecreamvan.png";
-        if (System.IO.File.Exists(srcPath) && !System.IO.File.Exists(destPath))
+        catch (System.Exception ex)
         {
-            System.IO.File.Copy(srcPath, destPath);
-            UnityEditor.AssetDatabase.Refresh();
+            Debug.LogWarning("DriverPro: Failed to copy editor assets: " + ex.Message);
         }
 #endif
 
@@ -122,7 +138,6 @@ public class driverpro : MonoBehaviour
         }
 
         // 1. Enable physics interpolation to prevent camera tracking stutters
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null)
         {
             rb.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -132,19 +147,19 @@ public class driverpro : MonoBehaviour
             // Diagnostic output: list any Rigidbody2D / Collider2D in children to detect duplicates
             Rigidbody2D[] childRBs = GetComponentsInChildren<Rigidbody2D>(true);
             Collider2D[] childCols = GetComponentsInChildren<Collider2D>(true);
-            Debug.Log("driverpro: main Rigidbody found on '" + gameObject.name + "'. Child Rigidbody count: " + (childRBs.Length - 1) + ", child Collider count: " + (childCols.Length - 1));
+            Debug.Log("DriverPro: main Rigidbody found on '" + gameObject.name + "'. Child Rigidbody count: " + (childRBs.Length - 1) + ", child Collider count: " + (childCols.Length - 1));
             for (int i = 0; i < childRBs.Length; i++)
             {
                 if (childRBs[i] != rb)
                 {
-                    Debug.Log("driverpro: child Rigidbody on '" + childRBs[i].gameObject.name + "' (isKinematic=" + childRBs[i].bodyType + ")");
+                    Debug.Log("DriverPro: child Rigidbody on '" + childRBs[i].gameObject.name + "' (isKinematic=" + childRBs[i].bodyType + ")");
                 }
             }
             for (int i = 0; i < childCols.Length; i++)
             {
                 if (childCols[i].gameObject != gameObject)
                 {
-                    Debug.Log("driverpro: child Collider on '" + childCols[i].gameObject.name + "' isTrigger=" + childCols[i].isTrigger);
+                    Debug.Log("DriverPro: child Collider on '" + childCols[i].gameObject.name + "' isTrigger=" + childCols[i].isTrigger);
                 }
             }
         }
@@ -258,7 +273,6 @@ public class driverpro : MonoBehaviour
 
             Vector2 nextPos = (Vector2)transform.position + moveDirection * (speed * Time.fixedDeltaTime);
 
-            Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)
             {
                 // Obtain current velocity in local space
@@ -295,7 +309,6 @@ public class driverpro : MonoBehaviour
         else
         {
             displaySpeed = 0f;
-            Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)
             {
                 rb.velocity = Vector2.zero;
