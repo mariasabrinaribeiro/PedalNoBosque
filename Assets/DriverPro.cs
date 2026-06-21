@@ -12,7 +12,7 @@ public class DriverPro : MonoBehaviour
     [SerializeField] float regularSpeed = 3.5f;
     [SerializeField] float swipeSpeedMultiplier = 1.2f; 
     [SerializeField] float swipeLerpFactor = 8f; 
-    [SerializeField] float bulletSpawnOffset = 0.8f;
+    [SerializeField] private Transform bulletSpawnPoint;
 
     [SerializeField] TMP_Text boostText;
 
@@ -93,7 +93,7 @@ public class DriverPro : MonoBehaviour
             }
 
             // Ensure the sprite faces the correct direction (forward/up)
-            customSpriteChild.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            // customSpriteChild.localRotation = Quaternion.Euler(0f, 0f, 180f); // Comentado para permitir rotação manual no Inspector
 
             // Automatically hide old visual parts (Square, wheels/rodas, window/vidro)
             foreach (Transform child in transform)
@@ -588,7 +588,7 @@ public class DriverPro : MonoBehaviour
         if (ObjectPoolManager.Instance == null) return;
 
         GameObject bulletGo = ObjectPoolManager.Instance.GetBullet();
-        bulletGo.transform.position = transform.position + transform.up * bulletSpawnOffset;
+        bulletGo.transform.position = bulletSpawnPoint != null ? bulletSpawnPoint.position : (transform.position + transform.up * 0.8f);
         bulletGo.transform.rotation = rot;
 
         Bullet bulletScript = bulletGo.GetComponent<Bullet>();
