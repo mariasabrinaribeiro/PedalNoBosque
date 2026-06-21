@@ -1689,7 +1689,7 @@ MonoBehaviour:
   regularSpeed: 3.5
   swipeSpeedMultiplier: 1.2
   swipeLerpFactor: 8
-  bulletSpawnOffset: 0.8
+  bulletSpawnPoint: {fileID: 0}
   boostText: {fileID: 0}
   health: 100
   maxHealth: 100
@@ -26561,7 +26561,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1218908500
 Transform:
   m_ObjectHideFlags: 0

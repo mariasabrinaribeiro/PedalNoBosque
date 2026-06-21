@@ -552,24 +552,29 @@ public class DriverPro : MonoBehaviour
 
         bool gp = (girlPowerTimer > 0f);
 
+        // Usamos o bulletSpawnPoint como referência de direção/rotação se configurado, senão o próprio transform do jogador
+        Transform refTransform = bulletSpawnPoint != null ? bulletSpawnPoint : transform;
+        Vector3 baseUp = refTransform.up;
+        Quaternion baseRot = refTransform.rotation;
+
         if (tripleShotTimer > 0f)
         {
             // Center
-            SpawnBullet(transform.up, transform.rotation, gp);
+            SpawnBullet(baseUp, baseRot, gp);
             
             // Left 15 degrees
-            Quaternion leftRot = transform.rotation * Quaternion.Euler(0f, 0f, 15f);
+            Quaternion leftRot = baseRot * Quaternion.Euler(0f, 0f, 15f);
             Vector3 leftDir = leftRot * Vector3.up;
             SpawnBullet(leftDir, leftRot, gp);
 
             // Right 15 degrees
-            Quaternion rightRot = transform.rotation * Quaternion.Euler(0f, 0f, -15f);
+            Quaternion rightRot = baseRot * Quaternion.Euler(0f, 0f, -15f);
             Vector3 rightDir = rightRot * Vector3.up;
             SpawnBullet(rightDir, rightRot, gp);
         }
         else
         {
-            SpawnBullet(transform.up, transform.rotation, gp);
+            SpawnBullet(baseUp, baseRot, gp);
         }
 
         // Play shoot audio
