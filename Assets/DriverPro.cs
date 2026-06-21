@@ -114,6 +114,12 @@ public class DriverPro : MonoBehaviour
             // Aplica a rotação de alinhamento visual configurada no Inspector do Unity
             customSpriteChild.localRotation = Quaternion.Euler(0f, 0f, spriteRotationOffset);
 
+            // Se o bulletSpawnPoint for filho do jogador, rotacionamos sua posição local pelo mesmo offset para alinhar com a nova rotação do sprite
+            if (bulletSpawnPoint != null && bulletSpawnPoint.parent == transform)
+            {
+                bulletSpawnPoint.localPosition = Quaternion.Euler(0f, 0f, spriteRotationOffset) * bulletSpawnPoint.localPosition;
+            }
+
             // Automatically hide old visual parts (Square, wheels/rodas, window/vidro)
             foreach (Transform child in transform)
             {
@@ -571,8 +577,8 @@ public class DriverPro : MonoBehaviour
 
         bool gp = (girlPowerTimer > 0f);
 
-        // Usamos o bulletSpawnPoint como referência de direção/rotação se configurado, senão o próprio transform do jogador (utilizando o eixo Y / transform.up)
-        Transform refTransform = bulletSpawnPoint != null ? bulletSpawnPoint : transform;
+        // Usamos o bulletSpawnPoint como referência se configurado e posicionado, senão o próprio transform do jogador (utilizando o eixo Y / transform.up)
+        Transform refTransform = (bulletSpawnPoint != null && bulletSpawnPoint.localPosition != Vector3.zero) ? bulletSpawnPoint : transform;
         Vector3 baseUp = refTransform.up;
         Quaternion baseRot = refTransform.rotation;
 
@@ -613,8 +619,13 @@ public class DriverPro : MonoBehaviour
 
         GameObject bulletGo = ObjectPoolManager.Instance.GetBullet();
         
-        // Se o bulletSpawnPoint estiver assinalado, usa sua posição exata, senão calcula a partir do transform.up (seta verde)
-        bulletGo.transform.position = bulletSpawnPoint != null ? bulletSpawnPoint.position : (transform.position + transform.up * bulletSpawnOffset);
+        // Se o bulletSpawnPoint estiver assinalado e configurado, usa sua posição exata, senão calcula a partir do transform.up (seta verde)
+        Vector3 spawnPos = transform.position + transform.up * bulletSpawnOffset;
+        if (bulletSpawnPoint != null && bulletSpawnPoint.localPosition != Vector3.zero)
+        {
+            spawnPos = bulletSpawnPoint.position;
+        }
+        bulletGo.transform.position = spawnPos;
         bulletGo.transform.rotation = rot;
 
         Bullet bulletScript = bulletGo.GetComponent<Bullet>();
