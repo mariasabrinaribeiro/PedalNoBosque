@@ -114,7 +114,7 @@ public class PowerUpItem : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        driver player = collision.GetComponent<driver>();
+        DriverPro player = collision.GetComponent<DriverPro>();
         if (player != null)
         {
             GameUIController ui = GameUIController.Instance;

@@ -6,11 +6,13 @@ public class SlowZone : MonoBehaviour
     private float spawnTime;
     private float lifetime = 4f;
 
+    private static Sprite cachedWhiteSprite;
+
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
         if (sr == null) sr = gameObject.AddComponent<SpriteRenderer>();
-        sr.sortingOrder = 2; // under player and enemies, but above roads
+        sr.sortingOrder = 2; // sob o jogador e inimigos, mas acima da rua
 
         gameObject.name = "SlowZone_Puddle";
 
@@ -19,7 +21,7 @@ public class SlowZone : MonoBehaviour
         col.isTrigger = true;
         col.radius = 0.5f;
 
-        transform.localScale = new Vector3(2.5f, 2.5f, 1f); // large puddle
+        transform.localScale = new Vector3(2.5f, 2.5f, 1f); 
 
         GenerateVisuals();
     }
@@ -37,53 +39,31 @@ public class SlowZone : MonoBehaviour
         }
     }
 
-    private static Sprite cachedPuddleSprite;
-
     private void GenerateVisuals()
     {
         if (sr == null) return;
 
-        if (cachedPuddleSprite == null)
+        // Se não houver sprite definido no SpriteRenderer, usamos um sprite branco estático de fallback
+        if (sr.sprite == null)
         {
-            int w = 32;
-            int h = 32;
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-
-            Color puddleColor = new Color(0.15f, 0.12f, 0.1f, 0.5f); // translucent burnt-sugar brown
-            Color edgeColor = new Color(0.1f, 0.08f, 0.05f, 0.75f);
-
-            for (int y = 0; y < h; y++)
+            if (cachedWhiteSprite == null)
             {
-                for (int x = 0; x < w; x++)
+                Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                tex.filterMode = FilterMode.Point;
+                for (int y = 0; y < 2; y++)
                 {
-                    float dx = x - w / 2f;
-                    float dy = y - h / 2f;
-                    float distSq = dx * dx + dy * dy;
-                    float rOuter = w / 2f;
-                    float rInner = rOuter - 3f;
-
-                    if (distSq <= rOuter * rOuter)
+                    for (int x = 0; x < 2; x++)
                     {
-                        if (distSq > rInner * rInner)
-                        {
-                            tex.SetPixel(x, y, edgeColor);
-                        }
-                        else
-                        {
-                            tex.SetPixel(x, y, puddleColor);
-                        }
-                    }
-                    else
-                    {
-                        tex.SetPixel(x, y, Color.clear);
+                        tex.SetPixel(x, y, Color.white);
                     }
                 }
+                tex.Apply();
+                cachedWhiteSprite = Sprite.Create(tex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f), 100f);
             }
-            tex.Apply();
-            cachedPuddleSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            sr.sprite = cachedWhiteSprite;
         }
-        
-        sr.sprite = cachedPuddleSprite;
+
+        // OTIMIZADO: Em vez de pintar pixels manualmente em loop for, aplica a cor translúcida de açúcar queimado diretamente
+        sr.color = new Color(0.15f, 0.12f, 0.1f, 0.5f); 
     }
 }

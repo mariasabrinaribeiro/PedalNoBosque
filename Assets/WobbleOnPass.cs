@@ -9,9 +9,9 @@ public class WobbleOnPass : MonoBehaviour
     private float wobbleTime = 0f;
 
     [Header("Spring Settings")]
-    [SerializeField] private float wobbleAmplitude = 18f;  // starting tilt angle
-    [SerializeField] private float wobbleFrequency = 14f;  // wobble speed
-    [SerializeField] private float wobbleDecay = 3.5f;     // how fast it dampens to stop
+    [SerializeField] private float wobbleAmplitude = 18f;  
+    [SerializeField] private float wobbleFrequency = 14f;  
+    [SerializeField] private float wobbleDecay = 3.5f;     
 
     private float checkCooldown = 0.2f;
     private float lastCheckTime = 0f;
@@ -20,7 +20,8 @@ public class WobbleOnPass : MonoBehaviour
     {
         originalRotation = transform.localRotation;
         
-        driver player = driver.Instance;
+        // OTIMIZADO: Usando o Singleton rápido da classe DriverPro em vez do lento FindObjectOfType
+        DriverPro player = DriverPro.Instance;
         if (player != null)
         {
             playerTransform = player.transform;
@@ -31,13 +32,11 @@ public class WobbleOnPass : MonoBehaviour
     {
         if (playerTransform == null)
         {
-            // Try to find player if not set
-            driver player = driver.Instance;
+            DriverPro player = DriverPro.Instance;
             if (player != null) playerTransform = player.transform;
             return;
         }
 
-        // Proximity check with cooldown to avoid CPU spikes
         if (!isWobbling && Time.time - lastCheckTime > checkCooldown)
         {
             lastCheckTime = Time.time;
@@ -52,11 +51,9 @@ public class WobbleOnPass : MonoBehaviour
         {
             wobbleTime += Time.deltaTime;
             
-            // Damped spring oscillation equation: Amplitude * sin(freq * t) * exp(-decay * t)
             float angle = wobbleAmplitude * Mathf.Sin(wobbleFrequency * wobbleTime) * Mathf.Exp(-wobbleDecay * wobbleTime);
             transform.localRotation = originalRotation * Quaternion.Euler(0f, 0f, angle);
 
-            // Stop when oscillation becomes negligible
             if (wobbleTime > 2.0f)
             {
                 isWobbling = false;

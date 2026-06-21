@@ -25,7 +25,7 @@ public class GameUIController : MonoBehaviour
     private Transform pauseButton;
     private Transform exitButton;
     private Canvas mainCanvas;
-    private driver carDriver;
+    private DriverPro carDriver;
 
     // Mobile inputs state (for buttons mode)
     private bool isLeftPressed = false;
@@ -99,7 +99,7 @@ public class GameUIController : MonoBehaviour
     private static void InitializeControllerForActiveScene()
     {
         // Check if there is a player car in the scene. If so, this is a gameplay scene!
-        driver player = FindObjectOfType<driver>();
+        DriverPro player = FindObjectOfType<DriverPro>();
         if (player == null) return;
 
         GameObject controllerObj = GameObject.Find("GameUIController");
@@ -219,7 +219,7 @@ public class GameUIController : MonoBehaviour
 
     private void FindDriver()
     {
-        carDriver = driver.Instance;
+        carDriver = DriverPro.Instance;
     }
 
     private void SetupUI()

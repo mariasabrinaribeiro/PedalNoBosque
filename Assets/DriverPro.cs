@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 using TMPro;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class driver : MonoBehaviour
+public class DriverPro : MonoBehaviour
 {
     [SerializeField] float currentSpeed = 3.5f;
     [SerializeField] float steerSpeed = 200f;
@@ -12,6 +12,7 @@ public class driver : MonoBehaviour
     [SerializeField] float regularSpeed = 3.5f;
     [SerializeField] float swipeSpeedMultiplier = 1.2f; 
     [SerializeField] float swipeLerpFactor = 8f; 
+    [SerializeField] float bulletSpawnOffset = 0.8f;
 
     [SerializeField] TMP_Text boostText;
 
@@ -52,7 +53,7 @@ public class driver : MonoBehaviour
     private float mobileSteerInput = 0f;
     private bool mobileShootPressed = false;
 
-    public static driver Instance { get; private set; }
+    public static DriverPro Instance { get; private set; }
 
     void Awake()
     {
@@ -90,6 +91,9 @@ public class driver : MonoBehaviour
             {
                 playerSr.enabled = false;
             }
+
+            // Ensure the sprite faces the correct direction (forward/up)
+            customSpriteChild.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             // Automatically hide old visual parts (Square, wheels/rodas, window/vidro)
             foreach (Transform child in transform)
@@ -163,7 +167,7 @@ public class driver : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("driverpro: Camera.main not found. AmbientGlitterManager was not added.");
+            Debug.LogWarning("DriverPro: Camera.main not found. AmbientGlitterManager was not added.");
         }
         */
 
@@ -584,7 +588,7 @@ public class driver : MonoBehaviour
         if (ObjectPoolManager.Instance == null) return;
 
         GameObject bulletGo = ObjectPoolManager.Instance.GetBullet();
-        bulletGo.transform.position = transform.position + transform.up * 0.8f;
+        bulletGo.transform.position = transform.position + transform.up * bulletSpawnOffset;
         bulletGo.transform.rotation = rot;
 
         Bullet bulletScript = bulletGo.GetComponent<Bullet>();

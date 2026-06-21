@@ -33,7 +33,7 @@ public class Enemy : MonoBehaviour
 
     void Start()
     {
-        driver player = driver.Instance;
+        DriverPro player = DriverPro.Instance;
         if (player != null)
         {
             playerTransform = player.transform;
@@ -57,7 +57,7 @@ public class Enemy : MonoBehaviour
         if (sr == null) sr = GetComponent<SpriteRenderer>();
         if (rb == null) rb = GetComponent<Rigidbody2D>();
 
-        driver player = driver.Instance;
+        DriverPro player = DriverPro.Instance;
         if (player != null)
         {
             playerTransform = player.transform;
@@ -185,7 +185,7 @@ public class Enemy : MonoBehaviour
             // Check if player is inside the area-of-effect radius (2.5 units)
             if (dist <= 2.5f)
             {
-                driver playerScript = playerTransform.GetComponent<driver>();
+                DriverPro playerScript = playerTransform.GetComponent<DriverPro>();
                 if (playerScript != null)
                 {
                     playerScript.TakeDamage(collisionDamage);
@@ -221,7 +221,7 @@ public class Enemy : MonoBehaviour
         if (isExploding) return;
 
         // Check collision with the car
-        driver player = collision.GetComponent<driver>();
+        DriverPro player = collision.GetComponent<DriverPro>();
         if (player != null && gameObject.activeInHierarchy)
         {
             player.TakeDamage(collisionDamage);
@@ -363,7 +363,7 @@ public class Enemy : MonoBehaviour
     {
         if (giveRewards)
         {
-            driver player = driver.Instance;
+            DriverPro player = DriverPro.Instance;
             if (player != null)
             {
                 player.score += scoreReward;

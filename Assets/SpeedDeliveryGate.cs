@@ -9,8 +9,7 @@ public class SpeedDeliveryGate : MonoBehaviour
 
     private float pulseTime = 0f;
 
-    // Static Cache to prevent GC spikes and memory leaks
-    private static Sprite cachedPostSprite;
+    // Cache estático para evitar vazamento de texturas e picos de GC
     private static Sprite cachedWhiteSprite;
 
     private static Sprite GetWhiteSprite()
@@ -32,42 +31,6 @@ public class SpeedDeliveryGate : MonoBehaviour
         return cachedWhiteSprite;
     }
 
-    private static Sprite GetPostSprite()
-    {
-        if (cachedPostSprite == null)
-        {
-            int w = 16;
-            int h = 48;
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-
-            Color pink = new Color(1f, 0.45f, 0.75f, 1f);
-            Color white = Color.white;
-
-            for (int y = 0; y < h; y++)
-            {
-                Color c = ((y / 6) % 2 == 0) ? pink : white;
-                for (int x = 0; x < w; x++)
-                {
-                    if (y >= h - 4)
-                    {
-                        float dx = x - w / 2f;
-                        float dy = y - (h - 4);
-                        if (dx * dx + dy * dy > (w / 2f) * (w / 2f))
-                        {
-                            tex.SetPixel(x, y, Color.clear);
-                            continue;
-                        }
-                    }
-                    tex.SetPixel(x, y, c);
-                }
-            }
-            tex.Apply();
-            cachedPostSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0f), 100f);
-        }
-        return cachedPostSprite;
-    }
-
     void Awake()
     {
         gameObject.name = "SpeedDeliveryGate";
@@ -83,8 +46,17 @@ public class SpeedDeliveryGate : MonoBehaviour
         SpriteRenderer srL = leftPost.AddComponent<SpriteRenderer>();
         SpriteRenderer srR = rightPost.AddComponent<SpriteRenderer>();
 
-        srL.sprite = GetPostSprite();
-        srR.sprite = GetPostSprite();
+        // ASSINALA O SPRITE BRANCO ESTÁTICO PARA AS CORES TINTAREM CORRETAMENTE
+        Sprite whiteSprite = GetWhiteSprite();
+        srL.sprite = whiteSprite;
+        srR.sprite = whiteSprite;
+
+        // OTIMIZADO: Define os postes visualmente usando tintas nativas sem loops geradores de imagem
+        srL.color = new Color(1f, 0.45f, 0.75f, 1f);
+        srR.color = new Color(1f, 0.45f, 0.75f, 1f);
+        leftPost.transform.localScale = new Vector3(0.2f, 1f, 1f);
+        rightPost.transform.localScale = new Vector3(0.2f, 1f, 1f);
+        
         srL.sortingOrder = 3;
         srR.sortingOrder = 3;
 
@@ -148,7 +120,8 @@ public class SpeedDeliveryGate : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        driver player = collision.GetComponent<driver>();
+        // CORRIGIDO: de driver para DriverPro
+        DriverPro player = collision.GetComponent<DriverPro>(); 
         if (player != null)
         {
             Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
@@ -209,6 +182,7 @@ public class SpeedDeliveryGate : MonoBehaviour
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
             particleSr.sprite = whiteSprite;
+            // OTIMIZADO: Cor nativa direto no componente sem instanciar bitmaps na RAM
             particleSr.color = (i % 2 == 0) ? pinkColor : goldColor; 
             particleSr.sortingOrder = 6;
 
