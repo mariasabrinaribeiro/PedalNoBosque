@@ -13,6 +13,8 @@ public class DriverPro : MonoBehaviour
     [SerializeField] float swipeSpeedMultiplier = 1.2f; 
     [SerializeField] float swipeLerpFactor = 8f; 
     [SerializeField] private Transform bulletSpawnPoint;
+    [SerializeField] float bulletSpawnOffset = 0.8f;
+    [SerializeField] float spriteRotationOffset = 90f;
 
     [SerializeField] TMP_Text boostText;
 
@@ -75,7 +77,8 @@ public class DriverPro : MonoBehaviour
         Transform customSpriteChild = null;
         foreach (Transform child in transform)
         {
-            if (child.name.ToLower().Contains("sprite"))
+            string cName = child.name.ToLower();
+            if (cName.Contains("sprite") && !cName.Contains("tiro") && !cName.Contains("point") && !cName.Contains("spawn"))
             {
                 customSpriteChild = child;
                 break;
@@ -84,24 +87,40 @@ public class DriverPro : MonoBehaviour
 
         SpriteRenderer playerSr = GetComponent<SpriteRenderer>();
 
+        // SE O SPRITE RENDERER ESTIVER NO OBJETO PAI (sem objeto filho de visual):
+        // Criamos o objeto filho de visual automaticamente e transferimos as propriedades do SpriteRenderer
+        if (customSpriteChild == null && playerSr != null && playerSr.sprite != null)
+        {
+            GameObject autoSpriteObj = new GameObject("CarroSprite_Auto");
+            autoSpriteObj.transform.SetParent(transform);
+            autoSpriteObj.transform.localPosition = Vector3.zero;
+            autoSpriteObj.transform.localScale = Vector3.one;
+
+            SpriteRenderer childSr = autoSpriteObj.AddComponent<SpriteRenderer>();
+            childSr.sprite = playerSr.sprite;
+            childSr.material = playerSr.material;
+            childSr.color = playerSr.color;
+            childSr.sortingLayerID = playerSr.sortingLayerID;
+            childSr.sortingOrder = playerSr.sortingOrder;
+            childSr.flipX = playerSr.flipX;
+            childSr.flipY = playerSr.flipY;
+
+            playerSr.enabled = false; // desativa o SpriteRenderer do pai para evitar renderização dupla
+            customSpriteChild = autoSpriteObj.transform;
+        }
+
         if (customSpriteChild != null)
         {
-            // Disable parent SpriteRenderer to avoid double-rendering
-            if (playerSr != null)
-            {
-                playerSr.enabled = false;
-            }
-
-            // Ensure the sprite faces the correct direction (forward/up)
-            // customSpriteChild.localRotation = Quaternion.Euler(0f, 0f, 180f); // Comentado para permitir rotação manual no Inspector
+            // Aplica a rotação de alinhamento visual configurada no Inspector do Unity
+            customSpriteChild.localRotation = Quaternion.Euler(0f, 0f, spriteRotationOffset);
 
             // Automatically hide old visual parts (Square, wheels/rodas, window/vidro)
             foreach (Transform child in transform)
             {
-                if (child != customSpriteChild)
+                string cName = child.name.ToLower();
+                if (child != customSpriteChild && !cName.Contains("tiro") && !cName.Contains("point") && !cName.Contains("spawn"))
                 {
-                    string childName = child.name.ToLower();
-                    if (childName.Contains("square") || childName.Contains("roda") || childName.Contains("vidro"))
+                    if (cName.Contains("square") || cName.Contains("roda") || cName.Contains("vidro"))
                     {
                         child.gameObject.SetActive(false);
                     }
@@ -111,7 +130,7 @@ public class DriverPro : MonoBehaviour
         else
         {
             // Default sprite loading fallback
-            if (playerSr != null)
+            if (playerSr != null && playerSr.sprite == null)
             {
                 Sprite vanSprite = Resources.Load<Sprite>("icecreamvan");
                 if (vanSprite != null)
@@ -552,7 +571,7 @@ public class DriverPro : MonoBehaviour
 
         bool gp = (girlPowerTimer > 0f);
 
-        // Usamos o bulletSpawnPoint como referência de direção/rotação se configurado, senão o próprio transform do jogador
+        // Usamos o bulletSpawnPoint como referência de direção/rotação se configurado, senão o próprio transform do jogador (utilizando o eixo Y / transform.up)
         Transform refTransform = bulletSpawnPoint != null ? bulletSpawnPoint : transform;
         Vector3 baseUp = refTransform.up;
         Quaternion baseRot = refTransform.rotation;
@@ -593,7 +612,9 @@ public class DriverPro : MonoBehaviour
         if (ObjectPoolManager.Instance == null) return;
 
         GameObject bulletGo = ObjectPoolManager.Instance.GetBullet();
-        bulletGo.transform.position = bulletSpawnPoint != null ? bulletSpawnPoint.position : (transform.position + transform.up * 0.8f);
+        
+        // Se o bulletSpawnPoint estiver assinalado, usa sua posição exata, senão calcula a partir do transform.up (seta verde)
+        bulletGo.transform.position = bulletSpawnPoint != null ? bulletSpawnPoint.position : (transform.position + transform.up * bulletSpawnOffset);
         bulletGo.transform.rotation = rot;
 
         Bullet bulletScript = bulletGo.GetComponent<Bullet>();
