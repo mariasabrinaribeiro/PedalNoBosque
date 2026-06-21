@@ -1468,9 +1468,10 @@ GameObject:
   - component: {fileID: 63801189}
   - component: {fileID: 63801191}
   - component: {fileID: 63801192}
+  - component: {fileID: 63801193}
   m_Layer: 0
   m_Name: carro-pai
-  m_TagString: Player
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1535,13 +1536,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 63801185}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: -1, w: 0}
+  m_LocalPosition: {x: 2.03, y: -1.87, z: 0}
   m_LocalScale: {x: 0.43431, y: 0.43431, z: 0.43431}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1218908500}
   m_Father: {fileID: 179570155}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -180}
 --- !u!114 &63801188
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1561,16 +1563,29 @@ MonoBehaviour:
   swipeSpeedMultiplier: 1.2
   swipeLerpFactor: 8
   boostText: {fileID: 0}
+  moveInput: 0
+  steerInput: 0
   health: 100
   maxHealth: 100
   score: 0
   cargo: 0
   maxCargo: 3
   shootCooldown: 0.3
+  lastShootTime: -1
   magnetTimer: 0
   tripleShotTimer: 0
   girlPowerTimer: 0
   hasShield: 0
+  <displaySpeed>k__BackingField: 0
+  shieldVisualInstance: {fileID: 0}
+  speedTrail: {fileID: 0}
+  cachedShieldSprite: {fileID: 0}
+  rb: {fileID: 0}
+  isDragging: 0
+  dragDisplacement: {x: 0, y: 0}
+  mobileMoveInput: 0
+  mobileSteerInput: 0
+  mobileShootPressed: 0
 --- !u!50 &63801189
 Rigidbody2D:
   serializedVersion: 4
@@ -1656,6 +1671,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   delay: 0.3
+--- !u!114 &63801193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 63801185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67883473794a84788b06ae393eb88405, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentSpeed: 3.5
+  steerSpeed: 200
+  boostSpeed: 6
+  regularSpeed: 3.5
+  swipeSpeedMultiplier: 1.2
+  swipeLerpFactor: 8
+  bulletSpawnOffset: 0.8
+  boostText: {fileID: 0}
+  health: 100
+  maxHealth: 100
+  score: 0
+  cargo: 0
+  maxCargo: 5
+  shootCooldown: 0.08
+  magnetTimer: 0
+  tripleShotTimer: 0
+  girlPowerTimer: 0
+  hasShield: 0
 --- !u!1 &68921737
 GameObject:
   m_ObjectHideFlags: 0
@@ -4065,14 +4110,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 179570154}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 43.645767, y: 22.88, z: 0.11154798}
+  m_LocalRotation: {x: 0, y: 0, z: -1, w: 0}
+  m_LocalPosition: {x: 47.43, y: 21.28, z: 0.11154798}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 63801187}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -180}
 --- !u!1 &187466218
 GameObject:
   m_ObjectHideFlags: 0
@@ -26501,6 +26546,37 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &1218908499
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1218908500}
+  m_Layer: 0
+  m_Name: Ponto do tiro
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1218908500
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1218908499}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 63801187}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1219826551
 GameObject:
   m_ObjectHideFlags: 0
@@ -34431,7 +34507,7 @@ Transform:
   m_GameObject: {fileID: 1601823126}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 38.44408, y: 19.90531, z: 0}
+  m_LocalPosition: {x: 45.7, y: 20.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -42078,7 +42154,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -26.8036, y: -37.0357}
+  m_AnchoredPosition: {x: -26.803589, y: -37.035706}
   m_SizeDelta: {x: 69.6072, y: 58.0714}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1949074754
@@ -46926,7 +47002,7 @@ Transform:
   m_GameObject: {fileID: 2120421142}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 43.645767, y: 22.88, z: -9.888452}
+  m_LocalPosition: {x: 45.4, y: 23.150002, z: -9.888452}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
