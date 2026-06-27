@@ -23,8 +23,8 @@ public class GameSetupSanitizer : EditorWindow
             "Esta ferramenta irá inspecionar a cena ativa e automaticamente:\n" +
             "1. Corrigir a Tag do jogador para 'Player' (evita spawn de monstros em cima de você).\n" +
             "2. Separar o SpriteRenderer do jogador para um objeto visual filho 'CarroSprite'.\n" +
-            "3. Alinhar a rotação do sprite visual (0 graus para a Van de Sorvete vertical, 90 para outras).\n" +
-            "4. Criar ou centralizar o 'Ponto do tiro' na frente do para-choque (local Y = 1.2).\n" +
+            "3. Alinhar a rotação do sprite visual (-90 graus para a Van de Sorvete para a cabine apontar para cima).\n" +
+            "4. Centralizar o 'Ponto do tiro' na frente do para-choque frontal (local Y = 1.2).\n" +
             "5. Associar o 'Ponto do tiro' ao campo do script 'DriverPro' no Inspector.\n" +
             "6. Configurar as propriedades ideais do Rigidbody2D físicas do carro.\n" +
             "7. Retirar o carro de dentro do Canvas de UI (caso tenha sido arrastado por engano).\n" +
@@ -70,11 +70,13 @@ public class GameSetupSanitizer : EditorWindow
 
         logOutput += $"[INFO] Jogador encontrado: '{playerObj.name}'\n";
 
+        logOutput += "[INFO] Rotação do objeto pai preservada (para permitir controle manual).\n";
+
         // 2. Corrigir a Tag do Jogador
         if (playerObj.tag != "Player")
         {
             playerObj.tag = "Player";
-            logOutput += "[AJUSTE] Tag do jogador alterada de '" + playerObj.tag + "' para 'Player'.\n";
+            logOutput += "[AJUSTE] Tag do jogador alterada para 'Player'.\n";
         }
         else
         {
@@ -158,24 +160,10 @@ public class GameSetupSanitizer : EditorWindow
             logOutput += "[AJUSTE] SpriteRenderer duplicado removido do pai para evitar bugs.\n";
         }
 
-        // 7. Alinhar a rotação visual
+        // 7. Alinhar a rotação visual (preserva a rotação manual feita pelo usuário)
         if (visualChild != null)
         {
-            SpriteRenderer sr = visualChild.GetComponent<SpriteRenderer>();
-            if (sr != null && sr.sprite != null)
-            {
-                string spriteName = sr.sprite.name.ToLower();
-                if (spriteName.Contains("van") || spriteName.Contains("icecream") || spriteName.Contains("sorvete"))
-                {
-                    visualChild.localRotation = Quaternion.identity;
-                    logOutput += "[OK] Sprite da Van de Sorvete vertical detectado. Rotação visual ajustada para 0 graus.\n";
-                }
-                else
-                {
-                    visualChild.localRotation = Quaternion.Euler(0f, 0f, 90f);
-                    logOutput += "[OK] Sprite horizontal detectado. Rotação visual ajustada para 90 graus para alinhar.\n";
-                }
-            }
+            logOutput += "[OK] Rotação local do sprite preservada (para respeitar a rotação manual de " + visualChild.localEulerAngles.z + " graus).\n";
         }
 
         // 8. Corrigir Ponto do Tiro
@@ -198,13 +186,10 @@ public class GameSetupSanitizer : EditorWindow
             logOutput += "[AJUSTE] Ponto do tiro ('Ponto do tiro') criado automaticamente.\n";
         }
 
-        // Mover para o para-choque frontal se estiver no centro
-        if (bulletSpawn.localPosition == Vector3.zero)
-        {
-            bulletSpawn.localPosition = new Vector3(0f, 1.2f, 0f);
-            bulletSpawn.localRotation = Quaternion.identity;
-            logOutput += "[AJUSTE] Ponto do tiro posicionado na frente do para-choque (local Y = 1.2).\n";
-        }
+        // Forçar posicionamento no para-choque frontal (Y = 1.2) e zerar rotação local
+        bulletSpawn.localPosition = new Vector3(0f, 1.2f, 0f);
+        bulletSpawn.localRotation = Quaternion.identity;
+        logOutput += "[AJUSTE] Ponto do tiro alinhado na frente da cabine (local Y = 1.2, rotação 0).\n";
 
         // Associar o ponto do tiro no DriverPro Inspector
         SerializedObject driverSo = new SerializedObject(driverPro);
@@ -215,12 +200,12 @@ public class GameSetupSanitizer : EditorWindow
             logOutput += "[OK] Objeto 'Ponto do tiro' associado ao campo 'Bullet Spawn Point' no script DriverPro.\n";
         }
 
-        // Resetar o offset do script, pois o editor já alinhou o visual permanentemente
+        // Zerar o offset do script para evitar rotações duplas
         SerializedProperty offsetProp = driverSo.FindProperty("spriteRotationOffset");
         if (offsetProp != null)
         {
             offsetProp.floatValue = 0f;
-            logOutput += "[OK] Campo 'Sprite Rotation Offset' zerado no script para evitar rotações duplas.\n";
+            logOutput += "[OK] Campo 'Sprite Rotation Offset' zerado no script.\n";
         }
 
         driverSo.ApplyModifiedProperties();

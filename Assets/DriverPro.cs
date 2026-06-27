@@ -62,7 +62,7 @@ public class DriverPro : MonoBehaviour
         if (rb != null)
         {
             rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation; 
+            rb.constraints = RigidbodyConstraints2D.None; 
             rb.gravityScale = 0f;
         }
 
