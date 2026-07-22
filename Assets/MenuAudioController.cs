@@ -19,6 +19,8 @@ public class MenuAudioController : MonoBehaviour
 
     private void Start()
     {
+        Time.timeScale = 1f; // Reseta o timeScale para que o jogo e corrotinas rodem!
+        
         // Toca a música em loop assim que a cena do menu inicia
         if (AudioManager.Instance != null)
         {
@@ -46,6 +48,18 @@ public class MenuAudioController : MonoBehaviour
             // Caso o AudioManager não exista na cena, carrega a gameplay imediatamente
             CarregarCenaGameplay();
         }
+    }
+
+    public void JogarVersaoSorvete()
+    {
+        gameplaySceneName = "Girl power 1- Sorvete";
+        AoClicarEmJogar();
+    }
+
+    public void JogarVersaoDonuts()
+    {
+        gameplaySceneName = "Girl power 5-Donuts";
+        AoClicarEmJogar();
     }
 
     private void CarregarCenaGameplay()

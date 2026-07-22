@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -25,6 +26,10 @@ public class EnemySpawner : MonoBehaviour
     [HideInInspector] public bool bossActive = false;
     [HideInInspector] public int scoreForNextBoss = 1500;
     private GameObject activeBossInstance;
+
+    [Header("Static Monsters Settings")]
+    [SerializeField] private float activationDistance = 8f;
+    private List<Vector3> staticMonsterPositions = new List<Vector3>();
 
     public static EnemySpawner Instance { get; private set; }
 
@@ -73,11 +78,33 @@ public class EnemySpawner : MonoBehaviour
 
         // Load the sprite from Resources
         enemySprite = Resources.Load<Sprite>("monster");
+
+        // Find and register all static monsters in the scene by name
+        GameObject[] allGameObjects = Resources.FindObjectsOfTypeAll<GameObject>();
+        foreach (var go in allGameObjects)
+        {
+            if (go.scene.isLoaded && IsStaticMonster(go))
+            {
+                staticMonsterPositions.Add(go.transform.position);
+                go.SetActive(false); // Hide and disable collision immediately!
+            }
+        }
     }
 
     void Update()
     {
         if (Time.timeScale < 0.01f || player == null) return;
+
+        // Check static monster proximity and trigger dynamic spawns
+        for (int i = staticMonsterPositions.Count - 1; i >= 0; i--)
+        {
+            Vector3 pos = staticMonsterPositions[i];
+            if (Vector3.Distance(player.transform.position, pos) < activationDistance)
+            {
+                SpawnEnemyAtPosition(pos);
+                staticMonsterPositions.RemoveAt(i);
+            }
+        }
 
         // 1. Boss Trigger Check - DISABLED to make game lighter
         /*
@@ -231,5 +258,46 @@ public class EnemySpawner : MonoBehaviour
         }
 
         return spawnPos;
+    }
+
+    private bool IsStaticMonster(GameObject go)
+    {
+        string name = go.name.Trim();
+        if (name.Equals("monster", System.StringComparison.OrdinalIgnoreCase)) return true;
+        if (name.StartsWith("monster (", System.StringComparison.OrdinalIgnoreCase) && name.EndsWith(")"))
+        {
+            string numPart = name.Substring(9, name.Length - 10);
+            return int.TryParse(numPart, out _);
+        }
+        return false;
+    }
+
+    private void SpawnEnemyAtPosition(Vector3 position)
+    {
+        if (ObjectPoolManager.Instance == null) return;
+
+        GameObject enemyObj = ObjectPoolManager.Instance.GetMonster();
+        enemyObj.transform.position = position;
+        enemyObj.SetActive(true);
+
+        SpriteRenderer sr = enemyObj.GetComponent<SpriteRenderer>();
+        if (sr != null && enemySprite != null)
+        {
+            sr.sprite = enemySprite;
+        }
+
+        // Decide random variation: Standard (40%), Slow (20%), Fast (20%), Explosive (20%)
+        Enemy.EnemyType chosenType = Enemy.EnemyType.Standard;
+        float rand = Random.value;
+        if (rand < 0.4f) chosenType = Enemy.EnemyType.Standard;
+        else if (rand < 0.6f) chosenType = Enemy.EnemyType.Slow;
+        else if (rand < 0.8f) chosenType = Enemy.EnemyType.Fast;
+        else chosenType = Enemy.EnemyType.Explosive;
+
+        Enemy enemyScript = enemyObj.GetComponent<Enemy>();
+        if (enemyScript != null)
+        {
+            enemyScript.Initialize(chosenType);
+        }
     }
 }

@@ -131,7 +131,7 @@ public class AudioManager : MonoBehaviour
 
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             musicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / duration);
             yield return null;
         }
