@@ -189,12 +189,6 @@ public class PowerUpItem : MonoBehaviour
             EnemySpawner.Instance.enabled = false;
         }
 
-        // Exibe a tela de vitória imediatamente
-        if (GameUIController.Instance != null)
-        {
-            GameUIController.Instance.ShowVictory();
-        }
-
         // Tremor de tela para dar impacto visual
         if (GameCameraController.Instance != null)
         {

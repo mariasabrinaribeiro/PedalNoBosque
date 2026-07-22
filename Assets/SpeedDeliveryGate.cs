@@ -131,13 +131,13 @@ public class SpeedDeliveryGate : MonoBehaviour
                 
                 if (currentSpeed >= 4.8f)
                 {
-                    player.score += 100;
+                    player.score += 500000; // 500k pontos por entrega de alta velocidade!
                     player.ActivateGirlPower(5f); 
 
                     GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
-                        ui.ShowDeliveryMessage("ENTREGA DE ALTA VELOCIDADE! +100 PONTOS / GIRL POWER!");
+                        ui.ShowDeliveryMessage("ENTREGA DE ALTA VELOCIDADE! +500.000 PONTOS / GIRL POWER!");
                     }
 
                     if (GameAudioController.Instance != null)

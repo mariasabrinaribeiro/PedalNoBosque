@@ -192,7 +192,13 @@ public class GameUIController : MonoBehaviour
         {
             lastScoreValue = carDriver.score;
             lastSpeedValue = currentSpeedInt;
-            scoreText.text = "PONTOS: " + lastScoreValue + "   VEL: " + lastSpeedValue + " km/h";
+            scoreText.text = "PONTOS: " + lastScoreValue.ToString("N0") + "   VEL: " + lastSpeedValue + " km/h";
+
+            // Vitória ao atingir 10.000.000 (10 Milhões) ou mais pontos!
+            if (lastScoreValue >= 10000000)
+            {
+                ShowVictory();
+            }
         }
 
         // 2. Handle Vignette low-health pulse and heartbeat audio
@@ -1026,7 +1032,7 @@ public class GameUIController : MonoBehaviour
             TextMeshProUGUI finalScoreText = victoryPanel.transform.Find("VictoryScore").GetComponent<TextMeshProUGUI>();
             if (finalScoreText != null && carDriver != null)
             {
-                finalScoreText.text = "PONTUAÇÃO FINAL: " + carDriver.score;
+                finalScoreText.text = "PONTUAÇÃO FINAL: " + carDriver.score.ToString("N0");
             }
         }
     }

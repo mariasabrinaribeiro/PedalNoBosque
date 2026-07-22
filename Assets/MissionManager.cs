@@ -150,14 +150,14 @@ public class MissionManager : MonoBehaviour
         // Reward player
         if (playerDriver != null)
         {
-            playerDriver.score += 100;
+            playerDriver.score += 2000000; // 2 milhões de pontos por concluir missão!
             playerDriver.ActivateGirlPower(5f); // 5 seconds of Girl Power!
         }
 
         if (uiController == null) uiController = GameUIController.Instance;
         if (uiController != null)
         {
-            uiController.ShowDeliveryMessage("MISSÃO CONCLUÍDA! +100 PONTOS / GIRL POWER 5s!");
+            uiController.ShowDeliveryMessage("MISSÃO CONCLUÍDA! +2.000.000 PONTOS / GIRL POWER 5s!");
         }
 
         // Sound effect

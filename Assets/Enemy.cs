@@ -386,13 +386,13 @@ public class Enemy : MonoBehaviour
             DriverPro player = DriverPro.Instance;
             if (player != null)
             {
-                player.score += scoreReward;
+                player.score += 100000; // 100k pontos por derrotar monstro!
                 player.health = Mathf.Min(player.health + healthReward, player.maxHealth);
                 
                 GameUIController ui = GameUIController.Instance;
                 if (ui != null)
                 {
-                    ui.ShowDeliveryMessage($"MONSTRO DESTRUÍDO! +{scoreReward} PTS / +{healthReward} VIDA");
+                    ui.ShowDeliveryMessage("MONSTRO DESTRUÍDO! +100.000 PTS / +" + healthReward + " VIDA");
                 }
 
                 // Notify mission manager of kill
