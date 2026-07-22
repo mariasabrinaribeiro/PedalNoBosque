@@ -11,7 +11,7 @@ public class Enemy : MonoBehaviour
     public int currentHealth;
     public float chaseSpeed = 1.5f;
 
-    [SerializeField] private int collisionDamage = 20;
+    [SerializeField] private int collisionDamage = 10; // Reduzido de 20 para 10 para tornar o jogo mais fácil
     [SerializeField] private int scoreReward = 10;
     [SerializeField] private int healthReward = 15;
 
@@ -24,6 +24,26 @@ public class Enemy : MonoBehaviour
     private bool isExploding = false;
     private static Sprite cachedPinkParticleSprite;
     private static Sprite cachedPurpleParticleSprite;
+
+    public static readonly System.Collections.Generic.List<Enemy> ActiveEnemies = new System.Collections.Generic.List<Enemy>();
+
+    void OnEnable()
+    {
+        if (!ActiveEnemies.Contains(this))
+        {
+            ActiveEnemies.Add(this);
+        }
+    }
+
+    void OnDisable()
+    {
+        ActiveEnemies.Remove(this);
+    }
+
+    void OnDestroy()
+    {
+        ActiveEnemies.Remove(this);
+    }
 
     void Awake()
     {
@@ -379,6 +399,15 @@ public class Enemy : MonoBehaviour
                 if (MissionManager.Instance != null)
                 {
                     MissionManager.Instance.OnMonsterDefeated();
+                }
+
+                // Toda vez que mata um inimigo, aumenta a chance de ganhar dando 20% de chance de dropar um PowerUp (incluindo a Bomba!)
+                if (Random.value < 0.20f)
+                {
+                    GameObject pUpObj = new GameObject("PowerUpItem");
+                    PowerUpItem script = pUpObj.AddComponent<PowerUpItem>();
+                    int randType = Random.Range(0, 4); // Escolhe entre Magnet, Shield, TripleShot e Bomb
+                    script.Initialize((PowerUpItem.PowerUpType)randType, transform.position);
                 }
             }
         }

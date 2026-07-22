@@ -26,8 +26,12 @@ public class EnemySpawner : MonoBehaviour
     [HideInInspector] public int scoreForNextBoss = 1500;
     private GameObject activeBossInstance;
 
+    public static EnemySpawner Instance { get; private set; }
+
     private void Awake()
     {
+        Instance = this;
+
         // Copy the monster sprite to Resources folder dynamically in editor if not present
 #if UNITY_EDITOR
         string resourcesDir = Application.dataPath + "/Resources";
@@ -50,6 +54,11 @@ public class EnemySpawner : MonoBehaviour
             GameObject poolObj = new GameObject("ObjectPoolManager");
             poolObj.AddComponent<ObjectPoolManager>();
         }
+    }
+
+    public void DelaySpawning(float duration)
+    {
+        nextSpawnTime = Time.time + duration;
     }
 
     void Start()
@@ -85,12 +94,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
         // 2. Spawn standard enemies
-        int activeEnemies = 0;
-        Enemy[] pooledMonsters = FindObjectsOfType<Enemy>();
-        foreach (var m in pooledMonsters)
-        {
-            if (m.gameObject.activeInHierarchy) activeEnemies++;
-        }
+        int activeEnemies = Enemy.ActiveEnemies.Count;
 
         if (activeEnemies < maxEnemies && Time.time >= nextSpawnTime)
         {
@@ -156,8 +160,8 @@ public class EnemySpawner : MonoBehaviour
         GameObject pUpObj = new GameObject("PowerUpItem");
         PowerUpItem script = pUpObj.AddComponent<PowerUpItem>();
         
-        // Randomly select type (Magnet, Shield, or TripleShot)
-        int randType = Random.Range(0, 3);
+        // Randomly select type (Magnet, Shield, TripleShot, or Bomb)
+        int randType = Random.Range(0, 4);
         script.Initialize((PowerUpItem.PowerUpType)randType, spawnPos);
     }
 

@@ -63,6 +63,16 @@ public class GameUIController : MonoBehaviour
     // Navigation Pointer
     private GameObject navArrow;
     private SpriteRenderer navArrowSR;
+    private List<GameObject> cachedDeliveryPoints = new List<GameObject>();
+    private float lastTargetSearchTime = -1f;
+    private float targetSearchInterval = 0.25f;
+    private GameObject currentNavigationTarget = null;
+
+    private int lastHealthValue = -1;
+    private int lastCargoValue = -1;
+    private int lastMaxCargoValue = -1;
+    private int lastScoreValue = -1;
+    private int lastSpeedValue = -1;
 
     private List<GameObject> mobileHUDButtons = new List<GameObject>();
     private Vector2 startTouchPos;
@@ -163,9 +173,27 @@ public class GameUIController : MonoBehaviour
 
         // 1. Update HUD stats
         if (healthSlider != null) healthSlider.value = carDriver.health;
-        if (hpLabelText != null) hpLabelText.text = "VIDA: " + carDriver.health + "%";
-        if (cargoText != null) cargoText.text = "SORVETES: " + carDriver.cargo + " / " + carDriver.maxCargo;
-        if (scoreText != null) scoreText.text = "PONTOS: " + carDriver.score + "   VEL: " + (carDriver.displaySpeed * 10f).ToString("F0") + " km/h";
+        
+        if (hpLabelText != null && carDriver.health != lastHealthValue)
+        {
+            lastHealthValue = carDriver.health;
+            hpLabelText.text = "VIDA: " + lastHealthValue + "%";
+        }
+        
+        if (cargoText != null && (carDriver.cargo != lastCargoValue || carDriver.maxCargo != lastMaxCargoValue))
+        {
+            lastCargoValue = carDriver.cargo;
+            lastMaxCargoValue = carDriver.maxCargo;
+            cargoText.text = "SORVETES: " + lastCargoValue + " / " + lastMaxCargoValue;
+        }
+        
+        int currentSpeedInt = Mathf.RoundToInt(carDriver.displaySpeed * 10f);
+        if (scoreText != null && (carDriver.score != lastScoreValue || currentSpeedInt != lastSpeedValue))
+        {
+            lastScoreValue = carDriver.score;
+            lastSpeedValue = currentSpeedInt;
+            scoreText.text = "PONTOS: " + lastScoreValue + "   VEL: " + lastSpeedValue + " km/h";
+        }
 
         // 2. Handle Vignette low-health pulse and heartbeat audio
         if (vignetteImage != null)
@@ -1406,20 +1434,20 @@ public class GameUIController : MonoBehaviour
     private void EnhanceDeliveryZone()
     {
         // Find all delivery spots
-        System.Collections.Generic.List<GameObject> customers = new System.Collections.Generic.List<GameObject>();
-        customers.AddRange(GameObject.FindGameObjectsWithTag("Customer"));
-        customers.AddRange(GameObject.FindGameObjectsWithTag("Pink House"));
+        cachedDeliveryPoints.Clear();
+        cachedDeliveryPoints.AddRange(GameObject.FindGameObjectsWithTag("Customer"));
+        cachedDeliveryPoints.AddRange(GameObject.FindGameObjectsWithTag("Pink House"));
         
         // Also look by name for "Descarga de sorvete"
         foreach (GameObject go in FindObjectsOfType<GameObject>())
         {
             if (go.name.Contains("Descarga de sorvete"))
             {
-                if (!customers.Contains(go)) customers.Add(go);
+                if (!cachedDeliveryPoints.Contains(go)) cachedDeliveryPoints.Add(go);
             }
         }
 
-        foreach (GameObject cust in customers)
+        foreach (GameObject cust in cachedDeliveryPoints)
         {
             // Do NOT change the customer sprite/scale to avoid blocking roads.
             // Just spawn a flat, glowing pink candy circle centered on the delivery spot!
@@ -1474,41 +1502,28 @@ public class GameUIController : MonoBehaviour
             return;
         }
 
-        GameObject target = null;
-
-        // If carrying cargo, point to the nearest delivery customer. Else point to nearest package.
-        if (carDriver.cargo > 0)
+        // Only update the target selection at a lower frequency to save massive CPU performance
+        if (Time.time - lastTargetSearchTime > targetSearchInterval)
         {
-            System.Collections.Generic.List<GameObject> customers = new System.Collections.Generic.List<GameObject>();
-            customers.AddRange(GameObject.FindGameObjectsWithTag("Customer"));
-            customers.AddRange(GameObject.FindGameObjectsWithTag("Pink House"));
-            
-            foreach (GameObject go in FindObjectsOfType<GameObject>())
-            {
-                if (go.name.Contains("Descarga de sorvete"))
-                {
-                    if (!customers.Contains(go)) customers.Add(go);
-                }
-            }
-            target = FindNearest(customers.ToArray());
-            
-            // Set glowing hot pink for delivery pointer
-            navArrowSR.color = candyPink;
-        }
-        else
-        {
-            GameObject[] packages = GameObject.FindGameObjectsWithTag("package");
-            target = FindNearest(packages);
-            
-            // Set glowing yellow for pickup pointer
-            navArrowSR.color = new Color(1f, 0.9f, 0.2f, 1f);
+            lastTargetSearchTime = Time.time;
+            currentNavigationTarget = GetNearestNavigationTarget();
         }
 
-        if (target != null)
+        if (currentNavigationTarget != null)
         {
             navArrow.SetActive(true);
 
-            Vector3 direction = target.transform.position - carDriver.transform.position;
+            // Change arrow color based on cargo
+            if (carDriver.cargo > 0)
+            {
+                navArrowSR.color = candyPink;
+            }
+            else
+            {
+                navArrowSR.color = new Color(1f, 0.9f, 0.2f, 1f);
+            }
+
+            Vector3 direction = currentNavigationTarget.transform.position - carDriver.transform.position;
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f; // Subtract 90 since arrow sprite points UP
 
             // Orbit positioning in world space
@@ -1518,6 +1533,38 @@ public class GameUIController : MonoBehaviour
         else
         {
             navArrow.SetActive(false);
+        }
+    }
+
+    private GameObject GetNearestNavigationTarget()
+    {
+        if (carDriver.cargo > 0)
+        {
+            // If cached list is empty (e.g., scene reload), repopulate it
+            if (cachedDeliveryPoints == null || cachedDeliveryPoints.Count == 0)
+            {
+                cachedDeliveryPoints = new List<GameObject>();
+                cachedDeliveryPoints.AddRange(GameObject.FindGameObjectsWithTag("Customer"));
+                cachedDeliveryPoints.AddRange(GameObject.FindGameObjectsWithTag("Pink House"));
+                foreach (GameObject go in FindObjectsOfType<GameObject>())
+                {
+                    if (go.name.Contains("Descarga de sorvete"))
+                    {
+                        if (!cachedDeliveryPoints.Contains(go)) cachedDeliveryPoints.Add(go);
+                    }
+                }
+            }
+
+            // Clean up any destroyed objects from cache
+            cachedDeliveryPoints.RemoveAll(item => item == null);
+
+            return FindNearest(cachedDeliveryPoints.ToArray());
+        }
+        else
+        {
+            // Packages are collected and destroyed, so we find them dynamically
+            GameObject[] packages = GameObject.FindGameObjectsWithTag("package");
+            return FindNearest(packages);
         }
     }
 

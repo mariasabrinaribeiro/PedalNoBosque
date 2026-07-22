@@ -75,15 +75,19 @@ public class Bullet : MonoBehaviour
 
     private Enemy FindNearestEnemy()
     {
-        Enemy[] enemies = FindObjectsOfType<Enemy>();
         Enemy nearest = null;
         float minDist = float.MaxValue;
         Vector3 myPos = transform.position;
 
-        for (int i = 0; i < enemies.Length; i++)
+        for (int i = Enemy.ActiveEnemies.Count - 1; i >= 0; i--)
         {
-            Enemy e = enemies[i];
-            if (e != null && e.gameObject.activeInHierarchy)
+            Enemy e = Enemy.ActiveEnemies[i];
+            if (e == null)
+            {
+                Enemy.ActiveEnemies.RemoveAt(i);
+                continue;
+            }
+            if (e.gameObject.activeInHierarchy)
             {
                 float dist = Vector3.Distance(myPos, e.transform.position);
                 if (dist < minDist)

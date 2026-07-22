@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PowerUpItem : MonoBehaviour
 {
-    public enum PowerUpType { Magnet, Shield, TripleShot }
+    public enum PowerUpType { Magnet, Shield, TripleShot, Bomb }
     public PowerUpType type;
 
     private SpriteRenderer sr;
@@ -12,6 +12,7 @@ public class PowerUpItem : MonoBehaviour
     private static Sprite cachedMagnetSprite;
     private static Sprite cachedShieldSprite;
     private static Sprite cachedTripleShotSprite;
+    private static Sprite cachedBombSprite;
     private static Sprite cachedWhiteSprite;
 
     private static Sprite GetWhiteSprite()
@@ -98,6 +99,16 @@ public class PowerUpItem : MonoBehaviour
                 sr.sprite = cachedTripleShotSprite;
                 gameObject.name = "PowerUp_TripleShot";
                 break;
+            case PowerUpType.Bomb:
+                if (cachedBombSprite == null)
+                {
+                    mainColor = new Color(0.9f, 0.1f, 0.1f, 1f); // Vibrant Red
+                    outlineColor = new Color(0.4f, 0.05f, 0.05f, 1f);
+                    cachedBombSprite = CreatePowerUpSprite(mainColor, outlineColor);
+                }
+                sr.sprite = cachedBombSprite;
+                gameObject.name = "PowerUp_Bomb";
+                break;
         }
     }
 
@@ -134,6 +145,10 @@ public class PowerUpItem : MonoBehaviour
                     player.ActivateTripleShot(5f);
                     msg = "TIRO TRIPLO COLETADO POR 5s!";
                     break;
+                case PowerUpType.Bomb:
+                    TriggerScreenClearBomb();
+                    msg = "BOMBA DE CHOCOLATE! TODOS OS MONSTROS DESTRUÍDOS!";
+                    break;
             }
 
             if (ui != null)
@@ -155,12 +170,51 @@ public class PowerUpItem : MonoBehaviour
         }
     }
 
+    private void TriggerScreenClearBomb()
+    {
+        // Cria uma cópia da lista de inimigos ativos para evitar erro de concorrência ao desativar
+        var enemiesToKill = new System.Collections.Generic.List<Enemy>(Enemy.ActiveEnemies);
+        foreach (var enemy in enemiesToKill)
+        {
+            if (enemy != null && enemy.gameObject.activeInHierarchy)
+            {
+                // Causa dano igual à vida máxima do inimigo para derrotá-lo e computar pontos
+                enemy.TakeDamage(enemy.maxHealth);
+            }
+        }
+
+        // Desativa permanentemente o gerador de inimigos
+        if (EnemySpawner.Instance != null)
+        {
+            EnemySpawner.Instance.enabled = false;
+        }
+
+        // Exibe a tela de vitória imediatamente
+        if (GameUIController.Instance != null)
+        {
+            GameUIController.Instance.ShowVictory();
+        }
+
+        // Tremor de tela para dar impacto visual
+        if (GameCameraController.Instance != null)
+        {
+            GameCameraController.Instance.TriggerShake(0.35f, 0.5f);
+        }
+
+        // Toca o som de explosão
+        if (GameAudioController.Instance != null)
+        {
+            GameAudioController.Instance.PlayExplosion();
+        }
+    }
+
     private void SpawnCollectParticles()
     {
         Color particleColor = Color.white;
         if (type == PowerUpType.Magnet) particleColor = Color.yellow;
         else if (type == PowerUpType.Shield) particleColor = Color.cyan;
         else if (type == PowerUpType.TripleShot) particleColor = Color.magenta;
+        else if (type == PowerUpType.Bomb) particleColor = Color.red;
 
         Sprite whiteSprite = GetWhiteSprite();
 

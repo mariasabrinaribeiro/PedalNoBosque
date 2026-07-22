@@ -12,6 +12,16 @@ public class Delivery : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D collision)
     {
+        HandleCollision(collision);
+    }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandleCollision(collision.collider);
+    }
+
+    private void HandleCollision(Collider2D collision)
+    {
         if (collision.CompareTag("package"))
         {
             if (driver != null)
@@ -42,9 +52,7 @@ public class Delivery : MonoBehaviour
                 }
             }
         }
-        else if (collision.CompareTag("Customer") || collision.CompareTag("Pink House") || 
-                 collision.name.ToLower().Contains("descarga") || 
-                 collision.name.ToLower().Contains("tapete"))
+        else if (IsDeliveryPoint(collision))
         {
             if (driver != null && driver.cargo > 0)
             {
@@ -75,5 +83,24 @@ public class Delivery : MonoBehaviour
                 }
             }
         }
+    }
+
+    private bool IsDeliveryPoint(Collider2D collision)
+    {
+        if (collision.CompareTag("Customer") || collision.CompareTag("Pink House"))
+            return true;
+
+        Transform current = collision.transform;
+        while (current != null)
+        {
+            string nameLower = current.name.ToLower();
+            if (nameLower.Contains("descarga") || nameLower.Contains("tapete"))
+            {
+                return true;
+            }
+            current = current.parent;
+        }
+
+        return false;
     }
 }
