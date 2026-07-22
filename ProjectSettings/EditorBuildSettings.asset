@@ -10,7 +10,10 @@ EditorBuildSettings:
     guid: e8f9d01243bbf4892e6590ba0567b396
   - enabled: 1
     path: Assets/Scenes/Girl power 1- Sorvete.unity
-    guid: 0febcf79826204ba897439d68c57b396
+    guid: de2c0491527f044f3b36e7339231d63e
+  - enabled: 1
+    path: Assets/Scenes/Girl power 2- Sorvete 2.unity
+    guid: defd262d0dd84439cbb4867332cf8d70
   - enabled: 1
     path: Assets/Scenes/Girl power 5-Donuts.unity
     guid: b2f8d80115a244587ad37922e1655a74
