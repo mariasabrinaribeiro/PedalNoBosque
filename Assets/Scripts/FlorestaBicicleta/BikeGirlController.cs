@@ -1,79 +1,129 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using FlorestaTopDown;
 
 namespace FlorestaBicicleta
 {
     /// <summary>
-    /// Controla a menina com o cachorrinho na cesta pedalando devagar e rápido pela pista da floresta,
-    /// parando para alimentar os animais.
+    /// Controla a menina com o cachorrinho na cesta na cena lateral da floresta:
+    /// - Pedala devagar, rápido e volta pela estrada;
+    /// - Sente Subidas (mais pesada, bicicleta inclina pra cima) e Descidas (embala, inclina pra baixo);
+    /// - Carrega cesta de até 5 lanches e arremessa o alimento certo em arco para os animais;
+    /// - Se passar rápido em cima de um animal, atropela (-50 pts + lágrimas);
+    /// - Cachorrinho sente sede (som ofegante < 25%) e bebe nas Colunas de Água;
+    /// - Ajuda o Esquilo a cavar a terra para encontrar os diamantes!
     /// </summary>
     public class BikeGirlController : MonoBehaviour
     {
         [Header("Velocidades")]
-        public float slowSpeed = 3.2f;
-        public float fastSpeed = 7.2f;
-        public float reverseSpeed = -2.4f;
-        public float acceleration = 10f;
+        public float slowSpeed = 3.6f;
+        public float fastSpeed = 7.8f;
+        public float reverseSpeed = -3.8f;
+        public float acceleration = 11f;
 
-        [Header("Limites da Pista")]
+        [Header("Limites da Estrada")]
         public float minX = -4f;
-        public float maxX = 115f;
+        public float maxX = 160f;
 
+        [Header("Status")]
+        public int score = 0;
+        public int happyCombo = 0;
+        public float waterLevel = 100f;
+        public float waterDrainPerSecond = 2.0f;
+        public int maxBasketSize = 5;
+
+        public readonly List<FoodType> foodBasket = new List<FoodType>();
         public float currentSpeed { get; private set; } = 0f;
-        public string speedStateLabel { get; private set; } = "Parada";
-        public ForestAnimal nearbyHungryAnimal { get; private set; }
+        public string currentSlopeLabel { get; private set; } = "Plano";
+        public bool isNearKitchen { get; private set; } = false;
+
+        [Header("Física de Salto (Etapa 1)")]
+        public float manualJumpVelocity = 7.8f;
+        public float jumpGravity = -19.5f;
+        public float jumpHeight { get; private set; } = 0f;
+        private float verticalVelocity = 0f;
+        private float baseGroundY = -3.55f;
+        private float stumbleTimer = 0f;
+        public int starsCollected { get; private set; } = 0;
+        public float distanceMeters => Mathf.Max(0f, transform.position.x * 2.5f);
 
         private Transform visualRoot;
-        private Transform frontWheel;
-        private Transform rearWheel;
-        private float stopNearAnimalTimer = 0f;
+        private SpriteRenderer bikeSR;
+        private float slopeMultiplier = 1f;
+        private float slopeTiltDeg = 0f;
+        private float facingDir = 1f;
+        private float lastThrowTime = -1f;
+        private float lastThirstSoundTime = -10f;
 
-        // Inputs de botões na tela (Mobile / Mouse)
+        private Dictionary<FoodType, Sprite> foodSprites;
+        private Sprite tearSprite;
+        private SideDiamondDigSite digSiteRef;
+
+        // Inputs de botões na tela
         private bool uiSlowPressed = false;
         private bool uiFastPressed = false;
         private bool uiReversePressed = false;
 
-        private System.Action<ForestAnimal> onAnimalFedCallback;
+        private System.Action<ForestAnimal, FoodType, ForestAnimal.FeedResult> onFoodDelivered;
+        private System.Action<ForestAnimal> onAnimalRunOver;
+        private System.Action onWaterRefilled;
+        private System.Action<string> onInfoMessage;
 
-        public void Setup(System.Action<ForestAnimal> onAnimalFed)
+        public void Setup(
+            Dictionary<FoodType, Sprite> foodMap,
+            SideDiamondDigSite digSite,
+            System.Action<ForestAnimal, FoodType, ForestAnimal.FeedResult> deliveredCb,
+            System.Action<ForestAnimal> runOverCb,
+            System.Action waterCb,
+            System.Action<string> infoCb)
         {
-            onAnimalFedCallback = onAnimalFed;
+            foodSprites = foodMap;
+            digSiteRef = digSite;
+            onFoodDelivered = deliveredCb;
+            onAnimalRunOver = runOverCb;
+            onWaterRefilled = waterCb;
+            onInfoMessage = infoCb;
+
+            tearSprite = ParkSpriteFactory.CreateTearDropSprite();
+
+            // Começa com 3 lanches na cesta para jogar logo de início
+            foodBasket.Clear();
+            foodBasket.Add(FoodType.Pipoca);
+            foodBasket.Add(FoodType.Coxinha);
+            foodBasket.Add(FoodType.Suco);
 
             visualRoot = new GameObject("BikeVisual").transform;
             visualRoot.SetParent(transform);
             visualRoot.localPosition = Vector3.zero;
-            visualRoot.localScale = new Vector3(1.3f, 1.3f, 1f);
+            visualRoot.localScale = Vector3.one;
+            baseGroundY = transform.position.y;
 
-            SpriteRenderer bikeSR = visualRoot.gameObject.AddComponent<SpriteRenderer>();
-            bikeSR.sprite = FlorestaSpriteFactory.CreateBikeGirlWithPuppySprite();
+            bikeSR = visualRoot.gameObject.AddComponent<SpriteRenderer>();
+            bikeSR.sprite = FlorestaSpriteFactory.LoadGirlBikeSprite();
             bikeSR.sortingOrder = 10;
-
-            // Rodas separadas para girar conforme a pedalada
-            Sprite wheelSprite = FlorestaSpriteFactory.CreateWheelSprite();
-
-            // Na textura 96x88 com PPU=32 e pivot (0.5, 0):
-            // Centro X = 48 -> roda traseira x=24 => -24/32 = -0.75; roda dianteira x=68 => +20/32 = +0.625; y=16 => 16/32 = +0.5
-            rearWheel = CreateWheel("RearWheel", wheelSprite, new Vector3(-0.75f, 0.5f, 0f));
-            frontWheel = CreateWheel("FrontWheel", wheelSprite, new Vector3(0.625f, 0.5f, 0f));
 
             BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
-            col.size = new Vector2(2.4f, 2.2f);
-            col.offset = new Vector2(0f, 1.1f);
+            col.size = new Vector2(2.2f, 2.4f);
+            col.offset = new Vector2(0f, 1.2f);
 
             Rigidbody2D rb = gameObject.AddComponent<Rigidbody2D>();
             rb.isKinematic = true;
         }
 
-        private Transform CreateWheel(string objName, Sprite sprite, Vector3 localPos)
+        public void AddFoodToBasket(FoodType type)
         {
-            GameObject w = new GameObject(objName);
-            w.transform.SetParent(visualRoot);
-            w.transform.localPosition = localPos;
-            SpriteRenderer sr = w.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;
-            sr.sortingOrder = 11;
-            return w.transform;
+            if (foodBasket.Count >= maxBasketSize) foodBasket.RemoveAt(0);
+            foodBasket.Add(type);
+        }
+
+        public string GetBasketSummary()
+        {
+            if (foodBasket.Count == 0) return "Cesta vazia (passe na Barraca da Cozinha!)";
+            List<string> names = new List<string>();
+            foreach (var f in foodBasket) names.Add(FoodInfo.GetDisplayName(f));
+            return $"Cesta ({foodBasket.Count}/{maxBasketSize}): " + string.Join(", ", names);
         }
 
         public void SetUISlow(bool pressed) => uiSlowPressed = pressed;
@@ -82,149 +132,351 @@ namespace FlorestaBicicleta
 
         private void Update()
         {
-            float targetSpeed = 0f;
-            bool feedKeyPressed = false;
+            float baseTargetSpeed = 0f;
+            bool actionPressed = false;
+            bool bellPressed = false;
+            bool jumpPressed = false;
 
             if (Keyboard.current != null)
             {
                 bool right = Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed;
                 bool left = Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed;
-                bool up = Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed;
                 bool shift = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
 
-                if (uiFastPressed || up || (right && shift))
-                {
-                    targetSpeed = fastSpeed;
-                }
-                else if (uiSlowPressed || right)
-                {
-                    targetSpeed = slowSpeed;
-                }
-                else if (uiReversePressed || left)
-                {
-                    targetSpeed = reverseSpeed;
-                }
+                if (uiFastPressed || (right && shift)) baseTargetSpeed = fastSpeed;
+                else if (uiSlowPressed || right) baseTargetSpeed = slowSpeed;
+                else if (uiReversePressed || left) baseTargetSpeed = reverseSpeed;
 
-                feedKeyPressed = Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame;
+                actionPressed = Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame;
+                jumpPressed = Keyboard.current.wKey.wasPressedThisFrame || Keyboard.current.upArrowKey.wasPressedThisFrame;
+                bellPressed = Keyboard.current.bKey.wasPressedThisFrame;
             }
             else
             {
-                if (uiFastPressed) targetSpeed = fastSpeed;
-                else if (uiSlowPressed) targetSpeed = slowSpeed;
-                else if (uiReversePressed) targetSpeed = reverseSpeed;
+                if (uiFastPressed) baseTargetSpeed = fastSpeed;
+                else if (uiSlowPressed) baseTargetSpeed = slowSpeed;
+                else if (uiReversePressed) baseTargetSpeed = reverseSpeed;
             }
+
+            if (bellPressed) FlorestaSoundFX.Instance?.PlayBell();
+            if (jumpPressed) TriggerJump();
+
+            if (stumbleTimer > 0f) stumbleTimer -= Time.deltaTime;
+
+            float comboBoost = happyCombo >= 3 ? 1.18f : 1f;
+            float thirstPenalty = waterLevel <= 1f ? 0.55f : 1f;
+            float stumblePenalty = stumbleTimer > 0f ? 0.35f : 1f;
+            float targetSpeed = baseTargetSpeed * slopeMultiplier * comboBoost * thirstPenalty * stumblePenalty;
 
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
 
+            // Física vertical do salto (rampas ou pulo manual)
+            if (jumpHeight > 0f || verticalVelocity > 0f)
+            {
+                verticalVelocity += jumpGravity * Time.deltaTime;
+                jumpHeight += verticalVelocity * Time.deltaTime;
+                if (jumpHeight <= 0f)
+                {
+                    jumpHeight = 0f;
+                    verticalVelocity = 0f;
+                }
+            }
+
             Vector3 pos = transform.position;
             pos.x = Mathf.Clamp(pos.x + currentSpeed * Time.deltaTime, minX, maxX);
+            pos.y = baseGroundY + jumpHeight;
             if ((pos.x <= minX && currentSpeed < 0f) || (pos.x >= maxX && currentSpeed > 0f))
-            {
                 currentSpeed = 0f;
-            }
             transform.position = pos;
 
+            // Vira o sprite se estiver voltando pela estrada
+            if (currentSpeed > 0.25f) { facingDir = 1f; if (bikeSR != null) bikeSR.flipX = false; }
+            else if (currentSpeed < -0.25f) { facingDir = -1f; if (bikeSR != null) bikeSR.flipX = true; }
+
+            // Sede do cachorrinho + som ofegante quando água está baixa
+            float drain = Mathf.Abs(currentSpeed) > 0.2f ? (Mathf.Abs(currentSpeed) > 5f ? 1.45f : 0.95f) : 0.25f;
+            waterLevel = Mathf.Max(0f, waterLevel - waterDrainPerSecond * drain * Time.deltaTime);
+            if (waterLevel < 25f && Time.time - lastThirstSoundTime > 7.5f)
+            {
+                lastThirstSoundTime = Time.time;
+                FlorestaSoundFX.Instance?.PlayThirst();
+            }
+
             UpdateVisualAnimation();
-            UpdateSpeedLabel();
-            HandleFeeding(feedKeyPressed);
+
+            if (actionPressed)
+            {
+                if (digSiteRef != null && digSiteRef.isActive && digSiteRef.playerNearby && !digSiteRef.isCompleted)
+                    digSiteRef.HelpDig();
+                else
+                    ThrowFood();
+            }
+        }
+
+        public void TriggerJump(float customVelocity = -1f)
+        {
+            if (jumpHeight > 0.12f) return; // Só pula estando no chão (ou quase tocando)
+            verticalVelocity = customVelocity > 0f ? customVelocity : manualJumpVelocity;
+            FlorestaSoundFX.Instance?.PlayJump();
         }
 
         private void UpdateVisualAnimation()
         {
-            // Gira as rodas de acordo com a velocidade
-            float wheelDeg = -currentSpeed * 180f * Time.deltaTime;
-            if (frontWheel != null) frontWheel.Rotate(0f, 0f, wheelDeg);
-            if (rearWheel != null) rearWheel.Rotate(0f, 0f, wheelDeg);
-
-            // Leve balanço de pedalada no quadro + menina + cachorrinho
-            if (visualRoot != null)
+            if (visualRoot == null) return;
+            float absSpd = Mathf.Abs(currentSpeed);
+            if (jumpHeight > 0.05f)
             {
-                if (Mathf.Abs(currentSpeed) > 0.15f)
-                {
-                    float freq = Mathf.Abs(currentSpeed) > 4.5f ? 14f : 7f;
-                    float bob = Mathf.Abs(Mathf.Sin(Time.time * freq)) * 0.06f;
-                    float tilt = -Mathf.Clamp(currentSpeed / fastSpeed, -1f, 1f) * 2.5f;
-                    visualRoot.localPosition = new Vector3(0f, bob, 0f);
-                    visualRoot.localRotation = Quaternion.Euler(0f, 0f, tilt);
-                }
-                else
-                {
-                    visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, Vector3.zero, 10f * Time.deltaTime);
-                    visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.identity, 10f * Time.deltaTime);
-                }
+                // Inclina o nariz da bicicleta suavemente no ar durante o salto
+                float airTilt = Mathf.Clamp(verticalVelocity * 1.9f, -14f, 16f) * facingDir;
+                visualRoot.localPosition = Vector3.zero;
+                visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.Euler(0f, 0f, airTilt), 10f * Time.deltaTime);
             }
-        }
-
-        private void UpdateSpeedLabel()
-        {
-            float absSpeed = Mathf.Abs(currentSpeed);
-            if (absSpeed < 0.25f)
-                speedStateLabel = "Parada";
-            else if (currentSpeed < 0f)
-                speedStateLabel = "Freando / Ré";
-            else if (absSpeed > 4.8f)
-                speedStateLabel = "Pedalando Rápido!";
-            else
-                speedStateLabel = "Pedalando Devagar";
-        }
-
-        private void HandleFeeding(bool feedKeyPressed)
-        {
-            if (nearbyHungryAnimal == null || nearbyHungryAnimal.isFed)
+            else if (absSpd > 0.15f)
             {
-                nearbyHungryAnimal = null;
-                stopNearAnimalTimer = 0f;
-                return;
-            }
-
-            if (feedKeyPressed)
-            {
-                TriggerFeed();
-                return;
-            }
-
-            // Se parar completamente perto do animal por 0.6s, alimenta automaticamente também!
-            if (Mathf.Abs(currentSpeed) < 0.2f)
-            {
-                stopNearAnimalTimer += Time.deltaTime;
-                if (stopNearAnimalTimer >= 0.6f)
-                {
-                    TriggerFeed();
-                }
+                float freq = absSpd > 4.5f ? 14f : 7.5f;
+                float bob = Mathf.Abs(Mathf.Sin(Time.time * freq)) * 0.08f;
+                float tilt = slopeTiltDeg * facingDir - Mathf.Clamp(currentSpeed / fastSpeed, -1f, 1f) * 2.5f;
+                visualRoot.localPosition = new Vector3(0f, bob, 0f);
+                visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.Euler(0f, 0f, tilt), 8f * Time.deltaTime);
             }
             else
             {
-                stopNearAnimalTimer = 0f;
+                visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, Vector3.zero, 10f * Time.deltaTime);
+                visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.Euler(0f, 0f, slopeTiltDeg * facingDir), 8f * Time.deltaTime);
             }
         }
 
-        public void TriggerFeed()
+        public void ThrowFood()
         {
-            if (nearbyHungryAnimal == null || nearbyHungryAnimal.isFed) return;
-            ForestAnimal fed = nearbyHungryAnimal;
-            nearbyHungryAnimal = null;
-            stopNearAnimalTimer = 0f;
-            onAnimalFedCallback?.Invoke(fed);
+            if (Time.time - lastThrowTime < 0.35f) return;
+
+            if (foodBasket.Count == 0)
+            {
+                FlorestaSoundFX.Instance?.PlayWrong();
+                onInfoMessage?.Invoke("Cesta vazia! Passe na Barraca da Cozinha (rosa e branca) na estrada para pegar ou preparar lanches!");
+                return;
+            }
+
+            lastThrowTime = Time.time;
+
+            // Encontra o animal mais próximo dentro de 11 unidades
+            ForestAnimal[] all = FindObjectsOfType<ForestAnimal>();
+            ForestAnimal target = null;
+            float bestDist = 11f;
+            foreach (var a in all)
+            {
+                float d = Mathf.Abs(a.transform.position.x - transform.position.x);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    target = a;
+                }
+            }
+
+            int basketIdx = 0;
+            if (target != null && !target.isFullySatisfied)
+            {
+                int match = foodBasket.IndexOf(target.wantedFood);
+                if (match >= 0) basketIdx = match;
+            }
+
+            FoodType chosen = foodBasket[basketIdx];
+            foodBasket.RemoveAt(basketIdx);
+
+            FlorestaSoundFX.Instance?.PlayThrow();
+            Vector3 startPos = transform.position + new Vector3(facingDir * 0.9f, 1.8f, 0f);
+            Vector3 endPos = target != null
+                ? target.transform.position + new Vector3(0f, 1.0f, 0f)
+                : transform.position + new Vector3(facingDir * 5.5f, 0.8f, 0f);
+
+            GameObject projObj = new GameObject("AlimentoArremessado");
+            projObj.AddComponent<SideFoodProjectile>().Launch(chosen, startPos, endPos, target, foodSprites[chosen], HandleFoodArrived);
+        }
+
+        private void HandleFoodArrived(ForestAnimal animal, FoodType given)
+        {
+            ForestAnimal.FeedResult res = animal.ReceiveFood(given);
+            switch (res)
+            {
+                case ForestAnimal.FeedResult.AteNeedsMore:
+                    score += 80;
+                    happyCombo++;
+                    FlorestaSoundFX.Instance?.PlayHappy();
+                    FlorestaSoundFX.Instance?.PlayDogBark();
+                    break;
+                case ForestAnimal.FeedResult.FullySatisfied:
+                    score += 150;
+                    happyCombo++;
+                    FlorestaSoundFX.Instance?.PlayHappy();
+                    FlorestaSoundFX.Instance?.PlayDogBark();
+                    break;
+                case ForestAnimal.FeedResult.TriggeredSquirrelSecret:
+                    score += 300;
+                    happyCombo++;
+                    FlorestaSoundFX.Instance?.PlayDiamond();
+                    FlorestaSoundFX.Instance?.PlayDogBark();
+                    break;
+                case ForestAnimal.FeedResult.AlreadyFull:
+                    score += 20;
+                    FlorestaSoundFX.Instance?.PlayHappy();
+                    break;
+                case ForestAnimal.FeedResult.WrongFood:
+                    FlorestaSoundFX.Instance?.PlayWrong();
+                    break;
+            }
+            onFoodDelivered?.Invoke(animal, given, res);
+        }
+
+        private void SpawnGirlTears()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                GameObject tear = new GameObject("LagrimaMenina");
+                tear.transform.position = transform.position + new Vector3(Random.Range(-0.3f, 0.3f), 2.3f, 0f);
+                SpriteRenderer sr = tear.AddComponent<SpriteRenderer>();
+                sr.sprite = tearSprite;
+                sr.sortingOrder = 16;
+                tear.AddComponent<FallingParticle>().Init(
+                    new Vector3(Random.Range(-0.6f, 0.6f), Random.Range(0.3f, 0.9f), 0f),
+                    gravity: -4.2f,
+                    duration: 0.85f
+                );
+            }
         }
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            ForestAnimal animal = other.GetComponent<ForestAnimal>();
-            if (animal != null && !animal.isFed)
+            SlopeZone slope = other.GetComponent<SlopeZone>();
+            if (slope != null)
             {
-                nearbyHungryAnimal = animal;
-                stopNearAnimalTimer = 0f;
+                slopeMultiplier = slope.SpeedMultiplier;
+                currentSlopeLabel = slope.DisplayLabel;
+                slopeTiltDeg = slope.slopeType == SlopeZone.SlopeType.Subida ? 9f : -9f;
+                return;
             }
+
+            WaterColumn water = other.GetComponent<WaterColumn>();
+            if (water != null)
+            {
+                RefillWater(water.transform.position);
+                return;
+            }
+
+            if (other.GetComponent<KitchenStation>() != null)
+            {
+                isNearKitchen = true;
+                return;
+            }
+
+            // Rampa / Lombada de salto!
+            JumpRamp ramp = other.GetComponent<JumpRamp>();
+            if (ramp != null && Mathf.Abs(currentSpeed) > 2.2f && ramp.CanTrigger())
+            {
+                float boostVel = ramp.launchVelocity + Mathf.Clamp(Mathf.Abs(currentSpeed) * 0.25f, 0f, 2.2f);
+                TriggerJump(boostVel);
+                onInfoMessage?.Invoke("Uhuu! Salto na rampa!");
+                return;
+            }
+
+            // Estrela aérea coletável
+            AerialCollectible star = other.GetComponent<AerialCollectible>();
+            if (star != null && star.Collect())
+            {
+                starsCollected++;
+                score += star.bonusPoints;
+                FlorestaSoundFX.Instance?.PlayStar();
+                onInfoMessage?.Invoke($"Estrela no ar coletada! +{star.bonusPoints} pts!");
+                return;
+            }
+
+            // Obstáculo na trilha (Pedra, Tronco, Raiz)
+            TrailObstacle obstacle = other.GetComponent<TrailObstacle>();
+            if (obstacle != null)
+            {
+                if (jumpHeight >= 0.55f)
+                {
+                    if (obstacle.TryRewardJumpOver())
+                    {
+                        score += 15;
+                        FlorestaSoundFX.Instance?.PlayStar();
+                        onInfoMessage?.Invoke($"Belo salto sobre o(a) {obstacle.DisplayName}! +15 pts");
+                    }
+                }
+                else if (obstacle.TryHit())
+                {
+                    stumbleTimer = 0.85f;
+                    currentSpeed *= 0.25f;
+                    FlorestaSoundFX.Instance?.PlayBump();
+                    if (Mathf.Abs(currentSpeed) > 1.2f && foodBasket.Count > 1)
+                    {
+                        FoodType dropped = foodBasket[foodBasket.Count - 1];
+                        foodBasket.RemoveAt(foodBasket.Count - 1);
+                        onInfoMessage?.Invoke($"Ops! Tropeçou na(o) {obstacle.DisplayName} e caiu {FoodInfo.GetDisplayName(dropped)}! Aperte W / PULAR!");
+                    }
+                    else
+                    {
+                        onInfoMessage?.Invoke($"Ops! Tropeçou na(o) {obstacle.DisplayName}! Use W ou PULAR para saltar!");
+                    }
+                }
+                return;
+            }
+
+            ForestAnimal animal = other.GetComponent<ForestAnimal>();
+            if (animal != null)
+            {
+                // Só atropela se passar RÁPIDO por cima do animal! Passando devagar, respeita o bichinho.
+                if (Mathf.Abs(currentSpeed) > 4.2f && animal.OnRunOver())
+                {
+                    score = Mathf.Max(0, score - 50);
+                    happyCombo = 0;
+                    FlorestaSoundFX.Instance?.PlayCry();
+                    SpawnGirlTears();
+                    onAnimalRunOver?.Invoke(animal);
+                }
+            }
+        }
+
+        private void OnTriggerStay2D(Collider2D other)
+        {
+            WaterColumn water = other.GetComponent<WaterColumn>();
+            if (water != null && waterLevel < 98f) RefillWater(water.transform.position);
         }
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            ForestAnimal animal = other.GetComponent<ForestAnimal>();
-            if (animal != null && animal == nearbyHungryAnimal)
+            if (other.GetComponent<SlopeZone>() != null)
             {
-                nearbyHungryAnimal = null;
-                stopNearAnimalTimer = 0f;
+                slopeMultiplier = 1f;
+                currentSlopeLabel = "Plano";
+                slopeTiltDeg = 0f;
             }
+            if (other.GetComponent<KitchenStation>() != null)
+            {
+                isNearKitchen = false;
+            }
+        }
+
+        private void RefillWater(Vector3 pos)
+        {
+            if (waterLevel >= 99f) return;
+            waterLevel = 100f;
+            FlorestaSoundFX.Instance?.PlayWater();
+            FlorestaSoundFX.Instance?.PlayDogBark();
+
+            for (int i = 0; i < 6; i++)
+            {
+                GameObject drop = new GameObject("GotaAgua");
+                drop.transform.position = pos + new Vector3(Random.Range(-0.4f, 0.4f), 1.0f, 0f);
+                SpriteRenderer sr = drop.AddComponent<SpriteRenderer>();
+                sr.sprite = tearSprite;
+                sr.sortingOrder = 16;
+                drop.AddComponent<FallingParticle>().Init(
+                    new Vector3(Random.Range(-1.2f, 1.2f), Random.Range(1.0f, 2.2f), 0f),
+                    gravity: -4.8f,
+                    duration: 0.75f
+                );
+            }
+            onWaterRefilled?.Invoke();
         }
     }
 }

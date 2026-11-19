@@ -1,92 +1,338 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using FlorestaTopDown;
 
 namespace FlorestaBicicleta
 {
     /// <summary>
-    /// Representa um animal da floresta que espera ser alimentado pela menina da bicicleta.
+    /// Animal ilustrado na cena lateral da floresta:
+    /// - Voz própria (miado, uivo, chiado, latidinho, etc.);
+    /// - Apetite individual e pedido próprio de comida (7 alimentos);
+    /// - Animação de mastigar feliz + chuva de corações subindo na cabeça;
+    /// - Choro com lágrimas azuis se atropelado em alta velocidade;
+    /// - Volta a sentir fome depois de ~35s para o jogo render bastante;
+    /// - Segredo especial do Esquilo (6 porções -> cava a terra para achar diamantes!).
     /// </summary>
     public class ForestAnimal : MonoBehaviour
     {
+        public enum EmotionState { ComFome, Empolgado, Comendo, Saciado, Chorando, Cavando }
+
         public string animalName;
-        public FlorestaSpriteFactory.AnimalKind kind;
-        public bool isFed { get; private set; } = false;
+        public ParkSpriteFactory.AnimalKind kind;
+        public EmotionState emotion { get; private set; } = EmotionState.ComFome;
+
+        public int requiredMeals = 3;
+        public int mealsEaten { get; private set; } = 0;
+        public FoodType wantedFood { get; private set; }
+        public bool isSquirrelSpecial => kind == ParkSpriteFactory.AnimalKind.Esquilo;
+        public bool isFullySatisfied => mealsEaten >= requiredMeals;
 
         private SpriteRenderer bodyRenderer;
         private SpriteRenderer statusIconRenderer;
         private Transform statusIconTransform;
+
+        private Dictionary<FoodType, Sprite> foodSprites;
+        private Sprite iconHappy;
+        private Sprite iconCry;
+        private Sprite tearSprite;
+        private Sprite[] heartParticles;
+
         private Vector3 basePosition;
         private float bobPhase;
+        private float lastRunOverTime = -5f;
+        private float lastVoiceTime = -10f;
+        private float reHungryTimer = 0f;
 
-        public void Setup(FlorestaSpriteFactory.AnimalKind animalKind, string displayName, Sprite foodSprite)
+        public void Setup(
+            ParkSpriteFactory.AnimalKind animalKind,
+            string displayName,
+            int mealsNeeded,
+            Dictionary<FoodType, Sprite> foodMap,
+            Sprite happySp,
+            Sprite crySp,
+            Sprite tearSp,
+            Sprite[] heartParticleSprites)
         {
             kind = animalKind;
             animalName = displayName;
+            requiredMeals = mealsNeeded;
+            foodSprites = foodMap;
+            iconHappy = happySp;
+            iconCry = crySp;
+            tearSprite = tearSp;
+            heartParticles = heartParticleSprites;
+
             basePosition = transform.position;
             bobPhase = Random.Range(0f, Mathf.PI * 2f);
 
             bodyRenderer = gameObject.AddComponent<SpriteRenderer>();
-            bodyRenderer.sprite = FlorestaSpriteFactory.CreateAnimalSprite(kind);
+            bodyRenderer.sprite = LoadSideAnimalSprite(kind);
             bodyRenderer.sortingOrder = 6;
 
-            // Virado para a esquerda (olhando na direção da menina chegando)
-            bodyRenderer.flipX = true;
-            transform.localScale = new Vector3(1.15f, 1.15f, 1f);
-
-            // Balãozinho de fome acima do animal
-            GameObject iconObj = new GameObject("StatusIcon");
+            GameObject iconObj = new GameObject("OrderBubble");
             iconObj.transform.SetParent(transform);
-            iconObj.transform.localPosition = new Vector3(0f, 1.95f, 0f);
+            iconObj.transform.localPosition = new Vector3(0f, 2.55f, 0f);
+            iconObj.transform.localScale = new Vector3(0.95f, 0.95f, 1f);
             statusIconTransform = iconObj.transform;
 
             statusIconRenderer = iconObj.AddComponent<SpriteRenderer>();
-            statusIconRenderer.sprite = foodSprite;
-            statusIconRenderer.sortingOrder = 8;
+            statusIconRenderer.sortingOrder = 12;
 
             BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
-            col.size = new Vector2(3.2f, 2.5f);
-            col.offset = new Vector2(0f, 0.8f);
+            col.size = new Vector2(2.2f, 2.5f);
+            col.offset = new Vector2(0f, 1.1f);
+
+            PickNextFoodOrder();
+        }
+
+        private Sprite LoadSideAnimalSprite(ParkSpriteFactory.AnimalKind k)
+        {
+            string file = k switch
+            {
+                ParkSpriteFactory.AnimalKind.Esquilo => "animal_esquilo",
+                ParkSpriteFactory.AnimalKind.Coelho  => "animal_coelho",
+                ParkSpriteFactory.AnimalKind.Gato    => "animal_gato",
+                ParkSpriteFactory.AnimalKind.Lobo    => "animal_lobo",
+                ParkSpriteFactory.AnimalKind.Quati   => "animal_quati",
+                ParkSpriteFactory.AnimalKind.Raposa  => "animal_raposa",
+                ParkSpriteFactory.AnimalKind.Cervo   => "animal_cervo",
+                _ => "animal_esquilo"
+            };
+            float h = (k == ParkSpriteFactory.AnimalKind.Lobo || k == ParkSpriteFactory.AnimalKind.Cervo) ? 2.4f : 2.0f;
+            Texture2D tex = Resources.Load<Texture2D>($"Floresta/{file}");
+            if (tex == null) return null;
+            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.05f), tex.height / h);
+        }
+
+        public void PickNextFoodOrder()
+        {
+            int maxIdx = (mealsEaten == 0) ? 5 : 7;
+            wantedFood = (FoodType)Random.Range(0, maxIdx);
+            emotion = EmotionState.ComFome;
+            UpdateBubble();
+        }
+
+        private void UpdateBubble()
+        {
+            if (statusIconRenderer == null) return;
+            if (emotion == EmotionState.Saciado || emotion == EmotionState.Comendo || emotion == EmotionState.Cavando)
+                statusIconRenderer.sprite = iconHappy;
+            else if (emotion == EmotionState.Chorando)
+                statusIconRenderer.sprite = iconCry;
+            else if (foodSprites != null && foodSprites.TryGetValue(wantedFood, out Sprite sp))
+                statusIconRenderer.sprite = sp;
         }
 
         private void Update()
         {
             if (statusIconTransform != null)
             {
-                float hover = Mathf.Sin(Time.time * 3.5f + bobPhase) * 0.1f;
-                statusIconTransform.localPosition = new Vector3(0f, 1.95f + hover, 0f);
-            }
-        }
-
-        public void Feed(Sprite heartSprite)
-        {
-            if (isFed) return;
-            isFed = true;
-
-            if (statusIconRenderer != null && heartSprite != null)
-            {
-                statusIconRenderer.sprite = heartSprite;
+                float spd = (emotion == EmotionState.Empolgado || emotion == EmotionState.Comendo) ? 7.5f : 3.4f;
+                float amp = (emotion == EmotionState.Empolgado || emotion == EmotionState.Comendo) ? 0.16f : 0.10f;
+                statusIconTransform.localPosition = new Vector3(0f, 2.55f + Mathf.Sin(Time.time * spd + bobPhase) * amp, 0f);
             }
 
-            StartCoroutine(HappyHopRoutine());
-        }
-
-        private IEnumerator HappyHopRoutine()
-        {
-            for (int hop = 0; hop < 2; hop++)
+            // Animais normais voltam a sentir fome depois de ~35s para manter o jogo longo
+            if (emotion == EmotionState.Saciado && !isSquirrelSpecial)
             {
-                float elapsed = 0f;
-                float duration = 0.28f;
-                while (elapsed < duration)
+                reHungryTimer += Time.deltaTime;
+                if (reHungryTimer >= 35f)
                 {
-                    elapsed += Time.deltaTime;
-                    float t = elapsed / duration;
-                    float yOffset = Mathf.Sin(t * Mathf.PI) * 0.45f;
-                    transform.position = basePosition + new Vector3(0f, yOffset, 0f);
+                    reHungryTimer = 0f;
+                    mealsEaten = Mathf.Max(0, requiredMeals - 1);
+                    PickNextFoodOrder();
+                }
+            }
+        }
+
+        public void OnPlayerApproaching(bool isClose)
+        {
+            if (emotion == EmotionState.ComFome && isClose)
+            {
+                emotion = EmotionState.Empolgado;
+                if (Time.time - lastVoiceTime > 6f)
+                {
+                    lastVoiceTime = Time.time;
+                    FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+                }
+            }
+            else if (emotion == EmotionState.Empolgado && !isClose)
+            {
+                emotion = EmotionState.ComFome;
+            }
+        }
+
+        public enum FeedResult { WrongFood, AteNeedsMore, FullySatisfied, TriggeredSquirrelSecret, AlreadyFull }
+
+        public FeedResult ReceiveFood(FoodType givenFood)
+        {
+            if (emotion == EmotionState.Cavando) return FeedResult.AlreadyFull;
+            if (emotion == EmotionState.Saciado)
+            {
+                StartCoroutine(EatAndHeartsRoutine(6, true));
+                FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+                return FeedResult.AlreadyFull;
+            }
+
+            if (givenFood != wantedFood)
+            {
+                StartCoroutine(ShakeNoRoutine());
+                return FeedResult.WrongFood;
+            }
+
+            mealsEaten++;
+            FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+
+            if (mealsEaten >= requiredMeals)
+            {
+                if (isSquirrelSpecial)
+                {
+                    emotion = EmotionState.Cavando;
+                    UpdateBubble();
+                    StartCoroutine(EatAndHeartsRoutine(14, true));
+                    return FeedResult.TriggeredSquirrelSecret;
+                }
+                else
+                {
+                    emotion = EmotionState.Saciado;
+                    reHungryTimer = 0f;
+                    UpdateBubble();
+                    StartCoroutine(EatAndHeartsRoutine(12, true));
+                    return FeedResult.FullySatisfied;
+                }
+            }
+            else
+            {
+                emotion = EmotionState.Comendo;
+                UpdateBubble();
+                StartCoroutine(EatAndHeartsRoutine(9, false));
+                return FeedResult.AteNeedsMore;
+            }
+        }
+
+        public bool OnRunOver()
+        {
+            if (emotion == EmotionState.Cavando) return false;
+            if (Time.time - lastRunOverTime < 2.4f) return false;
+            lastRunOverTime = Time.time;
+
+            emotion = EmotionState.Chorando;
+            UpdateBubble();
+            StartCoroutine(CryRoutine());
+            return true;
+        }
+
+        public void MoveToDigSpot(Vector3 digPos)
+        {
+            emotion = EmotionState.Cavando;
+            basePosition = digPos;
+            transform.position = digPos;
+            UpdateBubble();
+        }
+
+        private IEnumerator EatAndHeartsRoutine(int heartCount, bool keepSaciado)
+        {
+            for (int i = 0; i < heartCount; i++)
+            {
+                SpawnHeart(transform.position + new Vector3(Random.Range(-0.85f, 0.85f), Random.Range(1.5f, 2.4f), 0f));
+                if (i % 3 == 0) yield return new WaitForSeconds(0.07f);
+            }
+
+            // Animação de mastigar e pular feliz!
+            for (int chew = 0; chew < 4; chew++)
+            {
+                float t = 0f;
+                while (t < 0.20f)
+                {
+                    t += Time.deltaTime;
+                    float s = Mathf.Sin((t / 0.20f) * Mathf.PI);
+                    transform.localScale = new Vector3(1f + s * 0.16f, 1f - s * 0.12f, 1f);
+                    transform.position = basePosition + new Vector3(0f, s * 0.35f, 0f);
                     yield return null;
                 }
             }
+
+            transform.localScale = Vector3.one;
             transform.position = basePosition;
+
+            if (!keepSaciado && emotion == EmotionState.Comendo)
+            {
+                PickNextFoodOrder();
+            }
+        }
+
+        private IEnumerator ShakeNoRoutine()
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.35f)
+            {
+                elapsed += Time.deltaTime;
+                transform.position = basePosition + new Vector3(Mathf.Sin(elapsed * 45f) * 0.15f, 0f, 0f);
+                yield return null;
+            }
+            transform.position = basePosition;
+        }
+
+        private IEnumerator CryRoutine()
+        {
+            for (int i = 0; i < 6; i++)
+                SpawnTear(transform.position + new Vector3(Random.Range(-0.45f, 0.45f), 1.4f, 0f));
+
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                transform.position = basePosition + new Vector3(Mathf.Sin(elapsed * 40f) * 0.14f, 0f, 0f);
+                yield return null;
+            }
+            transform.position = basePosition;
+
+            for (int wave = 0; wave < 3; wave++)
+            {
+                yield return new WaitForSeconds(0.65f);
+                if (emotion != EmotionState.Chorando) yield break;
+                SpawnTear(transform.position + new Vector3(Random.Range(-0.35f, 0.35f), 1.4f, 0f));
+                SpawnTear(transform.position + new Vector3(Random.Range(-0.35f, 0.35f), 1.4f, 0f));
+            }
+
+            if (emotion == EmotionState.Chorando)
+            {
+                emotion = isFullySatisfied ? EmotionState.Saciado : EmotionState.ComFome;
+                UpdateBubble();
+            }
+        }
+
+        private void SpawnHeart(Vector3 pos)
+        {
+            if (heartParticles == null || heartParticles.Length == 0) return;
+            GameObject go = new GameObject("CoracaoFeliz");
+            go.transform.position = pos;
+            float sc = Random.Range(0.6f, 1.0f);
+            go.transform.localScale = new Vector3(sc, sc, 1f);
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = heartParticles[Random.Range(0, heartParticles.Length)];
+            sr.sortingOrder = 19;
+            go.AddComponent<FallingParticle>().Init(
+                new Vector3(Random.Range(-0.6f, 0.6f), Random.Range(1.5f, 2.7f), 0f),
+                gravity: 0.4f,
+                duration: Random.Range(0.95f, 1.4f)
+            );
+        }
+
+        private void SpawnTear(Vector3 pos)
+        {
+            GameObject go = new GameObject("Lagrima");
+            go.transform.position = pos;
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = tearSprite;
+            sr.sortingOrder = 16;
+            go.AddComponent<FallingParticle>().Init(
+                new Vector3(Random.Range(-0.7f, 0.7f), Random.Range(0.5f, 1.2f), 0f),
+                gravity: -4.5f,
+                duration: 0.9f
+            );
         }
     }
 }
