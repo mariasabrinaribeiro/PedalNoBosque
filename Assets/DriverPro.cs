@@ -124,11 +124,11 @@ public class DriverPro : MonoBehaviour
 
         if (Keyboard.current != null)
         {
-            if (Keyboard.current.wKey.isPressed) keyboardMove = 1f;
-            else if (Keyboard.current.sKey.isPressed) keyboardMove = -1f;
+            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) keyboardMove = 1f;
+            else if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) keyboardMove = -1f;
 
-            if (Keyboard.current.aKey.isPressed) keyboardSteer = 1f;
-            else if (Keyboard.current.dKey.isPressed) keyboardSteer = -1f;
+            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) keyboardSteer = 1f;
+            else if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) keyboardSteer = -1f;
         }
 
         moveInput = Mathf.Clamp(keyboardMove + mobileMoveInput, -1f, 1f);

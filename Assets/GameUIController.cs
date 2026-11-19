@@ -119,6 +119,17 @@ public class GameUIController : MonoBehaviour
             controllerObj.AddComponent<GameUIController>();
             controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
         }
+
+        // Garante que a Main Camera tenha GameCameraController e comece alinhada ao carro em Z = -10
+        Camera mainCam = Camera.main;
+        if (mainCam != null)
+        {
+            mainCam.transform.position = new Vector3(player.transform.position.x, player.transform.position.y, -10f);
+            if (mainCam.GetComponent<GameCameraController>() == null)
+            {
+                mainCam.gameObject.AddComponent<GameCameraController>();
+            }
+        }
     }
 
     private void Awake()
@@ -288,7 +299,8 @@ public class GameUIController : MonoBehaviour
         CanvasScaler scaler = mainCanvas.GetComponent<CanvasScaler>();
         if (scaler == null) scaler = mainCanvas.gameObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1080, 1920);
+        // Resolução de referência mais compacta para deixar botões e textos maiores e mais legíveis no celular
+        scaler.referenceResolution = Screen.width >= Screen.height ? new Vector2(1500, 844) : new Vector2(844, 1500);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
 
@@ -466,11 +478,11 @@ public class GameUIController : MonoBehaviour
         rect.anchorMin = new Vector2(0.5f, 1f);
         rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 1f);
-        rect.anchoredPosition = new Vector2(0, -20);
-        rect.sizeDelta = new Vector2(950, 130);
+        rect.anchoredPosition = new Vector2(0, -16);
+        rect.sizeDelta = new Vector2(1040, 150);
 
         Image img = hudPanel.AddComponent<Image>();
-        img.sprite = CreateRoundedRectSprite(950, 130, 24, new Color(0.368f, 0.235f, 0.502f, 0.8f), candyPink, 3, shadowColor);
+        img.sprite = CreateRoundedRectSprite(1040, 150, 24, new Color(0.368f, 0.235f, 0.502f, 0.85f), candyPink, 3, shadowColor);
         img.type = Image.Type.Sliced;
 
         // 1. Health slider (Slider de Vida)
@@ -519,12 +531,12 @@ public class GameUIController : MonoBehaviour
         GameObject hpLabelObj = new GameObject("Label");
         hpLabelObj.transform.SetParent(sliderObj.transform, false);
         RectTransform hpLabelRect = hpLabelObj.AddComponent<RectTransform>();
-        hpLabelRect.anchoredPosition = new Vector2(0, 35);
-        hpLabelRect.sizeDelta = new Vector2(250, 40);
+        hpLabelRect.anchoredPosition = new Vector2(0, 32);
+        hpLabelRect.sizeDelta = new Vector2(280, 40);
         hpLabelText = hpLabelObj.AddComponent<TextMeshProUGUI>();
         hpLabelText.text = "VIDA: 100%";
         hpLabelText.font = GetTMProFont();
-        hpLabelText.fontSize = 20;
+        hpLabelText.fontSize = 28;
         hpLabelText.fontStyle = FontStyles.Bold;
         hpLabelText.alignment = TextAlignmentOptions.Left;
         hpLabelText.color = Color.white;
@@ -538,13 +550,13 @@ public class GameUIController : MonoBehaviour
         cargoRect.anchorMin = new Vector2(0.5f, 0.5f);
         cargoRect.anchorMax = new Vector2(0.5f, 0.5f);
         cargoRect.pivot = new Vector2(0.5f, 0.5f);
-        cargoRect.anchoredPosition = new Vector2(-60, 0);
-        cargoRect.sizeDelta = new Vector2(300, 80);
+        cargoRect.anchoredPosition = new Vector2(-45, 0);
+        cargoRect.sizeDelta = new Vector2(330, 90);
 
         cargoText = cargoObj.AddComponent<TextMeshProUGUI>();
         cargoText.text = "SORVETES: 0 / 3";
         cargoText.font = GetTMProFont();
-        cargoText.fontSize = 24;
+        cargoText.fontSize = 32;
         cargoText.fontStyle = FontStyles.Bold;
         cargoText.alignment = TextAlignmentOptions.Center;
         cargoText.color = Color.white;
@@ -558,13 +570,13 @@ public class GameUIController : MonoBehaviour
         scoreRect.anchorMin = new Vector2(1f, 0.5f);
         scoreRect.anchorMax = new Vector2(1f, 0.5f);
         scoreRect.pivot = new Vector2(1f, 0.5f);
-        scoreRect.anchoredPosition = new Vector2(-50, 0);
-        scoreRect.sizeDelta = new Vector2(250, 80);
+        scoreRect.anchoredPosition = new Vector2(-35, 0);
+        scoreRect.sizeDelta = new Vector2(360, 90);
 
         scoreText = scoreObj.AddComponent<TextMeshProUGUI>();
         scoreText.text = "PONTOS: 0";
         scoreText.font = GetTMProFont();
-        scoreText.fontSize = 24;
+        scoreText.fontSize = 30;
         scoreText.fontStyle = FontStyles.Bold;
         scoreText.alignment = TextAlignmentOptions.Right;
         scoreText.color = Color.white;
@@ -579,12 +591,12 @@ public class GameUIController : MonoBehaviour
         warnRect.anchorMax = new Vector2(0.5f, 0.7f);
         warnRect.pivot = new Vector2(0.5f, 0.5f);
         warnRect.anchoredPosition = Vector2.zero;
-        warnRect.sizeDelta = new Vector2(900, 150);
+        warnRect.sizeDelta = new Vector2(960, 170);
 
         warningText = warnObj.AddComponent<TextMeshProUGUI>();
         warningText.text = "";
         warningText.font = GetTMProFont();
-        warningText.fontSize = 32;
+        warningText.fontSize = 42;
         warningText.fontStyle = FontStyles.Bold;
         warningText.alignment = TextAlignmentOptions.Center;
         warningText.color = candyPink;
@@ -1074,25 +1086,25 @@ public class GameUIController : MonoBehaviour
 
     private void SpawnMobileHUD()
     {
-        // Spawns Left, Right, Accelerate, Reverse, and Shoot buttons
-        GameObject leftBtn = CreateHUDButton("BtnLeft", "◀", new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(80, 80), 120, 120);
+        // Spawns Left, Right, Accelerate, Reverse, and Shoot buttons (maiores para celular)
+        GameObject leftBtn = CreateHUDButton("BtnLeft", "◀", new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(85, 85), 145, 145);
         AddHUDEvent(leftBtn, (pressed) => isLeftPressed = pressed);
         mobileHUDButtons.Add(leftBtn);
 
-        GameObject rightBtn = CreateHUDButton("BtnRight", "▶", new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(220, 80), 120, 120);
+        GameObject rightBtn = CreateHUDButton("BtnRight", "▶", new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(255, 85), 145, 145);
         AddHUDEvent(rightBtn, (pressed) => isRightPressed = pressed);
         mobileHUDButtons.Add(rightBtn);
 
-        GameObject accelBtn = CreateHUDButton("BtnAccelerate", "▲", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-220, 80), 120, 120);
+        GameObject accelBtn = CreateHUDButton("BtnAccelerate", "▲", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-255, 85), 145, 145);
         AddHUDEvent(accelBtn, (pressed) => isForwardPressed = pressed);
         mobileHUDButtons.Add(accelBtn);
 
-        GameObject revBtn = CreateHUDButton("BtnReverse", "▼", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-80, 80), 120, 120);
+        GameObject revBtn = CreateHUDButton("BtnReverse", "▼", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-85, 85), 145, 145);
         AddHUDEvent(revBtn, (pressed) => isReversePressed = pressed);
         mobileHUDButtons.Add(revBtn);
 
         // ATIRAR (Shoot) button placed on the right side above drive buttons
-        GameObject shootBtn = CreateHUDButton("BtnShoot", "ATIRAR", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-150, 230), 140, 140);
+        GameObject shootBtn = CreateHUDButton("BtnShoot", "ATIRAR", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-165, 270), 170, 170);
         AddHUDShootEvent(shootBtn);
         mobileHUDButtons.Add(shootBtn);
     }
@@ -1135,7 +1147,7 @@ public class GameUIController : MonoBehaviour
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
         txt.text = text;
         txt.font = GetTMProFont();
-        txt.fontSize = text.Length > 2 ? 24 : 40;
+        txt.fontSize = text.Length > 2 ? 32 : 52;
         txt.fontStyle = FontStyles.Bold;
         txt.alignment = TextAlignmentOptions.Center;
         txt.color = Color.white;
@@ -1826,10 +1838,10 @@ public class GameUIController : MonoBehaviour
 
     private void CreateDebugPanel()
     {
-        // 1. Create Debug Toggle Button
-        GameObject toggleBtnObj = CreateHUDButton("BtnDebugToggle", "DEBUG", new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(20, -180), 120, 60);
+        // 1. Create Debug Toggle Button (positioned below MissionPanel to avoid overlap)
+        GameObject toggleBtnObj = CreateHUDButton("BtnDebugToggle", "DEBUG", new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(20, -330), 160, 62);
         Image toggleImg = toggleBtnObj.GetComponent<Image>();
-        toggleImg.sprite = CreateRoundedRectSprite(120, 60, 12, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPurple, 2, new Color(0,0,0,0));
+        toggleImg.sprite = CreateRoundedRectSprite(160, 62, 12, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPurple, 2, new Color(0,0,0,0));
         
         Button btn = toggleBtnObj.GetComponent<Button>();
         if (btn == null) btn = toggleBtnObj.AddComponent<Button>();
@@ -2014,24 +2026,24 @@ public class GameUIController : MonoBehaviour
         toggleRect.anchorMin = new Vector2(1, 1);
         toggleRect.anchorMax = new Vector2(1, 1);
         toggleRect.pivot = new Vector2(1, 1);
-        toggleRect.anchoredPosition = new Vector2(-150, -40); // 150px left of top-right corner, Pause is at -40px
-        toggleRect.sizeDelta = new Vector2(210, 80);
+        toggleRect.anchoredPosition = new Vector2(-145, -24);
+        toggleRect.sizeDelta = new Vector2(210, 74);
 
         Image img = gameplayToggleBtnObj.AddComponent<Image>();
         // Subtle dark color with bubblegum pink border
-        img.sprite = CreateRoundedRectSprite(210, 80, 16, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPink, 3, shadowColor);
+        img.sprite = CreateRoundedRectSprite(210, 74, 16, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPink, 3, shadowColor);
         img.type = Image.Type.Simple;
 
         GameObject txtObj = new GameObject("Text");
         txtObj.transform.SetParent(gameplayToggleBtnObj.transform, false);
         RectTransform txtRect = txtObj.AddComponent<RectTransform>();
         txtRect.anchoredPosition = Vector2.zero;
-        txtRect.sizeDelta = new Vector2(210, 80);
+        txtRect.sizeDelta = new Vector2(210, 74);
 
         gameplayToggleTxt = txtObj.AddComponent<TextMeshProUGUI>();
-        gameplayToggleTxt.text = useSwipeMode ? "👆 ARRUST" : "🕹️ BOTÕES";
+        gameplayToggleTxt.text = useSwipeMode ? "ARRASTAR" : "BOTÕES";
         gameplayToggleTxt.font = GetTMProFont();
-        gameplayToggleTxt.fontSize = 20;
+        gameplayToggleTxt.fontSize = 26;
         gameplayToggleTxt.fontStyle = FontStyles.Bold;
         gameplayToggleTxt.alignment = TextAlignmentOptions.Center;
         gameplayToggleTxt.color = Color.white;
@@ -2041,7 +2053,7 @@ public class GameUIController : MonoBehaviour
         Button btn = gameplayToggleBtnObj.AddComponent<Button>();
         btn.onClick.AddListener(() => {
             useSwipeMode = !useSwipeMode;
-            gameplayToggleTxt.text = useSwipeMode ? "👆 ARRUST" : "🕹️ BOTÕES";
+            gameplayToggleTxt.text = useSwipeMode ? "ARRASTAR" : "BOTÕES";
             SetGameState(false); // Refreshes active UI HUD layout immediately
         });
 
@@ -2095,21 +2107,21 @@ public class GameUIController : MonoBehaviour
         rect.anchorMin = new Vector2(0f, 1f);
         rect.anchorMax = new Vector2(0f, 1f);
         rect.pivot = new Vector2(0f, 1f);
-        rect.anchoredPosition = new Vector2(20, -170);
-        rect.sizeDelta = new Vector2(300, 100);
+        rect.anchoredPosition = new Vector2(20, -180);
+        rect.sizeDelta = new Vector2(390, 132);
 
         Image bg = missionPanel.AddComponent<Image>();
-        bg.sprite = CreateRoundedRectSprite(300, 100, 16, new Color(0.368f, 0.235f, 0.502f, 0.75f), candyPink, 2, new Color(0,0,0,0));
+        bg.sprite = CreateRoundedRectSprite(390, 132, 16, new Color(0.368f, 0.235f, 0.502f, 0.82f), candyPink, 2, new Color(0,0,0,0));
 
         GameObject titleObj = new GameObject("Title");
         titleObj.transform.SetParent(missionPanel.transform, false);
         RectTransform tRect = titleObj.AddComponent<RectTransform>();
-        tRect.anchoredPosition = new Vector2(0, 20);
-        tRect.sizeDelta = new Vector2(280, 30);
+        tRect.anchoredPosition = new Vector2(0, 34);
+        tRect.sizeDelta = new Vector2(360, 36);
         TextMeshProUGUI title = titleObj.AddComponent<TextMeshProUGUI>();
         title.text = "MISSÃO ATIVA";
         title.font = GetTMProFont();
-        title.fontSize = 16;
+        title.fontSize = 24;
         title.fontStyle = FontStyles.Bold;
         title.alignment = TextAlignmentOptions.Center;
         title.color = candyPink;
@@ -2117,12 +2129,12 @@ public class GameUIController : MonoBehaviour
         GameObject descObj = new GameObject("Desc");
         descObj.transform.SetParent(missionPanel.transform, false);
         RectTransform dRect = descObj.AddComponent<RectTransform>();
-        dRect.anchoredPosition = new Vector2(0, -5);
-        dRect.sizeDelta = new Vector2(280, 25);
+        dRect.anchoredPosition = new Vector2(0, -2);
+        dRect.sizeDelta = new Vector2(360, 34);
         missionDescText = descObj.AddComponent<TextMeshProUGUI>();
         missionDescText.text = "Aguardando Missão...";
         missionDescText.font = GetTMProFont();
-        missionDescText.fontSize = 14;
+        missionDescText.fontSize = 20;
         missionDescText.fontStyle = FontStyles.Bold;
         missionDescText.alignment = TextAlignmentOptions.Center;
         missionDescText.color = Color.white;
@@ -2130,12 +2142,12 @@ public class GameUIController : MonoBehaviour
         GameObject progObj = new GameObject("Progress");
         progObj.transform.SetParent(missionPanel.transform, false);
         RectTransform pRect = progObj.AddComponent<RectTransform>();
-        pRect.anchoredPosition = new Vector2(0, -25);
-        pRect.sizeDelta = new Vector2(280, 25);
+        pRect.anchoredPosition = new Vector2(0, -34);
+        pRect.sizeDelta = new Vector2(360, 34);
         missionProgressText = progObj.AddComponent<TextMeshProUGUI>();
         missionProgressText.text = "0 / 0";
         missionProgressText.font = GetTMProFont();
-        missionProgressText.fontSize = 14;
+        missionProgressText.fontSize = 22;
         missionProgressText.fontStyle = FontStyles.Bold;
         missionProgressText.alignment = TextAlignmentOptions.Center;
         missionProgressText.color = Color.yellow;

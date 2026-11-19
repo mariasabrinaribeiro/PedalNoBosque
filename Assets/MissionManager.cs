@@ -105,11 +105,11 @@ public class MissionManager : MonoBehaviour
         UpdateHUD();
     }
 
-    public void OnIceCreamDelivered()
+    public void OnIceCreamDelivered(int amount = 1)
     {
         if (currentType == MissionType.DeliverIceCreams)
         {
-            currentProgress++;
+            currentProgress += Mathf.Max(1, amount);
             UpdateHUD();
 
             if (currentProgress >= targetCount)

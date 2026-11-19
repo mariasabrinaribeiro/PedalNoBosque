@@ -28,6 +28,7 @@ public class Delivery : MonoBehaviour
             {
                 if (driver.cargo < driver.maxCargo)
                 {
+                    collision.enabled = false; // Evita coleta duplicada durante o delay de destruição
                     driver.cargo++;
                     driver.score += 250000; // 250k pontos ao pegar o sorvete!
                     Debug.Log("Picked up package. Cargo: " + driver.cargo);
@@ -73,7 +74,7 @@ public class Delivery : MonoBehaviour
                 // 2. Notify MissionManager of delivery progress
                 if (MissionManager.Instance != null)
                 {
-                    MissionManager.Instance.OnIceCreamDelivered();
+                    MissionManager.Instance.OnIceCreamDelivered(itemsDelivered);
                 }
 
                 // Show delivery message in HUD
