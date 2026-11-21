@@ -172,35 +172,33 @@ namespace FlorestaBicicleta
             }
         }
 
-        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): salgueiros com passarinho e árvores frutíferas espaçadas.</summary>
+        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): 5 modelos orgânicos variados sem repetição artificial.</summary>
         private void BuildNearTreesLayer()
         {
-            float[] offsets = { -12f, 4f, 19f, 34f };
-            float totalSpan = 58f;
+            float[] offsets = { -15f, -1f, 11.5f, 25f, 38.5f };
+            float totalSpan = 64f;
 
             for (int i = 0; i < offsets.Length; i++)
             {
-                GameObject go = new GameObject($"ArvoreProxima_{i}");
+                GameObject go = new GameObject($"ArvoreOrganica_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = (i % 2 == 0)
-                    ? BiomePropsFactory.CreateWillowTreeWithBirdSprite()
-                    : BiomePropsFactory.CreateFruitTreeSprite();
+                sr.sprite = BiomePropsFactory.CreateOrganicTreeSprite(i);
                 sr.sortingOrder = -4;
-                sr.color = new Color(0.95f, 0.98f, 0.94f, 0.94f);
+                sr.color = new Color(0.95f, 0.98f, 0.94f, 0.95f);
 
-                float sc = Random.Range(0.92f, 1.12f);
+                float sc = Random.Range(0.90f, 1.16f);
                 go.transform.localScale = new Vector3(sc, sc, 1f);
 
                 GentleSway sway = go.AddComponent<GentleSway>();
-                sway.maxAngleDeg = 1.6f;
-                sway.speed = 1.1f;
+                sway.maxAngleDeg = 1.5f;
+                sway.speed = Random.Range(0.95f, 1.35f);
 
                 nearTreeProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
                     baseWorldX = offsets[i],
-                    y = -2.65f,
+                    y = -2.65f + (i % 2 == 0 ? 0f : -0.10f),
                     parallax = 0.78f,
                     spanWidth = totalSpan
                 });

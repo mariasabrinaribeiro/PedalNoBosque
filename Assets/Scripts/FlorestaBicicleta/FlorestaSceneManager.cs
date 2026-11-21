@@ -28,8 +28,11 @@ namespace FlorestaBicicleta
         private InfiniteTrackGenerator trackGenerator;
         private AmbientSceneryPolisher sceneryPolisher;
         private DayNightCycleController dayNightCycle;
+        private WeatherAndPhenomenaController weatherController;
+        private PuppyCompanionController puppyCompanion;
         private PlayerProgressManager progressManager;
         private DiscoveryBookAndWorkshopUI discoveryUI;
+        private PedalTitleScreenUI titleScreenUI;
 
         private readonly Dictionary<FoodType, Sprite> foodSprites = new Dictionary<FoodType, Sprite>();
 
@@ -54,10 +57,14 @@ namespace FlorestaBicicleta
         private TextMeshProUGUI kitchenPrepStatus;
         private KitchenMiniGamePanel miniPrepPanel;
         private bool isPreparingFood = false;
+        private bool kitchenManuallyClosed = false;
 
-        // Botão de Cavar com o Esquilo
+        // Botão de Cavar com o Esquilo + Botão Contextual de Aventura
         private GameObject digButtonObj;
         private TextMeshProUGUI digButtonLabel;
+        private GameObject adventureEventButtonObj;
+        private TextMeshProUGUI adventureEventButtonLabel;
+        private TrailAdventureEvent nearbyAdventureEvent;
 
         // Tela de Vitória
         private GameObject victoryPanel;
@@ -90,6 +97,7 @@ namespace FlorestaBicicleta
         {
             gameObject.AddComponent<FlorestaSoundFX>();
             progressManager = gameObject.AddComponent<PlayerProgressManager>();
+            LocalizationManager.LoadFromSave(progressManager.Data);
             progressManager.OnMilestoneBanner += (msg, col) => ShowMessage(msg, 4.4f, col);
 
             CacheFoodSprites();
@@ -107,6 +115,16 @@ namespace FlorestaBicicleta
             dayNightCycle.Initialize(mainCam, player.transform, sunsetOverlay);
             dayNightCycle.SetBiome(currentBiome);
             dayNightCycle.OnPeriodChanged += OnDayPeriodChanged;
+
+            // Fenômenos Naturais (Chuva leve, Arco-íris, Neblina e Estrela Cadente em pool)
+            weatherController = gameObject.AddComponent<WeatherAndPhenomenaController>();
+            weatherController.Initialize(mainCam, dayNightCycle);
+            weatherController.SetBiome(currentBiome);
+            weatherController.OnWeatherMessage += (msg, col) => ShowMessage(msg, 4.0f, col);
+
+            // Cachorrinho Companheiro Inteligente na cestinha (Feliz, Curioso, Dormindo, Sede)
+            puppyCompanion = gameObject.AddComponent<PuppyCompanionController>();
+            puppyCompanion.Initialize(player);
 
             ShowMessage("PEDAL NO BOSQUE — Explore as 6 regiões, descubra animais, moradores e segredos!", 6f);
         }
@@ -211,12 +229,14 @@ namespace FlorestaBicicleta
                     ShowMessage("O Lobo está assustado com a velocidade! Pedale bem devagar para acalmá-lo antes de alimentar!", 4.0f, new Color(1f, 0.72f, 0.48f, 1f));
                     break;
                 case ForestAnimal.FeedResult.AteNeedsMore:
+                    puppyCompanion?.TriggerHappy();
                     if (animal.kind == ParkSpriteFactory.AnimalKind.Lobo)
                         ShowMessage($"Uau! Você acalmou o Lobo com carinho ({animal.mealsEaten}/{animal.requiredMeals})! +120 pts", 3.2f, new Color(0.75f, 1f, 0.82f, 1f));
                     else
                         ShowMessage($"Nham! O {animal.animalName} amou ({animal.mealsEaten}/{animal.requiredMeals}) e soltou corações! +80 pts", 3.0f, new Color(0.75f, 1f, 0.78f, 1f));
                     break;
                 case ForestAnimal.FeedResult.FullySatisfied:
+                    puppyCompanion?.TriggerHappy(3.5f);
                     if (animal.kind == ParkSpriteFactory.AnimalKind.Gato)
                         ShowMessage("Miau! O Gato ficou super feliz e agora está acompanhando a sua bicicleta! +175 pts", 4.5f, new Color(1f, 0.82f, 0.94f, 1f));
                     else if (animal.kind == ParkSpriteFactory.AnimalKind.Lobo)
@@ -285,6 +305,7 @@ namespace FlorestaBicicleta
                     currentBiome = newBiome;
                     if (sceneryPolisher != null) sceneryPolisher.SetBiome(currentBiome);
                     if (dayNightCycle != null) dayNightCycle.SetBiome(currentBiome);
+                    if (weatherController != null) weatherController.SetBiome(currentBiome);
                     progressManager?.RecordBiomeVisited(currentBiome);
                     FlorestaSoundFX.Instance?.PlayBiomeCue(currentBiome);
                     ShowMessage(
@@ -301,7 +322,7 @@ namespace FlorestaBicicleta
                 player.score += 100;
                 progressManager?.AddStars(1);
                 FlorestaSoundFX.Instance?.PlayStar();
-                ShowMessage($"Marco atingido: {nextKmMilestone:0.0} km pedalados! +1 ★ e +100 pts!", 4.0f, new Color(1f, 0.92f, 0.42f, 1f));
+                ShowMessage($"Marco atingido: {nextKmMilestone:0.0} km pedalados! +1 Estrela e +100 pts!", 4.0f, new Color(1f, 0.92f, 0.42f, 1f));
                 nextKmMilestone++;
             }
 
@@ -344,6 +365,27 @@ namespace FlorestaBicicleta
                     {
                         bestResD = d;
                         nearestResident = r;
+                    }
+                }
+
+                // Eventos contextuais de aventura + farejamento do cachorrinho!
+                nearbyAdventureEvent = null;
+                float bestEvD = 4.6f;
+                var activeEvents = trackGenerator.ActiveEvents;
+                for (int i = 0; i < activeEvents.Count; i++)
+                {
+                    TrailAdventureEvent ev = activeEvents[i];
+                    if (ev == null || ev.isCompleted) continue;
+                    float d = Mathf.Abs(player.transform.position.x - ev.transform.position.x);
+                    if (ev.CheckPuppyAlert(d))
+                    {
+                        puppyCompanion?.TriggerCurious(3.8f);
+                        ShowMessage("Au-au! O cachorrinho farejou um Tesouro Escondido por perto!", 3.6f, new Color(1f, 0.92f, 0.50f, 1f));
+                    }
+                    if (d < bestEvD)
+                    {
+                        bestEvD = d;
+                        nearbyAdventureEvent = ev;
                     }
                 }
             }
@@ -452,122 +494,165 @@ namespace FlorestaBicicleta
             sunsetOverlay.color = Color.clear;
             sunsetOverlay.raycastTarget = false;
 
-            // Barra Superior Discreta e Delicada (identidade Pedal no Bosque)
-            GameObject topBar = CreatePanel(canvasObj.transform, "TopBar",
+            // Barra Superior Orgânica Arredondada (apenas informações essenciais: Estrelas, Região/Período, Distância e Água)
+            GameObject topBar = CreateRoundedPanel(canvasObj.transform, "TopBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -24f), new Vector2(1180f, 40f),
-                new Color(0.11f, 0.22f, 0.17f, 0.72f));
+                new Vector2(0f, -26f), new Vector2(1060f, 44f),
+                new Color(0.14f, 0.28f, 0.22f, 0.80f));
 
-            scoreText = CreateTMP(topBar.transform, "ScoreText", "Pts: 0  ★0",
-                19, new Vector2(-460f, 0f), new Vector2(230f, 34f), TextAlignmentOptions.Left);
-            scoreText.color = new Color(1f, 0.97f, 0.86f, 1f);
+            // Ícone real de Estrela + contador (sem caractere Unicode quadrado!)
+            CreateUIIcon(topBar.transform, "StarIcon", StorybookUISpriteFactory.UIIconKind.Star,
+                new Vector2(-478f, 0f), new Vector2(28f, 28f));
+            scoreText = CreateTMP(topBar.transform, "ScoreText", "0  (0 pts)",
+                18, new Vector2(-368f, 0f), new Vector2(185f, 34f), TextAlignmentOptions.Left);
+            scoreText.color = new Color(1f, 0.96f, 0.80f, 1f);
 
-            squirrelText = CreateTMP(topBar.transform, "SquirrelText", "Esquilo: 0/6",
-                17, new Vector2(-235f, 0f), new Vector2(190f, 34f), TextAlignmentOptions.Center);
-            squirrelText.color = new Color(1f, 0.90f, 0.58f, 0.96f);
+            // Esquilo / Progresso discreto
+            squirrelText = CreateTMP(topBar.transform, "SquirrelText", "Esquilo 0/6",
+                15, new Vector2(-195f, 0f), new Vector2(145f, 30f), TextAlignmentOptions.Center);
+            squirrelText.color = new Color(1f, 0.90f, 0.58f, 0.95f);
 
-            biomeSlopeText = CreateTMP(topBar.transform, "BiomeSlopeText", "Vale das Flores • Plano",
-                17, new Vector2(20f, 0f), new Vector2(300f, 34f), TextAlignmentOptions.Center);
+            // Região Atual + Período do Dia
+            biomeSlopeText = CreateTMP(topBar.transform, "BiomeSlopeText", "Vale das Flores - Manha",
+                17, new Vector2(30f, 0f), new Vector2(290f, 34f), TextAlignmentOptions.Center);
             biomeSlopeText.color = InfiniteTrackGenerator.GetBiomeAccentColor(BiomeType.CampoFlorido);
 
+            // Distância (km)
             distanceKmText = CreateTMP(topBar.transform, "DistanceKmText", "0.00 km",
-                18, new Vector2(245f, 0f), new Vector2(125f, 34f), TextAlignmentOptions.Center);
-            distanceKmText.color = new Color(1f, 0.96f, 0.68f, 1f);
+                18, new Vector2(235f, 0f), new Vector2(115f, 34f), TextAlignmentOptions.Center);
+            distanceKmText.color = new Color(1f, 0.96f, 0.72f, 1f);
 
-            waterLabel = CreateTMP(topBar.transform, "WaterLabel", "Água 100%",
-                15, new Vector2(450f, 8f), new Vector2(195f, 20f), TextAlignmentOptions.Center);
-            waterLabel.color = new Color(0.72f, 0.94f, 1f, 1f);
+            // Ícone real de Gota d'Água + Barra visual
+            CreateUIIcon(topBar.transform, "WaterDropIcon", StorybookUISpriteFactory.UIIconKind.WaterDrop,
+                new Vector2(330f, 0f), new Vector2(26f, 26f));
 
-            GameObject sliderObj = CreatePanel(topBar.transform, "WaterSlider",
+            waterLabel = CreateTMP(topBar.transform, "WaterLabel", "100%",
+                14, new Vector2(492f, 0f), new Vector2(56f, 24f), TextAlignmentOptions.Left);
+            waterLabel.color = new Color(0.76f, 0.96f, 1f, 1f);
+
+            GameObject sliderObj = CreateRoundedPanel(topBar.transform, "WaterSlider",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(450f, -10f), new Vector2(180f, 10f),
-                new Color(0.14f, 0.24f, 0.30f, 0.85f));
+                new Vector2(405f, 0f), new Vector2(118f, 14f),
+                new Color(0.12f, 0.22f, 0.28f, 0.90f));
             waterSlider = sliderObj.AddComponent<Slider>();
             waterSlider.minValue = 0f; waterSlider.maxValue = 100f; waterSlider.value = 100f;
 
             GameObject fillArea = new GameObject("FillArea");
             fillArea.transform.SetParent(sliderObj.transform, false);
             RectTransform faRT = fillArea.AddComponent<RectTransform>();
-            faRT.anchorMin = Vector2.zero; faRT.anchorMax = Vector2.one; faRT.sizeDelta = Vector2.zero;
+            faRT.anchorMin = Vector2.zero; faRT.anchorMax = Vector2.one; faRT.sizeDelta = new Vector2(-4f, -4f);
 
             GameObject fill = new GameObject("Fill");
             fill.transform.SetParent(fillArea.transform, false);
             RectTransform fRT = fill.AddComponent<RectTransform>();
             fRT.anchorMin = Vector2.zero; fRT.anchorMax = Vector2.one; fRT.sizeDelta = Vector2.zero;
-            fill.AddComponent<Image>().color = new Color(0.32f, 0.82f, 0.98f, 0.95f);
+            Image fillImg = fill.AddComponent<Image>();
+            fillImg.sprite = StorybookUISpriteFactory.GetRoundedPillSprite();
+            fillImg.type = Image.Type.Sliced;
+            fillImg.color = new Color(0.32f, 0.84f, 0.98f, 0.98f);
             waterSlider.fillRect = fRT;
 
-            // Sub-barra secundária discreta (Cesta + Pedido próximo)
-            GameObject subBar = CreatePanel(canvasObj.transform, "SubBar",
+            // Sub-barra secundária discreta arredondada (Cesta + Pedido próximo)
+            GameObject subBar = CreateRoundedPanel(canvasObj.transform, "SubBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -58f), new Vector2(1180f, 26f),
-                new Color(0.10f, 0.16f, 0.14f, 0.56f));
+                new Vector2(0f, -64f), new Vector2(1060f, 26f),
+                new Color(0.12f, 0.18f, 0.16f, 0.62f));
 
             basketText = CreateTMP(subBar.transform, "BasketText", "Cesta: ...",
-                15, new Vector2(-280f, 0f), new Vector2(590f, 24f), TextAlignmentOptions.Left);
-            basketText.color = new Color(1f, 0.96f, 0.84f, 0.94f);
+                14, new Vector2(-245f, 0f), new Vector2(540f, 22f), TextAlignmentOptions.Left);
+            basketText.color = new Color(1f, 0.96f, 0.84f, 0.95f);
 
             nearbyOrderText = CreateTMP(subBar.transform, "NearbyOrder", "",
-                15, new Vector2(295f, 0f), new Vector2(560f, 24f), TextAlignmentOptions.Right);
+                14, new Vector2(255f, 0f), new Vector2(520f, 22f), TextAlignmentOptions.Right);
             nearbyOrderText.color = new Color(0.84f, 1f, 0.88f, 0.96f);
 
             // Mensagem de feedback suave
             messageText = CreateTMP(canvasObj.transform, "MessageText", "",
-                19, new Vector2(0f, -88f), new Vector2(1120f, 32f), TextAlignmentOptions.Center);
+                18, new Vector2(0f, -94f), new Vector2(1060f, 30f), TextAlignmentOptions.Center);
             RectTransform msgRT = messageText.GetComponent<RectTransform>();
             msgRT.anchorMin = new Vector2(0.5f, 1f);
             msgRT.anchorMax = new Vector2(0.5f, 1f);
 
-            // Painel da Cozinha (lateral esquerda quando perto de uma barraca)
+            // Painel Compacto da Cozinha (canto superior esquerdo — nunca cobre a protagonista!)
             BuildKitchenPanel(canvasObj.transform);
 
             // Botão especial de Cavar com o Esquilo
-            digButtonObj = CreateClickButton(canvasObj.transform, "BtnCavar", "✦ CAVAR JUNTO (Espaço)",
-                new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(280f, 46f),
-                new Color(0.24f, 0.62f, 0.78f, 0.88f), 19,
+            digButtonObj = CreateIconClickButton(canvasObj.transform, "BtnCavar", "Cavar Junto",
+                StorybookUISpriteFactory.UIIconKind.Star,
+                new Vector2(0.5f, 0f), new Vector2(0f, 76f), new Vector2(220f, 44f),
+                new Color(0.24f, 0.62f, 0.78f, 0.92f), 17,
                 () => digSite.HelpDig());
             digButtonLabel = digButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             digButtonObj.SetActive(false);
 
-            // Controles inferiores delicados com paleta natural coordenada (madeira, sálvia e mel)
-            CreateHoldButton(canvasObj.transform, "BtnVoltar", "◀ Voltar",
-                Vector2.zero, new Vector2(74f, 28f), new Vector2(118f, 42f),
-                new Color(0.46f, 0.32f, 0.24f, 0.76f), 17,
+            // Botão contextual de Evento de Aventura (regar flores, ajudar passarinho, consertar ponte, abrir tesouro)
+            adventureEventButtonObj = CreateIconClickButton(canvasObj.transform, "BtnEventoAventura", "Interagir",
+                StorybookUISpriteFactory.UIIconKind.Star,
+                new Vector2(0.5f, 0f), new Vector2(0f, 76f), new Vector2(260f, 44f),
+                new Color(0.28f, 0.62f, 0.44f, 0.94f), 15,
+                () => player.TryInteractNearbyEvent());
+            adventureEventButtonLabel = adventureEventButtonObj.GetComponentInChildren<TextMeshProUGUI>();
+            adventureEventButtonObj.SetActive(false);
+
+            // Controles inferiores arredondados com ícones ilustrados reais (zero caracteres quadrados!)
+            CreateIconHoldButton(canvasObj.transform, "BtnVoltar", "Voltar",
+                StorybookUISpriteFactory.UIIconKind.BackArrow,
+                Vector2.zero, new Vector2(72f, 28f), new Vector2(114f, 42f),
+                new Color(0.50f, 0.35f, 0.25f, 0.84f), 16,
                 () => player.SetUIReverse(true), () => player.SetUIReverse(false));
 
-            CreateHoldButton(canvasObj.transform, "BtnDevagar", "▶ Passear",
-                Vector2.zero, new Vector2(202f, 28f), new Vector2(126f, 42f),
-                new Color(0.22f, 0.48f, 0.34f, 0.78f), 17,
+            CreateIconHoldButton(canvasObj.transform, "BtnDevagar", "Passear",
+                StorybookUISpriteFactory.UIIconKind.Stroll,
+                Vector2.zero, new Vector2(196f, 28f), new Vector2(122f, 42f),
+                new Color(0.24f, 0.52f, 0.36f, 0.86f), 16,
                 () => player.SetUISlow(true), () => player.SetUISlow(false));
 
-            CreateHoldButton(canvasObj.transform, "BtnRapido", "▶▶ Pedalar",
-                Vector2.zero, new Vector2(338f, 28f), new Vector2(134f, 42f),
-                new Color(0.74f, 0.50f, 0.20f, 0.80f), 17,
+            CreateIconHoldButton(canvasObj.transform, "BtnRapido", "Pedalar",
+                StorybookUISpriteFactory.UIIconKind.Pedal,
+                Vector2.zero, new Vector2(328f, 28f), new Vector2(130f, 42f),
+                new Color(0.78f, 0.54f, 0.22f, 0.88f), 16,
                 () => player.SetUIFast(true), () => player.SetUIFast(false));
 
-            CreateClickButton(canvasObj.transform, "BtnPular", "▲ Pular",
-                new Vector2(1f, 0f), new Vector2(-262f, 28f), new Vector2(118f, 44f),
-                new Color(0.24f, 0.54f, 0.66f, 0.80f), 17,
+            CreateIconClickButton(canvasObj.transform, "BtnPular", "Pular",
+                StorybookUISpriteFactory.UIIconKind.Jump,
+                new Vector2(1f, 0f), new Vector2(-248f, 28f), new Vector2(114f, 44f),
+                new Color(0.26f, 0.56f, 0.68f, 0.88f), 16,
                 () => player.TriggerJump());
 
-            CreateClickButton(canvasObj.transform, "BtnComida", "✿ Entregar",
-                new Vector2(1f, 0f), new Vector2(-108f, 28f), new Vector2(174f, 44f),
-                new Color(0.76f, 0.38f, 0.46f, 0.84f), 18,
+            CreateIconClickButton(canvasObj.transform, "BtnComida", "Entregar",
+                StorybookUISpriteFactory.UIIconKind.Basket,
+                new Vector2(1f, 0f), new Vector2(-102f, 28f), new Vector2(158f, 44f),
+                new Color(0.80f, 0.40f, 0.48f, 0.90f), 17,
                 () => player.ThrowFood());
 
-            // Botões delicados para o Diário de Descobertas e Oficina de Personalização (Etapa 7)
-            CreateClickButton(canvasObj.transform, "BtnDiario", "Livro",
-                new Vector2(0.5f, 0f), new Vector2(-46f, 28f), new Vector2(84f, 38f),
-                new Color(0.30f, 0.54f, 0.44f, 0.80f), 15,
+            // Botões delicados para o Diário de Descobertas, Oficina e Campainha (B)
+            CreateIconClickButton(canvasObj.transform, "BtnDiario", "Livro",
+                StorybookUISpriteFactory.UIIconKind.Book,
+                new Vector2(0.5f, 0f), new Vector2(-106f, 28f), new Vector2(96f, 38f),
+                new Color(0.30f, 0.56f, 0.44f, 0.86f), 15,
                 () => discoveryUI?.Open(0));
 
-            CreateClickButton(canvasObj.transform, "BtnOficina", "Oficina",
-                new Vector2(0.5f, 0f), new Vector2(46f, 28f), new Vector2(88f, 38f),
-                new Color(0.58f, 0.44f, 0.72f, 0.80f), 15,
+            CreateIconClickButton(canvasObj.transform, "BtnOficina", "Oficina",
+                StorybookUISpriteFactory.UIIconKind.Workshop,
+                new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(102f, 38f),
+                new Color(0.58f, 0.44f, 0.74f, 0.86f), 15,
                 () => discoveryUI?.Open(2));
+
+            CreateIconClickButton(canvasObj.transform, "BtnSino", "Sino",
+                StorybookUISpriteFactory.UIIconKind.Star,
+                new Vector2(0.5f, 0f), new Vector2(102f, 28f), new Vector2(88f, 38f),
+                new Color(0.82f, 0.62f, 0.24f, 0.86f), 15,
+                () => player.RingBell());
 
             discoveryUI = gameObject.AddComponent<DiscoveryBookAndWorkshopUI>();
             discoveryUI.Build(canvasObj.transform);
+
+            // Tela de Título Oficial PEDAL NO BOSQUE + Idiomas (PT/EN/ES) + Barreira Parental
+            titleScreenUI = gameObject.AddComponent<PedalTitleScreenUI>();
+            titleScreenUI.Build(canvasObj.transform, () =>
+            {
+                ShowMessage("PEDAL NO BOSQUE - Explore as 6 regioes, ajude os amigos e descubra segredos!", 5.5f);
+            });
 
             // Painel de Vitória dos Diamantes
             victoryPanel = CreatePanel(canvasObj.transform, "VictoryPanel",
@@ -598,65 +683,86 @@ namespace FlorestaBicicleta
 
         private void BuildKitchenPanel(Transform canvasT)
         {
-            kitchenPanel = CreatePanel(canvasT, "KitchenPanel",
-                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-                new Vector2(265f, 15f), new Vector2(500f, 405f),
-                new Color(0.20f, 0.12f, 0.22f, 0.93f));
+            // Painel compacto de cartões ilustrados no canto superior esquerdo (nunca cobre a protagonista!)
+            kitchenPanel = CreateRoundedCardPanel(canvasT, "KitchenPanel",
+                new Vector2(0f, 1f), new Vector2(0f, 1f),
+                new Vector2(228f, -238f), new Vector2(420f, 290f),
+                new Color(0.97f, 0.94f, 0.88f, 0.95f));
 
-            CreateTMP(kitchenPanel.transform, "KTitle", "COZINHA & NATURAIS DA FLORESTA",
-                21, new Vector2(0f, 174f), new Vector2(470f, 34f), TextAlignmentOptions.Center)
-                .color = new Color(1f, 0.72f, 0.86f, 1f);
+            CreateTMP(kitchenPanel.transform, "KTitle", "Cozinha do Bosque",
+                17, new Vector2(-40f, 124f), new Vector2(280f, 26f), TextAlignmentOptions.Left)
+                .color = new Color(0.24f, 0.44f, 0.32f, 1f);
 
-            CreateTMP(kitchenPanel.transform, "KColLeft", "Lanches & Cozinha",
-                16, new Vector2(-118f, 144f), new Vector2(220f, 24f), TextAlignmentOptions.Center)
-                .color = new Color(1f, 0.90f, 0.72f, 1f);
+            // Botão Fechar fácil (ícone X real)
+            CreateIconClickButton(kitchenPanel.transform, "BtnFecharCozinha", "",
+                StorybookUISpriteFactory.UIIconKind.CloseX,
+                new Vector2(1f, 1f), new Vector2(-26f, -22f), new Vector2(32f, 30f),
+                new Color(0.76f, 0.36f, 0.42f, 0.92f), 14,
+                () =>
+                {
+                    kitchenManuallyClosed = true;
+                    kitchenPanel.SetActive(false);
+                });
 
-            CreateTMP(kitchenPanel.transform, "KColRight", "Naturais da Floresta",
-                16, new Vector2(118f, 144f), new Vector2(220f, 24f), TextAlignmentOptions.Center)
-                .color = new Color(0.68f, 1f, 0.74f, 1f);
-
-            // Coluna Esquerda: Lanches Prontos + Preparo
-            FoodType[] readyFoods = { FoodType.Refrigerante, FoodType.Suco, FoodType.Coxinha, FoodType.Doces, FoodType.Pipoca };
-            for (int i = 0; i < readyFoods.Length; i++)
+            // 10 cartões compactos com ícones reais dos alimentos (2 linhas x 5 colunas)
+            FoodType[] gridFoods =
             {
-                FoodType ft = readyFoods[i];
-                float y = 112f - i * 40f;
-                CreateClickButton(kitchenPanel.transform, $"Btn_{ft}", $"+ {FoodInfo.GetDisplayName(ft)}",
-                    new Vector2(0.5f, 0.5f), new Vector2(-118f, y), new Vector2(215f, 35f),
-                    new Color(0.24f, 0.56f, 0.44f, 0.95f), 18,
-                    () => OnClickKitchenFood(ft));
+                FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes,
+                FoodType.Suco, FoodType.Pipoca, FoodType.Coxinha, FoodType.Doces, FoodType.Refrigerante
+            };
+
+            for (int i = 0; i < gridFoods.Length; i++)
+            {
+                FoodType ft = gridFoods[i];
+                int col = i % 5;
+                int row = i / 5;
+                float x = -158f + col * 79f;
+                float y = 66f - row * 74f;
+
+                GameObject card = CreateRoundedCardPanel(kitchenPanel.transform, $"FoodCard_{ft}",
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(x, y), new Vector2(72f, 66f),
+                    row == 0 ? new Color(0.88f, 0.96f, 0.88f, 1f) : new Color(0.98f, 0.94f, 0.86f, 1f));
+
+                if (foodSprites.TryGetValue(ft, out Sprite fsp) && fsp != null)
+                {
+                    GameObject imgObj = new GameObject("Icon");
+                    imgObj.transform.SetParent(card.transform, false);
+                    RectTransform irt = imgObj.AddComponent<RectTransform>();
+                    irt.anchoredPosition = new Vector2(0f, 9f);
+                    irt.sizeDelta = new Vector2(38f, 38f);
+                    Image im = imgObj.AddComponent<Image>();
+                    im.sprite = fsp;
+                    im.preserveAspect = true;
+                }
+
+                TextMeshProUGUI lbl = CreateTMP(card.transform, "Lbl", FoodInfo.GetDisplayName(ft),
+                    11, new Vector2(0f, -20f), new Vector2(68f, 18f), TextAlignmentOptions.Center);
+                lbl.color = new Color(0.24f, 0.22f, 0.20f, 1f);
+
+                Button btn = card.AddComponent<Button>();
+                btn.onClick.AddListener(() => OnClickKitchenFood(ft));
             }
 
-            CreateClickButton(kitchenPanel.transform, "BtnPrepSanduiche", "Preparar Sanduíche",
-                new Vector2(0.5f, 0.5f), new Vector2(-118f, -92f), new Vector2(215f, 38f),
-                new Color(0.92f, 0.54f, 0.16f, 0.96f), 18,
+            // Linha inferior: Preparar Sanduíche, Preparar Hot Dog e Kit Rápido
+            CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepSanduiche", "Sanduiche",
+                new Vector2(0.5f, 0.5f), new Vector2(-132f, -86f), new Vector2(124f, 32f),
+                new Color(0.84f, 0.54f, 0.22f, 0.95f), 14,
                 () => OnClickKitchenFood(FoodType.Sanduiche));
 
-            CreateClickButton(kitchenPanel.transform, "BtnPrepHotDog", "Preparar Hot Dog",
-                new Vector2(0.5f, 0.5f), new Vector2(-118f, -136f), new Vector2(215f, 38f),
-                new Color(0.90f, 0.30f, 0.48f, 0.96f), 18,
+            CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepHotDog", "Hot Dog",
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -86f), new Vector2(120f, 32f),
+                new Color(0.82f, 0.36f, 0.46f, 0.95f), 14,
                 () => OnClickKitchenFood(FoodType.HotDog));
 
-            // Coluna Direita: Alimentos Naturais por Espécie (Etapa 3)
-            FoodType[] naturalFoods = { FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes };
-            for (int i = 0; i < naturalFoods.Length; i++)
-            {
-                FoodType ft = naturalFoods[i];
-                float y = 112f - i * 44f;
-                CreateClickButton(kitchenPanel.transform, $"Btn_{ft}", $"+ {FoodInfo.GetDisplayName(ft)}",
-                    new Vector2(0.5f, 0.5f), new Vector2(118f, y), new Vector2(215f, 38f),
-                    new Color(0.28f, 0.64f, 0.30f, 0.96f), 19,
-                    () => OnClickKitchenFood(ft));
-            }
-
-            CreateClickButton(kitchenPanel.transform, "BtnKitRapido", "Encher Cesta (Kit Rápido)",
-                new Vector2(0.5f, 0.5f), new Vector2(118f, -136f), new Vector2(215f, 38f),
-                new Color(0.20f, 0.58f, 0.86f, 0.96f), 17,
+            CreateRoundedClickButton(kitchenPanel.transform, "BtnKitRapido", "Kit Rapido",
+                new Vector2(0.5f, 0.5f), new Vector2(132f, -86f), new Vector2(124f, 32f),
+                new Color(0.28f, 0.58f, 0.46f, 0.95f), 14,
                 OnClickQuickRestockBasket);
 
-            kitchenPrepStatus = CreateTMP(kitchenPanel.transform, "PrepStatus", "Escolha, encha rápido ou monte Gourmet!",
-                16, new Vector2(0f, -182f), new Vector2(460f, 26f), TextAlignmentOptions.Center);
-            kitchenPrepStatus.color = new Color(1f, 0.94f, 0.60f, 1f);
+            kitchenPrepStatus = CreateTMP(kitchenPanel.transform, "PrepStatus", "Toque em um cartao para pegar na cesta!",
+                13, new Vector2(0f, -124f), new Vector2(396f, 22f), TextAlignmentOptions.Center);
+            kitchenPrepStatus.color = new Color(0.32f, 0.28f, 0.22f, 1f);
 
             miniPrepPanel = gameObject.AddComponent<KitchenMiniGamePanel>();
             miniPrepPanel.Build(canvasT, OnMiniPrepCompleted, ft => StartCoroutine(PrepareFoodRoutine(ft)));
@@ -670,25 +776,25 @@ namespace FlorestaBicicleta
             {
                 string comboTxt = player.happyCombo >= 3 ? $" x{player.happyCombo}" : "";
                 int savedStars = progressManager != null && progressManager.Data != null ? progressManager.Data.starsAvailable : player.starsCollected;
-                scoreText.text = $"Pts: {player.score}{comboTxt}  ★{savedStars}";
+                scoreText.text = $"{savedStars}  ({player.score} pts{comboTxt})";
             }
 
             if (squirrelText != null)
             {
                 ForestAnimal sq = trackGenerator != null ? trackGenerator.PrimarySquirrel : null;
                 if (digSite != null && digSite.isActive && !digSite.isCompleted)
-                    squirrelText.text = $"Cavando: {Mathf.RoundToInt(digSite.digProgress)}%";
+                    squirrelText.text = $"Cavando {Mathf.RoundToInt(digSite.digProgress)}%";
                 else if (sq != null)
-                    squirrelText.text = $"Esquilo: {sq.mealsEaten} / {sq.requiredMeals}";
+                    squirrelText.text = $"Esquilo {sq.mealsEaten}/{sq.requiredMeals}";
                 else
-                    squirrelText.text = "Aventura Infinita";
+                    squirrelText.text = "Pedal no Bosque";
             }
 
             if (biomeSlopeText != null)
             {
                 string biomeName = InfiniteTrackGenerator.GetBiomeDisplayName(currentBiome);
                 string periodName = dayNightCycle != null ? DayNightCycleController.GetPeriodDisplayName(dayNightCycle.CurrentPeriod) : "Dia";
-                biomeSlopeText.text = $"{biomeName} • {periodName}";
+                biomeSlopeText.text = $"{biomeName} - {periodName}";
                 biomeSlopeText.color = InfiniteTrackGenerator.GetBiomeAccentColor(currentBiome);
             }
 
@@ -701,12 +807,16 @@ namespace FlorestaBicicleta
             if (nearbyOrderText != null)
             {
                 bool showResident = nearestResident != null && (nearest == null || nearestResidentDist < nearestAnimalDist);
-                if (showResident)
+                if (nearbyAdventureEvent != null && !nearbyAdventureEvent.isCompleted)
+                {
+                    nearbyOrderText.text = nearbyAdventureEvent.NearbyPrompt;
+                }
+                else if (showResident)
                 {
                     if (nearestResident.isHelped)
                         nearbyOrderText.text = $"{nearestResident.residentName}: Missão concluída com alegria!";
                     else
-                        nearbyOrderText.text = $"{nearestResident.residentName} ({nearestResident.missionTitle}): {FoodInfo.GetDisplayName(nearestResident.wantedFood)} (+{nearestResident.starReward} ★)";
+                        nearbyOrderText.text = $"{nearestResident.residentName} ({nearestResident.missionTitle}): {FoodInfo.GetDisplayName(nearestResident.wantedFood)} (+{nearestResident.starReward} Estrelas)";
                 }
                 else if (nearest != null)
                 {
@@ -735,12 +845,13 @@ namespace FlorestaBicicleta
             if (waterLabel != null)
             {
                 int wPct = Mathf.RoundToInt(player.waterLevel);
-                waterLabel.text = wPct < 25 ? $"SEDE! {wPct}%" : $"Água: {wPct}%";
-                waterLabel.color = wPct < 25 ? new Color(1f, 0.45f, 0.45f, 1f) : new Color(0.60f, 0.90f, 1f, 1f);
+                waterLabel.text = $"{wPct}%";
+                waterLabel.color = wPct < 25 ? new Color(1f, 0.50f, 0.48f, 1f) : new Color(0.76f, 0.96f, 1f, 1f);
             }
 
-            if (kitchenPanel != null) kitchenPanel.SetActive(player.isNearKitchen);
-            if (!player.isNearKitchen && miniPrepPanel != null && miniPrepPanel.IsOpen)
+            if (!player.isNearKitchen) kitchenManuallyClosed = false;
+            if (kitchenPanel != null) kitchenPanel.SetActive(player.isNearKitchen && !kitchenManuallyClosed);
+            if ((!player.isNearKitchen || kitchenManuallyClosed) && miniPrepPanel != null && miniPrepPanel.IsOpen)
                 miniPrepPanel.Close();
 
             if (digButtonObj != null && digSite != null)
@@ -748,7 +859,16 @@ namespace FlorestaBicicleta
                 bool showDig = digSite.isActive && digSite.playerNearby && !digSite.isCompleted;
                 digButtonObj.SetActive(showDig);
                 if (showDig && digButtonLabel != null)
-                    digButtonLabel.text = $"CAVAR JUNTO! ({Mathf.RoundToInt(digSite.digProgress)}%)";
+                    digButtonLabel.text = $"Cavar Junto ({Mathf.RoundToInt(digSite.digProgress)}%)";
+            }
+
+            if (adventureEventButtonObj != null)
+            {
+                bool showDigNow = digButtonObj != null && digButtonObj.activeSelf;
+                bool showEvent = !showDigNow && nearbyAdventureEvent != null && !nearbyAdventureEvent.isCompleted;
+                adventureEventButtonObj.SetActive(showEvent);
+                if (showEvent && adventureEventButtonLabel != null)
+                    adventureEventButtonLabel.text = nearbyAdventureEvent.ActionButtonLabel;
             }
 
             if (player.waterLevel < 25f && Time.time > messageExpireTime)
@@ -814,11 +934,85 @@ namespace FlorestaBicicleta
 
         private GameObject CreateClickButton(Transform parent, string name, string label, Vector2 anchor, Vector2 pos, Vector2 size, Color color, int fontSize, System.Action onClick)
         {
-            GameObject btnObj = CreatePanel(parent, name, anchor, anchor, pos, size, color);
+            GameObject btnObj = CreateRoundedPanel(parent, name, anchor, anchor, pos, size, color);
             CreateTMP(btnObj.transform, "Label", label, fontSize, Vector2.zero, size, TextAlignmentOptions.Center);
             Button btn = btnObj.AddComponent<Button>();
             btn.onClick.AddListener(() => onClick());
             return btnObj;
+        }
+
+        private GameObject CreateRoundedPanel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, Color color)
+        {
+            GameObject go = CreatePanel(parent, name, anchorMin, anchorMax, pos, size, color);
+            Image img = go.GetComponent<Image>();
+            img.sprite = StorybookUISpriteFactory.GetRoundedPillSprite();
+            img.type = Image.Type.Sliced;
+            return go;
+        }
+
+        private GameObject CreateRoundedCardPanel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, Color color)
+        {
+            GameObject go = CreatePanel(parent, name, anchorMin, anchorMax, pos, size, color);
+            Image img = go.GetComponent<Image>();
+            img.sprite = StorybookUISpriteFactory.GetRoundedCardSprite();
+            img.type = Image.Type.Sliced;
+            return go;
+        }
+
+        private void CreateUIIcon(Transform parent, string name, StorybookUISpriteFactory.UIIconKind iconKind, Vector2 pos, Vector2 size)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            RectTransform rt = go.AddComponent<RectTransform>();
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+            Image img = go.AddComponent<Image>();
+            img.sprite = StorybookUISpriteFactory.GetIcon(iconKind);
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+        }
+
+        private GameObject CreateRoundedClickButton(Transform parent, string name, string label, Vector2 anchor, Vector2 pos, Vector2 size, Color color, int fontSize, System.Action onClick)
+        {
+            GameObject btnObj = CreateRoundedPanel(parent, name, anchor, anchor, pos, size, color);
+            CreateTMP(btnObj.transform, "Label", label, fontSize, Vector2.zero, size, TextAlignmentOptions.Center);
+            Button btn = btnObj.AddComponent<Button>();
+            btn.onClick.AddListener(() => onClick());
+            return btnObj;
+        }
+
+        private GameObject CreateIconClickButton(Transform parent, string name, string label, StorybookUISpriteFactory.UIIconKind iconKind, Vector2 anchor, Vector2 pos, Vector2 size, Color color, int fontSize, System.Action onClick)
+        {
+            GameObject btnObj = CreateRoundedPanel(parent, name, anchor, anchor, pos, size, color);
+            bool hasLabel = !string.IsNullOrEmpty(label);
+            CreateUIIcon(btnObj.transform, "Icon", iconKind,
+                hasLabel ? new Vector2(-size.x * 0.5f + 22f, 0f) : Vector2.zero,
+                new Vector2(24f, 24f));
+            if (hasLabel)
+                CreateTMP(btnObj.transform, "Label", label, fontSize, new Vector2(12f, 0f), new Vector2(size.x - 30f, size.y), TextAlignmentOptions.Center);
+            Button btn = btnObj.AddComponent<Button>();
+            btn.onClick.AddListener(() => onClick());
+            return btnObj;
+        }
+
+        private void CreateIconHoldButton(Transform parent, string name, string label, StorybookUISpriteFactory.UIIconKind iconKind, Vector2 anchor, Vector2 pos, Vector2 size, Color color, int fontSize, System.Action onDown, System.Action onUp)
+        {
+            GameObject btnObj = CreateRoundedPanel(parent, name, anchor, anchor, pos, size, color);
+            CreateUIIcon(btnObj.transform, "Icon", iconKind, new Vector2(-size.x * 0.5f + 22f, 0f), new Vector2(24f, 24f));
+            CreateTMP(btnObj.transform, "Label", label, fontSize, new Vector2(12f, 0f), new Vector2(size.x - 30f, size.y), TextAlignmentOptions.Center);
+
+            EventTrigger trigger = btnObj.AddComponent<EventTrigger>();
+            var d = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+            d.callback.AddListener(_ => onDown());
+            trigger.triggers.Add(d);
+
+            var u = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+            u.callback.AddListener(_ => onUp());
+            trigger.triggers.Add(u);
+
+            var e = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            e.callback.AddListener(_ => onUp());
+            trigger.triggers.Add(e);
         }
     }
 }

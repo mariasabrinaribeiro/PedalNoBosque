@@ -65,6 +65,12 @@ namespace FlorestaBicicleta
                 }
             }
 
+            // Sombra de contato suave integrando o obstáculo ao chão da trilha
+            Color contactShadow = new Color(0.10f, 0.14f, 0.08f, 0.26f);
+            for (int y = 1; y <= 8; y++)
+                for (int x = 8; x < w - 8; x++)
+                    tex.SetPixel(x, y, contactShadow);
+
             if (kind == ObstacleKind.Pedra)
             {
                 Circle(32, 16, 16, new Color(0.46f, 0.49f, 0.54f, 1f));

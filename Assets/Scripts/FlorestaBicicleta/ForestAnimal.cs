@@ -342,6 +342,23 @@ namespace FlorestaBicicleta
             UpdateBubble();
         }
 
+        /// <summary>Reação gentil à campainha da bicicleta: acalma o Lobo e alegra os bichinhos próximos!</summary>
+        public void OnBellHeard()
+        {
+            if (isWolfCautious)
+            {
+                isWolfCautious = false;
+                wolfCalmTimer = 0f;
+                if (bodyRenderer != null) bodyRenderer.color = Color.white;
+            }
+            if (Time.time - lastVoiceTime > 3.5f)
+            {
+                lastVoiceTime = Time.time;
+                FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+                SpawnHeart(transform.position + new Vector3(0f, 2.0f, 0f));
+            }
+        }
+
         private IEnumerator EatAndHeartsRoutine(int heartCount, bool keepSaciado)
         {
             for (int i = 0; i < heartCount; i++)

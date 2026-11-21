@@ -15,6 +15,7 @@ namespace FlorestaBicicleta
         private static readonly Dictionary<int, Sprite> cottageCache = new Dictionary<int, Sprite>();
         private static readonly Dictionary<int, Sprite> midTreeCache = new Dictionary<int, Sprite>();
         private static readonly Dictionary<int, Sprite> fgFlowerCache = new Dictionary<int, Sprite>();
+        private static readonly Dictionary<int, Sprite> organicTreeCache = new Dictionary<int, Sprite>();
         private static Sprite cachedHill;
         private static Sprite cachedRiver;
         private static Sprite cachedRiverShimmer;
@@ -592,33 +593,51 @@ namespace FlorestaBicicleta
             return sp;
         }
 
-        /// <summary>Cachoeira distante com névoa suave para o Fundo Intermediário.</summary>
+        /// <summary>Cachoeira orgânica pintada com paredão rochoso, múltiplos filetes de água, espuma e névoa suave.</summary>
         public static Sprite CreateDistantWaterfallSprite()
         {
             if (cachedWaterfall != null) return cachedWaterfall;
-            int w = 128, h = 148;
+            int w = 160, h = 160;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color cliff = new Color(0.36f, 0.44f, 0.48f, 0.84f);
-            Color moss = new Color(0.24f, 0.56f, 0.34f, 0.88f);
-            Color fall = new Color(0.56f, 0.88f, 0.98f, 0.86f);
-            Color foam = new Color(0.92f, 0.99f, 1f, 0.90f);
+            Color cliffDark = new Color(0.28f, 0.36f, 0.40f, 0.88f);
+            Color cliffMid = new Color(0.40f, 0.48f, 0.52f, 0.90f);
+            Color mossDark = new Color(0.18f, 0.48f, 0.28f, 0.92f);
+            Color mossLight = new Color(0.32f, 0.66f, 0.34f, 0.92f);
+            Color aquaDeep = new Color(0.24f, 0.68f, 0.86f, 0.86f);
+            Color aquaLight = new Color(0.56f, 0.90f, 0.98f, 0.88f);
+            Color foam = new Color(0.94f, 0.99f, 1f, 0.92f);
 
-            // Paredão rochoso com musgo
-            FillEllipse(tex, 34, 62, 30, 56, cliff);
-            FillEllipse(tex, 96, 58, 28, 52, cliff);
-            FillEllipse(tex, 32, 112, 28, 16, moss);
-            FillEllipse(tex, 96, 108, 26, 16, moss);
+            // Paredão rochoso orgânico em camadas
+            FillEllipse(tex, 42, 68, 36, 62, cliffDark);
+            FillEllipse(tex, 118, 62, 34, 56, cliffDark);
+            FillEllipse(tex, 48, 76, 26, 46, cliffMid);
+            FillEllipse(tex, 112, 70, 24, 42, cliffMid);
+            FillEllipse(tex, 40, 122, 34, 18, mossDark);
+            FillEllipse(tex, 118, 114, 30, 16, mossDark);
+            FillEllipse(tex, 46, 128, 24, 12, mossLight);
+            FillEllipse(tex, 114, 120, 20, 10, mossLight);
 
-            // Queda d'água vertical brilhante
-            FillRect(tex, 48, 14, 80, 122, fall);
-            FillRect(tex, 54, 18, 60, 120, foam);
-            FillRect(tex, 68, 20, 74, 118, foam);
+            // Filetes curvos orgânicos de queda d'água (nunca um retângulo chapado!)
+            for (int y = 16; y <= 130; y++)
+            {
+                float t = (y - 16f) / 114f;
+                int center = Mathf.RoundToInt(80f + Mathf.Sin(t * 2.6f) * 6f);
+                int halfW = Mathf.RoundToInt(Mathf.Lerp(22f, 13f, t));
+                FillRect(tex, center - halfW, y, center + halfW, y, aquaDeep);
+                FillRect(tex, center - halfW + 5, y, center + halfW - 6, y, aquaLight);
+                if (y % 7 < 4)
+                {
+                    FillRect(tex, center - 8, y, center - 3, y, foam);
+                    FillRect(tex, center + 3, y, center + 7, y, foam);
+                }
+            }
 
-            // Névoa fofa na base
-            FillEllipse(tex, 64, 18, 36, 14, new Color(0.90f, 0.98f, 1f, 0.72f));
-            FillEllipse(tex, 48, 14, 22, 10, new Color(1f, 1f, 1f, 0.58f));
-            FillEllipse(tex, 82, 14, 22, 10, new Color(1f, 1f, 1f, 0.58f));
+            // Espuma volumosa no topo da queda e névoa na piscina da base
+            FillEllipse(tex, 80, 128, 18, 7, foam);
+            FillEllipse(tex, 80, 22, 44, 15, new Color(0.84f, 0.96f, 1f, 0.72f));
+            FillEllipse(tex, 58, 18, 26, 11, new Color(1f, 1f, 1f, 0.62f));
+            FillEllipse(tex, 104, 18, 26, 11, new Color(1f, 1f, 1f, 0.62f));
 
             tex.Apply();
             cachedWaterfall = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.05f), 26f);
@@ -883,6 +902,62 @@ namespace FlorestaBicicleta
             tex.Apply();
             cachedGlowMushroom = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.06f), 42f);
             return cachedGlowMushroom;
+        }
+
+        /// <summary>
+        /// 5 modelos distintos de árvores orgânicas (Cozy Storybook) para eliminar repetição artificial:
+        /// 0 = Salgueiro com passarinho, 1 = Carvalho antigo volumoso, 2 = Pinheiro alto,
+        /// 3 = Árvore frutífera florida, 4 = Bétula delicada de folhas douradas.
+        /// </summary>
+        public static Sprite CreateOrganicTreeSprite(int modelIndex)
+        {
+            int key = Mathf.Abs(modelIndex) % 5;
+            if (key == 0) return CreateWillowTreeWithBirdSprite();
+            if (key == 3) return CreateFruitTreeSprite();
+            if (organicTreeCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
+
+            int w = 160, h = 168;
+            Texture2D tex = CreateBlankTex(w, h);
+
+            if (key == 1)
+            {
+                // Carvalho antigo volumoso com raízes, galhos e copa em 3 tons de luz
+                Color bark = new Color(0.38f, 0.24f, 0.14f, 0.96f);
+                Color barkLight = new Color(0.52f, 0.34f, 0.20f, 0.96f);
+                FillEllipse(tex, 80, 12, 28, 10, bark); // Raízes na base
+                FillRect(tex, 68, 10, 92, 84, bark);
+                FillRect(tex, 74, 12, 82, 82, barkLight);
+                FillCircle(tex, 48, 104, 34, new Color(0.16f, 0.44f, 0.22f, 0.95f));
+                FillCircle(tex, 112, 102, 32, new Color(0.16f, 0.44f, 0.22f, 0.95f));
+                FillCircle(tex, 80, 120, 40, new Color(0.24f, 0.58f, 0.28f, 0.96f));
+                FillCircle(tex, 68, 134, 24, new Color(0.38f, 0.72f, 0.32f, 0.95f));
+                FillCircle(tex, 96, 128, 22, new Color(0.38f, 0.72f, 0.32f, 0.95f));
+            }
+            else if (key == 2)
+            {
+                // Pinheiro alto orgânico com camadas assimétricas de folhagem
+                FillRect(tex, 73, 6, 87, 46, new Color(0.36f, 0.22f, 0.12f, 0.96f));
+                FillTriangle(tex, 28, 36, 132, 36, 80, 92, new Color(0.14f, 0.42f, 0.30f, 0.95f));
+                FillTriangle(tex, 36, 68, 124, 68, 80, 124, new Color(0.18f, 0.50f, 0.34f, 0.96f));
+                FillTriangle(tex, 46, 98, 114, 98, 80, 154, new Color(0.26f, 0.60f, 0.38f, 0.96f));
+            }
+            else
+            {
+                // Bétula delicada de tronco claro e folhas verde-douradas luminosas
+                Color paleBark = new Color(0.86f, 0.84f, 0.78f, 0.96f);
+                Color barkMark = new Color(0.36f, 0.34f, 0.32f, 0.85f);
+                FillRect(tex, 74, 6, 86, 92, paleBark);
+                for (int y = 18; y < 86; y += 14) FillRect(tex, 75, y, 82, y + 2, barkMark);
+                FillCircle(tex, 56, 106, 26, new Color(0.46f, 0.72f, 0.28f, 0.92f));
+                FillCircle(tex, 102, 104, 24, new Color(0.56f, 0.78f, 0.28f, 0.92f));
+                FillCircle(tex, 80, 126, 30, new Color(0.74f, 0.84f, 0.30f, 0.94f));
+                FillCircle(tex, 72, 136, 18, new Color(0.92f, 0.88f, 0.38f, 0.90f));
+            }
+
+            tex.Apply();
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 26f);
+            organicTreeCache[key] = sp;
+            return sp;
         }
     }
 }

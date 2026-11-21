@@ -47,10 +47,22 @@ Cada região combina **paleta de cores**, **trilha/ambiência sonora** e **acont
   - `PlayerProgressManager.cs`: Livro de Descobertas (14 espécies com personalidade, alimento favorito, região, curiosidade e silhuetas para espécies não descobertas), 7 colecionáveis da natureza, 9 medalhas de conquistas e 25 itens de personalização (Bicicletas, Cestas, Acessórios, Personagem e Cachorrinho) desbloqueáveis por Estrelas (`★`), com suporte a equipar/retirar.
   - `TrailCollectibleItem.cs` e `DiscoveryBookAndWorkshopUI.cs`: colecionáveis espalhados pelas 6 regiões + Diário ilustrado de 3 abas na paleta do Pedal no Bosque.
 
-### Próximos Passos (Passo a Passo)
-- [ ] **Etapa 8 — Cenários Vivos e Exploração Ambiental:** flores que abrem ao passar, borboletas que acompanham a bike, cogumelos luminosos com partículas, peixes saltando no rio, ponte de madeira que balança suavemente, vento movimentando folhas/flores, grama inclinando e cachoeira com névoa/arco-íris.
-- [ ] **Etapa 9 — Surpresas, Segredos e Acontecimentos Inesperados:** raposa que surge e some numa toca, esquilo escondendo objetos em árvores, coruja em noites específicas, árvore antiga com passagem secreta, mapa em garrafa no rio, arco-íris revelando área escondida, filhote perdido e borboleta rara conduzindo a um jardim secreto.
-- [ ] **Etapa 10 — Progressão, Vila Evolutiva e Cachorrinho Reativo:** vila que evolui com as descobertas (reconstruir ponte, desbloquear praça, plantar flores/árvores, abrigo de animais, estação melhorada e decoração da casinha da personagem) + **cachorrinho reativo** na cesta que fareja segredos, late ao detectar tesouros/animais raros e reage emocionalmente aos eventos.
+- [~] **Etapa 8/9 — Cenários Vivos, Eventos Contextuais e Fenômenos Naturais *(implementada — validar em Play Mode)*:**
+  - `TrailAdventureEvent.cs`: 4 situações contextuais na trilha além da entrega de comida (**Flores Murchas**, **Pássaro Caído**, **Ponte/Passarela Quebrada** e **Tesouro Escondido**).
+  - `WeatherAndPhenomenaController.cs`: **Chuva Leve** (em pool), **Arco-Íris** após a chuva, **Neblina Suave** na madrugada/floresta e **Estrela Cadente** no céu noturno/Bosque da Lua.
+  - **Campainha Interativa (`B` / botão Sino):** chama e acalma animais próximos (incluindo o Lobo cauteloso).
+- [~] **Etapa 10 — Mundo Reativo, Vila dos Viajantes Evolutiva e Cachorrinho Companheiro *(implementada — validar em Play Mode)*:**
+  - `PuppyCompanionController.cs`: estados emocionais visíveis do cachorrinho acima da cestinha (**Feliz**, **Curioso farejando segredos**, **Dormindo com Zzz durante pausas calmas** e **Com Sede**).
+  - **Vila dos Viajantes Evolutiva (3 Níveis persistentes no Save JSON):** conforme o jogador alimenta animais, rega flores, ajuda passarinhos e conserta pontes, a vila evolui de *Vila Inicial* → **Nível 1 (Vila Florida)** → **Nível 2 (Praça Festiva + Esquilo da Feira)** → **Nível 3 (Vila Encantada + Urso da Horta e flores luminosas)**!
+
+### Preparação de Produto & Publicação (Fases D/E — Base Implementada)
+- [~] **Tela de Título Oficial `PEDAL NO BOSQUE` + Internacionalização (PT-BR / EN / ES) + Barreira Parental *(implementada — validar em Play Mode)*:**
+  - `LocalizationManager.cs`: suporte offline a Português, Inglês e Espanhol salvo no JSON.
+  - `PedalTitleScreenUI.cs`: tela de título acolhedora sobre o cenário vivo, resumo de progresso salvo, seletor de idioma (`PT | EN | ES`) e **Barreira Parental (Parental Gate)** matemática protegendo a *Área dos Pais* (transparência LGPD/COPPA + opção segura de reiniciar progresso).
+  - `ProjectSettings/EditorBuildSettings.asset`: `Assets/Scenes/FlorestaBicicleta.unity` registrada como cena inicial (`index 0`) para build!
+
+### Próximo Marco — Validação Visual e Testes em Play Mode
+- [ ] Testar o ciclo completo no Unity Play Mode: Tela de Título → Troca de Idioma → Barreira Parental → Jogar → Eventos Contextuais → Vale das Águas → Ciclo Dia/Noite & Clima → Livro & Oficina → Fechar e Reabrir (persistência).
 
 ---
 

@@ -32,6 +32,7 @@ namespace FlorestaBicicleta
             public GameObject root;
             public readonly List<ForestAnimal> animals = new List<ForestAnimal>();
             public readonly List<VillageResident> residents = new List<VillageResident>();
+            public readonly List<TrailAdventureEvent> events = new List<TrailAdventureEvent>();
         }
 
         private const float SegmentLength = 48f;
@@ -43,6 +44,7 @@ namespace FlorestaBicicleta
 
         public readonly List<ForestAnimal> ActiveAnimals = new List<ForestAnimal>();
         public readonly List<VillageResident> ActiveResidents = new List<VillageResident>();
+        public readonly List<TrailAdventureEvent> ActiveEvents = new List<TrailAdventureEvent>();
         public float MinSafeBacktrackX { get; private set; } = -4f;
         public ForestAnimal PrimarySquirrel { get; private set; }
 
@@ -243,6 +245,10 @@ namespace FlorestaBicicleta
                 {
                     ActiveResidents.Remove(old.residents[i]);
                 }
+                for (int i = 0; i < old.events.Count; i++)
+                {
+                    ActiveEvents.Remove(old.events[i]);
+                }
 
                 MinSafeBacktrackX = Mathf.Max(MinSafeBacktrackX, old.endX + 2f);
                 if (old.root != null) Destroy(old.root);
@@ -380,6 +386,9 @@ namespace FlorestaBicicleta
 
             // Colecionável natural coerente com o bioma (Etapa 7)
             SpawnBiomeCollectible(root.transform, biome, startX, seg.index);
+
+            // Evento contextual de aventura (regar flores, ajudar passarinho, consertar ponte, tesouro escondido)
+            SpawnContextualAdventureEvent(seg, biome, startX, blockedZones);
 
             // Placas de marco de distância (a cada 0.5 km) que caírem dentro deste segmento
             while (nextMilestoneX < endX)
@@ -671,6 +680,30 @@ namespace FlorestaBicicleta
 
             // Gato companheiro da vila
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 43f, blocked);
+
+            // Evolução persistente da Vila dos Viajantes conforme as boas ações do jogador (Etapa 10)!
+            int vLevel = (PlayerProgressManager.Instance != null && PlayerProgressManager.Instance.Data != null)
+                ? PlayerProgressManager.Instance.Data.villageEvolutionLevel
+                : 0;
+
+            if (vLevel >= 1)
+            {
+                // Nível 1 (Vila Florida): canteiros floridos balançando na entrada e praça
+                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(0), new Vector3(s + 9f, -2.72f, 0f), 1.05f, 3, 3.2f);
+                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(1), new Vector3(s + 26f, -2.72f, 0f), 1.05f, 3, 3.2f);
+            }
+            if (vLevel >= 2)
+            {
+                // Nível 2 (Praça Festiva): bandeirinhas extras + animais da floresta visitando a vila!
+                SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 24f, 0.85f, 0f), 1.2f, 4);
+                SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo da Feira", 3, s + 19f, blocked);
+            }
+            if (vLevel >= 3)
+            {
+                // Nível 3 (Vila Encantada): jardim luminoso especial + Filhote de Urso cuidando da horta!
+                SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 34f, -2.72f, 0f), 1.0f, 3, 2.8f);
+                SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Urso da Horta", 3, s + 45f, blocked);
+            }
         }
 
         private void BuildBosqueDaLua(
@@ -882,6 +915,53 @@ namespace FlorestaBicicleta
             colObj.transform.SetParent(parent, false);
             colObj.transform.position = new Vector3(startX + 29f, -2.15f, 0f);
             colObj.AddComponent<TrailCollectibleItem>().Setup(kind);
+        }
+
+        private void SpawnContextualAdventureEvent(TrackSegment seg, BiomeType biome, float startX, List<(float min, float max)> blocked)
+        {
+            TrailAdventureEvent.EventKind kind;
+            switch (biome)
+            {
+                case BiomeType.CampoFlorido:
+                    kind = (seg.index == 0 || seg.index % 2 == 0)
+                        ? TrailAdventureEvent.EventKind.FloresMurchas
+                        : TrailAdventureEvent.EventKind.PassaroCaido;
+                    break;
+                case BiomeType.Colinas:
+                    kind = (seg.index % 2 == 0)
+                        ? TrailAdventureEvent.EventKind.PassaroCaido
+                        : TrailAdventureEvent.EventKind.TesouroEscondido;
+                    break;
+                case BiomeType.RegiaoDoRio:
+                    kind = (seg.index % 2 == 1)
+                        ? TrailAdventureEvent.EventKind.PonteQuebrada
+                        : TrailAdventureEvent.EventKind.FloresMurchas;
+                    break;
+                case BiomeType.TrilhaDaFloresta:
+                    kind = (seg.index % 2 == 0)
+                        ? TrailAdventureEvent.EventKind.TesouroEscondido
+                        : TrailAdventureEvent.EventKind.PassaroCaido;
+                    break;
+                case BiomeType.PequenaVila:
+                    kind = TrailAdventureEvent.EventKind.FloresMurchas;
+                    break;
+                case BiomeType.BosqueDaLua:
+                    kind = TrailAdventureEvent.EventKind.TesouroEscondido;
+                    break;
+                default:
+                    kind = TrailAdventureEvent.EventKind.FloresMurchas;
+                    break;
+            }
+
+            float ex = (seg.index == 0) ? startX + 27.5f : startX + 35f;
+            GameObject evObj = new GameObject($"EventoAventura_{kind}_{seg.index}");
+            evObj.transform.SetParent(seg.root.transform, false);
+            evObj.transform.position = new Vector3(ex, -2.65f, 0f);
+            TrailAdventureEvent ev = evObj.AddComponent<TrailAdventureEvent>();
+            ev.Setup(kind);
+            seg.events.Add(ev);
+            ActiveEvents.Add(ev);
+            blocked.Add((ex - 3.5f, ex + 3.5f));
         }
 
         private void SpawnDistanceSign(Transform parent, float xPos, float kmValue)

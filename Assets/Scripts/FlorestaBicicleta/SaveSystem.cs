@@ -16,12 +16,19 @@ namespace FlorestaBicicleta
     public class PlayerSaveData
     {
         public int saveVersion = 1;
+        public string language = "pt"; // "pt", "en", "es"
         public int starsAvailable = 0;
         public int totalStarsEarned = 0;
         public float bestDistanceKm = 0f;
         public int totalDeliveries = 0;
         public bool squirrelSecretFound = false;
         public bool owlMet = false;
+
+        // Impacto do jogador no mundo vivo e evolução da Vila dos Viajantes (Etapa 10)
+        public int flowersWateredCount = 0;
+        public int bridgesRepairedCount = 0;
+        public int birdsRescuedCount = 0;
+        public int villageEvolutionLevel = 0;
 
         public List<string> discoveredAnimals = new List<string>();
         public List<string> visitedBiomes = new List<string>();

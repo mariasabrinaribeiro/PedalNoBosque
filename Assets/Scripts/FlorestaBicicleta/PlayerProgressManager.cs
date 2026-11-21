@@ -270,7 +270,7 @@ namespace FlorestaBicicleta
             // Cachorrinho
             Customizations.Add(new CustomizationItemDef { id = "puppy_default", category = CustomizationCategory.Cachorrinho, displayName = "Cachorrinho Natural", badgeText = "Au-au", starCost = 0, tintColor = Color.white });
             Customizations.Add(new CustomizationItemDef { id = "puppy_lenco", category = CustomizationCategory.Cachorrinho, displayName = "Lenço Vermelho", badgeText = "Lenço", starCost = 3, tintColor = new Color(1f, 0.42f, 0.46f, 1f) });
-            Customizations.Add(new CustomizationItemDef { id = "puppy_coleira", category = CustomizationCategory.Cachorrinho, displayName = "Coleira Estrelinha", badgeText = "★", starCost = 4, tintColor = new Color(1f, 0.88f, 0.34f, 1f) });
+            Customizations.Add(new CustomizationItemDef { id = "puppy_coleira", category = CustomizationCategory.Cachorrinho, displayName = "Coleira Estrelinha", badgeText = "Estrela", starCost = 4, tintColor = new Color(1f, 0.88f, 0.34f, 1f) });
             Customizations.Add(new CustomizationItemDef { id = "puppy_oculos", category = CustomizationCategory.Cachorrinho, displayName = "Óculos de Aventura", badgeText = "Estiloso", starCost = 5, tintColor = new Color(0.48f, 0.84f, 1f, 1f) });
             Customizations.Add(new CustomizationItemDef { id = "puppy_chapeu", category = CustomizationCategory.Cachorrinho, displayName = "Chapéu Explorador", badgeText = "Chapéu", starCost = 6, tintColor = new Color(0.82f, 0.64f, 0.40f, 1f) });
         }
@@ -337,7 +337,42 @@ namespace FlorestaBicicleta
                 AddCollectible(CollectibleKind.TesourosSecretos, 1);
                 TryUnlockAchievement("squirrel_secret");
             }
+            EvaluateVillageEvolution();
             SaveSystem.Save(Data);
+        }
+
+        public void RecordAdventureAction(TrailAdventureEvent.EventKind eventKind)
+        {
+            if (Data == null) return;
+            switch (eventKind)
+            {
+                case TrailAdventureEvent.EventKind.FloresMurchas:
+                    Data.flowersWateredCount++;
+                    break;
+                case TrailAdventureEvent.EventKind.PonteQuebrada:
+                    Data.bridgesRepairedCount++;
+                    break;
+                case TrailAdventureEvent.EventKind.PassaroCaido:
+                    Data.birdsRescuedCount++;
+                    break;
+            }
+            EvaluateVillageEvolution();
+            SaveSystem.Save(Data);
+        }
+
+        public void EvaluateVillageEvolution()
+        {
+            if (Data == null) return;
+            int totalGoodDeeds = Data.totalDeliveries + Data.flowersWateredCount + Data.bridgesRepairedCount + Data.birdsRescuedCount;
+            int newLevel = totalGoodDeeds >= 10 ? 3 : (totalGoodDeeds >= 6 ? 2 : (totalGoodDeeds >= 3 ? 1 : 0));
+
+            if (newLevel > Data.villageEvolutionLevel)
+            {
+                Data.villageEvolutionLevel = newLevel;
+                string levelName = newLevel == 1 ? "Vila Florida" : (newLevel == 2 ? "Praca Festiva" : "Vila Encantada");
+                FlorestaSoundFX.Instance?.PlayDiamond();
+                OnMilestoneBanner?.Invoke($"A Vila dos Viajantes evoluiu para o Nivel {newLevel}: {levelName}!", new Color(1f, 0.90f, 0.56f, 1f));
+            }
         }
 
         public void RecordDistanceKm(float km)
@@ -410,7 +445,7 @@ namespace FlorestaBicicleta
             AddCollectible(CollectibleKind.Estrelas, def.starReward, saveNow: false);
 
             FlorestaSoundFX.Instance?.PlayDiamond();
-            OnMilestoneBanner?.Invoke($"Medalha desbloqueada: {def.title}! (+{def.starReward} ★)", new Color(1f, 0.88f, 0.42f, 1f));
+            OnMilestoneBanner?.Invoke($"Medalha desbloqueada: {def.title}! (+{def.starReward} Estrelas)", new Color(1f, 0.88f, 0.42f, 1f));
             SaveSystem.Save(Data);
         }
 
@@ -452,7 +487,7 @@ namespace FlorestaBicicleta
             {
                 if (Data.starsAvailable < item.starCost)
                 {
-                    feedback = $"Precisa de {item.starCost} ★ (você tem {Data.starsAvailable} ★).";
+                    feedback = $"Precisa de {item.starCost} Estrelas (voce tem {Data.starsAvailable}).";
                     FlorestaSoundFX.Instance?.PlayWrong();
                     return false;
                 }

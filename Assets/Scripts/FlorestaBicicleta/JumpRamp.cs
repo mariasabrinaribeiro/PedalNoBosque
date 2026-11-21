@@ -33,31 +33,56 @@ namespace FlorestaBicicleta
         private static Sprite CreateRampSprite()
         {
             if (cachedSprite != null) return cachedSprite;
-            int w = 96, h = 48;
+            int w = 112, h = 52;
             Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
             Color[] clear = new Color[w * h];
             for (int i = 0; i < clear.Length; i++) clear[i] = Color.clear;
             tex.SetPixels(clear);
 
-            Color woodTop = new Color(0.84f, 0.58f, 0.30f, 1f);
-            Color woodSide = new Color(0.62f, 0.38f, 0.18f, 1f);
-            Color stripe = new Color(1f, 0.84f, 0.24f, 1f);
+            // Rampa natural de terra batida com grama, pedrinhas e sombra de contato (Cozy Storybook)
+            Color shadow = new Color(0.10f, 0.14f, 0.08f, 0.28f);
+            Color dirtDark = new Color(0.50f, 0.34f, 0.20f, 1f);
+            Color dirtMid = new Color(0.68f, 0.49f, 0.30f, 1f);
+            Color dirtLight = new Color(0.80f, 0.64f, 0.42f, 1f);
+            Color grass = new Color(0.28f, 0.64f, 0.26f, 1f);
+            Color grassTip = new Color(0.46f, 0.78f, 0.32f, 1f);
+            Color woodEdge = new Color(0.46f, 0.28f, 0.14f, 1f);
 
+            // Sombra suave na base
             for (int x = 4; x < w - 4; x++)
+                for (int y = 0; y <= 5; y++)
+                    tex.SetPixel(x, y, shadow);
+
+            // Corpo curvo natural de terra + travessa de madeira na ponta
+            for (int x = 6; x < w - 8; x++)
             {
-                float t = (x - 4f) / (w - 8f);
-                int maxY = Mathf.RoundToInt(4 + t * (h - 12));
+                float t = (x - 6f) / (w - 14f);
+                float curve = Mathf.Pow(t, 1.35f);
+                int maxY = Mathf.RoundToInt(6 + curve * (h - 14));
                 for (int y = 4; y <= maxY; y++)
                 {
-                    if (y >= maxY - 5)
-                        tex.SetPixel(x, y, (x % 14 < 6) ? stripe : woodTop);
+                    if (x >= w - 16)
+                        tex.SetPixel(x, y, (y % 5 == 0) ? woodEdge : dirtDark);
+                    else if (y >= maxY - 3)
+                        tex.SetPixel(x, y, dirtLight);
+                    else if (y <= 11)
+                        tex.SetPixel(x, y, dirtDark);
                     else
-                        tex.SetPixel(x, y, woodSide);
+                        tex.SetPixel(x, y, dirtMid);
+                }
+
+                // Tufinhos delicados de grama na base da lombada
+                if (x % 11 < 4 && x < w - 18)
+                {
+                    tex.SetPixel(x, 6, grass);
+                    tex.SetPixel(x, 7, grass);
+                    tex.SetPixel(x, 8, grassTip);
                 }
             }
+
             tex.Apply();
-            cachedSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.05f), 32f);
+            cachedSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.08f), 34f);
             return cachedSprite;
         }
     }

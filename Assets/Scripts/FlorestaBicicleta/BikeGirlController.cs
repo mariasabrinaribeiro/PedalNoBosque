@@ -211,7 +211,7 @@ namespace FlorestaBicicleta
                 else if (uiReversePressed) baseTargetSpeed = reverseSpeed;
             }
 
-            if (bellPressed) FlorestaSoundFX.Instance?.PlayBell();
+            if (bellPressed) RingBell();
             if (jumpPressed) TriggerJump();
 
             if (stumbleTimer > 0f) stumbleTimer -= Time.deltaTime;
@@ -264,9 +264,52 @@ namespace FlorestaBicicleta
             {
                 if (digSiteRef != null && digSiteRef.isActive && digSiteRef.playerNearby && !digSiteRef.isCompleted)
                     digSiteRef.HelpDig();
-                else
+                else if (!TryInteractNearbyEvent())
                     ThrowFood();
             }
+        }
+
+        public void RingBell()
+        {
+            FlorestaSoundFX.Instance?.PlayBell();
+            if (trackGeneratorRef != null)
+            {
+                var animals = trackGeneratorRef.ActiveAnimals;
+                for (int i = 0; i < animals.Count; i++)
+                {
+                    ForestAnimal a = animals[i];
+                    if (a != null && Mathf.Abs(a.transform.position.x - transform.position.x) < 10f)
+                        a.OnBellHeard();
+                }
+            }
+            FlorestaSoundFX.Instance?.PlayDogBark();
+            onInfoMessage?.Invoke("Trim-trim! A campainha chamou a atencao dos bichinhos por perto!");
+        }
+
+        public bool TryInteractNearbyEvent()
+        {
+            if (trackGeneratorRef == null) return false;
+            var events = trackGeneratorRef.ActiveEvents;
+            TrailAdventureEvent best = null;
+            float bestD = 4.5f;
+            for (int i = 0; i < events.Count; i++)
+            {
+                TrailAdventureEvent ev = events[i];
+                if (ev == null || ev.isCompleted) continue;
+                float d = Mathf.Abs(ev.transform.position.x - transform.position.x);
+                if (d < bestD)
+                {
+                    bestD = d;
+                    best = ev;
+                }
+            }
+
+            if (best != null && best.TryInteract(this, out string msg))
+            {
+                onInfoMessage?.Invoke(msg);
+                return true;
+            }
+            return false;
         }
 
         public void TriggerJump(float customVelocity = -1f)
@@ -403,7 +446,7 @@ namespace FlorestaBicicleta
                     score += 50;
                 }
                 string musicExtra = resident.kind == VillageResident.ResidentKind.Musico ? " Ele tocou uma serenata especial!" : "";
-                onInfoMessage?.Invoke($"Missão '{resident.missionTitle}' completa! {resident.residentName} agradeceu! +{resident.starReward} ★ e +{resident.pointReward} pts!{musicExtra}");
+                onInfoMessage?.Invoke($"Missao '{resident.missionTitle}' completa! {resident.residentName} agradeceu! +{resident.starReward} Estrelas e +{resident.pointReward} pts!{musicExtra}");
             }
             else if (res == VillageResident.DeliveryResult.WrongItem)
             {
@@ -491,6 +534,11 @@ namespace FlorestaBicicleta
                 slopeMultiplier = slope.SpeedMultiplier;
                 currentSlopeLabel = slope.DisplayLabel;
                 slopeTiltDeg = slope.slopeType == SlopeZone.SlopeType.Subida ? 9f : -9f;
+                if (slope.slopeType == SlopeZone.SlopeType.Descida)
+                {
+                    FlorestaSoundFX.Instance?.PlayDogBark();
+                    onInfoMessage?.Invoke("Au-au! O cachorrinho esta adorando embalar na descida!");
+                }
                 return;
             }
 
@@ -525,7 +573,7 @@ namespace FlorestaBicicleta
                 score += star.bonusPoints;
                 PlayerProgressManager.Instance?.AddStars(1);
                 FlorestaSoundFX.Instance?.PlayStar();
-                onInfoMessage?.Invoke($"Estrela no ar coletada! +1 ★ e +{star.bonusPoints} pts!");
+                onInfoMessage?.Invoke($"Estrela no ar coletada! +1 Estrela e +{star.bonusPoints} pts!");
                 return;
             }
 

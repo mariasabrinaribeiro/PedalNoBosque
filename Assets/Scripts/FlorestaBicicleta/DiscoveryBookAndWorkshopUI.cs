@@ -60,11 +60,11 @@ namespace FlorestaBicicleta
                 23, new Vector2(-240f, 0f), new Vector2(440f, 40f), TextAlignmentOptions.Left,
                 new Color(1f, 0.97f, 0.86f, 1f));
 
-            headerStarsText = CreateTMP(header.transform, "Stars", "★ 0 Estrelas",
+            headerStarsText = CreateTMP(header.transform, "Stars", "0 Estrelas",
                 21, new Vector2(215f, 0f), new Vector2(220f, 36f), TextAlignmentOptions.Right,
                 new Color(1f, 0.90f, 0.42f, 1f));
 
-            CreateButton(header.transform, "BtnFechar", "✕ Fechar",
+            CreateButton(header.transform, "BtnFechar", "Fechar",
                 new Vector2(410f, 0f), new Vector2(110f, 38f),
                 new Color(0.76f, 0.36f, 0.42f, 0.95f), 17, Close);
 
@@ -122,7 +122,7 @@ namespace FlorestaBicicleta
         {
             var pm = PlayerProgressManager.Instance;
             if (pm != null && headerStarsText != null)
-                headerStarsText.text = $"★ {pm.Data.starsAvailable} Estrelas";
+                headerStarsText.text = $"{pm.Data.starsAvailable} Estrelas";
         }
 
         // ─── ABA 1: LIVRO DOS ANIMAIS ────────────────────────────────
@@ -165,7 +165,7 @@ namespace FlorestaBicicleta
                 new Color(0.36f, 0.28f, 0.44f, 1f));
 
             // Navegação de páginas do Diário
-            CreateButton(tabAnimalsObj.transform, "BtnPrevPage", "◀ Anterior",
+            CreateButton(tabAnimalsObj.transform, "BtnPrevPage", "< Anterior",
                 new Vector2(-190f, -196f), new Vector2(140f, 38f),
                 new Color(0.34f, 0.54f, 0.46f, 0.95f), 16, () =>
                 {
@@ -179,7 +179,7 @@ namespace FlorestaBicicleta
                 17, new Vector2(0f, -196f), new Vector2(220f, 32f), TextAlignmentOptions.Center,
                 new Color(0.26f, 0.24f, 0.20f, 1f));
 
-            CreateButton(tabAnimalsObj.transform, "BtnNextPage", "Próxima ▶",
+            CreateButton(tabAnimalsObj.transform, "BtnNextPage", "Próxima >",
                 new Vector2(190f, -196f), new Vector2(140f, 38f),
                 new Color(0.34f, 0.54f, 0.46f, 0.95f), 16, () =>
                 {
@@ -210,7 +210,7 @@ namespace FlorestaBicicleta
                     $"<b>Personalidade:</b> {entry.personality}\n" +
                     $"<b>Alimento favorito:</b> {entry.favoriteFood}\n" +
                     $"<b>Região:</b> {entry.nativeRegion}\n" +
-                    $"<b>Estado:</b> Descoberto no Bosque ✓";
+                    $"<b>Estado:</b> Descoberto no Bosque (OK)";
                 animalCuriosityText.text = $"<i>Curiosidade:</i> {entry.curiosity}";
             }
             else
@@ -304,8 +304,8 @@ namespace FlorestaBicicleta
                 bool unlocked = pm.IsAchievementUnlocked(def.id);
                 achievementBadges[i].color = unlocked ? new Color(1f, 0.80f, 0.20f, 1f) : new Color(0.74f, 0.74f, 0.78f, 0.7f);
                 achievementLabels[i].text = unlocked
-                    ? $"<b>{def.title} ✓</b> — {def.description}"
-                    : $"{def.title} (+{def.starReward} ★) — {def.description}";
+                    ? $"<b>{def.title} (OK)</b> - {def.description}"
+                    : $"{def.title} (+{def.starReward} Estrelas) - {def.description}";
                 achievementLabels[i].color = unlocked ? new Color(0.18f, 0.42f, 0.24f, 1f) : new Color(0.45f, 0.42f, 0.48f, 0.9f);
             }
         }
@@ -388,7 +388,7 @@ namespace FlorestaBicicleta
                     16, new Vector2(22f, 18f), new Vector2(185f, 28f), TextAlignmentOptions.Left,
                     new Color(0.22f, 0.20f, 0.24f, 1f));
 
-                string btnText = equipped ? "Equipado ✓ (Retirar)" : (unlocked ? "Equipar" : $"Desbloquear ({item.starCost} ★)");
+                string btnText = equipped ? "Equipado (Retirar)" : (unlocked ? "Equipar" : $"Desbloquear ({item.starCost} Estrelas)");
                 Color btnCol = equipped
                     ? new Color(0.26f, 0.60f, 0.36f, 0.96f)
                     : (unlocked ? new Color(0.32f, 0.56f, 0.78f, 0.96f) : new Color(0.82f, 0.52f, 0.24f, 0.96f));
@@ -416,7 +416,10 @@ namespace FlorestaBicicleta
             rt.anchorMax = aMax;
             rt.anchoredPosition = pos;
             rt.sizeDelta = size;
-            go.AddComponent<Image>().color = col;
+            Image img = go.AddComponent<Image>();
+            img.sprite = StorybookUISpriteFactory.GetRoundedCardSprite();
+            img.type = Image.Type.Sliced;
+            img.color = col;
             return go;
         }
 
