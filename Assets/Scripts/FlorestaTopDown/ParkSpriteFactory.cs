@@ -16,7 +16,15 @@ namespace FlorestaTopDown
             Lobo,
             Quati,
             Raposa,
-            Cervo
+            Cervo,
+            // Novos animais do ecossistema (Etapa 3)
+            Ourico,
+            Guaxinim,
+            FilhoteUrso,
+            Passarinhos,
+            Castor,
+            Sapo,
+            CorujaNoturna
         }
 
         private static Sprite LoadRes(string path, float targetHeight, float pivotY = 0.5f)
@@ -387,6 +395,54 @@ namespace FlorestaTopDown
                     FillRect(tex, 12, 20, 40, 22, new Color(0.90f, 0.66f, 0.34f, 1f));
                     FillRect(tex, 10, 26, 44, 10, new Color(0.76f, 0.26f, 0.18f, 1f));
                     FillRect(tex, 14, 30, 36, 3, new Color(1f, 0.88f, 0.18f, 1f));
+                    break;
+
+                case FoodType.Nozes:
+                    // Bolota / noz dourada com chapéu marrom
+                    FillCircle(tex, 32, 25, 13, new Color(0.68f, 0.42f, 0.18f, 1f));
+                    FillCircle(tex, 28, 28, 4, new Color(0.86f, 0.62f, 0.34f, 1f));
+                    FillCircle(tex, 32, 37, 12, new Color(0.42f, 0.24f, 0.10f, 1f));
+                    FillRect(tex, 20, 32, 24, 7, new Color(0.42f, 0.24f, 0.10f, 1f));
+                    FillRect(tex, 30, 46, 4, 7, new Color(0.36f, 0.20f, 0.08f, 1f));
+                    break;
+
+                case FoodType.Cenoura:
+                    // Cenoura laranja vibrante com folhas verdes
+                    FillTriangle(tex, 22, 40, 42, 40, 32, 11, new Color(0.98f, 0.48f, 0.10f, 1f));
+                    FillCircle(tex, 32, 38, 10, new Color(0.98f, 0.48f, 0.10f, 1f));
+                    FillRect(tex, 27, 29, 10, 2, new Color(0.84f, 0.36f, 0.06f, 1f));
+                    FillRect(tex, 29, 22, 6, 2, new Color(0.84f, 0.36f, 0.06f, 1f));
+                    FillTriangle(tex, 24, 46, 34, 46, 28, 56, new Color(0.22f, 0.72f, 0.26f, 1f));
+                    FillTriangle(tex, 30, 46, 40, 46, 36, 56, new Color(0.18f, 0.62f, 0.22f, 1f));
+                    break;
+
+                case FoodType.Maca:
+                    // Maçã vermelha brilhante com cabinho e folha verde
+                    FillCircle(tex, 26, 28, 13, new Color(0.90f, 0.16f, 0.20f, 1f));
+                    FillCircle(tex, 38, 28, 13, new Color(0.90f, 0.16f, 0.20f, 1f));
+                    FillCircle(tex, 24, 33, 4, new Color(1f, 0.62f, 0.62f, 0.85f));
+                    FillRect(tex, 31, 39, 3, 11, new Color(0.46f, 0.26f, 0.12f, 1f));
+                    FillCircle(tex, 38, 46, 5, new Color(0.24f, 0.74f, 0.28f, 1f));
+                    break;
+
+                case FoodType.Mel:
+                    // Pote de mel dourado com tampa e gotinha escorrendo
+                    FillCircle(tex, 32, 26, 15, new Color(0.98f, 0.72f, 0.12f, 1f));
+                    FillRect(tex, 20, 20, 24, 10, new Color(1f, 0.94f, 0.72f, 1f));
+                    FillRect(tex, 22, 38, 20, 7, new Color(0.86f, 0.44f, 0.10f, 1f));
+                    FillCircle(tex, 42, 36, 4, new Color(1f, 0.80f, 0.16f, 1f));
+                    FillCircle(tex, 43, 30, 3, new Color(1f, 0.80f, 0.16f, 1f));
+                    break;
+
+                case FoodType.Sementes:
+                    // Sementinhas de girassol em cima de uma folhinha verde
+                    FillCircle(tex, 32, 24, 15, new Color(0.28f, 0.72f, 0.30f, 1f));
+                    FillCircle(tex, 25, 29, 6, new Color(0.32f, 0.28f, 0.26f, 1f));
+                    FillCircle(tex, 38, 30, 6, new Color(0.32f, 0.28f, 0.26f, 1f));
+                    FillCircle(tex, 32, 37, 6, new Color(0.36f, 0.32f, 0.30f, 1f));
+                    FillRect(tex, 24, 26, 2, 6, new Color(0.94f, 0.90f, 0.78f, 1f));
+                    FillRect(tex, 37, 27, 2, 6, new Color(0.94f, 0.90f, 0.78f, 1f));
+                    FillRect(tex, 31, 34, 2, 6, new Color(0.94f, 0.90f, 0.78f, 1f));
                     break;
             }
 

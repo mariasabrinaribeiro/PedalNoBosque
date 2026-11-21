@@ -44,6 +44,14 @@ namespace FlorestaBicicleta
         private float lastVoiceTime = -10f;
         private float reHungryTimer = 0f;
 
+        // Comportamentos especiais (Etapa 3: Lobo cauteloso e Gato companheiro)
+        public bool isWolfCautious { get; private set; } = false;
+        public bool isCatFollowing { get; private set; } = false;
+        private float wolfCalmTimer = 0f;
+        private float catFollowTimer = 0f;
+        private float catHeartTimer = 0f;
+        private Transform trackedPlayer;
+
         public void Setup(
             ParkSpriteFactory.AnimalKind animalKind,
             string displayName,
@@ -89,29 +97,52 @@ namespace FlorestaBicicleta
 
         private Sprite LoadSideAnimalSprite(ParkSpriteFactory.AnimalKind k)
         {
-            string file = k switch
-            {
-                ParkSpriteFactory.AnimalKind.Esquilo => "animal_esquilo",
-                ParkSpriteFactory.AnimalKind.Coelho  => "animal_coelho",
-                ParkSpriteFactory.AnimalKind.Gato    => "animal_gato",
-                ParkSpriteFactory.AnimalKind.Lobo    => "animal_lobo",
-                ParkSpriteFactory.AnimalKind.Quati   => "animal_quati",
-                ParkSpriteFactory.AnimalKind.Raposa  => "animal_raposa",
-                ParkSpriteFactory.AnimalKind.Cervo   => "animal_cervo",
-                _ => "animal_esquilo"
-            };
-            float h = (k == ParkSpriteFactory.AnimalKind.Lobo || k == ParkSpriteFactory.AnimalKind.Cervo) ? 2.4f : 2.0f;
-            Texture2D tex = Resources.Load<Texture2D>($"Floresta/{file}");
-            if (tex == null) return null;
-            return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.05f), tex.height / h);
+            return EcosystemSpriteFactory.LoadOrCreateAnimalSprite(k);
         }
 
         public void PickNextFoodOrder()
         {
-            int maxIdx = (mealsEaten == 0) ? 5 : 7;
-            wantedFood = (FoodType)Random.Range(0, maxIdx);
+            FoodType[] preferred = GetSpeciesPreferredFoods(kind);
+            wantedFood = preferred[Random.Range(0, preferred.Length)];
             emotion = EmotionState.ComFome;
             UpdateBubble();
+        }
+
+        private static FoodType[] GetSpeciesPreferredFoods(ParkSpriteFactory.AnimalKind k)
+        {
+            switch (k)
+            {
+                case ParkSpriteFactory.AnimalKind.Esquilo:
+                    return new[] { FoodType.Nozes, FoodType.Sementes, FoodType.Pipoca };
+                case ParkSpriteFactory.AnimalKind.Coelho:
+                    return new[] { FoodType.Cenoura, FoodType.Maca };
+                case ParkSpriteFactory.AnimalKind.Cervo:
+                    return new[] { FoodType.Maca, FoodType.Cenoura };
+                case ParkSpriteFactory.AnimalKind.FilhoteUrso:
+                    return new[] { FoodType.Mel, FoodType.Maca };
+                case ParkSpriteFactory.AnimalKind.Passarinhos:
+                    return new[] { FoodType.Sementes, FoodType.Maca };
+                case ParkSpriteFactory.AnimalKind.Ourico:
+                    return new[] { FoodType.Maca, FoodType.Nozes, FoodType.Sementes };
+                case ParkSpriteFactory.AnimalKind.Guaxinim:
+                    return new[] { FoodType.Maca, FoodType.Nozes, FoodType.Coxinha, FoodType.Sanduiche };
+                case ParkSpriteFactory.AnimalKind.Castor:
+                    return new[] { FoodType.Cenoura, FoodType.Maca, FoodType.Nozes };
+                case ParkSpriteFactory.AnimalKind.Sapo:
+                    return new[] { FoodType.Sementes, FoodType.Doces, FoodType.Suco };
+                case ParkSpriteFactory.AnimalKind.CorujaNoturna:
+                    return new[] { FoodType.Nozes, FoodType.Sementes, FoodType.Mel };
+                case ParkSpriteFactory.AnimalKind.Raposa:
+                    return new[] { FoodType.Maca, FoodType.Sanduiche, FoodType.Coxinha };
+                case ParkSpriteFactory.AnimalKind.Quati:
+                    return new[] { FoodType.Maca, FoodType.Mel, FoodType.Pipoca };
+                case ParkSpriteFactory.AnimalKind.Gato:
+                    return new[] { FoodType.Suco, FoodType.Sanduiche, FoodType.HotDog, FoodType.Doces };
+                case ParkSpriteFactory.AnimalKind.Lobo:
+                    return new[] { FoodType.HotDog, FoodType.Sanduiche, FoodType.Coxinha, FoodType.Mel };
+                default:
+                    return new[] { FoodType.Maca, FoodType.Nozes, FoodType.Pipoca };
+            }
         }
 
         private void UpdateBubble()
@@ -134,8 +165,59 @@ namespace FlorestaBicicleta
                 statusIconTransform.localPosition = new Vector3(0f, 2.55f + Mathf.Sin(Time.time * spd + bobPhase) * amp, 0f);
             }
 
+            // Lobo se acalma depois de alguns segundos quando a menina desacelera
+            if (isWolfCautious)
+            {
+                wolfCalmTimer -= Time.deltaTime;
+                if (wolfCalmTimer <= 0f)
+                {
+                    isWolfCautious = false;
+                    if (bodyRenderer != null) bodyRenderer.color = Color.white;
+                }
+            }
+
+            // Comportamento especial do Gato: acompanha a bicicleta alegremente após ser alimentado!
+            if (isCatFollowing && trackedPlayer != null)
+            {
+                catFollowTimer -= Time.deltaTime;
+                float targetX = trackedPlayer.position.x - 2.6f;
+                float dx = targetX - transform.position.x;
+                float step = Mathf.Clamp(dx * 3.6f, -6.5f, 6.5f) * Time.deltaTime;
+                float trotBounce = Mathf.Abs(Mathf.Sin(Time.time * 11f)) * (Mathf.Abs(dx) > 0.35f ? 0.22f : 0.04f);
+                transform.position = new Vector3(transform.position.x + step, basePosition.y + trotBounce, 0f);
+                if (bodyRenderer != null && Mathf.Abs(dx) > 0.2f) bodyRenderer.flipX = dx < 0f;
+
+                catHeartTimer += Time.deltaTime;
+                if (catHeartTimer >= 2.2f)
+                {
+                    catHeartTimer = 0f;
+                    SpawnHeart(transform.position + new Vector3(0f, 1.8f, 0f));
+                }
+
+                if (catFollowTimer <= 0f)
+                {
+                    isCatFollowing = false;
+                    basePosition = new Vector3(transform.position.x, basePosition.y, 0f);
+                    transform.position = basePosition;
+                }
+            }
+            else if (emotion != EmotionState.Comendo && emotion != EmotionState.Chorando && emotion != EmotionState.Cavando)
+            {
+                // Animações naturais por espécie (pulinhos do sapo, bater de asas de passarinhos/coruja)
+                if (kind == ParkSpriteFactory.AnimalKind.Sapo)
+                {
+                    float hop = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Time.time * 2.1f + bobPhase)), 6f) * 0.42f;
+                    transform.position = basePosition + new Vector3(0f, hop, 0f);
+                }
+                else if (kind == ParkSpriteFactory.AnimalKind.Passarinhos || kind == ParkSpriteFactory.AnimalKind.CorujaNoturna)
+                {
+                    float flutter = Mathf.Sin(Time.time * 4.5f + bobPhase) * 0.09f;
+                    transform.position = basePosition + new Vector3(0f, flutter, 0f);
+                }
+            }
+
             // Animais normais voltam a sentir fome depois de ~35s para manter o jogo longo
-            if (emotion == EmotionState.Saciado && !isSquirrelSpecial)
+            if (emotion == EmotionState.Saciado && !isSquirrelSpecial && !isCatFollowing)
             {
                 reHungryTimer += Time.deltaTime;
                 if (reHungryTimer >= 35f)
@@ -147,8 +229,21 @@ namespace FlorestaBicicleta
             }
         }
 
-        public void OnPlayerApproaching(bool isClose)
+        public bool OnPlayerApproaching(bool isClose, float playerSpeed = 0f, Transform playerTransform = null)
         {
+            if (playerTransform != null) trackedPlayer = playerTransform;
+
+            // Comportamento especial do Lobo: assusta-se se a bicicleta chegar rápido demais!
+            if (kind == ParkSpriteFactory.AnimalKind.Lobo && isClose && !isFullySatisfied && Mathf.Abs(playerSpeed) > 4.6f)
+            {
+                bool justStartled = !isWolfCautious;
+                isWolfCautious = true;
+                wolfCalmTimer = 2.6f;
+                if (bodyRenderer != null) bodyRenderer.color = new Color(1f, 0.86f, 0.82f, 1f);
+                if (justStartled) FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+                return justStartled;
+            }
+
             if (emotion == EmotionState.ComFome && isClose)
             {
                 emotion = EmotionState.Empolgado;
@@ -162,13 +257,20 @@ namespace FlorestaBicicleta
             {
                 emotion = EmotionState.ComFome;
             }
+            return false;
         }
 
-        public enum FeedResult { WrongFood, AteNeedsMore, FullySatisfied, TriggeredSquirrelSecret, AlreadyFull }
+        public enum FeedResult { WrongFood, AteNeedsMore, FullySatisfied, TriggeredSquirrelSecret, AlreadyFull, WolfStartled }
 
         public FeedResult ReceiveFood(FoodType givenFood)
         {
             if (emotion == EmotionState.Cavando) return FeedResult.AlreadyFull;
+            if (kind == ParkSpriteFactory.AnimalKind.Lobo && isWolfCautious)
+            {
+                StartCoroutine(ShakeNoRoutine());
+                FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+                return FeedResult.WolfStartled;
+            }
             if (emotion == EmotionState.Saciado)
             {
                 StartCoroutine(EatAndHeartsRoutine(6, true));
@@ -200,6 +302,14 @@ namespace FlorestaBicicleta
                     reHungryTimer = 0f;
                     UpdateBubble();
                     StartCoroutine(EatAndHeartsRoutine(12, true));
+
+                    // Gato saciado começa a acompanhar a bicicleta!
+                    if (kind == ParkSpriteFactory.AnimalKind.Gato && trackedPlayer != null)
+                    {
+                        isCatFollowing = true;
+                        catFollowTimer = 10f;
+                        catHeartTimer = 0.5f;
+                    }
                     return FeedResult.FullySatisfied;
                 }
             }

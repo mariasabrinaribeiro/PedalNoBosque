@@ -25,15 +25,19 @@ namespace FlorestaBicicleta
         private Camera mainCam;
         private BikeGirlController player;
         private SideDiamondDigSite digSite;
-        private ForestAnimal squirrelAnimal;
+        private InfiniteTrackGenerator trackGenerator;
+        private AmbientSceneryPolisher sceneryPolisher;
+        private DayNightCycleController dayNightCycle;
+        private PlayerProgressManager progressManager;
+        private DiscoveryBookAndWorkshopUI discoveryUI;
 
-        private readonly List<ForestAnimal> animals = new List<ForestAnimal>();
         private readonly Dictionary<FoodType, Sprite> foodSprites = new Dictionary<FoodType, Sprite>();
 
         // HUD
         private TextMeshProUGUI scoreText;
         private TextMeshProUGUI squirrelText;
-        private TextMeshProUGUI slopeText;
+        private TextMeshProUGUI biomeSlopeText;
+        private TextMeshProUGUI distanceKmText;
         private TextMeshProUGUI basketText;
         private TextMeshProUGUI nearbyOrderText;
         private TextMeshProUGUI messageText;
@@ -41,9 +45,14 @@ namespace FlorestaBicicleta
         private TextMeshProUGUI waterLabel;
         private Image sunsetOverlay;
 
-        // Painel da Cozinha
+        // Estado da Aventura Infinita (Etapa 2)
+        private BiomeType currentBiome = BiomeType.CampoFlorido;
+        private int nextKmMilestone = 1;
+
+        // Painel da Cozinha e Mini-Preparo Opcional (Etapa 4)
         private GameObject kitchenPanel;
         private TextMeshProUGUI kitchenPrepStatus;
+        private KitchenMiniGamePanel miniPrepPanel;
         private bool isPreparingFood = false;
 
         // Botão de Cavar com o Esquilo
@@ -80,16 +89,26 @@ namespace FlorestaBicicleta
         private void Start()
         {
             gameObject.AddComponent<FlorestaSoundFX>();
+            progressManager = gameObject.AddComponent<PlayerProgressManager>();
+            progressManager.OnMilestoneBanner += (msg, col) => ShowMessage(msg, 4.4f, col);
+
             CacheFoodSprites();
             SetupCamera();
             EnsureEventSystem();
-            BuildEnvironment();
-            BuildRoadFeatures();
-            SpawnAnimals();
+            BuildInfiniteWorld();
             SpawnPlayer();
             BuildHUD();
 
-            ShowMessage("Pedale pela floresta! Arremesse o lanche que cada animal pedir (ESPAÇO) e cuide da sede do cachorrinho!", 6f);
+            progressManager.OnCustomizationChanged += () => player?.ApplyCustomizationVisuals();
+            progressManager.RecordBiomeVisited(currentBiome);
+
+            // Ciclo completo de Dia e Noite (5 períodos: Manhã, Tarde, Pôr do Sol, Noite e Madrugada)
+            dayNightCycle = gameObject.AddComponent<DayNightCycleController>();
+            dayNightCycle.Initialize(mainCam, player.transform, sunsetOverlay);
+            dayNightCycle.SetBiome(currentBiome);
+            dayNightCycle.OnPeriodChanged += OnDayPeriodChanged;
+
+            ShowMessage("PEDAL NO BOSQUE — Explore as 6 regiões, descubra animais, moradores e segredos!", 6f);
         }
 
         private void CacheFoodSprites()
@@ -121,125 +140,10 @@ namespace FlorestaBicicleta
             es.AddComponent<InputSystemUIInputModule>();
         }
 
-        private void BuildEnvironment()
+        private void BuildInfiniteWorld()
         {
             float camHeight = mainCam != null ? mainCam.orthographicSize * 2.08f : 11.4f;
-            Sprite bgSprite = FlorestaSpriteFactory.LoadForestBackgroundSprite(camHeight);
 
-            if (bgSprite != null)
-            {
-                float tileWidth = bgSprite.bounds.size.x;
-                for (int i = -1; i <= 10; i++)
-                {
-                    GameObject bgObj = new GameObject($"CenarioFloresta_{i}");
-                    bgObj.transform.position = new Vector3(i * tileWidth, 1.5f, 5f);
-                    SpriteRenderer sr = bgObj.AddComponent<SpriteRenderer>();
-                    sr.sprite = bgSprite;
-                    sr.flipX = (Mathf.Abs(i) % 2 == 1);
-                    sr.sortingOrder = -20;
-                }
-            }
-        }
-
-        private void BuildRoadFeatures()
-        {
-            // Subidas e Descidas sinalizadas ao longo da estrada das montanhas
-            CreateSlope(SlopeZone.SlopeType.Subida,  28f, 9f);
-            CreateSlope(SlopeZone.SlopeType.Descida, 54f, 9f);
-            CreateSlope(SlopeZone.SlopeType.Subida,  92f, 9f);
-            CreateSlope(SlopeZone.SlopeType.Descida, 124f, 9f);
-
-            // Rampas / Lombadas de salto com Estrelas Aéreas flutuando acima!
-            float[] rampXs = { 34f, 75f, 116f, 146f };
-            foreach (float rx in rampXs)
-            {
-                GameObject rObj = new GameObject($"RampaSalto_{rx}");
-                rObj.transform.position = new Vector3(rx, -3.55f, 0f);
-                rObj.AddComponent<JumpRamp>().Setup();
-
-                // 3 estrelas douradas formando o arco do salto no ar
-                for (int s = 0; s < 3; s++)
-                {
-                    GameObject stObj = new GameObject($"EstrelaAr_{rx}_{s}");
-                    float sx = rx + 2.2f + s * 1.6f;
-                    float sy = -0.9f + (s == 1 ? 0.55f : 0f);
-                    stObj.transform.position = new Vector3(sx, sy, 0f);
-                    stObj.AddComponent<AerialCollectible>().Setup(50);
-                }
-            }
-
-            // Obstáculos naturais na trilha (Pedras, Troncos e Raízes) com espaço seguro para saltar
-            var obstacleSpots = new (TrailObstacle.ObstacleKind kind, float x)[]
-            {
-                (TrailObstacle.ObstacleKind.Pedra,  47f),
-                (TrailObstacle.ObstacleKind.Raiz,   87f),
-                (TrailObstacle.ObstacleKind.Tronco, 100f),
-                (TrailObstacle.ObstacleKind.Pedra,  138f),
-            };
-            foreach (var ob in obstacleSpots)
-            {
-                GameObject obObj = new GameObject($"Obstaculo_{ob.kind}_{ob.x}");
-                obObj.transform.position = new Vector3(ob.x, -3.55f, 0f);
-                obObj.AddComponent<TrailObstacle>().Setup(ob.kind);
-            }
-
-            // 3 Barracas da Cozinha ilustradas ao longo da estrada
-            float[] kitchenXs = { 8f, 68f, 128f };
-            foreach (float kx in kitchenXs)
-            {
-                GameObject kObj = new GameObject($"BarracaCozinha_{kx}");
-                kObj.transform.position = new Vector3(kx, -2.55f, 0f);
-                kObj.AddComponent<KitchenStation>().Setup();
-            }
-
-            // 4 Colunas de Água / Bebedouros ilustrados para o cachorrinho
-            float[] waterXs = { 24f, 62f, 102f, 142f };
-            foreach (float wx in waterXs)
-            {
-                GameObject wObj = new GameObject($"ColunaAgua_{wx}");
-                wObj.transform.position = new Vector3(wx, -2.55f, 0f);
-                wObj.AddComponent<WaterColumn>().Setup();
-            }
-
-            // Bancos de praça ilustrados com vaso de flores ao longo da pista
-            Texture2D benchTex = Resources.Load<Texture2D>("Floresta/banco_praca");
-            Sprite bench = benchTex != null
-                ? Sprite.Create(benchTex, new Rect(0, 0, benchTex.width, benchTex.height), new Vector2(0.5f, 0.05f), benchTex.height / 2.2f)
-                : ParkSpriteFactory.CreateParkBenchSprite();
-
-            for (int x = 13; x <= 154; x += 22)
-            {
-                CreateProp(bench, new Vector3(x, -2.55f, 0f), 1f, 3);
-            }
-
-            // Local Secreto de Terra Fofa para o Esquilo cavar Diamantes!
-            GameObject digObj = new GameObject("LocalDiamantesEsquilo");
-            digObj.transform.position = new Vector3(15f, -2.45f, 0f);
-            digSite = digObj.AddComponent<SideDiamondDigSite>();
-            digSite.Setup(OnDiamondsVictory);
-        }
-
-        private void CreateSlope(SlopeZone.SlopeType type, float xCenter, float length)
-        {
-            GameObject obj = new GameObject(type == SlopeZone.SlopeType.Subida ? "ZonaSubida" : "ZonaDescida");
-            obj.transform.position = new Vector3(xCenter, -3.15f, 0f);
-            // Rotaciona a seta para apontar na direção da pista (+X subida / descida)
-            float angle = type == SlopeZone.SlopeType.Subida ? -72f : -108f;
-            obj.AddComponent<SlopeZone>().Setup(type, new Vector2(length, 2.2f), angle);
-        }
-
-        private void CreateProp(Sprite sp, Vector3 pos, float scale, int sortOrder)
-        {
-            GameObject go = new GameObject("PropFloresta");
-            go.transform.position = pos;
-            go.transform.localScale = new Vector3(scale, scale, 1f);
-            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = sp;
-            sr.sortingOrder = sortOrder;
-        }
-
-        private void SpawnAnimals()
-        {
             Sprite happySp = ParkSpriteFactory.CreateEmotionIcon("happy");
             Sprite crySp = ParkSpriteFactory.CreateEmotionIcon("cry");
             Sprite tearSp = ParkSpriteFactory.CreateTearDropSprite();
@@ -250,26 +154,22 @@ namespace FlorestaBicicleta
                 ParkSpriteFactory.CreateHeartParticleSprite(new Color(1f, 0.84f, 0.24f, 1f))
             };
 
-            var configs = new (ParkSpriteFactory.AnimalKind kind, string name, int meals, float xPos)[]
-            {
-                (ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, 18f),
-                (ParkSpriteFactory.AnimalKind.Coelho,  "Coelho",  2, 40f),
-                (ParkSpriteFactory.AnimalKind.Gato,    "Gato",    2, 60f),
-                (ParkSpriteFactory.AnimalKind.Lobo,    "Lobo",    4, 82f),
-                (ParkSpriteFactory.AnimalKind.Quati,   "Quati",   4, 108f),
-                (ParkSpriteFactory.AnimalKind.Raposa,  "Raposa",  3, 134f),
-                (ParkSpriteFactory.AnimalKind.Cervo,   "Cervo",   5, 152f),
-            };
+            GameObject genObj = new GameObject("InfiniteTrackGenerator");
+            trackGenerator = genObj.AddComponent<InfiniteTrackGenerator>();
+            trackGenerator.Initialize(camHeight, foodSprites, happySp, crySp, tearSp, heartParticles);
+            currentBiome = trackGenerator.GetBiomeAtX(0f);
 
-            foreach (var c in configs)
-            {
-                GameObject obj = new GameObject($"Animal_{c.name}");
-                obj.transform.position = new Vector3(c.xPos, -2.55f, 0f);
-                ForestAnimal a = obj.AddComponent<ForestAnimal>();
-                a.Setup(c.kind, c.name, c.meals, foodSprites, happySp, crySp, tearSp, heartParticles);
-                animals.Add(a);
-                if (a.isSquirrelSpecial) squirrelAnimal = a;
-            }
+            // Camada de polimento visual (nuvens em paralaxe, pétalas/folhas/luz solar e grama em primeiro plano)
+            GameObject polisherObj = new GameObject("AmbientSceneryPolisher");
+            sceneryPolisher = polisherObj.AddComponent<AmbientSceneryPolisher>();
+            sceneryPolisher.Initialize(mainCam);
+            sceneryPolisher.SetBiome(currentBiome);
+
+            // Local Secreto de Terra Fofa para o Esquilo cavar Diamantes (posicionado junto ao esquilo que ativar!)
+            GameObject digObj = new GameObject("LocalDiamantesEsquilo");
+            digObj.transform.position = new Vector3(15f, -2.45f, 0f);
+            digSite = digObj.AddComponent<SideDiamondDigSite>();
+            digSite.Setup(OnDiamondsVictory);
         }
 
         private void SpawnPlayer()
@@ -278,6 +178,21 @@ namespace FlorestaBicicleta
             playerObj.transform.position = new Vector3(0f, -3.55f, 0f);
             player = playerObj.AddComponent<BikeGirlController>();
             player.Setup(foodSprites, digSite, OnFoodDelivered, OnAnimalRunOver, OnWaterRefilled, msg => ShowMessage(msg, 3.5f));
+            player.SetTrackGenerator(trackGenerator);
+        }
+
+        private void OnDayPeriodChanged(DayPeriod period)
+        {
+            string msg = DayNightCycleController.GetPeriodNotification(period);
+            if (!string.IsNullOrEmpty(msg))
+            {
+                Color tint = (period == DayPeriod.Noite || period == DayPeriod.Madrugada)
+                    ? new Color(0.76f, 0.88f, 1f, 1f)
+                    : new Color(1f, 0.94f, 0.68f, 1f);
+                ShowMessage(msg, 4.2f, tint);
+            }
+            if (period == DayPeriod.Noite)
+                FlorestaSoundFX.Instance?.PlayAnimalVoice(ParkSpriteFactory.AnimalKind.CorujaNoturna);
         }
 
         // ─── Eventos de Gameplay ─────────────────────────────────────
@@ -292,15 +207,26 @@ namespace FlorestaBicicleta
                 case ForestAnimal.FeedResult.WrongFood:
                     ShowMessage($"O {animal.animalName} queria {wantedName}, não {givenName}! Passe na Cozinha!", 3.5f, new Color(1f, 0.80f, 0.45f, 1f));
                     break;
+                case ForestAnimal.FeedResult.WolfStartled:
+                    ShowMessage("O Lobo está assustado com a velocidade! Pedale bem devagar para acalmá-lo antes de alimentar!", 4.0f, new Color(1f, 0.72f, 0.48f, 1f));
+                    break;
                 case ForestAnimal.FeedResult.AteNeedsMore:
-                    ShowMessage($"Nham! O {animal.animalName} amou ({animal.mealsEaten}/{animal.requiredMeals}) e soltou corações! +80 pts", 3.0f, new Color(0.75f, 1f, 0.78f, 1f));
+                    if (animal.kind == ParkSpriteFactory.AnimalKind.Lobo)
+                        ShowMessage($"Uau! Você acalmou o Lobo com carinho ({animal.mealsEaten}/{animal.requiredMeals})! +120 pts", 3.2f, new Color(0.75f, 1f, 0.82f, 1f));
+                    else
+                        ShowMessage($"Nham! O {animal.animalName} amou ({animal.mealsEaten}/{animal.requiredMeals}) e soltou corações! +80 pts", 3.0f, new Color(0.75f, 1f, 0.78f, 1f));
                     break;
                 case ForestAnimal.FeedResult.FullySatisfied:
-                    ShowMessage($"O {animal.animalName} está SUPER SACIADO e cheio de corações! +150 pts", 3.5f, new Color(0.68f, 1f, 0.75f, 1f));
+                    if (animal.kind == ParkSpriteFactory.AnimalKind.Gato)
+                        ShowMessage("Miau! O Gato ficou super feliz e agora está acompanhando a sua bicicleta! +175 pts", 4.5f, new Color(1f, 0.82f, 0.94f, 1f));
+                    else if (animal.kind == ParkSpriteFactory.AnimalKind.Lobo)
+                        ShowMessage("O Lobo confiou em você e ficou seu amigo protetor na floresta! +220 pts", 4.2f, new Color(0.72f, 1f, 0.86f, 1f));
+                    else
+                        ShowMessage($"O {animal.animalName} está SUPER SACIADO e cheio de corações! +150 pts", 3.5f, new Color(0.68f, 1f, 0.75f, 1f));
                     break;
                 case ForestAnimal.FeedResult.TriggeredSquirrelSecret:
                     ShowMessage("SEGREDO DO ESQUILO! Ele começou a CAVAR A TERRA! Vá até ele e ajude a cavar para achar DIAMANTES!", 7.0f, new Color(0.60f, 0.96f, 1f, 1f));
-                    digSite.ActivateDigging(squirrelAnimal);
+                    digSite.ActivateDigging(animal);
                     break;
                 case ForestAnimal.FeedResult.AlreadyFull:
                     ShowMessage($"O {animal.animalName} já está cheio, mas adorou o carinho! +20 pts", 2.2f, new Color(1f, 0.85f, 0.95f, 1f));
@@ -346,29 +272,83 @@ namespace FlorestaBicicleta
                 mainCam.transform.position = camPos;
             }
 
-            // Ciclo suave Dia -> Tarde Dourada
-            dayCycleTime += Time.deltaTime;
-            if (sunsetOverlay != null)
+            // Atualiza geração procedural infinita de fundo e segmentos
+            if (trackGenerator != null)
             {
-                float golden = (Mathf.Sin(dayCycleTime * 0.035f - Mathf.PI * 0.5f) + 1f) * 0.5f;
-                sunsetOverlay.color = new Color(1f, 0.60f, 0.24f, golden * 0.14f);
-            }
+                float camX = mainCam != null ? mainCam.transform.position.x : player.transform.position.x;
+                trackGenerator.UpdateWorld(player.transform.position.x, camX);
+                player.SetMinX(trackGenerator.MinSafeBacktrackX);
 
-            // Emoção e voz dos animais ao se aproximar
-            ForestAnimal nearest = null;
-            float bestD = 9f;
-            foreach (var a in animals)
-            {
-                float d = Mathf.Abs(player.transform.position.x - a.transform.position.x);
-                a.OnPlayerApproaching(d < 6.5f);
-                if (d < bestD)
+                BiomeType newBiome = trackGenerator.GetBiomeAtX(player.transform.position.x);
+                if (newBiome != currentBiome)
                 {
-                    bestD = d;
-                    nearest = a;
+                    currentBiome = newBiome;
+                    if (sceneryPolisher != null) sceneryPolisher.SetBiome(currentBiome);
+                    if (dayNightCycle != null) dayNightCycle.SetBiome(currentBiome);
+                    progressManager?.RecordBiomeVisited(currentBiome);
+                    FlorestaSoundFX.Instance?.PlayBiomeCue(currentBiome);
+                    ShowMessage(
+                        InfiniteTrackGenerator.GetBiomeArrivalTip(currentBiome),
+                        4.2f,
+                        InfiniteTrackGenerator.GetBiomeAccentColor(currentBiome));
                 }
             }
 
-            UpdateHUD(nearest);
+            // Celebração a cada 1.0 km pedalado!
+            progressManager?.RecordDistanceKm(player.maxDistanceKm);
+            if (player.maxDistanceKm >= nextKmMilestone)
+            {
+                player.score += 100;
+                progressManager?.AddStars(1);
+                FlorestaSoundFX.Instance?.PlayStar();
+                ShowMessage($"Marco atingido: {nextKmMilestone:0.0} km pedalados! +1 ★ e +100 pts!", 4.0f, new Color(1f, 0.92f, 0.42f, 1f));
+                nextKmMilestone++;
+            }
+
+            // Ciclo Dia/Noite agora é gerenciado pelo DayNightCycleController (5 períodos)
+            dayCycleTime += Time.deltaTime;
+
+            // Emoção e voz dos animais + detecção de moradores próximos (Etapa 5)
+            ForestAnimal nearest = null;
+            float bestD = 9f;
+            VillageResident nearestResident = null;
+            float bestResD = 9f;
+            if (trackGenerator != null)
+            {
+                var activeAnimals = trackGenerator.ActiveAnimals;
+                for (int i = 0; i < activeAnimals.Count; i++)
+                {
+                    ForestAnimal a = activeAnimals[i];
+                    if (a == null) continue;
+                    float d = Mathf.Abs(player.transform.position.x - a.transform.position.x);
+                    if (d < 6.5f) progressManager?.RecordAnimalDiscovery(a.kind);
+                    bool wolfStartled = a.OnPlayerApproaching(d < 6.5f, player.currentSpeed, player.transform);
+                    if (wolfStartled)
+                    {
+                        ShowMessage("Cuidado! O Lobo se assustou com a velocidade! Diminua o ritmo para alimentá-lo!", 3.6f, new Color(1f, 0.72f, 0.48f, 1f));
+                    }
+                    if (d < bestD)
+                    {
+                        bestD = d;
+                        nearest = a;
+                    }
+                }
+
+                var activeResidents = trackGenerator.ActiveResidents;
+                for (int i = 0; i < activeResidents.Count; i++)
+                {
+                    VillageResident r = activeResidents[i];
+                    if (r == null) continue;
+                    float d = Mathf.Abs(player.transform.position.x - r.transform.position.x);
+                    if (d < bestResD)
+                    {
+                        bestResD = d;
+                        nearestResident = r;
+                    }
+                }
+            }
+
+            UpdateHUD(nearest, bestD, nearestResident, bestResD);
         }
 
         // ─── Cozinha / Preparo de Lanches ────────────────────────────
@@ -379,7 +359,16 @@ namespace FlorestaBicicleta
 
             if (FoodInfo.NeedsPreparation(type))
             {
-                StartCoroutine(PrepareFoodRoutine(type));
+                if (miniPrepPanel != null)
+                {
+                    miniPrepPanel.OpenFor(type);
+                    if (kitchenPrepStatus != null)
+                        kitchenPrepStatus.text = $"Monte o {FoodInfo.GetDisplayName(type)} ou use Preparo Automático!";
+                }
+                else
+                {
+                    StartCoroutine(PrepareFoodRoutine(type));
+                }
             }
             else
             {
@@ -388,6 +377,36 @@ namespace FlorestaBicicleta
                 if (kitchenPrepStatus != null)
                     kitchenPrepStatus.text = $"Pegou {FoodInfo.GetDisplayName(type)} na cesta!";
             }
+        }
+
+        private void OnMiniPrepCompleted(FoodType type, bool isGourmet)
+        {
+            if (player == null) return;
+            player.AddFoodToBasket(type);
+            if (isGourmet)
+            {
+                player.score += 60;
+                player.gourmetBonusCharges++;
+                FlorestaSoundFX.Instance?.PlayDiamond();
+                string name = FoodInfo.GetDisplayName(type);
+                if (kitchenPrepStatus != null)
+                    kitchenPrepStatus.text = $"{name} GOURMET pronto! (+60 pts + bônus na entrega!)";
+                ShowMessage($"Chef da Floresta! {name} Gourmet montado com perfeição! +60 pts!", 3.5f, new Color(1f, 0.90f, 0.42f, 1f));
+            }
+        }
+
+        private void OnClickQuickRestockBasket()
+        {
+            if (player == null || isPreparingFood) return;
+            FoodType[] quickKit = { FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes, FoodType.Suco };
+            player.foodBasket.Clear();
+            for (int i = 0; i < quickKit.Length && i < player.maxBasketSize; i++)
+                player.AddFoodToBasket(quickKit[i]);
+
+            FlorestaSoundFX.Instance?.PlayHappy();
+            if (kitchenPrepStatus != null)
+                kitchenPrepStatus.text = "Cesta cheia com o Kit Rápido da Floresta!";
+            ShowMessage("Estação de Abastecimento: Cesta abastecida rapidamente!", 2.6f, new Color(0.72f, 1f, 0.78f, 1f));
         }
 
         private IEnumerator PrepareFoodRoutine(FoodType type)
@@ -433,30 +452,36 @@ namespace FlorestaBicicleta
             sunsetOverlay.color = Color.clear;
             sunsetOverlay.raycastTarget = false;
 
-            // Barra Superior
+            // Barra Superior Discreta e Delicada (identidade Pedal no Bosque)
             GameObject topBar = CreatePanel(canvasObj.transform, "TopBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -34f), new Vector2(1220f, 60f),
-                new Color(0.09f, 0.22f, 0.14f, 0.88f));
+                new Vector2(0f, -24f), new Vector2(1180f, 40f),
+                new Color(0.11f, 0.22f, 0.17f, 0.72f));
 
-            scoreText = CreateTMP(topBar.transform, "ScoreText", "Pontos: 0",
-                25, new Vector2(-460f, 0f), new Vector2(250f, 44f), TextAlignmentOptions.Left);
+            scoreText = CreateTMP(topBar.transform, "ScoreText", "Pts: 0  ★0",
+                19, new Vector2(-460f, 0f), new Vector2(230f, 34f), TextAlignmentOptions.Left);
+            scoreText.color = new Color(1f, 0.97f, 0.86f, 1f);
 
-            squirrelText = CreateTMP(topBar.transform, "SquirrelText", "Esquilo: 0 / 6",
-                25, new Vector2(-155f, 0f), new Vector2(290f, 44f), TextAlignmentOptions.Center);
-            squirrelText.color = new Color(1f, 0.88f, 0.45f, 1f);
+            squirrelText = CreateTMP(topBar.transform, "SquirrelText", "Esquilo: 0/6",
+                17, new Vector2(-235f, 0f), new Vector2(190f, 34f), TextAlignmentOptions.Center);
+            squirrelText.color = new Color(1f, 0.90f, 0.58f, 0.96f);
 
-            slopeText = CreateTMP(topBar.transform, "SlopeText", "Plano",
-                23, new Vector2(145f, 0f), new Vector2(260f, 44f), TextAlignmentOptions.Center);
+            biomeSlopeText = CreateTMP(topBar.transform, "BiomeSlopeText", "Vale das Flores • Plano",
+                17, new Vector2(20f, 0f), new Vector2(300f, 34f), TextAlignmentOptions.Center);
+            biomeSlopeText.color = InfiniteTrackGenerator.GetBiomeAccentColor(BiomeType.CampoFlorido);
 
-            waterLabel = CreateTMP(topBar.transform, "WaterLabel", "Água: 100%",
-                19, new Vector2(455f, 13f), new Vector2(230f, 26f), TextAlignmentOptions.Center);
-            waterLabel.color = new Color(0.60f, 0.90f, 1f, 1f);
+            distanceKmText = CreateTMP(topBar.transform, "DistanceKmText", "0.00 km",
+                18, new Vector2(245f, 0f), new Vector2(125f, 34f), TextAlignmentOptions.Center);
+            distanceKmText.color = new Color(1f, 0.96f, 0.68f, 1f);
+
+            waterLabel = CreateTMP(topBar.transform, "WaterLabel", "Água 100%",
+                15, new Vector2(450f, 8f), new Vector2(195f, 20f), TextAlignmentOptions.Center);
+            waterLabel.color = new Color(0.72f, 0.94f, 1f, 1f);
 
             GameObject sliderObj = CreatePanel(topBar.transform, "WaterSlider",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(455f, -13f), new Vector2(210f, 16f),
-                new Color(0.15f, 0.25f, 0.35f, 1f));
+                new Vector2(450f, -10f), new Vector2(180f, 10f),
+                new Color(0.14f, 0.24f, 0.30f, 0.85f));
             waterSlider = sliderObj.AddComponent<Slider>();
             waterSlider.minValue = 0f; waterSlider.maxValue = 100f; waterSlider.value = 100f;
 
@@ -469,26 +494,26 @@ namespace FlorestaBicicleta
             fill.transform.SetParent(fillArea.transform, false);
             RectTransform fRT = fill.AddComponent<RectTransform>();
             fRT.anchorMin = Vector2.zero; fRT.anchorMax = Vector2.one; fRT.sizeDelta = Vector2.zero;
-            fill.AddComponent<Image>().color = new Color(0.20f, 0.78f, 1f, 1f);
+            fill.AddComponent<Image>().color = new Color(0.32f, 0.82f, 0.98f, 0.95f);
             waterSlider.fillRect = fRT;
 
-            // Sub-barra: Cesta + Pedido do animal próximo
+            // Sub-barra secundária discreta (Cesta + Pedido próximo)
             GameObject subBar = CreatePanel(canvasObj.transform, "SubBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -84f), new Vector2(1220f, 36f),
-                new Color(0.12f, 0.16f, 0.22f, 0.78f));
+                new Vector2(0f, -58f), new Vector2(1180f, 26f),
+                new Color(0.10f, 0.16f, 0.14f, 0.56f));
 
             basketText = CreateTMP(subBar.transform, "BasketText", "Cesta: ...",
-                19, new Vector2(-280f, 0f), new Vector2(620f, 32f), TextAlignmentOptions.Left);
-            basketText.color = new Color(1f, 0.95f, 0.80f, 1f);
+                15, new Vector2(-280f, 0f), new Vector2(590f, 24f), TextAlignmentOptions.Left);
+            basketText.color = new Color(1f, 0.96f, 0.84f, 0.94f);
 
             nearbyOrderText = CreateTMP(subBar.transform, "NearbyOrder", "",
-                19, new Vector2(310f, 0f), new Vector2(560f, 32f), TextAlignmentOptions.Right);
-            nearbyOrderText.color = new Color(0.80f, 1f, 0.85f, 1f);
+                15, new Vector2(295f, 0f), new Vector2(560f, 24f), TextAlignmentOptions.Right);
+            nearbyOrderText.color = new Color(0.84f, 1f, 0.88f, 0.96f);
 
-            // Mensagem de feedback
+            // Mensagem de feedback suave
             messageText = CreateTMP(canvasObj.transform, "MessageText", "",
-                23, new Vector2(0f, -124f), new Vector2(1180f, 40f), TextAlignmentOptions.Center);
+                19, new Vector2(0f, -88f), new Vector2(1120f, 32f), TextAlignmentOptions.Center);
             RectTransform msgRT = messageText.GetComponent<RectTransform>();
             msgRT.anchorMin = new Vector2(0.5f, 1f);
             msgRT.anchorMax = new Vector2(0.5f, 1f);
@@ -497,38 +522,52 @@ namespace FlorestaBicicleta
             BuildKitchenPanel(canvasObj.transform);
 
             // Botão especial de Cavar com o Esquilo
-            digButtonObj = CreateClickButton(canvasObj.transform, "BtnCavar", "CAVAR JUNTO! (Espaço)",
-                new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(340f, 64f),
-                new Color(0.16f, 0.72f, 0.96f, 0.96f), 25,
+            digButtonObj = CreateClickButton(canvasObj.transform, "BtnCavar", "✦ CAVAR JUNTO (Espaço)",
+                new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(280f, 46f),
+                new Color(0.24f, 0.62f, 0.78f, 0.88f), 19,
                 () => digSite.HelpDig());
             digButtonLabel = digButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             digButtonObj.SetActive(false);
 
-            // Controles compactos na borda inferior (sem tampar a menina!)
-            CreateHoldButton(canvasObj.transform, "BtnVoltar", "< Voltar",
-                Vector2.zero, new Vector2(88f, 36f), new Vector2(146f, 54f),
-                new Color(0.85f, 0.36f, 0.36f, 0.82f), 22,
+            // Controles inferiores delicados com paleta natural coordenada (madeira, sálvia e mel)
+            CreateHoldButton(canvasObj.transform, "BtnVoltar", "◀ Voltar",
+                Vector2.zero, new Vector2(74f, 28f), new Vector2(118f, 42f),
+                new Color(0.46f, 0.32f, 0.24f, 0.76f), 17,
                 () => player.SetUIReverse(true), () => player.SetUIReverse(false));
 
-            CreateHoldButton(canvasObj.transform, "BtnDevagar", "Devagar >",
-                Vector2.zero, new Vector2(248f, 36f), new Vector2(158f, 54f),
-                new Color(0.24f, 0.66f, 0.40f, 0.84f), 22,
+            CreateHoldButton(canvasObj.transform, "BtnDevagar", "▶ Passear",
+                Vector2.zero, new Vector2(202f, 28f), new Vector2(126f, 42f),
+                new Color(0.22f, 0.48f, 0.34f, 0.78f), 17,
                 () => player.SetUISlow(true), () => player.SetUISlow(false));
 
-            CreateHoldButton(canvasObj.transform, "BtnRapido", "Rápido >>",
-                Vector2.zero, new Vector2(418f, 36f), new Vector2(162f, 54f),
-                new Color(0.94f, 0.58f, 0.16f, 0.86f), 22,
+            CreateHoldButton(canvasObj.transform, "BtnRapido", "▶▶ Pedalar",
+                Vector2.zero, new Vector2(338f, 28f), new Vector2(134f, 42f),
+                new Color(0.74f, 0.50f, 0.20f, 0.80f), 17,
                 () => player.SetUIFast(true), () => player.SetUIFast(false));
 
-            CreateClickButton(canvasObj.transform, "BtnPular", "PULAR ▲",
-                new Vector2(1f, 0f), new Vector2(-345f, 38f), new Vector2(145f, 58f),
-                new Color(0.22f, 0.62f, 0.96f, 0.90f), 22,
+            CreateClickButton(canvasObj.transform, "BtnPular", "▲ Pular",
+                new Vector2(1f, 0f), new Vector2(-262f, 28f), new Vector2(118f, 44f),
+                new Color(0.24f, 0.54f, 0.66f, 0.80f), 17,
                 () => player.TriggerJump());
 
-            CreateClickButton(canvasObj.transform, "BtnComida", "JOGAR COMIDA",
-                new Vector2(1f, 0f), new Vector2(-135f, 38f), new Vector2(238f, 58f),
-                new Color(0.95f, 0.34f, 0.62f, 0.92f), 23,
+            CreateClickButton(canvasObj.transform, "BtnComida", "✿ Entregar",
+                new Vector2(1f, 0f), new Vector2(-108f, 28f), new Vector2(174f, 44f),
+                new Color(0.76f, 0.38f, 0.46f, 0.84f), 18,
                 () => player.ThrowFood());
+
+            // Botões delicados para o Diário de Descobertas e Oficina de Personalização (Etapa 7)
+            CreateClickButton(canvasObj.transform, "BtnDiario", "Livro",
+                new Vector2(0.5f, 0f), new Vector2(-46f, 28f), new Vector2(84f, 38f),
+                new Color(0.30f, 0.54f, 0.44f, 0.80f), 15,
+                () => discoveryUI?.Open(0));
+
+            CreateClickButton(canvasObj.transform, "BtnOficina", "Oficina",
+                new Vector2(0.5f, 0f), new Vector2(46f, 28f), new Vector2(88f, 38f),
+                new Color(0.58f, 0.44f, 0.72f, 0.80f), 15,
+                () => discoveryUI?.Open(2));
+
+            discoveryUI = gameObject.AddComponent<DiscoveryBookAndWorkshopUI>();
+            discoveryUI.Build(canvasObj.transform);
 
             // Painel de Vitória dos Diamantes
             victoryPanel = CreatePanel(canvasObj.transform, "VictoryPanel",
@@ -544,9 +583,14 @@ namespace FlorestaBicicleta
                 "Você e o Esquilo cavaram fundo e encontraram vários diamantes brilhantes!",
                 24, new Vector2(0f, 18f), new Vector2(600f, 96f), TextAlignmentOptions.Center);
 
+            CreateClickButton(victoryPanel.transform, "VContinue", "Continuar Pedalando!",
+                new Vector2(0.5f, 0.5f), new Vector2(-155f, -105f), new Vector2(275f, 64f),
+                new Color(0.20f, 0.66f, 0.94f, 1f), 23,
+                () => victoryPanel.SetActive(false));
+
             CreateClickButton(victoryPanel.transform, "VReplay", "Jogar Novamente",
-                new Vector2(0.5f, 0.5f), new Vector2(0f, -105f), new Vector2(280f, 64f),
-                new Color(0.28f, 0.78f, 0.46f, 1f), 26,
+                new Vector2(0.5f, 0.5f), new Vector2(155f, -105f), new Vector2(260f, 64f),
+                new Color(0.28f, 0.78f, 0.46f, 1f), 23,
                 () => SceneManager.LoadScene(SceneManager.GetActiveScene().name));
 
             victoryPanel.SetActive(false);
@@ -556,68 +600,121 @@ namespace FlorestaBicicleta
         {
             kitchenPanel = CreatePanel(canvasT, "KitchenPanel",
                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-                new Vector2(185f, 15f), new Vector2(330f, 385f),
-                new Color(0.24f, 0.12f, 0.22f, 0.92f));
+                new Vector2(265f, 15f), new Vector2(500f, 405f),
+                new Color(0.20f, 0.12f, 0.22f, 0.93f));
 
-            CreateTMP(kitchenPanel.transform, "KTitle", "COZINHA DA FLORESTA",
-                22, new Vector2(0f, 162f), new Vector2(310f, 34f), TextAlignmentOptions.Center)
-                .color = new Color(1f, 0.65f, 0.82f, 1f);
+            CreateTMP(kitchenPanel.transform, "KTitle", "COZINHA & NATURAIS DA FLORESTA",
+                21, new Vector2(0f, 174f), new Vector2(470f, 34f), TextAlignmentOptions.Center)
+                .color = new Color(1f, 0.72f, 0.86f, 1f);
 
+            CreateTMP(kitchenPanel.transform, "KColLeft", "Lanches & Cozinha",
+                16, new Vector2(-118f, 144f), new Vector2(220f, 24f), TextAlignmentOptions.Center)
+                .color = new Color(1f, 0.90f, 0.72f, 1f);
+
+            CreateTMP(kitchenPanel.transform, "KColRight", "Naturais da Floresta",
+                16, new Vector2(118f, 144f), new Vector2(220f, 24f), TextAlignmentOptions.Center)
+                .color = new Color(0.68f, 1f, 0.74f, 1f);
+
+            // Coluna Esquerda: Lanches Prontos + Preparo
             FoodType[] readyFoods = { FoodType.Refrigerante, FoodType.Suco, FoodType.Coxinha, FoodType.Doces, FoodType.Pipoca };
             for (int i = 0; i < readyFoods.Length; i++)
             {
                 FoodType ft = readyFoods[i];
-                float y = 118f - i * 43f;
+                float y = 112f - i * 40f;
                 CreateClickButton(kitchenPanel.transform, $"Btn_{ft}", $"+ {FoodInfo.GetDisplayName(ft)}",
-                    new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(290f, 37f),
-                    new Color(0.24f, 0.58f, 0.42f, 0.95f), 20,
+                    new Vector2(0.5f, 0.5f), new Vector2(-118f, y), new Vector2(215f, 35f),
+                    new Color(0.24f, 0.56f, 0.44f, 0.95f), 18,
                     () => OnClickKitchenFood(ft));
             }
 
             CreateClickButton(kitchenPanel.transform, "BtnPrepSanduiche", "Preparar Sanduíche",
-                new Vector2(0.5f, 0.5f), new Vector2(0f, -106f), new Vector2(290f, 41f),
-                new Color(0.92f, 0.54f, 0.16f, 0.96f), 20,
+                new Vector2(0.5f, 0.5f), new Vector2(-118f, -92f), new Vector2(215f, 38f),
+                new Color(0.92f, 0.54f, 0.16f, 0.96f), 18,
                 () => OnClickKitchenFood(FoodType.Sanduiche));
 
             CreateClickButton(kitchenPanel.transform, "BtnPrepHotDog", "Preparar Hot Dog",
-                new Vector2(0.5f, 0.5f), new Vector2(0f, -153f), new Vector2(290f, 41f),
-                new Color(0.90f, 0.30f, 0.48f, 0.96f), 20,
+                new Vector2(0.5f, 0.5f), new Vector2(-118f, -136f), new Vector2(215f, 38f),
+                new Color(0.90f, 0.30f, 0.48f, 0.96f), 18,
                 () => OnClickKitchenFood(FoodType.HotDog));
 
-            kitchenPrepStatus = CreateTMP(kitchenPanel.transform, "PrepStatus", "Escolha ou prepare!",
-                17, new Vector2(0f, -182f), new Vector2(310f, 24f), TextAlignmentOptions.Center);
+            // Coluna Direita: Alimentos Naturais por Espécie (Etapa 3)
+            FoodType[] naturalFoods = { FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes };
+            for (int i = 0; i < naturalFoods.Length; i++)
+            {
+                FoodType ft = naturalFoods[i];
+                float y = 112f - i * 44f;
+                CreateClickButton(kitchenPanel.transform, $"Btn_{ft}", $"+ {FoodInfo.GetDisplayName(ft)}",
+                    new Vector2(0.5f, 0.5f), new Vector2(118f, y), new Vector2(215f, 38f),
+                    new Color(0.28f, 0.64f, 0.30f, 0.96f), 19,
+                    () => OnClickKitchenFood(ft));
+            }
+
+            CreateClickButton(kitchenPanel.transform, "BtnKitRapido", "Encher Cesta (Kit Rápido)",
+                new Vector2(0.5f, 0.5f), new Vector2(118f, -136f), new Vector2(215f, 38f),
+                new Color(0.20f, 0.58f, 0.86f, 0.96f), 17,
+                OnClickQuickRestockBasket);
+
+            kitchenPrepStatus = CreateTMP(kitchenPanel.transform, "PrepStatus", "Escolha, encha rápido ou monte Gourmet!",
+                16, new Vector2(0f, -182f), new Vector2(460f, 26f), TextAlignmentOptions.Center);
             kitchenPrepStatus.color = new Color(1f, 0.94f, 0.60f, 1f);
+
+            miniPrepPanel = gameObject.AddComponent<KitchenMiniGamePanel>();
+            miniPrepPanel.Build(canvasT, OnMiniPrepCompleted, ft => StartCoroutine(PrepareFoodRoutine(ft)));
 
             kitchenPanel.SetActive(false);
         }
 
-        private void UpdateHUD(ForestAnimal nearest)
+        private void UpdateHUD(ForestAnimal nearest, float nearestAnimalDist, VillageResident nearestResident, float nearestResidentDist)
         {
             if (scoreText != null)
             {
-                string comboTxt = player.happyCombo >= 3 ? $" (x{player.happyCombo}!)" : "";
-                scoreText.text = $"Pontos: {player.score}{comboTxt}";
+                string comboTxt = player.happyCombo >= 3 ? $" x{player.happyCombo}" : "";
+                int savedStars = progressManager != null && progressManager.Data != null ? progressManager.Data.starsAvailable : player.starsCollected;
+                scoreText.text = $"Pts: {player.score}{comboTxt}  ★{savedStars}";
             }
 
-            if (squirrelText != null && squirrelAnimal != null)
+            if (squirrelText != null)
             {
-                squirrelText.text = digSite.isActive
-                    ? $"Cavando: {Mathf.RoundToInt(digSite.digProgress)}%"
-                    : $"Esquilo: {squirrelAnimal.mealsEaten} / {squirrelAnimal.requiredMeals}";
+                ForestAnimal sq = trackGenerator != null ? trackGenerator.PrimarySquirrel : null;
+                if (digSite != null && digSite.isActive && !digSite.isCompleted)
+                    squirrelText.text = $"Cavando: {Mathf.RoundToInt(digSite.digProgress)}%";
+                else if (sq != null)
+                    squirrelText.text = $"Esquilo: {sq.mealsEaten} / {sq.requiredMeals}";
+                else
+                    squirrelText.text = "Aventura Infinita";
             }
 
-            if (slopeText != null)
+            if (biomeSlopeText != null)
             {
-                int meters = Mathf.RoundToInt(player.distanceMeters);
-                slopeText.text = $"{player.currentSlopeLabel} | {meters}m";
+                string biomeName = InfiniteTrackGenerator.GetBiomeDisplayName(currentBiome);
+                string periodName = dayNightCycle != null ? DayNightCycleController.GetPeriodDisplayName(dayNightCycle.CurrentPeriod) : "Dia";
+                biomeSlopeText.text = $"{biomeName} • {periodName}";
+                biomeSlopeText.color = InfiniteTrackGenerator.GetBiomeAccentColor(currentBiome);
+            }
+
+            if (distanceKmText != null)
+            {
+                distanceKmText.text = $"{player.distanceKm:0.00} km";
             }
             if (basketText != null) basketText.text = player.GetBasketSummary();
 
             if (nearbyOrderText != null)
             {
-                if (nearest != null)
+                bool showResident = nearestResident != null && (nearest == null || nearestResidentDist < nearestAnimalDist);
+                if (showResident)
                 {
-                    if (nearest.emotion == ForestAnimal.EmotionState.Saciado)
+                    if (nearestResident.isHelped)
+                        nearbyOrderText.text = $"{nearestResident.residentName}: Missão concluída com alegria!";
+                    else
+                        nearbyOrderText.text = $"{nearestResident.residentName} ({nearestResident.missionTitle}): {FoodInfo.GetDisplayName(nearestResident.wantedFood)} (+{nearestResident.starReward} ★)";
+                }
+                else if (nearest != null)
+                {
+                    if (nearest.isCatFollowing)
+                        nearbyOrderText.text = "Gato está te acompanhando feliz pela floresta!";
+                    else if (nearest.isWolfCautious)
+                        nearbyOrderText.text = "Lobo assustado! Pedale devagar para acalmá-lo!";
+                    else if (nearest.emotion == ForestAnimal.EmotionState.Saciado)
                         nearbyOrderText.text = $"{nearest.animalName}: Saciado e feliz!";
                     else if (nearest.emotion == ForestAnimal.EmotionState.Cavando)
                         nearbyOrderText.text = "Esquilo está cavando! Ajude a achar diamantes!";
@@ -630,7 +727,7 @@ namespace FlorestaBicicleta
                 }
                 else
                 {
-                    nearbyOrderText.text = "Aproxime-se de um animal para ver o pedido";
+                    nearbyOrderText.text = "Aproxime-se de um animal ou morador para ver o pedido";
                 }
             }
 
@@ -643,6 +740,8 @@ namespace FlorestaBicicleta
             }
 
             if (kitchenPanel != null) kitchenPanel.SetActive(player.isNearKitchen);
+            if (!player.isNearKitchen && miniPrepPanel != null && miniPrepPanel.IsOpen)
+                miniPrepPanel.Close();
 
             if (digButtonObj != null && digSite != null)
             {

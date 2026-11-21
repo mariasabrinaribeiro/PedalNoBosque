@@ -23,6 +23,7 @@ namespace FlorestaBicicleta
         public float acceleration = 11f;
 
         [Header("Limites da Estrada")]
+        public bool infiniteRoad = true;
         public float minX = -4f;
         public float maxX = 160f;
 
@@ -31,7 +32,7 @@ namespace FlorestaBicicleta
         public int happyCombo = 0;
         public float waterLevel = 100f;
         public float waterDrainPerSecond = 2.0f;
-        public int maxBasketSize = 5;
+        public int maxBasketSize = 6;
 
         public readonly List<FoodType> foodBasket = new List<FoodType>();
         public float currentSpeed { get; private set; } = 0f;
@@ -46,10 +47,19 @@ namespace FlorestaBicicleta
         private float baseGroundY = -3.55f;
         private float stumbleTimer = 0f;
         public int starsCollected { get; private set; } = 0;
+        public int gourmetBonusCharges { get; set; } = 0;
         public float distanceMeters => Mathf.Max(0f, transform.position.x * 2.5f);
+        public float distanceKm => distanceMeters / 1000f;
+        public float maxDistanceKm { get; private set; } = 0f;
+
+        public void SetMinX(float newMinX)
+        {
+            if (newMinX > minX) minX = newMinX;
+        }
 
         private Transform visualRoot;
         private SpriteRenderer bikeSR;
+        private SpriteRenderer customAccentBadgeSR;
         private float slopeMultiplier = 1f;
         private float slopeTiltDeg = 0f;
         private float facingDir = 1f;
@@ -59,6 +69,7 @@ namespace FlorestaBicicleta
         private Dictionary<FoodType, Sprite> foodSprites;
         private Sprite tearSprite;
         private SideDiamondDigSite digSiteRef;
+        private InfiniteTrackGenerator trackGeneratorRef;
 
         // Inputs de botões na tela
         private bool uiSlowPressed = false;
@@ -87,10 +98,13 @@ namespace FlorestaBicicleta
 
             tearSprite = ParkSpriteFactory.CreateTearDropSprite();
 
-            // Começa com 3 lanches na cesta para jogar logo de início
+            // Começa com uma cesta variada de alimentos naturais + suco para alimentar logo de início
             foodBasket.Clear();
-            foodBasket.Add(FoodType.Pipoca);
-            foodBasket.Add(FoodType.Coxinha);
+            foodBasket.Add(FoodType.Nozes);
+            foodBasket.Add(FoodType.Cenoura);
+            foodBasket.Add(FoodType.Maca);
+            foodBasket.Add(FoodType.Mel);
+            foodBasket.Add(FoodType.Sementes);
             foodBasket.Add(FoodType.Suco);
 
             visualRoot = new GameObject("BikeVisual").transform;
@@ -102,6 +116,18 @@ namespace FlorestaBicicleta
             bikeSR = visualRoot.gameObject.AddComponent<SpriteRenderer>();
             bikeSR.sprite = FlorestaSpriteFactory.LoadGirlBikeSprite();
             bikeSR.sortingOrder = 10;
+
+            // Adorno delicado para acessórios/enfeites equipados (Etapa 7)
+            GameObject badgeObj = new GameObject("CustomAccent");
+            badgeObj.transform.SetParent(visualRoot, false);
+            badgeObj.transform.localPosition = new Vector3(0.55f, 1.95f, 0f);
+            badgeObj.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
+            customAccentBadgeSR = badgeObj.AddComponent<SpriteRenderer>();
+            customAccentBadgeSR.sprite = TrailCollectibleItem.GetOrCreateSprite(CollectibleKind.Flores);
+            customAccentBadgeSR.sortingOrder = 11;
+            customAccentBadgeSR.enabled = false;
+
+            ApplyCustomizationVisuals();
 
             BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
@@ -124,6 +150,33 @@ namespace FlorestaBicicleta
             List<string> names = new List<string>();
             foreach (var f in foodBasket) names.Add(FoodInfo.GetDisplayName(f));
             return $"Cesta ({foodBasket.Count}/{maxBasketSize}): " + string.Join(", ", names);
+        }
+
+        public void SetTrackGenerator(InfiniteTrackGenerator generator) => trackGeneratorRef = generator;
+
+        public void ApplyCustomizationVisuals()
+        {
+            var pm = PlayerProgressManager.Instance;
+            if (pm == null || bikeSR == null) return;
+
+            var bikeDef = pm.GetEquippedDef(CustomizationCategory.Bicicletas);
+            bikeSR.color = bikeDef != null ? bikeDef.tintColor : Color.white;
+
+            if (customAccentBadgeSR != null)
+            {
+                var puppyDef = pm.GetEquippedDef(CustomizationCategory.Cachorrinho);
+                var accDef = pm.GetEquippedDef(CustomizationCategory.Acessorios);
+                bool hasCustomDecor = (puppyDef != null && puppyDef.id != "puppy_default")
+                                   || (accDef != null && accDef.id != "acc_default");
+                customAccentBadgeSR.enabled = hasCustomDecor;
+                if (hasCustomDecor)
+                {
+                    Color badgeCol = (puppyDef != null && puppyDef.id != "puppy_default")
+                        ? puppyDef.tintColor
+                        : accDef.tintColor;
+                    customAccentBadgeSR.color = badgeCol;
+                }
+            }
         }
 
         public void SetUISlow(bool pressed) => uiSlowPressed = pressed;
@@ -183,11 +236,14 @@ namespace FlorestaBicicleta
             }
 
             Vector3 pos = transform.position;
-            pos.x = Mathf.Clamp(pos.x + currentSpeed * Time.deltaTime, minX, maxX);
+            float nextX = pos.x + currentSpeed * Time.deltaTime;
+            pos.x = infiniteRoad ? Mathf.Max(minX, nextX) : Mathf.Clamp(nextX, minX, maxX);
             pos.y = baseGroundY + jumpHeight;
-            if ((pos.x <= minX && currentSpeed < 0f) || (pos.x >= maxX && currentSpeed > 0f))
+            if ((pos.x <= minX && currentSpeed < 0f) || (!infiniteRoad && pos.x >= maxX && currentSpeed > 0f))
                 currentSpeed = 0f;
             transform.position = pos;
+
+            if (distanceKm > maxDistanceKm) maxDistanceKm = distanceKm;
 
             // Vira o sprite se estiver voltando pela estrada
             if (currentSpeed > 0.25f) { facingDir = 1f; if (bikeSR != null) bikeSR.flipX = false; }
@@ -259,24 +315,54 @@ namespace FlorestaBicicleta
 
             lastThrowTime = Time.time;
 
-            // Encontra o animal mais próximo dentro de 11 unidades
-            ForestAnimal[] all = FindObjectsOfType<ForestAnimal>();
-            ForestAnimal target = null;
-            float bestDist = 11f;
-            foreach (var a in all)
+            // Encontra o animal ou morador mais próximo dentro de 11 unidades (sem FindObjectsOfType!)
+            ForestAnimal targetAnimal = null;
+            float bestAnimalDist = 11f;
+            if (trackGeneratorRef != null)
             {
-                float d = Mathf.Abs(a.transform.position.x - transform.position.x);
-                if (d < bestDist)
+                var animals = trackGeneratorRef.ActiveAnimals;
+                for (int i = 0; i < animals.Count; i++)
                 {
-                    bestDist = d;
-                    target = a;
+                    ForestAnimal a = animals[i];
+                    if (a == null) continue;
+                    float d = Mathf.Abs(a.transform.position.x - transform.position.x);
+                    if (d < bestAnimalDist)
+                    {
+                        bestAnimalDist = d;
+                        targetAnimal = a;
+                    }
                 }
             }
 
-            int basketIdx = 0;
-            if (target != null && !target.isFullySatisfied)
+            VillageResident targetResident = null;
+            float bestResidentDist = 11f;
+            if (trackGeneratorRef != null)
             {
-                int match = foodBasket.IndexOf(target.wantedFood);
+                var residents = trackGeneratorRef.ActiveResidents;
+                for (int i = 0; i < residents.Count; i++)
+                {
+                    VillageResident r = residents[i];
+                    if (r == null || r.isHelped) continue;
+                    float d = Mathf.Abs(r.transform.position.x - transform.position.x);
+                    if (d < bestResidentDist)
+                    {
+                        bestResidentDist = d;
+                        targetResident = r;
+                    }
+                }
+            }
+
+            bool deliverToResident = targetResident != null && (targetAnimal == null || bestResidentDist < bestAnimalDist);
+
+            int basketIdx = 0;
+            if (deliverToResident)
+            {
+                int match = foodBasket.IndexOf(targetResident.wantedFood);
+                if (match >= 0) basketIdx = match;
+            }
+            else if (targetAnimal != null && !targetAnimal.isFullySatisfied)
+            {
+                int match = foodBasket.IndexOf(targetAnimal.wantedFood);
                 if (match >= 0) basketIdx = match;
             }
 
@@ -285,12 +371,45 @@ namespace FlorestaBicicleta
 
             FlorestaSoundFX.Instance?.PlayThrow();
             Vector3 startPos = transform.position + new Vector3(facingDir * 0.9f, 1.8f, 0f);
-            Vector3 endPos = target != null
-                ? target.transform.position + new Vector3(0f, 1.0f, 0f)
-                : transform.position + new Vector3(facingDir * 5.5f, 0.8f, 0f);
-
             GameObject projObj = new GameObject("AlimentoArremessado");
-            projObj.AddComponent<SideFoodProjectile>().Launch(chosen, startPos, endPos, target, foodSprites[chosen], HandleFoodArrived);
+
+            if (deliverToResident)
+            {
+                Vector3 endPos = targetResident.transform.position + new Vector3(0f, 1.2f, 0f);
+                projObj.AddComponent<SideFoodProjectile>().LaunchToResident(chosen, startPos, endPos, targetResident, foodSprites[chosen], HandleResidentDelivery);
+            }
+            else
+            {
+                Vector3 endPos = targetAnimal != null
+                    ? targetAnimal.transform.position + new Vector3(0f, 1.0f, 0f)
+                    : transform.position + new Vector3(facingDir * 5.5f, 0.8f, 0f);
+                projObj.AddComponent<SideFoodProjectile>().Launch(chosen, startPos, endPos, targetAnimal, foodSprites[chosen], HandleFoodArrived);
+            }
+        }
+
+        private void HandleResidentDelivery(VillageResident resident, FoodType given)
+        {
+            VillageResident.DeliveryResult res = resident.ReceiveItem(given);
+            if (res == VillageResident.DeliveryResult.Completed)
+            {
+                score += resident.pointReward;
+                starsCollected += resident.starReward;
+                PlayerProgressManager.Instance?.AddStars(resident.starReward);
+                PlayerProgressManager.Instance?.RecordDelivery();
+                happyCombo++;
+                if (FoodInfo.NeedsPreparation(given) && gourmetBonusCharges > 0)
+                {
+                    gourmetBonusCharges--;
+                    score += 50;
+                }
+                string musicExtra = resident.kind == VillageResident.ResidentKind.Musico ? " Ele tocou uma serenata especial!" : "";
+                onInfoMessage?.Invoke($"Missão '{resident.missionTitle}' completa! {resident.residentName} agradeceu! +{resident.starReward} ★ e +{resident.pointReward} pts!{musicExtra}");
+            }
+            else if (res == VillageResident.DeliveryResult.WrongItem)
+            {
+                FlorestaSoundFX.Instance?.PlayWrong();
+                onInfoMessage?.Invoke($"{resident.residentName} queria {FoodInfo.GetDisplayName(resident.wantedFood)}, não {FoodInfo.GetDisplayName(given)}!");
+            }
         }
 
         private void HandleFoodArrived(ForestAnimal animal, FoodType given)
@@ -299,26 +418,46 @@ namespace FlorestaBicicleta
             switch (res)
             {
                 case ForestAnimal.FeedResult.AteNeedsMore:
-                    score += 80;
+                    score += (animal.kind == ParkSpriteFactory.AnimalKind.Lobo) ? 120 : 80;
+                    if (FoodInfo.NeedsPreparation(given) && gourmetBonusCharges > 0)
+                    {
+                        gourmetBonusCharges--;
+                        score += 50;
+                        onInfoMessage?.Invoke($"Bônus Gourmet! {FoodInfo.GetDisplayName(given)} artesanal! +50 pts extras!");
+                    }
                     happyCombo++;
+                    PlayerProgressManager.Instance?.RecordDelivery();
                     FlorestaSoundFX.Instance?.PlayHappy();
                     FlorestaSoundFX.Instance?.PlayDogBark();
                     break;
                 case ForestAnimal.FeedResult.FullySatisfied:
-                    score += 150;
+                    score += (animal.kind == ParkSpriteFactory.AnimalKind.Lobo) ? 220
+                           : (animal.kind == ParkSpriteFactory.AnimalKind.Gato ? 175 : 150);
+                    if (FoodInfo.NeedsPreparation(given) && gourmetBonusCharges > 0)
+                    {
+                        gourmetBonusCharges--;
+                        score += 50;
+                        onInfoMessage?.Invoke($"Bônus Gourmet! {FoodInfo.GetDisplayName(given)} artesanal! +50 pts extras!");
+                    }
                     happyCombo++;
+                    PlayerProgressManager.Instance?.RecordDelivery();
+                    PlayerProgressManager.Instance?.AddStars(1);
                     FlorestaSoundFX.Instance?.PlayHappy();
                     FlorestaSoundFX.Instance?.PlayDogBark();
                     break;
                 case ForestAnimal.FeedResult.TriggeredSquirrelSecret:
                     score += 300;
                     happyCombo++;
+                    PlayerProgressManager.Instance?.RecordDelivery(isSquirrelSecret: true);
                     FlorestaSoundFX.Instance?.PlayDiamond();
                     FlorestaSoundFX.Instance?.PlayDogBark();
                     break;
                 case ForestAnimal.FeedResult.AlreadyFull:
                     score += 20;
                     FlorestaSoundFX.Instance?.PlayHappy();
+                    break;
+                case ForestAnimal.FeedResult.WolfStartled:
+                    FlorestaSoundFX.Instance?.PlayWrong();
                     break;
                 case ForestAnimal.FeedResult.WrongFood:
                     FlorestaSoundFX.Instance?.PlayWrong();
@@ -384,8 +523,20 @@ namespace FlorestaBicicleta
             {
                 starsCollected++;
                 score += star.bonusPoints;
+                PlayerProgressManager.Instance?.AddStars(1);
                 FlorestaSoundFX.Instance?.PlayStar();
-                onInfoMessage?.Invoke($"Estrela no ar coletada! +{star.bonusPoints} pts!");
+                onInfoMessage?.Invoke($"Estrela no ar coletada! +1 ★ e +{star.bonusPoints} pts!");
+                return;
+            }
+
+            // Colecionável natural da trilha (Etapa 7)
+            TrailCollectibleItem natureItem = other.GetComponent<TrailCollectibleItem>();
+            if (natureItem != null && natureItem.TryCollect())
+            {
+                score += natureItem.bonusPoints;
+                PlayerProgressManager.Instance?.AddCollectible(natureItem.kind, 1);
+                FlorestaSoundFX.Instance?.PlayStar();
+                onInfoMessage?.Invoke($"Colecionável encontrado: {PlayerProgressManager.GetCollectibleDisplayName(natureItem.kind)}! +{natureItem.bonusPoints} pts");
                 return;
             }
 

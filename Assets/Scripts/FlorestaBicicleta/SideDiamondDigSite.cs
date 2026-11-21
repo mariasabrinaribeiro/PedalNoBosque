@@ -42,12 +42,14 @@ namespace FlorestaBicicleta
             isActive = true;
             isCompleted = false;
             digProgress = 0f;
-            gameObject.SetActive(true);
 
             if (squirrel != null)
             {
+                transform.position = new Vector3(squirrel.transform.position.x + 2.4f, -2.45f, 0f);
                 squirrel.MoveToDigSpot(transform.position + new Vector3(1.3f, -0.2f, 0f));
             }
+
+            gameObject.SetActive(true);
         }
 
         public void HelpDig()

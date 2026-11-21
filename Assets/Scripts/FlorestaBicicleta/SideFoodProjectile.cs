@@ -12,9 +12,11 @@ namespace FlorestaBicicleta
         private Vector3 startPos;
         private Vector3 targetPos;
         private ForestAnimal targetAnimal;
+        private VillageResident targetResident;
         private float duration = 0.52f;
         private float elapsed = 0f;
         private System.Action<ForestAnimal, FoodType> onArrive;
+        private System.Action<VillageResident, FoodType> onArriveResident;
 
         public void Launch(FoodType type, Vector3 from, Vector3 to, ForestAnimal animal, Sprite sp, System.Action<ForestAnimal, FoodType> arriveCb)
         {
@@ -22,7 +24,25 @@ namespace FlorestaBicicleta
             startPos = from;
             targetPos = to;
             targetAnimal = animal;
+            targetResident = null;
             onArrive = arriveCb;
+            onArriveResident = null;
+
+            transform.position = from;
+            SpriteRenderer sr = gameObject.AddComponent<SpriteRenderer>();
+            sr.sprite = sp;
+            sr.sortingOrder = 18;
+        }
+
+        public void LaunchToResident(FoodType type, Vector3 from, Vector3 to, VillageResident resident, Sprite sp, System.Action<VillageResident, FoodType> arriveCb)
+        {
+            foodType = type;
+            startPos = from;
+            targetPos = to;
+            targetAnimal = null;
+            targetResident = resident;
+            onArrive = null;
+            onArriveResident = arriveCb;
 
             transform.position = from;
             SpriteRenderer sr = gameObject.AddComponent<SpriteRenderer>();
@@ -45,6 +65,10 @@ namespace FlorestaBicicleta
                 if (targetAnimal != null)
                 {
                     onArrive?.Invoke(targetAnimal, foodType);
+                }
+                else if (targetResident != null)
+                {
+                    onArriveResident?.Invoke(targetResident, foodType);
                 }
                 Destroy(gameObject);
             }
