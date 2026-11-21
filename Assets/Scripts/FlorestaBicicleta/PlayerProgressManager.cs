@@ -355,6 +355,9 @@ namespace FlorestaBicicleta
                 case TrailAdventureEvent.EventKind.PassaroCaido:
                     Data.birdsRescuedCount++;
                     break;
+                default:
+                    Data.totalDeliveries++;
+                    break;
             }
             EvaluateVillageEvolution();
             SaveSystem.Save(Data);

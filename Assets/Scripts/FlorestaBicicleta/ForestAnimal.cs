@@ -51,6 +51,7 @@ namespace FlorestaBicicleta
         private float catFollowTimer = 0f;
         private float catHeartTimer = 0f;
         private Transform trackedPlayer;
+        private bool isRestingBySchedule = false;
 
         public void Setup(
             ParkSpriteFactory.AnimalKind animalKind,
@@ -342,9 +343,44 @@ namespace FlorestaBicicleta
             UpdateBubble();
         }
 
+        /// <summary>Rotina natural dos animais por horário do dia (Manhã, Entardecer, Noite e Madrugada).</summary>
+        public void ApplyDayPeriodRoutine(DayPeriod period)
+        {
+            bool isNocturnal = (kind == ParkSpriteFactory.AnimalKind.CorujaNoturna
+                             || kind == ParkSpriteFactory.AnimalKind.Lobo
+                             || kind == ParkSpriteFactory.AnimalKind.Raposa
+                             || kind == ParkSpriteFactory.AnimalKind.Guaxinim);
+
+            if (period == DayPeriod.Manha)
+            {
+                isRestingBySchedule = false;
+                if (bodyRenderer != null && !isWolfCautious) bodyRenderer.color = Color.white;
+                if (kind == ParkSpriteFactory.AnimalKind.Passarinhos)
+                    FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+            }
+            else if (period == DayPeriod.PorDoSol || period == DayPeriod.Noite)
+            {
+                isRestingBySchedule = !isNocturnal;
+                if (bodyRenderer != null && !isWolfCautious)
+                {
+                    bodyRenderer.color = isRestingBySchedule
+                        ? new Color(0.86f, 0.88f, 0.94f, 0.94f) // Descansando calmamente
+                        : Color.white;                           // Noturnos despertos!
+                }
+                if (period == DayPeriod.Noite && kind == ParkSpriteFactory.AnimalKind.CorujaNoturna)
+                    FlorestaSoundFX.Instance?.PlayAnimalVoice(kind);
+            }
+            else
+            {
+                isRestingBySchedule = false;
+                if (bodyRenderer != null && !isWolfCautious) bodyRenderer.color = Color.white;
+            }
+        }
+
         /// <summary>Reação gentil à campainha da bicicleta: acalma o Lobo e alegra os bichinhos próximos!</summary>
         public void OnBellHeard()
         {
+            isRestingBySchedule = false;
             if (isWolfCautious)
             {
                 isWolfCautious = false;

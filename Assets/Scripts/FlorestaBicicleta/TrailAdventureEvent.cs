@@ -20,7 +20,17 @@ namespace FlorestaBicicleta
             FloresMurchas,
             PassaroCaido,
             PonteQuebrada,
-            TesouroEscondido
+            TesouroEscondido,
+            // Novos personagens e atividades da floresta viva!
+            ToupeiraSubterranea,
+            TexugoOficina,
+            RatinhoCarteiro,
+            PicapauArvore,
+            LimparRiacho,
+            PegadasCachorro,
+            MusicaDaFloresta,
+            CuidadoraAbrigo,
+            EnigmaCoruja
         }
 
         public EventKind kind { get; private set; }
@@ -33,10 +43,19 @@ namespace FlorestaBicicleta
             {
                 switch (kind)
                 {
-                    case EventKind.FloresMurchas:    return "Regar Flores (Espaco)";
-                    case EventKind.PassaroCaido:     return "Ajudar Passarinho (Espaco)";
-                    case EventKind.PonteQuebrada:    return "Consertar Ponte (Espaco)";
-                    case EventKind.TesouroEscondido: return "Abrir Tesouro (Espaco)";
+                    case EventKind.FloresMurchas:       return "Regar Flores (Espaco)";
+                    case EventKind.PassaroCaido:        return "Ajudar Passarinho (Espaco)";
+                    case EventKind.PonteQuebrada:       return "Consertar Ponte (Espaco)";
+                    case EventKind.TesouroEscondido:    return "Abrir Tesouro (Espaco)";
+                    case EventKind.ToupeiraSubterranea: return "Ajudar Toupeira (Espaco)";
+                    case EventKind.TexugoOficina:       return "Oficina do Texugo (Espaco)";
+                    case EventKind.RatinhoCarteiro:     return "Entregar Carta (Espaco)";
+                    case EventKind.PicapauArvore:       return "Seguir Pica-pau (Espaco)";
+                    case EventKind.LimparRiacho:        return "Limpar Riacho (Espaco)";
+                    case EventKind.PegadasCachorro:     return "Seguir Pegadas (Espaco)";
+                    case EventKind.MusicaDaFloresta:    return "Tocar Musica (Espaco)";
+                    case EventKind.CuidadoraAbrigo:     return "Cuidar do Bichinho (Espaco)";
+                    case EventKind.EnigmaCoruja:        return "Ouvir Coruja (Espaco)";
                     default: return "Interagir (Espaco)";
                 }
             }
@@ -48,10 +67,19 @@ namespace FlorestaBicicleta
             {
                 switch (kind)
                 {
-                    case EventKind.FloresMurchas:    return "Flores murchas na beira da trilha! Aperte ESPACO para regar!";
-                    case EventKind.PassaroCaido:     return "Um passarinho caiu do ninho! Aperte ESPACO para ajuda-lo!";
-                    case EventKind.PonteQuebrada:    return "Passarela com tabuas soltas! Aperte ESPACO para consertar!";
-                    case EventKind.TesouroEscondido: return "Algo brilha escondido nos arbustos! Aperte ESPACO para investigar!";
+                    case EventKind.FloresMurchas:       return "Flores murchas na beira da trilha! Aperte ESPACO para regar!";
+                    case EventKind.PassaroCaido:        return "Um passarinho caiu do ninho! Aperte ESPACO para ajuda-lo!";
+                    case EventKind.PonteQuebrada:       return "Passarela com tabuas soltas! Aperte ESPACO para consertar!";
+                    case EventKind.TesouroEscondido:    return "Algo brilha escondido nos arbustos! Aperte ESPACO para investigar!";
+                    case EventKind.ToupeiraSubterranea: return "A Toupeira encontrou algo subterraneo! Aperte ESPACO para ajudar!";
+                    case EventKind.TexugoOficina:       return "O Texugo esta na pequena oficina! Aperte ESPACO para revisar a bike!";
+                    case EventKind.RatinhoCarteiro:     return "O Ratinho Carteiro tem uma carta da vila! Aperte ESPACO para ajudar!";
+                    case EventKind.PicapauArvore:       return "O Pica-pau aponta uma arvore especial! Aperte ESPACO para descobrir!";
+                    case EventKind.LimparRiacho:        return "Galhos cairam no riacho! Aperte ESPACO para limpar e trazer peixes!";
+                    case EventKind.PegadasCachorro:     return "Pegadas misteriosas na trilha! O cachorrinho quer cavar (ESPACO)!";
+                    case EventKind.MusicaDaFloresta:    return "Instrumentos naturais da floresta! Aperte ESPACO para tocar musica!";
+                    case EventKind.CuidadoraAbrigo:     return "Um bichinho precisa de escovacao e abrigo! Aperte ESPACO para cuidar!";
+                    case EventKind.EnigmaCoruja:        return "A Coruja Sabia quer contar um enigma! Aperte ESPACO para ouvir!";
                     default: return "";
                 }
             }
@@ -98,7 +126,8 @@ namespace FlorestaBicicleta
         public bool CheckPuppyAlert(float distanceToPlayer)
         {
             if (isCompleted || puppyAlerted) return false;
-            if (kind == EventKind.TesouroEscondido && distanceToPlayer < 9.5f)
+            bool isSecretSniff = (kind == EventKind.TesouroEscondido || kind == EventKind.PegadasCachorro || kind == EventKind.ToupeiraSubterranea);
+            if (isSecretSniff && distanceToPlayer < 9.5f)
             {
                 puppyAlerted = true;
                 FlorestaSoundFX.Instance?.PlayDogBark();
@@ -112,9 +141,28 @@ namespace FlorestaBicicleta
             completionMessage = "";
             if (isCompleted || player == null) return false;
 
-            isCompleted = true;
-            if (mainSR != null) mainSR.sprite = GetEventSprite(kind, completed: true);
-            if (sparkleSR != null) sparkleSR.gameObject.SetActive(false);
+            // Atividades interativas ricas com UI dedicada (Música, Cuidadora, Enigma da Coruja)
+            if (kind == EventKind.MusicaDaFloresta && ForestActivitiesUI.Instance != null)
+            {
+                ForestActivitiesUI.Instance.OpenMusicActivity(() =>
+                    CompleteEventNow(player, 3, 180, "Melodia linda! Os passaros e flores celebraram sua musica! +3 Estrelas!"));
+                completionMessage = "Escute os instrumentos naturais da floresta!";
+                return true;
+            }
+            if (kind == EventKind.CuidadoraAbrigo && ForestActivitiesUI.Instance != null)
+            {
+                ForestActivitiesUI.Instance.OpenCareActivity(() =>
+                    CompleteEventNow(player, 3, 170, "Voce escovou, montou o abrigo e deu carinho! +3 Estrelas!"));
+                completionMessage = "Hora de cuidar do bichinho com carinho!";
+                return true;
+            }
+            if (kind == EventKind.EnigmaCoruja && ForestActivitiesUI.Instance != null)
+            {
+                ForestActivitiesUI.Instance.OpenOwlRiddle(() =>
+                    CompleteEventNow(player, 3, 175, "A Coruja Sabia aplaudiu sua resposta! +3 Estrelas!"));
+                completionMessage = "A Coruja Sabia tem um enigma para voce!";
+                return true;
+            }
 
             int stars = 2;
             int pts = 140;
@@ -147,13 +195,66 @@ namespace FlorestaBicicleta
                     PlayerProgressManager.Instance?.AddCollectible(CollectibleKind.TesourosSecretos, 1);
                     completionMessage = "Tesouro Secreto descoberto com a ajuda do cachorrinho! +3 Estrelas e +200 pts!";
                     break;
+
+                case EventKind.ToupeiraSubterranea:
+                    stars = 2; pts = 160;
+                    FlorestaSoundFX.Instance?.PlayDig();
+                    PlayerProgressManager.Instance?.AddCollectible(CollectibleKind.PedrasBrilhantes, 1);
+                    completionMessage = "A Toupeira encontrou uma Pedra Brilhante subterranea para voce! +2 Estrelas!";
+                    break;
+
+                case EventKind.TexugoOficina:
+                    stars = 2; pts = 160;
+                    FlorestaSoundFX.Instance?.PlayBell();
+                    player.waterLevel = 100f;
+                    completionMessage = "O Texugo revisou sua bicicleta e encheu a agua! +2 Estrelas!";
+                    break;
+
+                case EventKind.RatinhoCarteiro:
+                    stars = 2; pts = 155;
+                    FlorestaSoundFX.Instance?.PlayVillagerHappy();
+                    completionMessage = "Voce ajudou o Ratinho Carteiro a entregar as cartas da vila! +2 Estrelas!";
+                    break;
+
+                case EventKind.PicapauArvore:
+                    stars = 2; pts = 165;
+                    FlorestaSoundFX.Instance?.PlayAnimalVoice(ParkSpriteFactory.AnimalKind.Passarinhos);
+                    PlayerProgressManager.Instance?.AddCollectible(CollectibleKind.Sementes, 2);
+                    completionMessage = "O Pica-pau revelou sementes especiais na arvore antiga! +2 Estrelas!";
+                    break;
+
+                case EventKind.LimparRiacho:
+                    stars = 3; pts = 180;
+                    FlorestaSoundFX.Instance?.PlayWater();
+                    FlorestaSoundFX.Instance?.PlayAnimalVoice(ParkSpriteFactory.AnimalKind.Sapo);
+                    completionMessage = "Riacho limpinho! Peixes e sapinhos voltaram felizes para a agua! +3 Estrelas!";
+                    break;
+
+                case EventKind.PegadasCachorro:
+                    stars = 3; pts = 190;
+                    FlorestaSoundFX.Instance?.PlayDig();
+                    FlorestaSoundFX.Instance?.PlayDogBark();
+                    PlayerProgressManager.Instance?.AddCollectible(CollectibleKind.TesourosSecretos, 1);
+                    completionMessage = "O cachorrinho seguiu as pegadas e cavou um tesouro escondido! +3 Estrelas!";
+                    break;
             }
+
+            CompleteEventNow(player, stars, pts, completionMessage);
+            return true;
+        }
+
+        private void CompleteEventNow(BikeGirlController player, int stars, int pts, string bannerMsg)
+        {
+            if (isCompleted) return;
+            isCompleted = true;
+            if (mainSR != null) mainSR.sprite = GetEventSprite(kind, completed: true);
+            if (sparkleSR != null) sparkleSR.gameObject.SetActive(false);
 
             player.score += pts;
             PlayerProgressManager.Instance?.AddStars(stars);
             PlayerProgressManager.Instance?.RecordAdventureAction(kind);
+            FlorestaSoundFX.Instance?.PlayDiamond();
             StartCoroutine(BloomPopRoutine());
-            return true;
         }
 
         private IEnumerator BloomPopRoutine()
@@ -303,6 +404,84 @@ namespace FlorestaBicicleta
                         CirclePx(tex, 54, 35, 7, new Color(0.46f, 0.92f, 1f, 1f));
                         CirclePx(tex, 48, 42, 6, new Color(1f, 0.96f, 0.72f, 1f));
                     }
+                    break;
+
+                case EventKind.ToupeiraSubterranea:
+                    // Monte de terra fofa + Toupeira simpática com focinho rosado
+                    CirclePx(tex, 48, 18, 22, new Color(0.46f, 0.30f, 0.16f, 1f));
+                    CirclePx(tex, 48, 36, 14, new Color(0.30f, 0.26f, 0.24f, 1f));
+                    CirclePx(tex, 48, 34, 4, new Color(1f, 0.62f, 0.72f, 1f)); // Focinho rosado
+                    if (completed) CirclePx(tex, 68, 38, 7, new Color(0.38f, 0.86f, 1f, 1f)); // Cristal achado
+                    break;
+
+                case EventKind.TexugoOficina:
+                    // Bancada de madeira + Texugo listrado
+                    RectPx(tex, 18, 8, 78, 28, new Color(0.62f, 0.40f, 0.20f, 1f));
+                    CirclePx(tex, 48, 42, 16, new Color(0.28f, 0.28f, 0.30f, 1f));
+                    RectPx(tex, 44, 30, 52, 56, Color.white); // Faixa branca clássica do texugo
+                    if (completed) CirclePx(tex, 72, 46, 7, new Color(1f, 0.88f, 0.24f, 1f));
+                    break;
+
+                case EventKind.RatinhoCarteiro:
+                    // Caixa de correio charmosa + Ratinho com orelhinhas redondas e carta
+                    RectPx(tex, 58, 8, 66, 46, new Color(0.44f, 0.28f, 0.14f, 1f));
+                    RectPx(tex, 50, 42, 76, 58, new Color(0.26f, 0.56f, 0.82f, 1f));
+                    CirclePx(tex, 32, 24, 12, new Color(0.76f, 0.74f, 0.72f, 1f));
+                    CirclePx(tex, 24, 34, 6, new Color(1f, 0.72f, 0.78f, 1f));
+                    CirclePx(tex, 40, 34, 6, new Color(1f, 0.72f, 0.78f, 1f));
+                    RectPx(tex, 34, 20, 48, 30, Color.white); // Cartinha!
+                    break;
+
+                case EventKind.PicapauArvore:
+                    // Tronco especial + Pica-pau de topete vermelho
+                    RectPx(tex, 46, 8, 68, 70, new Color(0.48f, 0.30f, 0.16f, 1f));
+                    CirclePx(tex, 38, 46, 10, new Color(0.18f, 0.20f, 0.24f, 1f));
+                    CirclePx(tex, 38, 56, 7, new Color(0.92f, 0.20f, 0.24f, 1f)); // Topete vermelho
+                    if (completed) CirclePx(tex, 58, 48, 7, new Color(1f, 0.84f, 0.24f, 1f));
+                    break;
+
+                case EventKind.LimparRiacho:
+                    CirclePx(tex, 48, 20, 26, new Color(0.24f, 0.70f, 0.92f, 0.92f));
+                    if (!completed)
+                    {
+                        RectPx(tex, 24, 18, 72, 26, new Color(0.46f, 0.28f, 0.14f, 1f)); // Galhos bloqueando
+                    }
+                    else
+                    {
+                        CirclePx(tex, 40, 28, 7, new Color(0.28f, 0.78f, 0.30f, 1f)); // Sapinho feliz
+                        CirclePx(tex, 60, 22, 6, new Color(1f, 0.64f, 0.22f, 1f));    // Peixinho
+                    }
+                    break;
+
+                case EventKind.PegadasCachorro:
+                    // Pegadas na terra levando a um pontinho brilhante
+                    Color paw = new Color(0.42f, 0.26f, 0.14f, 0.92f);
+                    CirclePx(tex, 24, 18, 6, paw);
+                    CirclePx(tex, 44, 22, 6, paw);
+                    CirclePx(tex, 64, 18, 6, paw);
+                    if (completed) CirclePx(tex, 70, 34, 9, new Color(1f, 0.86f, 0.22f, 1f));
+                    break;
+
+                case EventKind.MusicaDaFloresta:
+                    // Tronco musical com flauta de bambu e notas
+                    RectPx(tex, 22, 12, 74, 32, new Color(0.60f, 0.38f, 0.18f, 1f));
+                    RectPx(tex, 30, 34, 66, 42, new Color(0.42f, 0.74f, 0.34f, 1f)); // Flauta de bambu
+                    CirclePx(tex, 48, 56, 7, completed ? new Color(1f, 0.84f, 0.22f, 1f) : new Color(0.64f, 0.50f, 0.96f, 1f));
+                    break;
+
+                case EventKind.CuidadoraAbrigo:
+                    // Casinha/abrigo fofo de folhas com almofada
+                    CirclePx(tex, 48, 28, 22, new Color(0.26f, 0.62f, 0.32f, 1f));
+                    CirclePx(tex, 48, 22, 14, new Color(0.96f, 0.86f, 0.68f, 1f));
+                    if (completed) CirclePx(tex, 48, 52, 8, new Color(1f, 0.42f, 0.66f, 1f)); // Coração!
+                    break;
+
+                case EventKind.EnigmaCoruja:
+                    // Poleiro iluminado da Coruja Sábia
+                    RectPx(tex, 44, 8, 52, 42, new Color(0.46f, 0.28f, 0.14f, 1f));
+                    CirclePx(tex, 48, 50, 14, new Color(0.46f, 0.34f, 0.26f, 1f));
+                    CirclePx(tex, 43, 52, 4, new Color(1f, 0.84f, 0.22f, 1f));
+                    CirclePx(tex, 53, 52, 4, new Color(1f, 0.84f, 0.22f, 1f));
                     break;
             }
 

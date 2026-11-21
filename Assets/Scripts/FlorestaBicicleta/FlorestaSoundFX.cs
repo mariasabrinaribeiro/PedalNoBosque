@@ -50,6 +50,8 @@ namespace FlorestaBicicleta
         private AudioClip clipBiomeSecrets;
         private AudioClip clipBiomeVillage;
         private AudioClip clipBiomeMoon;
+        // Instrumentos naturais da Música da Floresta
+        private AudioClip[] natureNotes = new AudioClip[4];
 
         private void Awake()
         {
@@ -98,6 +100,12 @@ namespace FlorestaBicicleta
             clipBiomeSecrets = MakeArpeggio(new[] { 392f, 466f, 587f, 698f }, 0.11f);
             clipBiomeVillage = MakeArpeggio(new[] { 523f, 659f, 784f, 659f }, 0.09f);
             clipBiomeMoon    = MakeArpeggio(new[] { 440f, 523f, 659f, 880f, 987f }, 0.11f);
+
+            // 4 notas musicais de instrumentos naturais (Flauta, Tronco, Gotas, Sino de Flor)
+            natureNotes[0] = MakeCurveTone(new[] { 523f, 530f, 523f }, 0.28f, 0.48f); // Flauta de Bambu (Dó)
+            natureNotes[1] = MakeCurveTone(new[] { 330f, 290f }, 0.20f, 0.55f);       // Tronco Oco (Mi grave)
+            natureNotes[2] = MakeCurveTone(new[] { 659f, 784f }, 0.22f, 0.45f);       // Gotas d'Água (Sol)
+            natureNotes[3] = MakeCurveTone(new[] { 1046f, 1060f, 1046f }, 0.30f, 0.42f); // Sino de Flor (Dó agudo)
         }
 
         public void PlayAnimalVoice(ParkSpriteFactory.AnimalKind kind)
@@ -154,6 +162,12 @@ namespace FlorestaBicicleta
                 _ => clipBiomeFlowers
             };
             source.PlayOneShot(c, 0.55f);
+        }
+
+        public void PlayNatureNote(int noteIdx)
+        {
+            if (source == null || noteIdx < 0 || noteIdx >= natureNotes.Length) return;
+            if (natureNotes[noteIdx] != null) source.PlayOneShot(natureNotes[noteIdx], 0.72f);
         }
 
         // ─── Síntese Procedural ──────────────────────────────────────

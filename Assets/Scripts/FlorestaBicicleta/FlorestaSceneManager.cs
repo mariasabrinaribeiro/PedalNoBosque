@@ -211,6 +211,14 @@ namespace FlorestaBicicleta
             }
             if (period == DayPeriod.Noite)
                 FlorestaSoundFX.Instance?.PlayAnimalVoice(ParkSpriteFactory.AnimalKind.CorujaNoturna);
+
+            // Aplica a rotina natural por horário em todos os animais ativos (manhã, entardecer, noite)
+            if (trackGenerator != null)
+            {
+                var activeAnimals = trackGenerator.ActiveAnimals;
+                for (int i = 0; i < activeAnimals.Count; i++)
+                    if (activeAnimals[i] != null) activeAnimals[i].ApplyDayPeriodRoutine(period);
+            }
         }
 
         // ─── Eventos de Gameplay ─────────────────────────────────────
@@ -646,6 +654,9 @@ namespace FlorestaBicicleta
 
             discoveryUI = gameObject.AddComponent<DiscoveryBookAndWorkshopUI>();
             discoveryUI.Build(canvasObj.transform);
+
+            // Atividades afetivas e criativas (Música da Floresta, Cuidadora e Enigma da Coruja)
+            gameObject.AddComponent<ForestActivitiesUI>().Build(canvasObj.transform);
 
             // Tela de Título Oficial PEDAL NO BOSQUE + Idiomas (PT/EN/ES) + Barreira Parental
             titleScreenUI = gameObject.AddComponent<PedalTitleScreenUI>();

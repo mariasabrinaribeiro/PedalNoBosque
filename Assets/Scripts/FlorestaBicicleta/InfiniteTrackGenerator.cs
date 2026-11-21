@@ -923,30 +923,62 @@ namespace FlorestaBicicleta
             switch (biome)
             {
                 case BiomeType.CampoFlorido:
-                    kind = (seg.index == 0 || seg.index % 2 == 0)
-                        ? TrailAdventureEvent.EventKind.FloresMurchas
-                        : TrailAdventureEvent.EventKind.PassaroCaido;
+                    TrailAdventureEvent.EventKind[] campoEv =
+                    {
+                        TrailAdventureEvent.EventKind.FloresMurchas,
+                        TrailAdventureEvent.EventKind.MusicaDaFloresta,
+                        TrailAdventureEvent.EventKind.CuidadoraAbrigo,
+                        TrailAdventureEvent.EventKind.PassaroCaido
+                    };
+                    kind = (seg.index == 0) ? TrailAdventureEvent.EventKind.FloresMurchas : campoEv[seg.index % campoEv.Length];
                     break;
                 case BiomeType.Colinas:
-                    kind = (seg.index % 2 == 0)
-                        ? TrailAdventureEvent.EventKind.PassaroCaido
-                        : TrailAdventureEvent.EventKind.TesouroEscondido;
+                    TrailAdventureEvent.EventKind[] colinasEv =
+                    {
+                        TrailAdventureEvent.EventKind.PicapauArvore,
+                        TrailAdventureEvent.EventKind.PegadasCachorro,
+                        TrailAdventureEvent.EventKind.PassaroCaido
+                    };
+                    kind = colinasEv[seg.index % colinasEv.Length];
                     break;
                 case BiomeType.RegiaoDoRio:
-                    kind = (seg.index % 2 == 1)
-                        ? TrailAdventureEvent.EventKind.PonteQuebrada
-                        : TrailAdventureEvent.EventKind.FloresMurchas;
+                    TrailAdventureEvent.EventKind[] rioEv =
+                    {
+                        TrailAdventureEvent.EventKind.LimparRiacho,
+                        TrailAdventureEvent.EventKind.PonteQuebrada,
+                        TrailAdventureEvent.EventKind.MusicaDaFloresta
+                    };
+                    kind = rioEv[seg.index % rioEv.Length];
                     break;
                 case BiomeType.TrilhaDaFloresta:
-                    kind = (seg.index % 2 == 0)
-                        ? TrailAdventureEvent.EventKind.TesouroEscondido
-                        : TrailAdventureEvent.EventKind.PassaroCaido;
+                    TrailAdventureEvent.EventKind[] mataEv =
+                    {
+                        TrailAdventureEvent.EventKind.ToupeiraSubterranea,
+                        TrailAdventureEvent.EventKind.EnigmaCoruja,
+                        TrailAdventureEvent.EventKind.TesouroEscondido,
+                        TrailAdventureEvent.EventKind.PicapauArvore
+                    };
+                    kind = mataEv[seg.index % mataEv.Length];
                     break;
                 case BiomeType.PequenaVila:
-                    kind = TrailAdventureEvent.EventKind.FloresMurchas;
+                    TrailAdventureEvent.EventKind[] vilaEv =
+                    {
+                        TrailAdventureEvent.EventKind.RatinhoCarteiro,
+                        TrailAdventureEvent.EventKind.TexugoOficina,
+                        TrailAdventureEvent.EventKind.CuidadoraAbrigo,
+                        TrailAdventureEvent.EventKind.FloresMurchas
+                    };
+                    kind = vilaEv[seg.index % vilaEv.Length];
                     break;
                 case BiomeType.BosqueDaLua:
-                    kind = TrailAdventureEvent.EventKind.TesouroEscondido;
+                    TrailAdventureEvent.EventKind[] luaEv =
+                    {
+                        TrailAdventureEvent.EventKind.EnigmaCoruja,
+                        TrailAdventureEvent.EventKind.MusicaDaFloresta,
+                        TrailAdventureEvent.EventKind.ToupeiraSubterranea,
+                        TrailAdventureEvent.EventKind.TesouroEscondido
+                    };
+                    kind = luaEv[seg.index % luaEv.Length];
                     break;
                 default:
                     kind = TrailAdventureEvent.EventKind.FloresMurchas;
