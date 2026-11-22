@@ -53,9 +53,10 @@ namespace FlorestaBicicleta
             if (iconCache.TryGetValue(kind, out Sprite cached) && cached != null)
                 return cached;
 
-            int s = 56;
+            int s = 96;
             Texture2D tex = new Texture2D(s, s, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
             Color[] clear = new Color[s * s];
             for (int i = 0; i < clear.Length; i++) clear[i] = Color.clear;
             tex.SetPixels(clear);
@@ -74,53 +75,58 @@ namespace FlorestaBicicleta
                 }
             }
 
-            // Aura suave atrás do colecionável
-            Circle(28, 28, 22, new Color(1f, 0.98f, 0.80f, 0.30f));
+            Color ink = new Color(0.22f, 0.10f, 0.07f, 1f);
 
             switch (kind)
             {
                 case CollectibleKind.Estrelas:
-                    Circle(28, 28, 12, new Color(1f, 0.86f, 0.22f, 1f));
-                    Circle(28, 28, 6, new Color(1f, 0.98f, 0.78f, 1f));
+                    Circle(48, 48, 22, ink);
+                    Circle(48, 48, 18, new Color(1f, 0.86f, 0.22f, 1f));
+                    Circle(45, 51, 9, new Color(1f, 0.98f, 0.78f, 1f));
                     break;
                 case CollectibleKind.Flores:
-                    Circle(28, 36, 7, new Color(1f, 0.48f, 0.72f, 1f));
-                    Circle(28, 20, 7, new Color(1f, 0.48f, 0.72f, 1f));
-                    Circle(20, 28, 7, new Color(1f, 0.48f, 0.72f, 1f));
-                    Circle(36, 28, 7, new Color(1f, 0.48f, 0.72f, 1f));
-                    Circle(28, 28, 6, new Color(1f, 0.88f, 0.22f, 1f));
+                    for (int a = 0; a < 5; a++)
+                    {
+                        float ang = a * Mathf.PI * 2f / 5f;
+                        int px = 48 + Mathf.RoundToInt(Mathf.Cos(ang) * 14f);
+                        int py = 48 + Mathf.RoundToInt(Mathf.Sin(ang) * 14f);
+                        Circle(px, py, 12, ink);
+                        Circle(px, py, 9, new Color(1f, 0.52f, 0.72f, 1f));
+                    }
+                    Circle(48, 48, 10, ink);
+                    Circle(48, 48, 7, new Color(1f, 0.88f, 0.24f, 1f));
                     break;
                 case CollectibleKind.Sementes:
-                    Circle(28, 24, 12, new Color(0.28f, 0.70f, 0.30f, 1f));
-                    Circle(23, 29, 5, new Color(0.36f, 0.28f, 0.20f, 1f));
-                    Circle(33, 29, 5, new Color(0.36f, 0.28f, 0.20f, 1f));
-                    Circle(28, 35, 5, new Color(0.46f, 0.36f, 0.24f, 1f));
+                    Circle(48, 44, 20, ink);
+                    Circle(48, 44, 16, new Color(0.76f, 0.48f, 0.22f, 1f));
+                    Circle(48, 56, 14, ink);
+                    Circle(48, 56, 11, new Color(0.46f, 0.26f, 0.12f, 1f));
                     break;
                 case CollectibleKind.FolhasEspeciais:
-                    Circle(24, 28, 11, new Color(0.96f, 0.68f, 0.16f, 1f));
-                    Circle(32, 32, 10, new Color(1f, 0.82f, 0.24f, 1f));
-                    Circle(20, 22, 5, new Color(0.54f, 0.32f, 0.14f, 1f));
+                    Circle(44, 46, 18, ink);
+                    Circle(44, 46, 14, new Color(0.96f, 0.68f, 0.18f, 1f));
+                    Circle(54, 52, 15, ink);
+                    Circle(54, 52, 12, new Color(1f, 0.84f, 0.28f, 1f));
                     break;
                 case CollectibleKind.Cogumelos:
-                    Circle(28, 20, 7, new Color(0.96f, 0.92f, 0.82f, 1f));
-                    Circle(28, 32, 13, new Color(0.88f, 0.24f, 0.30f, 1f));
-                    Circle(23, 35, 3, Color.white);
-                    Circle(33, 33, 3, Color.white);
+                    Circle(48, 34, 13, ink);
+                    Circle(48, 34, 10, new Color(0.98f, 0.94f, 0.84f, 1f));
+                    Circle(48, 54, 22, ink);
+                    Circle(48, 54, 18, new Color(0.90f, 0.28f, 0.30f, 1f));
+                    Circle(40, 58, 4, Color.white);
+                    Circle(55, 55, 4, Color.white);
                     break;
                 case CollectibleKind.PedrasBrilhantes:
-                    Circle(28, 28, 13, new Color(0.32f, 0.80f, 0.98f, 1f));
-                    Circle(24, 32, 6, new Color(0.76f, 0.96f, 1f, 1f));
-                    Circle(32, 24, 4, new Color(0.56f, 0.44f, 0.98f, 1f));
-                    break;
                 case CollectibleKind.TesourosSecretos:
-                    Circle(28, 28, 14, new Color(0.98f, 0.78f, 0.20f, 1f));
-                    Circle(28, 28, 9, new Color(0.42f, 0.92f, 1f, 1f));
-                    Circle(25, 31, 4, Color.white);
+                default:
+                    Circle(48, 48, 22, ink);
+                    Circle(48, 48, 18, new Color(0.36f, 0.84f, 0.98f, 1f));
+                    Circle(43, 53, 8, new Color(0.84f, 0.98f, 1f, 1f));
                     break;
             }
 
             tex.Apply();
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 46f);
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 115f);
             iconCache[kind] = sp;
             return sp;
         }

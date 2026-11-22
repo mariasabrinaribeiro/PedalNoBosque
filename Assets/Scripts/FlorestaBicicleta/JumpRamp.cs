@@ -33,56 +33,70 @@ namespace FlorestaBicicleta
         private static Sprite CreateRampSprite()
         {
             if (cachedSprite != null) return cachedSprite;
-            int w = 112, h = 52;
+            int w = 220, h = 96;
             Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
             Color[] clear = new Color[w * h];
             for (int i = 0; i < clear.Length; i++) clear[i] = Color.clear;
             tex.SetPixels(clear);
 
-            // Rampa natural de terra batida com grama, pedrinhas e sombra de contato (Cozy Storybook)
-            Color shadow = new Color(0.10f, 0.14f, 0.08f, 0.28f);
-            Color dirtDark = new Color(0.50f, 0.34f, 0.20f, 1f);
-            Color dirtMid = new Color(0.68f, 0.49f, 0.30f, 1f);
-            Color dirtLight = new Color(0.80f, 0.64f, 0.42f, 1f);
-            Color grass = new Color(0.28f, 0.64f, 0.26f, 1f);
-            Color grassTip = new Color(0.46f, 0.78f, 0.32f, 1f);
-            Color woodEdge = new Color(0.46f, 0.28f, 0.14f, 1f);
+            // Rampa de madeira esculpida e terra compactada com contorno #381A12 e tufos de grama (Cozy Storybook)
+            Color ink = new Color(0.22f, 0.10f, 0.07f, 1f);
+            Color woodDark = new Color(0.50f, 0.27f, 0.13f, 1f);
+            Color woodMid = new Color(0.72f, 0.44f, 0.21f, 1f);
+            Color woodLight = new Color(0.88f, 0.62f, 0.34f, 1f);
+            Color grassDark = new Color(0.24f, 0.48f, 0.16f, 1f);
+            Color grassLight = new Color(0.46f, 0.72f, 0.24f, 1f);
 
-            // Sombra suave na base
-            for (int x = 4; x < w - 4; x++)
-                for (int y = 0; y <= 5; y++)
-                    tex.SetPixel(x, y, shadow);
-
-            // Corpo curvo natural de terra + travessa de madeira na ponta
-            for (int x = 6; x < w - 8; x++)
+            for (int x = 14; x < w - 16; x++)
             {
-                float t = (x - 6f) / (w - 14f);
-                float curve = Mathf.Pow(t, 1.35f);
-                int maxY = Mathf.RoundToInt(6 + curve * (h - 14));
-                for (int y = 4; y <= maxY; y++)
-                {
-                    if (x >= w - 16)
-                        tex.SetPixel(x, y, (y % 5 == 0) ? woodEdge : dirtDark);
-                    else if (y >= maxY - 3)
-                        tex.SetPixel(x, y, dirtLight);
-                    else if (y <= 11)
-                        tex.SetPixel(x, y, dirtDark);
-                    else
-                        tex.SetPixel(x, y, dirtMid);
-                }
+                float t = (x - 14f) / (w - 30f);
+                float curve = Mathf.Pow(t, 1.28f);
+                int maxY = Mathf.RoundToInt(14 + curve * (h - 30));
+                bool isPlankSep = ((x - 14) % 28 == 0);
 
-                // Tufinhos delicados de grama na base da lombada
-                if (x % 11 < 4 && x < w - 18)
+                for (int y = 10; y <= maxY + 3; y++)
                 {
-                    tex.SetPixel(x, 6, grass);
-                    tex.SetPixel(x, 7, grass);
-                    tex.SetPixel(x, 8, grassTip);
+                    if (y <= 12 || y >= maxY + 1 || x <= 16 || x >= w - 19 || isPlankSep)
+                    {
+                        tex.SetPixel(x, y, ink);
+                    }
+                    else if (y >= maxY - 5)
+                    {
+                        tex.SetPixel(x, y, woodLight);
+                    }
+                    else if (y <= 20)
+                    {
+                        tex.SetPixel(x, y, woodDark);
+                    }
+                    else
+                    {
+                        tex.SetPixel(x, y, woodMid);
+                    }
+                }
+            }
+
+            // Tufos de grama contornados na base da rampa
+            int[] gx = { 34, 92, 162 };
+            for (int i = 0; i < gx.Length; i++)
+            {
+                int cx = gx[i];
+                for (int y = 6; y <= 20; y++)
+                {
+                    for (int x = cx - 16; x <= cx + 16; x++)
+                    {
+                        float nx = (x - cx) / 16f;
+                        float ny = (y - 13f) / 7f;
+                        float d2 = nx * nx + ny * ny;
+                        if (d2 <= 1f)
+                            tex.SetPixel(x, y, d2 > 0.68f ? ink : (y > 13 ? grassLight : grassDark));
+                    }
                 }
             }
 
             tex.Apply();
-            cachedSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.08f), 34f);
+            cachedSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 10f / (float)h), 88f);
             return cachedSprite;
         }
     }

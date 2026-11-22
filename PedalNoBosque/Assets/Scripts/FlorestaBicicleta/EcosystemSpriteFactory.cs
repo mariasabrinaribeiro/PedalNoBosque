@@ -175,272 +175,381 @@ namespace FlorestaBicicleta
 
         private static void CuteEye(Texture2D tex, int cx, int cy, int r = 4)
         {
-            CirclePx(tex, cx, cy, r, new Color(0.10f, 0.10f, 0.12f, 1f));
-            CirclePx(tex, cx - 1, cy + 1, Mathf.Max(1, r / 3), Color.white);
+            CirclePx(tex, cx, cy, r + 1, new Color(0.16f, 0.08f, 0.06f, 1f));
+            CirclePx(tex, cx, cy, r, new Color(0.08f, 0.08f, 0.10f, 1f));
+            CirclePx(tex, cx - Mathf.Max(1, r / 3), cy + Mathf.Max(1, r / 3), Mathf.Max(2, r / 2), Color.white);
+        }
+
+        private static void OutlinedEllipse(Texture2D tex, int cx, int cy, int rx, int ry, Color ink, Color fill, Color highlight, int outlinePx = 4)
+        {
+            EllipsePx(tex, cx, cy, rx + outlinePx, ry + outlinePx, ink);
+            EllipsePx(tex, cx, cy, rx, ry, fill);
+            if (rx > 8 && ry > 8)
+                EllipsePx(tex, cx - rx / 5, cy + ry / 5, Mathf.Max(3, (rx * 3) / 5), Mathf.Max(3, (ry * 3) / 5), highlight);
+        }
+
+        private static void OutlinedCircle(Texture2D tex, int cx, int cy, int r, Color ink, Color fill, Color highlight, int outlinePx = 4)
+        {
+            CirclePx(tex, cx, cy, r + outlinePx, ink);
+            CirclePx(tex, cx, cy, r, fill);
+            if (r > 8)
+                CirclePx(tex, cx - r / 5, cy + r / 5, Mathf.Max(3, (r * 3) / 5), highlight);
+        }
+
+        private static void DrawDetailedStorybookBear(
+            Texture2D tex, int cx, int baseY, float scale,
+            Color furDark, Color furMid, Color furLight, Color muzzleCol,
+            Color accessoryCol, bool hasFlowerCrown, bool holdsHoneyPot)
+        {
+            Color ink = new Color(0.22f, 0.10f, 0.07f, 1f);
+            Color blush = new Color(0.96f, 0.56f, 0.58f, 0.85f);
+            int o = Mathf.Max(3, Mathf.RoundToInt(4f * scale));
+
+            int bodyRX = Mathf.RoundToInt(46f * scale);
+            int bodyRY = Mathf.RoundToInt(48f * scale);
+            int bodyY = baseY + bodyRY + Mathf.RoundToInt(10f * scale);
+
+            // Orelhas redondas contornadas em #381A12
+            int headR = Mathf.RoundToInt(40f * scale);
+            int headY = bodyY + Mathf.RoundToInt(58f * scale);
+            int earDX = Mathf.RoundToInt(30f * scale);
+            int earY = headY + Mathf.RoundToInt(28f * scale);
+            int earR = Mathf.RoundToInt(16f * scale);
+
+            OutlinedCircle(tex, cx - earDX, earY, earR, ink, furDark, furMid, o);
+            CirclePx(tex, cx - earDX, earY, Mathf.RoundToInt(8f * scale), muzzleCol);
+            OutlinedCircle(tex, cx + earDX, earY, earR, ink, furDark, furMid, o);
+            CirclePx(tex, cx + earDX, earY, Mathf.RoundToInt(8f * scale), muzzleCol);
+
+            // Tronco fofo com barriguinha creme/avelã e textura de pelo
+            OutlinedEllipse(tex, cx, bodyY, bodyRX, bodyRY, ink, furDark, furMid, o);
+            EllipsePx(tex, cx, bodyY - Mathf.RoundToInt(4f * scale), Mathf.RoundToInt(28f * scale), Mathf.RoundToInt(30f * scale), muzzleCol);
+            EllipsePx(tex, cx - Mathf.RoundToInt(4f * scale), bodyY, Mathf.RoundToInt(20f * scale), Mathf.RoundToInt(22f * scale), new Color(0.98f, 0.91f, 0.78f, 1f));
+
+            // Cachecol / colete acolhedor do bosque no pescoço
+            int scarfY = bodyY + Mathf.RoundToInt(34f * scale);
+            EllipsePx(tex, cx, scarfY, Mathf.RoundToInt(36f * scale) + o, Mathf.RoundToInt(11f * scale) + o, ink);
+            EllipsePx(tex, cx, scarfY, Mathf.RoundToInt(36f * scale), Mathf.RoundToInt(11f * scale), accessoryCol);
+
+            // Patinhas traseiras apoiadas no chão com almofadinhas
+            int footDX = Mathf.RoundToInt(28f * scale);
+            int footY = baseY + Mathf.RoundToInt(16f * scale);
+            int footR = Mathf.RoundToInt(16f * scale);
+            OutlinedCircle(tex, cx - footDX, footY, footR, ink, furDark, furMid, o);
+            CirclePx(tex, cx - footDX, footY - 1, Mathf.RoundToInt(8f * scale), muzzleCol);
+            OutlinedCircle(tex, cx + footDX, footY, footR, ink, furDark, furMid, o);
+            CirclePx(tex, cx + footDX, footY - 1, Mathf.RoundToInt(8f * scale), muzzleCol);
+
+            // Braços acolhedores
+            int armDX = Mathf.RoundToInt(40f * scale);
+            int armY = bodyY + Mathf.RoundToInt(6f * scale);
+            OutlinedEllipse(tex, cx - armDX, armY, Mathf.RoundToInt(14f * scale), Mathf.RoundToInt(22f * scale), ink, furDark, furMid, o);
+            OutlinedEllipse(tex, cx + armDX, armY, Mathf.RoundToInt(14f * scale), Mathf.RoundToInt(22f * scale), ink, furDark, furMid, o);
+
+            // Cabeça sombreada estilo livro ilustrado
+            OutlinedCircle(tex, cx, headY, headR, ink, furMid, furLight, o);
+
+            // Bochechas coradas e focinho esculpido
+            int eyeDX = Mathf.RoundToInt(16f * scale);
+            int eyeY = headY + Mathf.RoundToInt(5f * scale);
+            CirclePx(tex, cx - eyeDX - Mathf.RoundToInt(5f * scale), headY - Mathf.RoundToInt(6f * scale), Mathf.RoundToInt(6f * scale), blush);
+            CirclePx(tex, cx + eyeDX + Mathf.RoundToInt(5f * scale), headY - Mathf.RoundToInt(6f * scale), Mathf.RoundToInt(6f * scale), blush);
+
+            int muzzleY = headY - Mathf.RoundToInt(9f * scale);
+            EllipsePx(tex, cx, muzzleY, Mathf.RoundToInt(20f * scale) + 2, Mathf.RoundToInt(15f * scale) + 2, ink);
+            EllipsePx(tex, cx, muzzleY, Mathf.RoundToInt(20f * scale), Mathf.RoundToInt(15f * scale), muzzleCol);
+            EllipsePx(tex, cx, muzzleY + Mathf.RoundToInt(4f * scale), Mathf.RoundToInt(9f * scale), Mathf.RoundToInt(6f * scale), ink);
+            CirclePx(tex, cx - Mathf.RoundToInt(2f * scale), muzzleY + Mathf.RoundToInt(5f * scale), Mathf.Max(1, Mathf.RoundToInt(2f * scale)), Color.white);
+            // Sorriso simpático
+            RectPx(tex, cx - 1, muzzleY - Mathf.RoundToInt(7f * scale), cx + 1, muzzleY - 1, ink);
+            RectPx(tex, cx - Mathf.RoundToInt(7f * scale), muzzleY - Mathf.RoundToInt(8f * scale), cx + Mathf.RoundToInt(7f * scale), muzzleY - Mathf.RoundToInt(6f * scale), ink);
+
+            CuteEye(tex, cx - eyeDX, eyeY, Mathf.Max(3, Mathf.RoundToInt(5.5f * scale)));
+            CuteEye(tex, cx + eyeDX, eyeY, Mathf.Max(3, Mathf.RoundToInt(5.5f * scale)));
+
+            // Coroa de flores da Mamãe Ursa
+            if (hasFlowerCrown)
+            {
+                int crownY = headY + headR - Mathf.RoundToInt(6f * scale);
+                Color[] fCols =
+                {
+                    new Color(1f, 0.48f, 0.68f, 1f),
+                    new Color(1f, 0.88f, 0.26f, 1f),
+                    new Color(0.56f, 0.82f, 1f, 1f)
+                };
+                for (int i = -2; i <= 2; i++)
+                {
+                    int fx = cx + i * Mathf.RoundToInt(11f * scale);
+                    int fy = crownY - Mathf.Abs(i) * 2;
+                    CirclePx(tex, fx, fy, Mathf.RoundToInt(7f * scale), ink);
+                    CirclePx(tex, fx, fy, Mathf.RoundToInt(5f * scale), fCols[Mathf.Abs(i) % fCols.Length]);
+                    CirclePx(tex, fx, fy, Mathf.RoundToInt(2f * scale), Color.white);
+                }
+            }
+
+            // Potinho de mel dourado nas patinhas
+            if (holdsHoneyPot)
+            {
+                int hx = cx + Mathf.RoundToInt(22f * scale);
+                int hy = bodyY - Mathf.RoundToInt(10f * scale);
+                OutlinedEllipse(tex, hx, hy, Mathf.RoundToInt(15f * scale), Mathf.RoundToInt(14f * scale),
+                    ink, new Color(0.96f, 0.72f, 0.18f, 1f), new Color(1f, 0.88f, 0.42f, 1f), 3);
+                RectPx(tex, hx - Mathf.RoundToInt(12f * scale), hy + Mathf.RoundToInt(8f * scale),
+                    hx + Mathf.RoundToInt(12f * scale), hy + Mathf.RoundToInt(14f * scale), new Color(0.98f, 0.94f, 0.82f, 1f));
+            }
         }
 
         private static Sprite CreateProceduralAnimalSprite(ParkSpriteFactory.AnimalKind kind, float targetHeight)
         {
-            int w = 128, h = 128;
+            if (kind == ParkSpriteFactory.AnimalKind.FilhoteUrso)
+            {
+                // Família de Ursos do Bosque em alta resolução (Papai Urso, Mamãe Ursa, Irmão Urso e Bebê Ursinho juntos!)
+                int bw = 420, bh = 280;
+                Texture2D bTex = BlankTex(bw, bh);
+
+                // Papai Urso (à esquerda, castanho escuro, cachecol verde musgo e pote de mel)
+                DrawDetailedStorybookBear(
+                    bTex, 108, 14, 1.02f,
+                    new Color(0.46f, 0.26f, 0.14f, 1f),
+                    new Color(0.60f, 0.36f, 0.19f, 1f),
+                    new Color(0.74f, 0.48f, 0.27f, 1f),
+                    new Color(0.94f, 0.82f, 0.65f, 1f),
+                    new Color(0.28f, 0.56f, 0.36f, 1f),
+                    hasFlowerCrown: false, holdsHoneyPot: true);
+
+                // Mamãe Ursa (à direita, castanho canela dourado, coroa de flores e lenço coral)
+                DrawDetailedStorybookBear(
+                    bTex, 304, 14, 0.94f,
+                    new Color(0.54f, 0.31f, 0.16f, 1f),
+                    new Color(0.70f, 0.43f, 0.23f, 1f),
+                    new Color(0.84f, 0.57f, 0.33f, 1f),
+                    new Color(0.97f, 0.86f, 0.70f, 1f),
+                    new Color(0.92f, 0.42f, 0.46f, 1f),
+                    hasFlowerCrown: true, holdsHoneyPot: false);
+
+                // Irmãozinho Urso (centro-esquerda, cachecol azul céu)
+                DrawDetailedStorybookBear(
+                    bTex, 184, 10, 0.66f,
+                    new Color(0.50f, 0.29f, 0.15f, 1f),
+                    new Color(0.66f, 0.41f, 0.22f, 1f),
+                    new Color(0.80f, 0.54f, 0.31f, 1f),
+                    new Color(0.96f, 0.85f, 0.68f, 1f),
+                    new Color(0.36f, 0.68f, 0.90f, 1f),
+                    hasFlowerCrown: false, holdsHoneyPot: false);
+
+                // Bebê Ursinho / Neném (centro-direita, cachecol amarelo mel)
+                DrawDetailedStorybookBear(
+                    bTex, 242, 8, 0.52f,
+                    new Color(0.56f, 0.34f, 0.18f, 1f),
+                    new Color(0.74f, 0.47f, 0.26f, 1f),
+                    new Color(0.88f, 0.62f, 0.36f, 1f),
+                    new Color(0.98f, 0.89f, 0.74f, 1f),
+                    new Color(0.98f, 0.78f, 0.24f, 1f),
+                    hasFlowerCrown: false, holdsHoneyPot: false);
+
+                bTex.Apply();
+                return Sprite.Create(bTex, new Rect(0, 0, bw, bh), new Vector2(0.5f, 10f / (float)bh), bh / 2.15f);
+            }
+
+            // Guaxinim usa a arte 1024x1024 de estúdio de animal_quati se disponível
+            if (kind == ParkSpriteFactory.AnimalKind.Guaxinim)
+            {
+                Texture2D quatiTex = Resources.Load<Texture2D>("Floresta/animal_quati");
+                if (quatiTex != null)
+                {
+                    return Sprite.Create(quatiTex, new Rect(0, 0, quatiTex.width, quatiTex.height),
+                        new Vector2(0.53f, 0.0928f), quatiTex.height / targetHeight);
+                }
+            }
+
+            int w = 220, h = 220;
             Texture2D tex = BlankTex(w, h);
-            Color shadow = new Color(0f, 0f, 0f, 0.20f);
-            EllipsePx(tex, 64, 10, 34, 7, shadow);
+            Color ink = new Color(0.22f, 0.10f, 0.07f, 1f);
 
             switch (kind)
             {
                 case ParkSpriteFactory.AnimalKind.Ourico:
-                    DrawOurico(tex);
-                    break;
-                case ParkSpriteFactory.AnimalKind.Guaxinim:
-                    DrawGuaxinim(tex);
-                    break;
-                case ParkSpriteFactory.AnimalKind.FilhoteUrso:
-                    DrawFilhoteUrso(tex);
+                    DrawOurico(tex, ink);
                     break;
                 case ParkSpriteFactory.AnimalKind.Passarinhos:
-                    DrawPassarinhos(tex);
+                    DrawPassarinhos(tex, ink);
                     break;
                 case ParkSpriteFactory.AnimalKind.Castor:
-                    DrawCastor(tex);
+                    DrawCastor(tex, ink);
                     break;
                 case ParkSpriteFactory.AnimalKind.Sapo:
-                    DrawSapo(tex);
+                    DrawSapo(tex, ink);
                     break;
                 case ParkSpriteFactory.AnimalKind.CorujaNoturna:
-                    DrawCoruja(tex);
+                    DrawCoruja(tex, ink);
                     break;
                 default:
-                    CirclePx(tex, 64, 52, 28, new Color(0.74f, 0.52f, 0.32f, 1f));
-                    CuteEye(tex, 54, 60);
-                    CuteEye(tex, 74, 60);
+                    DrawDetailedStorybookBear(
+                        tex, 110, 14, 0.82f,
+                        new Color(0.52f, 0.30f, 0.16f, 1f),
+                        new Color(0.68f, 0.42f, 0.22f, 1f),
+                        new Color(0.82f, 0.56f, 0.32f, 1f),
+                        new Color(0.96f, 0.85f, 0.68f, 1f),
+                        new Color(0.92f, 0.42f, 0.46f, 1f),
+                        false, true);
                     break;
             }
 
             tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.06f), h / targetHeight);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 14f / (float)h), h / targetHeight);
         }
 
-        private static void DrawOurico(Texture2D tex)
+        private static void DrawOurico(Texture2D tex, Color ink)
         {
-            Color spineDark = new Color(0.36f, 0.25f, 0.18f, 1f);
-            Color spineLight = new Color(0.52f, 0.38f, 0.26f, 1f);
-            Color face = new Color(0.92f, 0.78f, 0.62f, 1f);
-            Color cheek = new Color(0.98f, 0.58f, 0.66f, 0.85f);
+            Color spineDark = new Color(0.38f, 0.24f, 0.15f, 1f);
+            Color spineMid = new Color(0.54f, 0.36f, 0.23f, 1f);
+            Color spineLight = new Color(0.70f, 0.50f, 0.33f, 1f);
+            Color face = new Color(0.95f, 0.82f, 0.66f, 1f);
+            Color cheek = new Color(0.98f, 0.56f, 0.64f, 0.90f);
 
-            // Espinhos triangulares no dorso
-            for (int i = 0; i < 7; i++)
+            // Manto de espinhos em camadas contornadas em #381A12
+            OutlinedEllipse(tex, 96, 72, 58, 44, ink, spineDark, spineMid, 4);
+            for (int i = 0; i < 8; i++)
             {
-                int bx = 26 + i * 11;
-                int by = 48 + (i < 4 ? i * 7 : (6 - i) * 7);
-                TriPx(tex, bx - 8, by - 10, bx + 8, by - 10, bx - 4, by + 18, (i % 2 == 0) ? spineDark : spineLight);
+                int bx = 48 + i * 14;
+                int by = 82 + (i < 4 ? i * 8 : (7 - i) * 8);
+                OutlinedCircle(tex, bx, by, 14, ink, (i % 2 == 0) ? spineDark : spineMid, spineLight, 3);
             }
-            EllipsePx(tex, 56, 38, 34, 24, spineDark);
-            EllipsePx(tex, 58, 42, 28, 20, spineLight);
 
-            // Rostinho e focinho fofo apontando à direita
-            EllipsePx(tex, 80, 34, 24, 18, face);
-            TriPx(tex, 92, 42, 92, 24, 112, 32, face);
-            CirclePx(tex, 110, 32, 4, new Color(0.14f, 0.12f, 0.12f, 1f)); // Narizinho
-            CirclePx(tex, 76, 48, 6, face); // Orelhinha
-            CirclePx(tex, 86, 32, 4, cheek);
-            CuteEye(tex, 88, 40, 4);
+            // Rostinho e focinho sorridente apontando à direita
+            OutlinedEllipse(tex, 138, 62, 36, 28, ink, face, new Color(0.99f, 0.91f, 0.78f, 1f), 4);
+            OutlinedCircle(tex, 126, 86, 11, ink, spineMid, face, 3);
+            CirclePx(tex, 174, 60, 7, ink);
+            CirclePx(tex, 172, 62, 2, Color.white);
+            CirclePx(tex, 148, 56, 7, cheek);
+            CuteEye(tex, 150, 70, 6);
 
-            // Patinhas
-            EllipsePx(tex, 44, 16, 8, 5, face);
-            EllipsePx(tex, 74, 16, 8, 5, face);
+            // Patinhas com contorno escuro
+            OutlinedEllipse(tex, 74, 24, 14, 9, ink, spineMid, face, 3);
+            OutlinedEllipse(tex, 128, 24, 14, 9, ink, spineMid, face, 3);
         }
 
-        private static void DrawGuaxinim(Texture2D tex)
+        private static void DrawPassarinhos(Texture2D tex, Color ink)
         {
-            Color grayDark = new Color(0.32f, 0.34f, 0.38f, 1f);
-            Color grayMid = new Color(0.54f, 0.56f, 0.60f, 1f);
-            Color cream = new Color(0.92f, 0.92f, 0.90f, 1f);
-            Color mask = new Color(0.14f, 0.15f, 0.18f, 1f);
-
-            // Cauda listrada fofa à esquerda
-            EllipsePx(tex, 26, 38, 18, 12, grayMid);
-            RectPx(tex, 14, 28, 20, 48, mask);
-            RectPx(tex, 26, 28, 32, 48, mask);
-
-            // Corpo arredondado
-            EllipsePx(tex, 64, 42, 26, 28, grayMid);
-            EllipsePx(tex, 66, 38, 16, 18, cream);
-
-            // Cabeça e orelhas
-            CirclePx(tex, 66, 78, 24, grayMid);
-            TriPx(tex, 44, 92, 58, 96, 46, 114, grayDark);
-            TriPx(tex, 74, 96, 88, 92, 86, 114, grayDark);
-            TriPx(tex, 47, 94, 55, 97, 48, 108, cream);
-            TriPx(tex, 77, 97, 85, 94, 84, 108, cream);
-
-            // Máscara clássica de guaxinim
-            EllipsePx(tex, 54, 80, 11, 8, mask);
-            EllipsePx(tex, 78, 80, 11, 8, mask);
-            EllipsePx(tex, 66, 70, 11, 8, cream);
-            CirclePx(tex, 66, 72, 4, mask); // Focinho
-            CuteEye(tex, 55, 80, 4);
-            CuteEye(tex, 77, 80, 4);
-
-            // Patinhas
-            EllipsePx(tex, 50, 16, 9, 6, grayDark);
-            EllipsePx(tex, 78, 16, 9, 6, grayDark);
-        }
-
-        private static void DrawFilhoteUrso(Texture2D tex)
-        {
-            Color brown = new Color(0.56f, 0.34f, 0.18f, 1f);
-            Color brownLight = new Color(0.72f, 0.48f, 0.28f, 1f);
-            Color muzzle = new Color(0.94f, 0.82f, 0.64f, 1f);
-
-            // Corpo fofinho
-            EllipsePx(tex, 64, 42, 30, 30, brown);
-            EllipsePx(tex, 64, 38, 18, 18, brownLight);
-
-            // Orelhas redondas
-            CirclePx(tex, 42, 98, 12, brown);
-            CirclePx(tex, 86, 98, 12, brown);
-            CirclePx(tex, 42, 98, 6, muzzle);
-            CirclePx(tex, 86, 98, 6, muzzle);
-
-            // Cabeça e focinho creme
-            CirclePx(tex, 64, 80, 26, brown);
-            EllipsePx(tex, 64, 72, 13, 10, muzzle);
-            CirclePx(tex, 64, 76, 5, new Color(0.18f, 0.12f, 0.10f, 1f));
-            CuteEye(tex, 52, 84, 4);
-            CuteEye(tex, 76, 84, 4);
-
-            // Patinhas
-            CirclePx(tex, 46, 18, 10, brown);
-            CirclePx(tex, 82, 18, 10, brown);
-            CirclePx(tex, 46, 18, 5, muzzle);
-            CirclePx(tex, 82, 18, 5, muzzle);
-        }
-
-        private static void DrawPassarinhos(Texture2D tex)
-        {
-            // Galhinho de madeira onde os dois passarinhos pousam
-            RectPx(tex, 18, 18, 110, 25, new Color(0.50f, 0.30f, 0.14f, 1f));
+            // Galho florido de carvalho onde a família de passarinhos pousa
+            RectPx(tex, 26, 26, 194, 42, ink);
+            RectPx(tex, 29, 29, 191, 39, new Color(0.56f, 0.34f, 0.16f, 1f));
+            RectPx(tex, 29, 35, 191, 39, new Color(0.74f, 0.48f, 0.24f, 1f));
 
             // Passarinho 1 (azul-celeste) à esquerda
-            Color blue = new Color(0.24f, 0.68f, 0.98f, 1f);
-            Color blueBelly = new Color(0.86f, 0.96f, 1f, 1f);
-            EllipsePx(tex, 44, 48, 18, 15, blue);
-            EllipsePx(tex, 46, 44, 11, 9, blueBelly);
-            CirclePx(tex, 52, 62, 12, blue);
-            TriPx(tex, 62, 65, 62, 57, 73, 61, new Color(1f, 0.72f, 0.14f, 1f)); // Bico
-            TriPx(tex, 20, 56, 32, 50, 26, 40, blue); // Cauda
-            CuteEye(tex, 54, 65, 3);
+            Color blueDark = new Color(0.18f, 0.54f, 0.86f, 1f);
+            Color blueLight = new Color(0.42f, 0.78f, 0.98f, 1f);
+            Color belly = new Color(0.94f, 0.98f, 1f, 1f);
+            OutlinedEllipse(tex, 74, 76, 30, 24, ink, blueDark, blueLight, 4);
+            EllipsePx(tex, 78, 70, 18, 14, belly);
+            OutlinedCircle(tex, 86, 102, 20, ink, blueDark, blueLight, 4);
+            TriPx(tex, 104, 108, 104, 94, 122, 101, ink);
+            TriPx(tex, 105, 106, 105, 96, 119, 101, new Color(1f, 0.76f, 0.16f, 1f));
+            CuteEye(tex, 90, 106, 5);
 
-            // Passarinho 2 (amarelo/coral) à direita
-            Color yellow = new Color(1f, 0.78f, 0.22f, 1f);
-            Color coral = new Color(0.98f, 0.44f, 0.38f, 1f);
-            EllipsePx(tex, 86, 46, 17, 14, yellow);
-            EllipsePx(tex, 88, 46, 10, 8, coral);
-            CirclePx(tex, 78, 60, 12, yellow);
-            TriPx(tex, 68, 63, 68, 55, 58, 59, new Color(0.96f, 0.50f, 0.12f, 1f)); // Bico
-            TriPx(tex, 108, 54, 96, 48, 102, 38, coral); // Cauda
-            CuteEye(tex, 75, 63, 3);
+            // Passarinho 2 (amarelo dourado e coral) à direita
+            Color goldDark = new Color(0.92f, 0.62f, 0.16f, 1f);
+            Color goldLight = new Color(1f, 0.84f, 0.32f, 1f);
+            OutlinedEllipse(tex, 148, 74, 28, 23, ink, goldDark, goldLight, 4);
+            OutlinedCircle(tex, 136, 98, 19, ink, goldDark, goldLight, 4);
+            TriPx(tex, 118, 104, 118, 90, 102, 97, ink);
+            TriPx(tex, 117, 102, 117, 92, 105, 97, new Color(0.96f, 0.48f, 0.14f, 1f));
+            CuteEye(tex, 132, 102, 5);
         }
 
-        private static void DrawCastor(Texture2D tex)
+        private static void DrawCastor(Texture2D tex, Color ink)
         {
-            Color brownDark = new Color(0.42f, 0.24f, 0.12f, 1f);
-            Color brownMid = new Color(0.60f, 0.36f, 0.18f, 1f);
-            Color tailCol = new Color(0.28f, 0.20f, 0.16f, 1f);
-            Color tan = new Color(0.84f, 0.66f, 0.46f, 1f);
+            Color brownDark = new Color(0.44f, 0.24f, 0.12f, 1f);
+            Color brownMid = new Color(0.62f, 0.38f, 0.19f, 1f);
+            Color brownLight = new Color(0.78f, 0.52f, 0.28f, 1f);
+            Color tailCol = new Color(0.32f, 0.22f, 0.18f, 1f);
+            Color tan = new Color(0.92f, 0.76f, 0.56f, 1f);
 
-            // Cauda achatada de castor à esquerda
-            EllipsePx(tex, 26, 26, 20, 11, tailCol);
-            RectPx(tex, 14, 24, 38, 26, brownDark);
+            // Cauda achatada quadriculada clássica do castor
+            OutlinedEllipse(tex, 48, 44, 34, 18, ink, tailCol, brownDark, 4);
 
-            // Corpo robusto
-            EllipsePx(tex, 66, 42, 28, 26, brownMid);
-            EllipsePx(tex, 70, 38, 16, 16, tan);
+            // Corpo robusto e barriguinha avelã
+            OutlinedEllipse(tex, 114, 72, 46, 44, ink, brownDark, brownMid, 4);
+            EllipsePx(tex, 118, 66, 28, 28, tan);
 
-            // Cabeça e orelhinhas
-            CirclePx(tex, 72, 76, 22, brownMid);
-            CirclePx(tex, 54, 92, 7, brownDark);
-            CirclePx(tex, 88, 92, 7, brownDark);
+            // Cabeça, orelhas e dentinhos brancos contornados
+            OutlinedCircle(tex, 92, 158, 12, ink, brownDark, brownMid, 3);
+            OutlinedCircle(tex, 148, 158, 12, ink, brownDark, brownMid, 3);
+            OutlinedCircle(tex, 120, 130, 36, ink, brownMid, brownLight, 4);
 
-            // Bochechas e dentinhos clássicos de castor!
-            CirclePx(tex, 66, 66, 8, tan);
-            CirclePx(tex, 80, 66, 8, tan);
-            RectPx(tex, 68, 54, 73, 64, Color.white);
-            RectPx(tex, 74, 54, 79, 64, Color.white);
-            CirclePx(tex, 73, 72, 4, brownDark); // Nariz
+            RectPx(tex, 112, 94, 128, 112, ink);
+            RectPx(tex, 114, 96, 120, 110, Color.white);
+            RectPx(tex, 121, 96, 127, 110, Color.white);
+            OutlinedEllipse(tex, 110, 114, 13, 10, ink, tan, tan, 3);
+            OutlinedEllipse(tex, 130, 114, 13, 10, ink, tan, tan, 3);
+            CirclePx(tex, 120, 122, 7, ink);
 
-            CuteEye(tex, 62, 80, 4);
-            CuteEye(tex, 82, 80, 4);
+            CuteEye(tex, 104, 136, 5);
+            CuteEye(tex, 136, 136, 5);
 
-            // Patinhas
-            EllipsePx(tex, 52, 16, 9, 5, brownDark);
-            EllipsePx(tex, 80, 16, 9, 5, brownDark);
+            OutlinedEllipse(tex, 92, 26, 16, 10, ink, brownDark, brownMid, 3);
+            OutlinedEllipse(tex, 138, 26, 16, 10, ink, brownDark, brownMid, 3);
         }
 
-        private static void DrawSapo(Texture2D tex)
+        private static void DrawSapo(Texture2D tex, Color ink)
         {
-            Color lily = new Color(0.16f, 0.56f, 0.24f, 1f);
-            Color green = new Color(0.28f, 0.78f, 0.30f, 1f);
-            Color greenDark = new Color(0.18f, 0.60f, 0.22f, 1f);
-            Color belly = new Color(0.84f, 0.96f, 0.62f, 1f);
+            Color lilyDark = new Color(0.18f, 0.54f, 0.24f, 1f);
+            Color lilyLight = new Color(0.36f, 0.72f, 0.32f, 1f);
+            Color greenDark = new Color(0.20f, 0.58f, 0.22f, 1f);
+            Color greenMid = new Color(0.34f, 0.76f, 0.30f, 1f);
+            Color greenLight = new Color(0.52f, 0.88f, 0.38f, 1f);
+            Color belly = new Color(0.92f, 0.98f, 0.70f, 1f);
 
-            // Vitória-régia sob o sapinho
-            EllipsePx(tex, 64, 16, 42, 10, lily);
+            // Vitória-régia contornada sob o sapinho
+            OutlinedEllipse(tex, 110, 26, 70, 16, ink, lilyDark, lilyLight, 4);
 
-            // Perninhas dobradas
-            EllipsePx(tex, 38, 30, 14, 12, greenDark);
-            EllipsePx(tex, 90, 30, 14, 12, greenDark);
+            // Perninhas e corpo
+            OutlinedEllipse(tex, 68, 52, 22, 20, ink, greenDark, greenMid, 4);
+            OutlinedEllipse(tex, 152, 52, 22, 20, ink, greenDark, greenMid, 4);
+            OutlinedEllipse(tex, 110, 72, 46, 36, ink, greenMid, greenLight, 4);
+            EllipsePx(tex, 110, 62, 30, 22, belly);
 
-            // Corpo e barriguinha clara
-            EllipsePx(tex, 64, 42, 28, 22, green);
-            EllipsePx(tex, 64, 36, 18, 14, belly);
+            // Olhos expressivos no topo
+            OutlinedCircle(tex, 84, 112, 20, ink, greenMid, greenLight, 4);
+            OutlinedCircle(tex, 136, 112, 20, ink, greenMid, greenLight, 4);
+            CirclePx(tex, 84, 112, 13, Color.white);
+            CirclePx(tex, 136, 112, 13, Color.white);
+            CuteEye(tex, 84, 112, 7);
+            CuteEye(tex, 136, 112, 7);
 
-            // Olhos saltados no topo da cabeça
-            CirclePx(tex, 48, 66, 12, green);
-            CirclePx(tex, 80, 66, 12, green);
-            CirclePx(tex, 48, 66, 8, Color.white);
-            CirclePx(tex, 80, 66, 8, Color.white);
-            CuteEye(tex, 48, 66, 5);
-            CuteEye(tex, 80, 66, 5);
-
-            // Sorriso largo e bochechas rosadas
-            RectPx(tex, 50, 48, 78, 50, greenDark);
-            CirclePx(tex, 44, 50, 4, new Color(1f, 0.58f, 0.68f, 0.85f));
-            CirclePx(tex, 84, 50, 4, new Color(1f, 0.58f, 0.68f, 0.85f));
+            CirclePx(tex, 76, 84, 7, new Color(1f, 0.56f, 0.66f, 0.9f));
+            CirclePx(tex, 144, 84, 7, new Color(1f, 0.56f, 0.66f, 0.9f));
+            RectPx(tex, 88, 82, 132, 85, ink);
         }
 
-        private static void DrawCoruja(Texture2D tex)
+        private static void DrawCoruja(Texture2D tex, Color ink)
         {
-            Color feather = new Color(0.46f, 0.34f, 0.26f, 1f);
-            Color featherLight = new Color(0.68f, 0.54f, 0.42f, 1f);
-            Color belly = new Color(0.92f, 0.86f, 0.74f, 1f);
-            Color gold = new Color(1f, 0.82f, 0.20f, 1f);
+            Color featherDark = new Color(0.42f, 0.28f, 0.20f, 1f);
+            Color featherMid = new Color(0.58f, 0.42f, 0.30f, 1f);
+            Color featherLight = new Color(0.76f, 0.60f, 0.44f, 1f);
+            Color belly = new Color(0.95f, 0.89f, 0.76f, 1f);
+            Color gold = new Color(1f, 0.84f, 0.22f, 1f);
 
-            // Corpo arredondado + asas
-            EllipsePx(tex, 64, 50, 30, 34, feather);
-            EllipsePx(tex, 36, 48, 10, 22, featherLight);
-            EllipsePx(tex, 92, 48, 10, 22, featherLight);
-            EllipsePx(tex, 64, 42, 18, 22, belly);
+            // Corpo e asas em camadas contornadas
+            OutlinedEllipse(tex, 64, 84, 18, 36, ink, featherDark, featherMid, 4);
+            OutlinedEllipse(tex, 156, 84, 18, 36, ink, featherDark, featherMid, 4);
+            OutlinedEllipse(tex, 110, 84, 48, 54, ink, featherDark, featherMid, 4);
+            EllipsePx(tex, 110, 72, 30, 36, belly);
 
-            // Tufos de orelha de coruja
-            TriPx(tex, 38, 86, 54, 92, 40, 112, feather);
-            TriPx(tex, 74, 92, 90, 86, 88, 112, feather);
+            // Cabeça e grandes olhos dourados
+            OutlinedCircle(tex, 110, 140, 42, ink, featherMid, featherLight, 4);
+            OutlinedCircle(tex, 90, 142, 20, ink, belly, Color.white, 3);
+            OutlinedCircle(tex, 130, 142, 20, ink, belly, Color.white, 3);
+            CirclePx(tex, 90, 142, 14, gold);
+            CirclePx(tex, 130, 142, 14, gold);
+            CuteEye(tex, 90, 142, 8);
+            CuteEye(tex, 130, 142, 8);
 
-            // Cabeça e grandes olhos dourados noturnos
-            CirclePx(tex, 64, 80, 26, feather);
-            CirclePx(tex, 52, 82, 12, belly);
-            CirclePx(tex, 76, 82, 12, belly);
-            CirclePx(tex, 52, 82, 9, gold);
-            CirclePx(tex, 76, 82, 9, gold);
-            CuteEye(tex, 52, 82, 5);
-            CuteEye(tex, 76, 82, 5);
+            TriPx(tex, 102, 130, 118, 130, 110, 112, ink);
+            TriPx(tex, 104, 128, 116, 128, 110, 115, new Color(0.98f, 0.66f, 0.16f, 1f));
 
-            // Bico dourado triangular
-            TriPx(tex, 59, 75, 69, 75, 64, 64, new Color(0.96f, 0.64f, 0.14f, 1f));
-
-            // Garrinhas
-            RectPx(tex, 50, 14, 58, 20, gold);
-            RectPx(tex, 70, 14, 78, 20, gold);
+            OutlinedEllipse(tex, 92, 26, 14, 8, ink, gold, gold, 3);
+            OutlinedEllipse(tex, 128, 26, 14, 8, ink, gold, gold, 3);
         }
     }
 }

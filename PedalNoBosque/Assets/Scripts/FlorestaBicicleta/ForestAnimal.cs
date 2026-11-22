@@ -108,6 +108,11 @@ namespace FlorestaBicicleta
 
         private Sprite LoadSideAnimalSprite(ParkSpriteFactory.AnimalKind k)
         {
+            if (!string.IsNullOrEmpty(animalName) && animalName.Contains("Cachorr"))
+            {
+                Sprite dogSp = FlorestaSpriteFactory.ExtractRealRunningPuppySprite();
+                if (dogSp != null) return dogSp;
+            }
             return EcosystemSpriteFactory.LoadOrCreateAnimalSprite(k);
         }
 

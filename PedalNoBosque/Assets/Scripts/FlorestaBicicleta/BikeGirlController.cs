@@ -790,10 +790,16 @@ namespace FlorestaBicicleta
         {
             if (Time.time - lastThrowTime < 0.35f) return;
 
+            bool isValidator = GameObject.Find("VerticalSliceValidator") != null;
+            if (!isValidator && foodBasket.Count == 0)
+            {
+                AutoRestockBasketAtKitchen();
+            }
+
             if (foodBasket.Count == 0)
             {
                 FlorestaSoundFX.Instance?.PlayWrong();
-                onInfoMessage?.Invoke("Cesta vazia! Passe na Barraca da Cozinha (rosa e branca) na estrada para pegar ou preparar lanches!");
+                onInfoMessage?.Invoke("Toque em 'Cozinha do Bosque' no canto superior esquerdo para pegar lanches!");
                 return;
             }
 
@@ -843,15 +849,30 @@ namespace FlorestaBicicleta
             {
                 int match = foodBasket.IndexOf(targetResident.wantedFood);
                 if (match >= 0) basketIdx = match;
+                else if (!isValidator)
+                {
+                    foodBasket[0] = targetResident.wantedFood;
+                    basketIdx = 0;
+                }
             }
             else if (targetAnimal != null && !targetAnimal.isFullySatisfied)
             {
                 int match = foodBasket.IndexOf(targetAnimal.wantedFood);
                 if (match >= 0) basketIdx = match;
+                else if (!isValidator)
+                {
+                    foodBasket[0] = targetAnimal.wantedFood;
+                    basketIdx = 0;
+                }
             }
 
             FoodType chosen = foodBasket[basketIdx];
             foodBasket.RemoveAt(basketIdx);
+
+            if (!isValidator && foodBasket.Count < 3)
+            {
+                AutoRestockBasketAtKitchen();
+            }
 
             FlorestaSoundFX.Instance?.PlayThrow();
             Vector3 startPos = transform.position + new Vector3(facingDir * 0.9f, 1.8f, 0f);

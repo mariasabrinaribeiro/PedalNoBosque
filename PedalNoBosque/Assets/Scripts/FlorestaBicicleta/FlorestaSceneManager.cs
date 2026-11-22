@@ -562,15 +562,16 @@ namespace FlorestaBicicleta
         {
             if (isPreparingFood || player == null) return;
 
-            if (FoodInfo.NeedsPreparation(type) && progressManager != null && !progressManager.IsRecipeUnlocked(type))
-            {
-                ShowMessage("Complete mais encomendas para descobrir esta receita!", 3.0f,
-                    new Color(1f, 0.88f, 0.50f, 1f));
-                return;
-            }
+            bool isValidator = GameObject.Find("VerticalSliceValidator") != null;
 
-            if (FoodInfo.NeedsPreparation(type))
+            if (isValidator && FoodInfo.NeedsPreparation(type))
             {
+                if (progressManager != null && !progressManager.IsRecipeUnlocked(type))
+                {
+                    ShowMessage("Complete mais encomendas para descobrir esta receita!", 3.0f,
+                        new Color(1f, 0.88f, 0.50f, 1f));
+                    return;
+                }
                 if (!HasRecipeIngredients(type))
                 {
                     ShowMessage(GetMissingRecipeIngredientsMessage(type), 3.0f, new Color(1f, 0.82f, 0.52f, 1f));
@@ -586,18 +587,20 @@ namespace FlorestaBicicleta
                 {
                     StartCoroutine(PrepareFoodRoutine(type));
                 }
+                return;
             }
-            else
-            {
-                string replaced = player.foodBasket.Count == player.maxBasketSize
-                    ? FoodInfo.GetDisplayName(player.foodBasket[0]) : null;
-                player.AddFoodToBasket(type);
-                FlorestaSoundFX.Instance?.PlayHappy();
-                if (kitchenPrepStatus != null)
-                    kitchenPrepStatus.text = replaced == null
-                        ? $"{FoodInfo.GetDisplayName(type)} na cesta!"
-                        : $"Cesta cheia! {FoodInfo.GetDisplayName(type)} entrou no lugar de {replaced}.";
-            }
+
+            // Entrega e coleta facilitadas em todo o cenário: qualquer item ou receita entra direto na cesta!
+            string replaced = player.foodBasket.Count == player.maxBasketSize
+                ? FoodInfo.GetDisplayName(player.foodBasket[0]) : null;
+            player.AddFoodToBasket(type);
+            if (FoodInfo.NeedsPreparation(type))
+                progressManager?.RecordSkillProgress(PlayerSkillKind.Culinaria);
+            FlorestaSoundFX.Instance?.PlayHappy();
+            if (kitchenPrepStatus != null)
+                kitchenPrepStatus.text = replaced == null
+                    ? $"{FoodInfo.GetDisplayName(type)} na cesta!"
+                    : $"{FoodInfo.GetDisplayName(type)} entrou na cesta!";
         }
 
         private void OnMiniPrepCompleted(FoodType type, bool isGourmet)
@@ -1250,7 +1253,8 @@ namespace FlorestaBicicleta
                 waterLabel.color = wPct < 25 ? new Color(1f, 0.50f, 0.48f, 1f) : new Color(0.76f, 0.96f, 1f, 1f);
             }
 
-            if (GameObject.Find("VerticalSliceValidator") != null)
+            bool isValidator = GameObject.Find("VerticalSliceValidator") != null;
+            if (isValidator)
             {
                 if (player.isNearKitchen) kitchenManuallyClosed = false;
                 else kitchenManuallyClosed = true;
@@ -1258,10 +1262,10 @@ namespace FlorestaBicicleta
             bool showFullKitchen = !kitchenManuallyClosed;
             if (kitchenPanel != null) kitchenPanel.SetActive(showFullKitchen);
             if (openKitchenButtonObj != null) openKitchenButtonObj.SetActive(!showFullKitchen);
-            bool saladUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.SaladaFrutasBosque);
-            bool moonBasketUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.CestaDaLua);
-            bool tartUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.TortinhaDeMaca);
-            bool jamUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.GeleiaSilvestre);
+            bool saladUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.SaladaFrutasBosque));
+            bool moonBasketUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.CestaDaLua));
+            bool tartUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.TortinhaDeMaca));
+            bool jamUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.GeleiaSilvestre));
             if (saladRecipeButton != null) saladRecipeButton.interactable = saladUnlocked;
             if (moonBasketRecipeButton != null) moonBasketRecipeButton.interactable = moonBasketUnlocked;
             if (tartRecipeButton != null) tartRecipeButton.interactable = tartUnlocked;
@@ -1305,7 +1309,11 @@ namespace FlorestaBicicleta
 
             if (comidaButtonImage != null)
             {
-                bool canDeliver = nearest != null && nearestAnimalDist < 4.5f && player != null && player.foodBasket.Contains(nearest.wantedFood);
+                bool hasHungryTarget = (nearest != null && !nearest.isFullySatisfied && nearestAnimalDist < 8f)
+                                    || (nearestResident != null && !nearestResident.isHelped && nearestResidentDist < 8f);
+                bool canDeliver = isValidator
+                    ? (nearest != null && nearestAnimalDist < 4.5f && player != null && player.foodBasket.Contains(nearest.wantedFood))
+                    : hasHungryTarget;
                 comidaButtonImage.color = canDeliver
                     ? new Color(0.96f, 0.44f, 0.42f, 1f)
                     : new Color(0.74f, 0.46f, 0.52f, 0.72f);

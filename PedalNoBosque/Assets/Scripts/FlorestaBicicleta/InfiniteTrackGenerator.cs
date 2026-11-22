@@ -462,15 +462,18 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Flores acolhedoras no Campo Florido inicial
             SpawnMeadowFlowers(p, s, seg.index);
 
-            SpawnBench(p, s + 13f);
             SpawnKitchenStation(p, s + 8f, blocked);
+            SpawnBench(p, s + 13f);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18f, blocked);
-            SpawnWaterColumn(p, s + 24f, blocked);
-            SpawnRampWithStars(p, s + 31f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 43f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 21.5f, blocked);
+            SpawnWaterColumn(p, s + 25f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 28.5f, blocked);
+            SpawnRampWithStars(p, s + 32.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 38.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 43.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 46.8f, blocked);
 
             hasWater = true;
             hasKitchen = true;
@@ -480,6 +483,7 @@ namespace FlorestaBicicleta
         private void SpawnMeadowFlowers(Transform parent, float start, int variant)
         {
         }
+
         private void BuildCampoFlorido(
             TrackSegment seg,
             List<(float min, float max)> blocked,
@@ -491,30 +495,24 @@ namespace FlorestaBicicleta
             float s = seg.startX;
 
             SpawnMeadowFlowers(p, s, seg.index);
+            SpawnBench(p, s + 11.5f);
 
-            SpawnBench(p, s + 12f);
-
-            // Animais amigáveis do campo (Coelho, Esquilo, Passarinhos e Ouriço)
-            ParkSpriteFactory.AnimalKind[] campoPool =
-            {
-                ParkSpriteFactory.AnimalKind.Coelho,
-                ParkSpriteFactory.AnimalKind.Passarinhos,
-                ParkSpriteFactory.AnimalKind.Ourico,
-                ParkSpriteFactory.AnimalKind.Esquilo
-            };
-            ParkSpriteFactory.AnimalKind a1 = campoPool[seg.index % campoPool.Length];
-            ParkSpriteFactory.AnimalKind a2 = campoPool[(seg.index + 2) % campoPool.Length];
-            SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 15f, blocked);
-            SpawnAnimal(seg, a2, GetAnimalName(a2), GetAnimalMeals(a2), s + 39f, blocked);
+            // Bastante animais variados no Campo Florido: Gato, Cachorrinho, Coelho, Esquilo, Raposa e Família de Ursos!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 6.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 15.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 19.5f, blocked);
 
             // Rampa suave no meio do campo
-            SpawnRampWithStars(p, s + 23f, blocked);
+            SpawnRampWithStars(p, s + 24f, blocked);
 
-            // 1 obstáculo leve em local seguro + morador eventual fazendo piquenique ou viajando!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 3, s + 31.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 37.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 42.2f, blocked);
+
             if (seg.index % 2 == 1)
-                SpawnResident(seg, VillageResident.ResidentKind.FamiliaPiquenique, s + 44f, blocked);
+                SpawnResident(seg, VillageResident.ResidentKind.FamiliaPiquenique, s + 45.8f, blocked);
             else
-                TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Pedra, s + 45f, blocked, obstacles);
+                TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Pedra, s + 46f, blocked, obstacles);
         }
 
         private void BuildColinas(
@@ -541,20 +539,17 @@ namespace FlorestaBicicleta
 
             SpawnRampWithStars(p, s + 34f, blocked);
 
-            ParkSpriteFactory.AnimalKind[] colinasPool =
-            {
-                ParkSpriteFactory.AnimalKind.Cervo,
-                ParkSpriteFactory.AnimalKind.Raposa,
-                ParkSpriteFactory.AnimalKind.FilhoteUrso,
-                ParkSpriteFactory.AnimalKind.Passarinhos
-            };
-            ParkSpriteFactory.AnimalKind a1 = colinasPool[seg.index % colinasPool.Length];
-            SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 18.5f, blocked);
+            // Animais na base, subida, topo e descida da montanha (Família de Ursos, Cervo, Raposa, Gato e Cachorrinho!)
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 4.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Cervo, "Cervo", 4, s + 13.0f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 4, s + 18.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 25.0f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 39.8f, blocked);
 
             // Água opcional no pé da colina
             if (segmentsSinceLastWater >= 1)
             {
-                SpawnWaterColumn(p, s + 44f, blocked);
+                SpawnWaterColumn(p, s + 44.5f, blocked);
                 hasWater = true;
             }
         }
@@ -613,18 +608,12 @@ namespace FlorestaBicicleta
             SpawnWaterColumn(p, s + 9f, blocked);
             hasWater = true;
 
-            // Animais típicos da Região do Rio: Castor, Sapo, Quati e Cervo
-            ParkSpriteFactory.AnimalKind[] rioPool =
-            {
-                ParkSpriteFactory.AnimalKind.Castor,
-                ParkSpriteFactory.AnimalKind.Sapo,
-                ParkSpriteFactory.AnimalKind.Quati,
-                ParkSpriteFactory.AnimalKind.Cervo
-            };
-            ParkSpriteFactory.AnimalKind a1 = rioPool[seg.index % rioPool.Length];
-            ParkSpriteFactory.AnimalKind a2 = rioPool[(seg.index + 1) % rioPool.Length];
-            SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 13f, blocked);
-            SpawnAnimal(seg, a2, GetAnimalName(a2), GetAnimalMeals(a2), s + 38f, blocked);
+            // Bastante animais nas duas margens do rio: Quati, Gato, Cachorrinho, Cervo, Castor e Família de Ursos!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 4.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Quati, "Quati", 3, s + 13.0f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 31.8f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 37.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Cervo, "Cervo", 4, s + 43.5f, blocked);
         }
 
         private void BuildTrilhaDaFloresta(
@@ -637,32 +626,22 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Arbustos densos de floresta atrás do meio-fio (nunca na pista)
-            for (int i = 0; i < 4; i++)
-                SpawnProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 6f + i * 11.5f, -2.38f, 0f), Random.Range(0.85f, 1.05f), 1);
-
             // Carvalhos imponentes da mata atrás do meio-fio da trilha (sortOrder -4)
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 12f, -2.28f, 0f), 0.72f, -4, 1.1f);
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 35f, -2.28f, 0f), 0.68f, -4, 1.0f);
 
-            // Animais da mata fechada: Lobo, Filhote de Urso, Guaxinim, Ouriço, Coruja Noturna e Esquilo
-            ParkSpriteFactory.AnimalKind[] mataPool =
-            {
-                ParkSpriteFactory.AnimalKind.Lobo,
-                ParkSpriteFactory.AnimalKind.FilhoteUrso,
-                ParkSpriteFactory.AnimalKind.Guaxinim,
-                ParkSpriteFactory.AnimalKind.CorujaNoturna,
-                ParkSpriteFactory.AnimalKind.Ourico
-            };
-            ParkSpriteFactory.AnimalKind a1 = mataPool[seg.index % mataPool.Length];
-            ParkSpriteFactory.AnimalKind a2 = (seg.index % 2 == 0) ? ParkSpriteFactory.AnimalKind.Esquilo : mataPool[(seg.index + 2) % mataPool.Length];
-            SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 18f, blocked);
-            SpawnAnimal(seg, a2, GetAnimalName(a2), GetAnimalMeals(a2), s + 41f, blocked);
+            // Muitos animais na Trilha da Floresta: Família de Ursos, Lobo, Quati, Gato, Cachorrinho, Raposa e Esquilo!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 4.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 4, s + 13.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Lobo, "Lobo", 4, s + 19.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 24.0f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Quati, "Quati", 3, s + 34.0f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 4, s + 41.0f, blocked);
 
             // Obstáculos naturais bem espaçados com espaço seguro para saltar
-            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Raiz, s + 8f, blocked, obstacles);
-            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Tronco, s + 28f, blocked, obstacles);
-            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Pedra, s + 46f, blocked, obstacles);
+            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Raiz, s + 8.5f, blocked, obstacles);
+            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Tronco, s + 28.5f, blocked, obstacles);
+            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Pedra, s + 45.8f, blocked, obstacles);
         }
 
         private void BuildPequenaVila(
@@ -719,30 +698,11 @@ namespace FlorestaBicicleta
             SpawnResident(seg, r1, s + 20.2f, blocked);
             SpawnResident(seg, r2, s + 35.0f, blocked);
 
-            // Gato companheiro da vila
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 45.2f, blocked);
-
-            // Evolução persistente da Vila dos Viajantes conforme as boas ações do jogador (Etapa 10)!
-            int vLevel = (PlayerProgressManager.Instance != null && PlayerProgressManager.Instance.Data != null)
-                ? PlayerProgressManager.Instance.Data.villageEvolutionLevel
-                : 0;
-
-            if (vLevel >= 1)
-            {
-                // Nível 1 (Vila Florida): canteiros floridos balançando na entrada e praça
-                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(0), new Vector3(s + 11.5f, -2.42f, 0f), 0.95f, 2, 3.2f);
-                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(1), new Vector3(s + 28.2f, -2.42f, 0f), 0.95f, 2, 3.2f);
-            }
-            if (vLevel >= 2)
-            {
-                // Nível 2 (Praça Festiva): animais da floresta visitando a vila!
-                SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo da Feira", 3, s + 11.8f, blocked);
-            }
-            if (vLevel >= 3)
-            {
-                // Nível 3 (Vila Encantada): jardim luminoso especial + Filhote de Urso cuidando da horta!
-                SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 38.2f, -2.42f, 0f), 0.92f, 2, 2.8f);
-            }
+            // Vários Gatos, Cachorrinhos e Esquilo passeando pela vila!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Vila", 2, s + 11.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato da Praça", 2, s + 28.4f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 44.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 46.8f, blocked);
         }
 
         private void BuildBosqueDaLua(
@@ -755,31 +715,24 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Flores luminosas e cogumelos encantados azul-violeta sob o luar!
-            for (int i = 0; i < 5; i++)
-            {
-                if (i % 2 == 0)
-                    SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 5f + i * 9f, -2.72f, 0f), Random.Range(0.95f, 1.18f), 2, 2.8f);
-                else
-                    SpawnProp(p, BiomePropsFactory.CreateGlowingMushroomSprite(), new Vector3(s + 6f + i * 9f, -2.70f, 0f), Random.Range(0.92f, 1.15f), 2);
-            }
-
             // Carvalhos ao longo da trilha noturna atrás do meio-fio (sortOrder -4)
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 11f, -2.28f, 0f), 0.72f, -4, 1.1f);
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 47f, -2.28f, 0f), 0.66f, -4, 1.0f);
 
-            // Coruja Noturna garantida no Bosque da Lua + encontro raro (Raposa / Cervo / Filhote de Urso)
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.CorujaNoturna, "Coruja", 3, s + 17f, blocked);
-            ParkSpriteFactory.AnimalKind nightFriend = (seg.index % 3 == 0)
-                ? ParkSpriteFactory.AnimalKind.Cervo
-                : ((seg.index % 3 == 1) ? ParkSpriteFactory.AnimalKind.Raposa : ParkSpriteFactory.AnimalKind.FilhoteUrso);
-            SpawnAnimal(seg, nightFriend, GetAnimalName(nightFriend), GetAnimalMeals(nightFriend), s + 39f, blocked);
+            // Bastante animais no Bosque da Lua: Gato, Cachorrinho, Coruja, Família de Ursos, Cervo e Raposa!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 6.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 12.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.CorujaNoturna, "Coruja", 3, s + 17.5f, blocked);
 
             // Rampa iluminada com estrelas bônus
             SpawnRampWithStars(p, s + 25f, blocked);
 
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 33.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Cervo, "Cervo", 4, s + 39.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 42.8f, blocked);
+
             // Obstáculo natural seguro no final do segmento
-            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Raiz, s + 45f, blocked, obstacles);
+            TrySpawnSafeObstacle(p, TrailObstacle.ObstacleKind.Raiz, s + 45.8f, blocked, obstacles);
         }
 
         // ─── Helpers de Spawn + Regras de Segurança ──────────────────

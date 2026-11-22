@@ -380,7 +380,7 @@ namespace FlorestaBicicleta
             string key = $"{kind}_{completed}";
             if (spriteCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
 
-            // Para eventos protagonizados por animais que possuem arte 1024x1024 de estúdio, usa o sprite oficial!
+            // Para eventos protagonizados por animais ou amigos do bosque, usa a arte 1024x1024 de estúdio!
             switch (kind)
             {
                 case EventKind.PonteQuebrada:
@@ -396,145 +396,150 @@ namespace FlorestaBicicleta
                 case EventKind.PassaroCaido:
                 case EventKind.PicapauArvore:
                     return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Passarinhos);
+                case EventKind.TexugoOficina:
+                case EventKind.ToupeiraSubterranea:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Quati);
+                case EventKind.RatinhoCarteiro:
+                case EventKind.CuidadoraAbrigo:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Coelho);
+                case EventKind.MusicaDaFloresta:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Raposa);
+                case EventKind.LimparRiacho:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Sapo);
             }
 
-            int w = 144, h = 120;
+            int w = 180, h = 140;
             Texture2D tex = Blank(w, h);
-            Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
-            Color shadow = new Color(0.06f, 0.14f, 0.08f, 0.32f);
+            Color ink = new Color(0.22f, 0.10f, 0.07f, 1f);
             Color grassDark = new Color(0.24f, 0.48f, 0.16f, 1f);
             Color grassLight = new Color(0.46f, 0.72f, 0.24f, 1f);
-            Color woodDark = new Color(0.48f, 0.26f, 0.13f, 1f);
+            Color woodDark = new Color(0.48f, 0.25f, 0.12f, 1f);
             Color woodMid = new Color(0.72f, 0.44f, 0.21f, 1f);
             Color woodLight = new Color(0.88f, 0.62f, 0.34f, 1f);
-
-            EllipsePx(tex, 72, 12, 48, 8, shadow);
+            Color brassDark = new Color(0.82f, 0.58f, 0.16f, 1f);
+            Color brassGold = new Color(0.98f, 0.80f, 0.24f, 1f);
+            Color brassHigh = new Color(1.00f, 0.94f, 0.56f, 1f);
 
             switch (kind)
             {
                 case EventKind.FloresMurchas:
-                    // Canteiro de madeira rústica com flores silvestres (antes/depois de regar)
-                    RectPx(tex, 26, 10, 118, 28, ink);
-                    RectPx(tex, 29, 13, 115, 25, woodMid);
-                    RectPx(tex, 29, 21, 115, 25, woodLight);
-                    if (!completed)
+                    // Floreira esculpida em madeira de carvalho (no mesmo estilo do vaso de banco_praca.png)
+                    EllipsePx(tex, 90, 14, 58, 9, ink);
+                    EllipsePx(tex, 90, 14, 54, 6, grassDark);
+
+                    RectPx(tex, 34, 14, 146, 48, ink);
+                    RectPx(tex, 38, 18, 142, 44, woodMid);
+                    RectPx(tex, 38, 35, 142, 44, woodLight);
+                    for (int px = 56; px <= 124; px += 22)
+                        RectPx(tex, px, 18, px + 2, 44, woodDark);
+
+                    // Folhagem densa em camadas contornadas
+                    int[] lx = { 48, 68, 90, 112, 132 };
+                    for (int i = 0; i < lx.Length; i++)
                     {
-                        int[] fx = { 44, 72, 100 };
-                        for (int i = 0; i < fx.Length; i++)
-                        {
-                            RectPx(tex, fx[i] - 2, 26, fx[i] + 2, 54, ink);
-                            RectPx(tex, fx[i] - 1, 27, fx[i] + 1, 53, new Color(0.48f, 0.56f, 0.32f, 1f));
-                            CirclePx(tex, fx[i] + 4, 52, 10, ink);
-                            CirclePx(tex, fx[i] + 4, 52, 8, new Color(0.84f, 0.76f, 0.66f, 1f));
-                            CirclePx(tex, fx[i] + 4, 52, 3, new Color(0.92f, 0.80f, 0.42f, 1f));
-                        }
+                        CirclePx(tex, lx[i], 52, 16, ink);
+                        CirclePx(tex, lx[i], 52, 13, (i % 2 == 0) ? grassDark : grassLight);
                     }
-                    else
+
+                    // Buquê rico de flores do bosque (botões fechados antes de regar; desabrochadas e radiantes depois!)
+                    int[] fx = { 50, 70, 90, 110, 130 };
+                    int[] fy = { 66, 76, 82, 74, 66 };
+                    Color[] fCols =
                     {
-                        int[] fx = { 44, 72, 100 };
-                        Color[] pCols =
+                        new Color(1f, 0.46f, 0.68f, 1f),
+                        new Color(1f, 0.86f, 0.24f, 1f),
+                        new Color(0.56f, 0.78f, 1f, 1f),
+                        new Color(0.96f, 0.52f, 0.36f, 1f),
+                        new Color(0.76f, 0.54f, 0.98f, 1f)
+                    };
+                    for (int i = 0; i < fx.Length; i++)
+                    {
+                        RectPx(tex, fx[i] - 2, 46, fx[i] + 2, fy[i], ink);
+                        int petalR = completed ? 7 : 4;
+                        int ringR = completed ? 9 : 5;
+                        for (int a = 0; a < 5; a++)
                         {
-                            new Color(1f, 0.46f, 0.68f, 1f),
-                            new Color(1f, 0.86f, 0.24f, 1f),
-                            new Color(0.56f, 0.78f, 1f, 1f)
-                        };
-                        for (int i = 0; i < fx.Length; i++)
-                        {
-                            RectPx(tex, fx[i] - 2, 26, fx[i] + 2, 68, ink);
-                            RectPx(tex, fx[i] - 1, 27, fx[i] + 1, 67, grassLight);
-                            EllipsePx(tex, fx[i] - 6, 44, 7, 4, ink);
-                            EllipsePx(tex, fx[i] - 6, 44, 5, 3, grassLight);
-                            for (int a = 0; a < 5; a++)
-                            {
-                                float ang = a * Mathf.PI * 2f / 5f;
-                                int px = fx[i] + Mathf.RoundToInt(Mathf.Cos(ang) * 9f);
-                                int py = 72 + Mathf.RoundToInt(Mathf.Sin(ang) * 9f);
-                                CirclePx(tex, px, py, 8, ink);
-                                CirclePx(tex, px, py, 6, pCols[i]);
-                            }
-                            CirclePx(tex, fx[i], 72, 6, ink);
-                            CirclePx(tex, fx[i], 72, 4, new Color(1f, 0.92f, 0.30f, 1f));
+                            float ang = a * Mathf.PI * 2f / 5f;
+                            int px = fx[i] + Mathf.RoundToInt(Mathf.Cos(ang) * ringR);
+                            int py = fy[i] + Mathf.RoundToInt(Mathf.Sin(ang) * ringR);
+                            CirclePx(tex, px, py, petalR + 2, ink);
+                            CirclePx(tex, px, py, petalR, fCols[i]);
                         }
+                        CirclePx(tex, fx[i], fy[i], petalR, ink);
+                        CirclePx(tex, fx[i], fy[i], Mathf.Max(2, petalR - 2), new Color(1f, 0.94f, 0.36f, 1f));
                     }
                     break;
 
                 case EventKind.TesouroEscondido:
                 case EventKind.PegadasCachorro:
-                    // Baú de madeira e ferragens douradas entre tufos de grama florida
-                    EllipsePx(tex, 72, 20, 44, 14, ink);
-                    EllipsePx(tex, 72, 20, 41, 11, grassDark);
-                    EllipsePx(tex, 68, 22, 30, 8, grassLight);
-                    RectPx(tex, 38, 18, 106, 56, ink);
-                    RectPx(tex, 41, 21, 103, 53, woodMid);
-                    RectPx(tex, 41, 36, 103, 40, ink);
-                    RectPx(tex, 41, 37, 103, 39, new Color(0.98f, 0.80f, 0.24f, 1f));
-                    CirclePx(tex, 72, 38, 6, ink);
-                    CirclePx(tex, 72, 38, 4, new Color(1f, 0.88f, 0.30f, 1f));
-                    if (completed)
-                    {
-                        CirclePx(tex, 60, 62, 10, ink);
-                        CirclePx(tex, 60, 62, 8, new Color(0.46f, 0.92f, 1f, 1f));
-                        CirclePx(tex, 84, 62, 10, ink);
-                        CirclePx(tex, 84, 62, 8, new Color(1f, 0.88f, 0.26f, 1f));
-                    }
-                    break;
-
-                case EventKind.ToupeiraSubterranea:
-                    // Canteiro de terra fofa contornado + Toupeira ilustrada com capacete de exploradora e cristal
-                    EllipsePx(tex, 72, 20, 44, 14, ink);
-                    EllipsePx(tex, 72, 20, 41, 11, woodDark);
-                    EllipsePx(tex, 72, 23, 34, 8, woodMid);
-                    // Corpo da toupeira com contorno #3B1C14
-                    EllipsePx(tex, 72, 42, 22, 24, ink);
-                    EllipsePx(tex, 72, 42, 19, 21, new Color(0.38f, 0.32f, 0.30f, 1f));
-                    EllipsePx(tex, 72, 36, 13, 12, new Color(0.86f, 0.76f, 0.68f, 1f));
-                    CirclePx(tex, 65, 48, 3, ink);
-                    CirclePx(tex, 79, 48, 3, ink);
-                    CirclePx(tex, 72, 43, 5, ink);
-                    CirclePx(tex, 72, 43, 3, new Color(1f, 0.62f, 0.72f, 1f));
-                    // Capacete amarelo de mineiro/explorador
-                    EllipsePx(tex, 72, 60, 20, 10, ink);
-                    EllipsePx(tex, 72, 60, 17, 7, new Color(1f, 0.84f, 0.22f, 1f));
-                    CirclePx(tex, 72, 62, 4, Color.white);
-                    break;
-
-                case EventKind.CuidadoraAbrigo:
-                case EventKind.TexugoOficina:
-                case EventKind.RatinhoCarteiro:
-                    // Casinha/abrigo de madeira esculpido na beira da trilha com telhadinho e flores
-                    EllipsePx(tex, 72, 18, 42, 12, ink);
-                    EllipsePx(tex, 72, 18, 39, 9, grassDark);
-                    RectPx(tex, 42, 18, 102, 64, ink);
-                    RectPx(tex, 45, 21, 99, 61, woodLight);
-                    CirclePx(tex, 72, 34, 15, ink);
-                    CirclePx(tex, 72, 34, 12, woodDark);
-                    // Telhadinho em duas águas
-                    for (int y = 60; y <= 92; y++)
-                    {
-                        int halfW = Mathf.RoundToInt((1f - (y - 60f) / 32f) * 40f);
-                        RectPx(tex, 72 - halfW - 3, y, 72 + halfW + 3, y, ink);
-                        RectPx(tex, 72 - halfW, y, 72 + halfW, y, new Color(0.84f, 0.36f, 0.28f, 1f));
-                    }
-                    break;
-
-                case EventKind.MusicaDaFloresta:
-                case EventKind.LimparRiacho:
                 default:
-                    // Tronco musical / canteiro florido do bosque com contorno escuro
-                    EllipsePx(tex, 72, 18, 44, 12, ink);
-                    EllipsePx(tex, 72, 18, 41, 9, grassDark);
-                    RectPx(tex, 36, 18, 108, 48, ink);
-                    RectPx(tex, 39, 21, 105, 45, woodMid);
-                    RectPx(tex, 39, 38, 105, 45, woodLight);
-                    CirclePx(tex, 54, 56, 8, ink);
-                    CirclePx(tex, 54, 56, 6, new Color(1f, 0.86f, 0.24f, 1f));
-                    CirclePx(tex, 90, 56, 8, ink);
-                    CirclePx(tex, 90, 56, 6, new Color(1f, 0.48f, 0.68f, 1f));
+                    // Baú de Tesouro Ilustrado em carvalho arqueado com ferragens de latão dourado, cadeado e joias brilhantes!
+                    EllipsePx(tex, 90, 16, 62, 12, ink);
+                    EllipsePx(tex, 90, 16, 58, 9, grassDark);
+                    EllipsePx(tex, 86, 18, 44, 6, grassLight);
+
+                    // Caixa inferior do baú em tábuas de carvalho
+                    int bx0 = 36, bx1 = 144, by0 = 18, by1 = 68;
+                    RectPx(tex, bx0 - 4, by0 - 3, bx1 + 4, by1 + 3, ink);
+                    RectPx(tex, bx0, by0, bx1, by1, woodDark);
+                    RectPx(tex, bx0 + 4, by0 + 4, bx1 - 4, by1 - 3, woodMid);
+                    RectPx(tex, bx0 + 4, by0 + 18, bx1 - 4, by0 + 20, ink);
+                    RectPx(tex, bx0 + 4, by0 + 34, bx1 - 4, by0 + 36, ink);
+
+                    // Tampa abaulada do baú (ou aberta revelando moedas de ouro e cristais quando concluído!)
+                    if (!completed)
+                    {
+                        EllipsePx(tex, 90, 68, 58, 26, ink);
+                        EllipsePx(tex, 90, 68, 54, 22, woodMid);
+                        EllipsePx(tex, 88, 72, 44, 14, woodLight);
+                    }
+                    else
+                    {
+                        // Interior aberto transbordando moedas de ouro, rubi e safira brilhante!
+                        EllipsePx(tex, 90, 86, 56, 20, ink);
+                        EllipsePx(tex, 90, 86, 52, 16, woodDark);
+                        for (int gx = 48; gx <= 132; gx += 12)
+                        {
+                            CirclePx(tex, gx, 70 + (gx % 3) * 3, 9, ink);
+                            CirclePx(tex, gx, 70 + (gx % 3) * 3, 7, brassGold);
+                        }
+                        CirclePx(tex, 72, 76, 11, ink);
+                        CirclePx(tex, 72, 76, 8, new Color(0.36f, 0.88f, 1f, 1f));
+                        CirclePx(tex, 108, 76, 11, ink);
+                        CirclePx(tex, 108, 76, 8, new Color(0.96f, 0.28f, 0.42f, 1f));
+                        CirclePx(tex, 90, 80, 12, ink);
+                        CirclePx(tex, 90, 80, 9, brassHigh);
+                    }
+
+                    // Cintas verticais e cantoneiras de latão dourado no baú
+                    int[] strapsX = { 44, 128 };
+                    for (int i = 0; i < strapsX.Length; i++)
+                    {
+                        int sx = strapsX[i];
+                        RectPx(tex, sx - 2, by0, sx + 10, by1 + 14, ink);
+                        RectPx(tex, sx, by0 + 2, sx + 8, by1 + 12, brassGold);
+                        RectPx(tex, sx + 2, by0 + 4, sx + 5, by1 + 10, brassHigh);
+                    }
+
+                    // Faixa horizontal de ouro e escudo de fechadura central
+                    RectPx(tex, bx0 - 2, by1 - 6, bx1 + 2, by1 + 4, ink);
+                    RectPx(tex, bx0, by1 - 4, bx1, by1 + 2, brassGold);
+                    CirclePx(tex, 90, by1 - 2, 15, ink);
+                    CirclePx(tex, 90, by1 - 2, 12, brassGold);
+                    CirclePx(tex, 88, by1, 8, brassHigh);
+                    CirclePx(tex, 90, by1 - 1, 4, ink);
+                    RectPx(tex, 88, by1 - 8, 92, by1 - 1, ink);
+
+                    // Florzinhas silvestres ao redor da base do baú
+                    CirclePx(tex, 32, 22, 6, ink);
+                    CirclePx(tex, 32, 22, 4, new Color(1f, 0.50f, 0.70f, 1f));
+                    CirclePx(tex, 148, 22, 6, ink);
+                    CirclePx(tex, 148, 22, 4, new Color(1f, 0.88f, 0.26f, 1f));
                     break;
             }
 
             tex.Apply();
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 10f / (float)h), 84f);
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 10f / (float)h), 110f);
             spriteCache[key] = sp;
             return sp;
         }
