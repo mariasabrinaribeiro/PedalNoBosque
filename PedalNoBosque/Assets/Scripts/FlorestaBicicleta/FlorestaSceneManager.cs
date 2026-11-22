@@ -81,6 +81,8 @@ namespace FlorestaBicicleta
         // Tela de Vitória
         private GameObject victoryPanel;
         private TextMeshProUGUI victoryScoreText;
+        private GameObject messagePlate;
+        private Image comidaButtonImage;
 
         private float messageExpireTime = 0f;
         private float dayCycleTime = 0f;
@@ -303,6 +305,7 @@ namespace FlorestaBicicleta
             if (messageText == null) return;
             messageText.text = msg;
             messageText.color = color ?? new Color(1f, 0.98f, 0.78f, 1f);
+            if (messagePlate != null) messagePlate.SetActive(true);
             messageExpireTime = Time.time + duration;
         }
 
