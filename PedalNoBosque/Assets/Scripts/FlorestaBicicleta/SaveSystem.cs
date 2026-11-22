@@ -53,6 +53,14 @@ namespace FlorestaBicicleta
         public string equippedAccessory = "acc_default";
         public string equippedCharacter = "char_default";
         public string equippedPuppy = "puppy_default";
+
+        // Configurações persistentes e estado de sessão para o fluxo Continuar / Menu
+        public float musicVolume = 0.80f;
+        public float sfxVolume = 0.85f;
+        public bool gentleControlAssist = true;
+        public bool hasActiveSession = false;
+        public float lastSavedPositionX = 0f;
+        public int completedChallengesCount = 0;
     }
 
     /// <summary>
@@ -101,6 +109,18 @@ namespace FlorestaBicicleta
         }
 
         public static bool Save(PlayerSaveData data) => WriteSave(data, preservePrevious: true);
+
+        public static bool HasSavedProgress(PlayerSaveData data)
+        {
+            if (data == null) return false;
+            return data.hasActiveSession
+                || data.totalDeliveries > 0
+                || data.bestDistanceKm > 0.01f
+                || data.totalStarsEarned > 0
+                || data.completedChallengesCount > 0
+                || data.bridgesRepairedCount > 0
+                || data.flowersWateredCount > 0;
+        }
 
         private static bool WriteSave(PlayerSaveData data, bool preservePrevious)
         {
@@ -183,6 +203,11 @@ namespace FlorestaBicicleta
             if (string.IsNullOrEmpty(data.equippedAccessory)) data.equippedAccessory = "acc_default";
             if (string.IsNullOrEmpty(data.equippedCharacter)) data.equippedCharacter = "char_default";
             if (string.IsNullOrEmpty(data.equippedPuppy)) data.equippedPuppy = "puppy_default";
+
+            data.musicVolume = Mathf.Clamp01(data.musicVolume);
+            data.sfxVolume = Mathf.Clamp01(data.sfxVolume);
+            if (data.lastSavedPositionX < 0f) data.lastSavedPositionX = 0f;
+            if (data.completedChallengesCount < 0) data.completedChallengesCount = 0;
         }
     }
 }

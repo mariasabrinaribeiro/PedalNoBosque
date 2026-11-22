@@ -40,7 +40,25 @@ namespace FlorestaBicicleta
                                     "PEDAL IN THE WOODS is child-safe:\n- 100% offline, zero personal data collected (COPPA / GDPR).\n- No intrusive ads and no real-money purchases enabled.\n- Progress is saved locally on this device only.",
                                     "PEDAL EN EL BOSQUE es seguro para ninos:\n- 100% sin conexion, sin recopilacion de datos personales.\n- Sin anuncios invasivos ni compras reales activas.\n- El progreso se guarda solo en este dispositivo.") },
                 { "btn_reset",     ("Reiniciar Progresso", "Reset Progress", "Reiniciar Progreso") },
-                { "reset_done",    ("Progresso reiniciado com seguranca!", "Progress safely reset!", "Progreso reiniciado con seguridad!") }
+                { "reset_done",    ("Progresso reiniciado com seguranca!", "Progress safely reset!", "Progreso reiniciado con seguridad!") },
+                { "btn_continue",  ("Continuar", "Continue", "Continuar") },
+                { "btn_settings",  ("Configuracoes", "Settings", "Configuracion") },
+                { "btn_exit",      ("Sair", "Exit", "Salir") },
+                { "btn_pause",     ("Pausa", "Pause", "Pausa") },
+                { "pause_title",   ("Passeio Pausado", "Ride Paused", "Paseo en Pausa") },
+                { "btn_resume",    ("Continuar", "Resume", "Continuar") },
+                { "btn_restart_challenge", ("Reiniciar Desafio", "Restart Challenge", "Reiniciar Desafio") },
+                { "btn_save_menu", ("Menu Principal", "Main Menu", "Menu Principal") },
+                { "settings_title", ("Configuracoes do Bosque", "Forest Settings", "Configuracion del Bosque") },
+                { "settings_music", ("Musica do Bosque", "Forest Music", "Musica del Bosque") },
+                { "settings_sfx",  ("Efeitos Sonoros", "Sound Effects", "Efectos de Sonido") },
+                { "settings_lang", ("Idioma", "Language", "Idioma") },
+                { "settings_ctrl", ("Controles Suaves", "Gentle Controls", "Controles Suaves") },
+                { "exit_title",    ("Deseja encerrar o passeio?", "Leave the forest ride?", "¿Deseas terminar el paseo?") },
+                { "exit_msg",      ("Seu progresso sera salvo automaticamente com seguranca antes de sair.", "Your progress will be safely saved before leaving.", "Tu progreso se guardara con seguridad antes de salir.") },
+                { "btn_confirm_exit", ("Salvar e Sair", "Save & Exit", "Guardar y Salir") },
+                { "btn_cancel_exit",  ("Continuar no Bosque", "Stay in the Woods", "Seguir en el Bosque") },
+                { "loading_title", ("Preparando o Bosque...", "Preparing the Woods...", "Preparando el Bosque...") }
             };
 
         public static void LoadFromSave(PlayerSaveData data)

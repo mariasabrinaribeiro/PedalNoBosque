@@ -88,6 +88,12 @@ namespace FlorestaBicicleta
         private float messageExpireTime = 0f;
         private float dayCycleTime = 0f;
 
+        // Estado de Desafio Especial (Encomenda Especial / Desafio de Bicicleta)
+        public bool isSpecialChallengeActive { get; private set; } = false;
+        public float specialChallengeTimer { get; private set; } = 0f;
+        private float specialChallengeStartX = 0f;
+        public PedalTitleScreenUI TitleScreen => titleScreenUI;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBootstrapOnForestScene()
         {
@@ -281,6 +287,33 @@ namespace FlorestaBicicleta
                     ShowMessage($"O {animal.animalName} já está cheio, mas adorou o carinho! +20 pts", 2.2f, new Color(1f, 0.85f, 0.95f, 1f));
                     break;
             }
+
+            if (res == ForestAnimal.FeedResult.AteNeedsMore
+                || res == ForestAnimal.FeedResult.FullySatisfied
+                || res == ForestAnimal.FeedResult.TriggeredSquirrelSecret)
+            {
+                if (progressManager != null && progressManager.Data != null && player != null)
+                {
+                    progressManager.Data.hasActiveSession = true;
+                    progressManager.Data.lastSavedPositionX = player.transform.position.x;
+                    SaveSystem.Save(progressManager.Data);
+                }
+
+                if (isSpecialChallengeActive)
+                {
+                    CompleteSpecialChallenge(
+                        "MISSÃO CONCLUÍDA!",
+                        $"Entrega especial realizada com sucesso! O {animal.animalName} adorou receber {givenName}!",
+                        3, 250);
+                }
+                else if (res == ForestAnimal.FeedResult.FullySatisfied && GameObject.Find("VerticalSliceValidator") == null)
+                {
+                    CompleteSpecialChallenge(
+                        "NOVA AMIZADE NO BOSQUE!",
+                        $"O {animal.animalName} ficou completamente saciado e feliz com sua ajuda!",
+                        2, 180);
+                }
+            }
         }
 
         private void OnAnimalRunOver(ForestAnimal animal)
@@ -298,7 +331,88 @@ namespace FlorestaBicicleta
             player.score += 1000;
             if (victoryScoreText != null)
                 victoryScoreText.text = $"Pontuação Final: {player.score} pontos!\nVocês cavaram fundo e encontraram vários DIAMANTES brilhantes!";
-            if (victoryPanel != null) victoryPanel.SetActive(true);
+            if (titleScreenUI != null)
+            {
+                CompleteSpecialChallenge(
+                    "DIAMANTES ENCONTRADOS!",
+                    "Você e o Esquilo cavaram fundo e descobriram o tesouro brilhante do bosque!",
+                    5, 1000);
+            }
+            else if (victoryPanel != null)
+            {
+                victoryPanel.SetActive(true);
+            }
+        }
+
+        public void StartSpecialChallenge(float durationSeconds = 22f)
+        {
+            isSpecialChallengeActive = true;
+            specialChallengeTimer = Mathf.Max(0.5f, durationSeconds);
+            specialChallengeStartX = player != null ? player.transform.position.x : 0f;
+
+            // Garante que a cesta tenha o alimento pedido pelo animal mais próximo para o desafio
+            if (player != null && trackGenerator != null && trackGenerator.PrimarySquirrel != null)
+            {
+                FoodType wanted = trackGenerator.PrimarySquirrel.wantedFood;
+                if (!player.foodBasket.Contains(wanted))
+                {
+                    if (player.foodBasket.Count >= player.maxBasketSize)
+                        player.foodBasket.RemoveAt(0);
+                    player.TryAddFoodToBasket(wanted);
+                }
+            }
+
+            ShowMessage($"DESAFIO ESPECIAL INICIADO! Realize uma entrega em {Mathf.CeilToInt(specialChallengeTimer)}s!", 4.0f, new Color(1f, 0.90f, 0.45f, 1f));
+        }
+
+        public void CompleteSpecialChallenge(string title, string subtitle, int starsReward = 3, int pointsReward = 250)
+        {
+            isSpecialChallengeActive = false;
+            specialChallengeTimer = 0f;
+            if (player != null) player.score += pointsReward;
+            progressManager?.AddStars(starsReward);
+            if (progressManager != null && progressManager.Data != null)
+            {
+                progressManager.Data.completedChallengesCount++;
+                progressManager.Data.hasActiveSession = true;
+                if (player != null) progressManager.Data.lastSavedPositionX = player.transform.position.x;
+                SaveSystem.Save(progressManager.Data);
+            }
+
+            string rewards = $"Recompensas: +{starsReward} Estrelas  |  +{pointsReward} Pontos  |  Progresso Salvo!";
+            titleScreenUI?.ShowMissionComplete(title, subtitle, rewards);
+        }
+
+        public void FailSpecialChallenge(string customReason = null)
+        {
+            isSpecialChallengeActive = false;
+            specialChallengeTimer = 0f;
+            if (progressManager != null && progressManager.Data != null)
+            {
+                SaveSystem.Save(progressManager.Data);
+            }
+            string desc = string.IsNullOrEmpty(customReason)
+                ? "O tempo da encomenda especial terminou, mas fique tranquila: todo o seu progresso geral no bosque continua salvo!"
+                : customReason;
+            titleScreenUI?.ShowChallengeFailed("DESAFIO NÃO CONCLUÍDO", desc);
+        }
+
+        public void CancelSpecialChallenge()
+        {
+            isSpecialChallengeActive = false;
+            specialChallengeTimer = 0f;
+            ShowMessage("Exploração livre retomada! Pedale no seu ritmo pelo bosque.", 3.5f);
+        }
+
+        private void RestoreSavedSession()
+        {
+            if (player == null || progressManager == null || progressManager.Data == null) return;
+            float savedX = progressManager.Data.lastSavedPositionX;
+            if (savedX > 1f)
+            {
+                player.TeleportToX(savedX);
+            }
+            ShowMessage("Partida retomada de onde você parou! Bom passeio pelo bosque!", 4.2f, new Color(0.76f, 1f, 0.84f, 1f));
         }
 
         private void ShowMessage(string msg, float duration, Color? color = null)
@@ -313,6 +427,25 @@ namespace FlorestaBicicleta
         private void LateUpdate()
         {
             if (player == null) return;
+
+            if (UnityEngine.InputSystem.Keyboard.current != null
+                && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame
+                && titleScreenUI != null)
+            {
+                if (titleScreenUI.CurrentState == GameFlowState.Playing)
+                    titleScreenUI.OpenPauseMenu();
+                else if (titleScreenUI.CurrentState == GameFlowState.Paused)
+                    titleScreenUI.ResumeFromPause();
+            }
+
+            if (isSpecialChallengeActive && titleScreenUI != null && titleScreenUI.CurrentState == GameFlowState.Playing)
+            {
+                specialChallengeTimer -= Time.deltaTime;
+                if (specialChallengeTimer <= 0f)
+                {
+                    FailSpecialChallenge();
+                }
+            }
 
             if (mainCam != null)
             {
@@ -714,6 +847,11 @@ namespace FlorestaBicicleta
                 14, new Vector2(285f, 0f), new Vector2(520f, 24f), TextAlignmentOptions.Right);
             nearbyOrderText.color = new Color(0.84f, 1f, 0.88f, 0.96f);
 
+            CreateRoundedClickButton(canvasObj.transform, "BtnPausa", "Pausa",
+                new Vector2(1f, 1f), new Vector2(-196f, -101f), new Vector2(102f, 34f),
+                new Color(0.32f, 0.46f, 0.56f, 0.96f), 14,
+                () => titleScreenUI?.OpenPauseMenu());
+
             CreateRoundedClickButton(canvasObj.transform, "BtnHabilidades", "Habilidades",
                 new Vector2(1f, 1f), new Vector2(-74f, -101f), new Vector2(132f, 34f),
                 new Color(0.27f, 0.43f, 0.34f, 0.96f), 14, ToggleSkillsPanel);
@@ -827,8 +965,21 @@ namespace FlorestaBicicleta
             // Atividades afetivas e criativas (Música da Floresta, Cuidadora e Enigma da Coruja)
             gameObject.AddComponent<ForestActivitiesUI>().Build(canvasObj.transform);
 
-            // Tela de Título Oficial PEDAL NO BOSQUE + Idiomas (PT/EN/ES) + Barreira Parental
+            // Tela de Título Oficial PEDAL NO BOSQUE + Controle Completo de Fluxo e Estados
             titleScreenUI = gameObject.AddComponent<PedalTitleScreenUI>();
+            titleScreenUI.OnGameplayInputLockChanged += locked =>
+            {
+                if (player != null) player.inputLocked = locked;
+            };
+            titleScreenUI.OnContinueSavedGame += RestoreSavedSession;
+            titleScreenUI.OnRestartChallengeRequested += () =>
+            {
+                if (player != null && specialChallengeStartX > 0.5f)
+                    player.TeleportToX(specialChallengeStartX);
+                StartSpecialChallenge(22f);
+            };
+            titleScreenUI.OnNextChallengeRequested += () => StartSpecialChallenge(22f);
+            titleScreenUI.OnReturnToExplorationRequested += CancelSpecialChallenge;
             titleScreenUI.Build(canvasObj.transform, () =>
             {
                 ShowMessage("PEDAL NO BOSQUE - Explore as 6 regioes, ajude os amigos e descubra segredos!", 5.5f);
@@ -1052,7 +1203,12 @@ namespace FlorestaBicicleta
             if (nearbyOrderText != null)
             {
                 bool showResident = nearestResident != null && (nearest == null || nearestResidentDist < nearestAnimalDist);
-                if (nearbyAdventureEvent != null && !nearbyAdventureEvent.isCompleted)
+                if (isSpecialChallengeActive)
+                {
+                    string targetOrder = nearest != null ? $"{nearest.animalName} ({FoodInfo.GetDisplayName(nearest.wantedFood)})" : "um amigo do bosque";
+                    nearbyOrderText.text = $"DESAFIO ({Mathf.CeilToInt(specialChallengeTimer)}s): Entregue a {targetOrder}!";
+                }
+                else if (nearbyAdventureEvent != null && !nearbyAdventureEvent.isCompleted)
                 {
                     nearbyOrderText.text = nearbyAdventureEvent.NearbyPrompt;
                 }

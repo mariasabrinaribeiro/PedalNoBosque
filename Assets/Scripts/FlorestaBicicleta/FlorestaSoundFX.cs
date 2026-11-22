@@ -11,6 +11,9 @@ namespace FlorestaBicicleta
     {
         public static FlorestaSoundFX Instance { get; private set; }
         private AudioSource source;
+        private AudioSource musicSource;
+        public float MusicVolume { get; private set; } = 0.80f;
+        public float SfxVolume { get; private set; } = 0.85f;
 
         private AudioClip clipDogBark;
         private AudioClip clipThirstPant;
@@ -58,7 +61,12 @@ namespace FlorestaBicicleta
             Instance = this;
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false;
-            source.volume = 0.42f;
+            source.volume = 0.42f * SfxVolume;
+
+            musicSource = gameObject.AddComponent<AudioSource>();
+            musicSource.playOnAwake = false;
+            musicSource.loop = true;
+            musicSource.volume = 0.16f * MusicVolume;
 
             // Sons dos animais
             clipDogBark       = MakeDoubleBark(360f, 540f, 220f, 0.09f, 0.06f);      // Au-Au!
@@ -106,6 +114,20 @@ namespace FlorestaBicicleta
             natureNotes[1] = MakeCurveTone(new[] { 330f, 290f }, 0.20f, 0.55f);       // Tronco Oco (Mi grave)
             natureNotes[2] = MakeCurveTone(new[] { 659f, 784f }, 0.22f, 0.45f);       // Gotas d'Água (Sol)
             natureNotes[3] = MakeCurveTone(new[] { 1046f, 1060f, 1046f }, 0.30f, 0.42f); // Sino de Flor (Dó agudo)
+
+            if (musicSource != null)
+            {
+                musicSource.clip = MakeArpeggio(new[] { 523f, 659f, 784f, 659f, 587f, 659f, 523f, 392f }, 0.38f);
+                musicSource.Play();
+            }
+        }
+
+        public void ApplyVolumes(float musicVol, float sfxVol)
+        {
+            MusicVolume = Mathf.Clamp01(musicVol);
+            SfxVolume = Mathf.Clamp01(sfxVol);
+            if (source != null) source.volume = 0.48f * SfxVolume;
+            if (musicSource != null) musicSource.volume = 0.16f * MusicVolume;
         }
 
         public void PlayAnimalVoice(ParkSpriteFactory.AnimalKind kind)

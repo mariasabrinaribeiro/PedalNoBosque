@@ -153,9 +153,13 @@ public sealed class VerticalSliceValidator : MonoBehaviour
         yield return null;
         var progress = PlayerProgressManager.Instance;
         Check(progress && progress.Data != null, "Progresso inicializado");
+        var sceneMgr = FindObjectOfType<FlorestaSceneManager>();
+        var title = sceneMgr != null ? sceneMgr.TitleScreen : FindObjectOfType<PedalTitleScreenUI>();
+        Check(title != null, "Controlador de front-end presente");
         if (Reopening)
         {
             Check(progress.Data.totalDeliveries == 1, "Entrega preservada em outra sessao");
+            Check(GameObject.Find("BtnContinuar") != null, "Botao Continuar ativo ao reabrir com save");
             Check(SaveSystem.Save(progress.Data), "Backup de teste criado");
             string primary = Path.Combine(TestDirectory, "pedal_no_bosque_save.json");
             string backup = Path.Combine(TestDirectory, "pedal_no_bosque_save.bak");
@@ -168,11 +172,23 @@ public sealed class VerticalSliceValidator : MonoBehaviour
             yield break;
         }
         Check(progress.Data.totalDeliveries == 0, "Perfil isolado novo");
+        Check(title.CurrentState == GameFlowState.TitleScreen, "Estado inicial na Tela Inicial");
+        Check(GameObject.Find("BtnContinuar") == null, "Botao Continuar oculto sem progresso salvo");
+
+        // Testa Tela de Configuracoes a partir da Tela Inicial
+        Click("BtnConfiguracoes");
+        Check(title.CurrentState == GameFlowState.Settings && GameObject.Find("SettingsPanel"), "Tela de Configuracoes aberta");
+        float prevMusic = progress.Data.musicVolume;
+        Click("BtnMusicaMenos");
+        Click("BtnSalvarConfiguracoes");
+        Check(title.CurrentState == GameFlowState.TitleScreen && SaveSystem.Load().musicVolume < prevMusic, "Configuracoes salvas e retorno ao menu");
+
         var cover = GameObject.Find("BosqueAoAmanhecer")?.GetComponent<RawImage>();
         Check(cover && cover.texture && cover.isActiveAndEnabled, "Ilustracao de abertura carregada");
         Check(GameObject.Find("BtnJogar/Play"), "Icone do botao Jogar presente");
         Click("BtnJogar");
         Check(!cover.gameObject.activeInHierarchy, "Abertura fechada ao jogar");
+        Check(title.CurrentState == GameFlowState.Playing, "Estado Playing ativo apos Jogar");
         var bike = FindObjectOfType<BikeGirlController>();
         var day = FindObjectOfType<DayNightCycleController>();
         var initialPeriod = day.CurrentPeriod;
@@ -183,6 +199,15 @@ public sealed class VerticalSliceValidator : MonoBehaviour
         yield return Until(() => bike.isNearKitchen && GameObject.Find("KitchenPanel"), 30, "Cozinha acessivel pela estrada");
         bike.SetUISlow(false);
         Check(bike.transform.position.x > initialX, "Pedalada deslocou a bicicleta");
+
+        // Testa Pausa real e Retomada
+        Click("BtnPausa");
+        Check(title.CurrentState == GameFlowState.Paused && GameObject.Find("PausePanel") && Time.timeScale == 0f && bike.inputLocked,
+            "Jogo pausado de verdade com Time.timeScale=0");
+        Click("BtnPausaContinuar");
+        Check(title.CurrentState == GameFlowState.Playing && Time.timeScale == 1f && !bike.inputLocked,
+            "Partida retomada apos pausa");
+
         Click("BtnPrepSanduiche");
         Click("BtnAutoPrep");
         yield return Until(() => bike.foodBasket.Contains(FoodType.Sanduiche), 15, "Sanduiche preparado");
@@ -195,14 +220,45 @@ public sealed class VerticalSliceValidator : MonoBehaviour
         bike.SetUISlow(true);
         yield return Until(() => Mathf.Abs(animal.transform.position.x - bike.transform.position.x) < 5f, 30, "Animal ao alcance");
         bike.SetUISlow(false);
+
+        // Testa Desafio Nao Concluido e opcao Tentar Novamente sem perder progresso
+        sceneMgr.StartSpecialChallenge(0.3f);
+        yield return Until(() => title.CurrentState == GameFlowState.ChallengeFailed && GameObject.Find("ChallengeFailedPanel"),
+            5, "Tela de Desafio Nao Concluido exibida ao expirar tempo");
+        Click("BtnTentarNovamente");
+        Check(title.CurrentState == GameFlowState.Playing && sceneMgr.isSpecialChallengeActive,
+            "Desafio reiniciado via Tentar Novamente");
+
+        // Garante que a cesta mantem a lista esperada antes da entrega
+        bike.foodBasket.Clear();
+        foreach (var item in expected) bike.TryAddFoodToBasket(item);
+
         expected.Remove(order);
         int meals = animal.mealsEaten;
         Click("BtnComida");
         yield return Until(() => animal.mealsEaten > meals, 10, "Animal recebeu o alimento");
+        yield return Until(() => title.CurrentState == GameFlowState.MissionComplete && GameObject.Find("MissionCompletePanel"),
+            5, "Tela de Missao Concluida e recompensas exibidas");
+        Click("BtnContinuarExplorando");
+        Check(title.CurrentState == GameFlowState.Playing, "Retorno a exploracao apos concluir missao");
+
         yield return new WaitForSeconds(1);
         Check(animal.mealsEaten == meals + 1 && bike.foodBasket.SequenceEqual(expected)
             && progress.Data.totalDeliveries == 1, "Uma refeicao, um consumo e uma entrega registrada");
         Check(SaveSystem.Load().totalDeliveries == 1, "Entrega gravada no disco");
+
+        // Testa Pausar -> Salvar e Voltar ao Menu -> Continuar Partida -> Sair
+        Click("BtnPausa");
+        Click("BtnPausaMenuPrincipal");
+        Check(title.CurrentState == GameFlowState.TitleScreen && GameObject.Find("BtnContinuar") != null,
+            "Retorno ao Menu Principal com botao Continuar habilitado");
+        Click("BtnSair");
+        Check(title.CurrentState == GameFlowState.ExitConfirm && GameObject.Find("ExitConfirmPanel"),
+            "Modal de Confirmacao de Saida exibido");
+        Click("BtnConfirmarSaida");
+        Check(title.LastExitConfirmed, "Saida confirmada com salvamento seguro");
+        Click("BtnContinuar");
+        Check(title.CurrentState == GameFlowState.Playing, "Partida retomada pelo botao Continuar");
         bike.SetUIFast(true);
         yield return Until(() => bike.transform.position.x > 50f, 35, "Travessia da primeira emenda");
         yield return Until(() => bike.currentSlopeLabel.StartsWith("SUBIDA", StringComparison.Ordinal), 180, "Entrada na subida");

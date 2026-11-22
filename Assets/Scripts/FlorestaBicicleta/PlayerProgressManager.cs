@@ -90,6 +90,12 @@ namespace FlorestaBicicleta
             RefreshSpecialRecipeUnlocks();
         }
 
+        public void ReloadFromDisk()
+        {
+            Data = SaveSystem.Load();
+            RefreshSpecialRecipeUnlocks();
+        }
+
         private void OnApplicationPause(bool pause)
         {
             if (pause && Data != null) SaveSystem.Save(Data);

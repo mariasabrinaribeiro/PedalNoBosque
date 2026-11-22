@@ -41,6 +41,7 @@ namespace FlorestaBicicleta
         public bool canDismountAtNearbyEvent { get; set; }
         public string currentSlopeLabel { get; private set; } = "Plano";
         public bool isNearKitchen { get; private set; } = false;
+        public bool inputLocked { get; set; } = false;
 
         [Header("Física de Salto (Etapa 1)")]
         public float manualJumpVelocity = 7.8f;
@@ -213,6 +214,17 @@ namespace FlorestaBicicleta
         public void SetUIFast(bool pressed) => uiFastPressed = pressed;
         public void SetUIReverse(bool pressed) => uiReversePressed = pressed;
 
+        public void TeleportToX(float targetX)
+        {
+            if (isOnFoot) ToggleExploreMode();
+            currentSpeed = 0f;
+            verticalVelocity = 0f;
+            jumpHeight = 0f;
+            uiSlowPressed = uiFastPressed = uiReversePressed = false;
+            minX = Mathf.Min(minX, targetX - 4f);
+            transform.position = new Vector3(targetX, baseGroundY, 0f);
+        }
+
         public bool ToggleExploreMode()
         {
             if (!isOnFoot)
@@ -334,6 +346,12 @@ namespace FlorestaBicicleta
             bool jumpPressed = false;
             bool faroPressed = false;
             bool explorePressed = false;
+
+            if (inputLocked)
+            {
+                currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, acceleration * 2f * Time.deltaTime);
+                return;
+            }
 
             if (Keyboard.current != null)
             {
