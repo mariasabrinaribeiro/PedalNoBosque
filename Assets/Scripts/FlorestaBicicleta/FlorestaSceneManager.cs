@@ -1131,7 +1131,7 @@ namespace FlorestaBicicleta
 
             if (comidaButtonImage != null)
             {
-                bool canDeliver = nearest != null && bestD < 4.5f && player != null && player.foodBasket.Contains(nearest.wantedFood);
+                bool canDeliver = nearest != null && nearestAnimalDist < 4.5f && player != null && player.foodBasket.Contains(nearest.wantedFood);
                 comidaButtonImage.color = canDeliver
                     ? new Color(0.96f, 0.44f, 0.42f, 1f)
                     : new Color(0.74f, 0.46f, 0.52f, 0.72f);
