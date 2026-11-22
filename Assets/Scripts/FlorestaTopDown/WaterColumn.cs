@@ -1,4 +1,5 @@
 using UnityEngine;
+using FlorestaBicicleta;
 
 namespace FlorestaTopDown
 {
@@ -16,7 +17,7 @@ namespace FlorestaTopDown
             Texture2D tex = Resources.Load<Texture2D>("Floresta/coluna_agua");
             if (tex != null)
             {
-                sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.05f), tex.height / 2.6f);
+                sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.05f), tex.height / 2.05f);
             }
             else
             {
@@ -24,10 +25,13 @@ namespace FlorestaTopDown
             }
             sr.sortingOrder = 5;
 
+            // Sombra de contato suave na base de pedra
+            BiomePropsFactory.AddContactShadow(transform, new Vector3(0f, 0.02f, 0f), new Vector2(0.95f, 0.25f), 4);
+
             GameObject icon = new GameObject("WaterIcon");
             icon.transform.SetParent(transform);
-            icon.transform.localPosition = new Vector3(0f, 2.85f, 0f);
-            icon.transform.localScale = new Vector3(0.75f, 0.75f, 1f);
+            icon.transform.localPosition = new Vector3(0f, 2.15f, 0f);
+            icon.transform.localScale = new Vector3(0.48f, 0.48f, 1f);
             iconTransform = icon.transform;
 
             SpriteRenderer iconSR = icon.AddComponent<SpriteRenderer>();
@@ -44,8 +48,8 @@ namespace FlorestaTopDown
         {
             if (iconTransform != null)
             {
-                float bob = Mathf.Sin(Time.time * 3.2f) * 0.12f;
-                iconTransform.localPosition = new Vector3(0f, 2.85f + bob, 0f);
+                float bob = Mathf.Sin(Time.time * 2.8f) * 0.08f;
+                iconTransform.localPosition = new Vector3(0f, 2.15f + bob, 0f);
             }
         }
     }

@@ -425,7 +425,7 @@ namespace FlorestaBicicleta
             // Flores acolhedoras no Campo Florido inicial
             SpawnMeadowFlowers(p, s, seg.index);
 
-            SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 13f, -2.55f, 0f), 1f, 3);
+            SpawnBench(p, s + 13f);
             SpawnKitchenStation(p, s + 8f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18f, blocked);
             SpawnWaterColumn(p, s + 24f, blocked);
@@ -460,7 +460,7 @@ namespace FlorestaBicicleta
 
             SpawnMeadowFlowers(p, s, seg.index);
 
-            SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 12f, -2.55f, 0f), 1f, 3);
+            SpawnBench(p, s + 12f);
 
             // Animais amigáveis do campo (Coelho, Esquilo, Passarinhos e Ouriço)
             ParkSpriteFactory.AnimalKind[] campoPool =
@@ -601,15 +601,6 @@ namespace FlorestaBicicleta
             ParkSpriteFactory.AnimalKind a2 = rioPool[(seg.index + 1) % rioPool.Length];
             SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 13f, blocked);
             SpawnAnimal(seg, a2, GetAnimalName(a2), GetAnimalMeals(a2), s + 38f, blocked);
-
-            // Estrelas flutuando acima da ponte para premiar pulo sobre a ponte
-            for (int i = 0; i < 3; i++)
-            {
-                GameObject stObj = new GameObject($"EstrelaPonte_{seg.index}_{i}");
-                stObj.transform.SetParent(p, false);
-                stObj.transform.position = new Vector3(bridgeCenterX - 2.6f + i * 2.6f, -1.25f + (i == 1 ? 0.45f : 0f), 0f);
-                stObj.AddComponent<AerialCollectible>().Setup(50);
-            }
         }
 
         private void BuildTrilhaDaFloresta(
@@ -669,7 +660,7 @@ namespace FlorestaBicicleta
             SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 6f, -2.55f, 0f), 0.95f, 3);
             SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 16f, 0.35f, 0f), 1.15f, 4);
             SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 32f, 0.35f, 0f), 1.15f, 4);
-            SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 23f, -2.55f, 0f), 1f, 3);
+            SpawnBench(p, s + 23f);
             SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 38f, -2.55f, 0f), 0.95f, 3);
 
             // Árvore frutífera acolhedora da praça da vila (sortOrder -2)
@@ -834,11 +825,22 @@ namespace FlorestaBicicleta
             blocked.Add((kx - 5f, kx + 5f));
         }
 
+        private void SpawnBench(Transform parent, float xPos)
+        {
+            GameObject go = new GameObject($"BancoPraca_{xPos:F0}");
+            go.transform.SetParent(parent, false);
+            go.transform.position = new Vector3(xPos, -2.72f, 0f);
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = BiomePropsFactory.LoadParkBenchSprite();
+            sr.sortingOrder = 3;
+            BiomePropsFactory.AddContactShadow(go.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.5f, 0.28f), 2);
+        }
+
         private void SpawnWaterColumn(Transform parent, float wx, List<(float min, float max)> blocked)
         {
             GameObject wObj = new GameObject($"ColunaAgua_{wx:F0}");
             wObj.transform.SetParent(parent, false);
-            wObj.transform.position = new Vector3(wx, -2.55f, 0f);
+            wObj.transform.position = new Vector3(wx, -2.72f, 0f);
             wObj.AddComponent<WaterColumn>().Setup();
             blocked.Add((wx - 4.5f, wx + 4.5f));
         }
@@ -853,7 +855,7 @@ namespace FlorestaBicicleta
         {
             GameObject obj = new GameObject($"Animal_{displayName}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
-            obj.transform.position = new Vector3(xPos, -2.55f, 0f);
+            obj.transform.position = new Vector3(xPos, -2.72f, 0f);
 
             ForestAnimal a = obj.AddComponent<ForestAnimal>();
             a.Setup(kind, displayName, meals, foodSprites, happySp, crySp, tearSp, heartParticles);
@@ -874,9 +876,10 @@ namespace FlorestaBicicleta
         {
             GameObject obj = new GameObject($"Morador_{kind}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
-            obj.transform.position = new Vector3(xPos, -2.55f, 0f);
+            obj.transform.position = new Vector3(xPos, -2.72f, 0f);
 
             VillageResident r = obj.AddComponent<VillageResident>();
+            BiomePropsFactory.AddContactShadow(obj.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.1f, 0.26f), 2);
             r.Setup(kind, foodSprites, happySp, heartParticles);
             seg.residents.Add(r);
             ActiveResidents.Add(r);

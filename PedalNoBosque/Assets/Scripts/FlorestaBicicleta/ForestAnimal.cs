@@ -82,10 +82,16 @@ namespace FlorestaBicicleta
             bodyRenderer.sprite = LoadSideAnimalSprite(kind);
             bodyRenderer.sortingOrder = 6;
 
+            // Sombra de contato suave para ancoragem realista no solo
+            BiomePropsFactory.AddContactShadow(transform, new Vector3(0f, 0.04f, 0f), new Vector2(0.85f, 0.22f), 5);
+
             GameObject iconObj = new GameObject("OrderBubble");
             iconObj.transform.SetParent(transform);
-            iconObj.transform.localPosition = new Vector3(0f, 2.55f, 0f);
-            iconObj.transform.localScale = new Vector3(0.95f, 0.95f, 1f);
+            float bubbleY = (kind == ParkSpriteFactory.AnimalKind.Esquilo || kind == ParkSpriteFactory.AnimalKind.Coelho
+                || kind == ParkSpriteFactory.AnimalKind.Ourico || kind == ParkSpriteFactory.AnimalKind.Sapo
+                || kind == ParkSpriteFactory.AnimalKind.Passarinhos) ? 1.42f : 2.1f;
+            iconObj.transform.localPosition = new Vector3(0f, bubbleY, 0f);
+            iconObj.transform.localScale = new Vector3(0.82f, 0.82f, 1f);
             statusIconTransform = iconObj.transform;
 
             statusIconRenderer = iconObj.AddComponent<SpriteRenderer>();

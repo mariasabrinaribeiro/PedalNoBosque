@@ -64,16 +64,21 @@ namespace FlorestaBicicleta
         {
             switch (kind)
             {
-                case ParkSpriteFactory.AnimalKind.Lobo:
-                case ParkSpriteFactory.AnimalKind.Cervo:       return 2.4f;
-                case ParkSpriteFactory.AnimalKind.FilhoteUrso: return 2.15f;
+                case ParkSpriteFactory.AnimalKind.Esquilo:     return 1.15f;
+                case ParkSpriteFactory.AnimalKind.Coelho:      return 1.15f;
+                case ParkSpriteFactory.AnimalKind.Ourico:      return 1.05f;
+                case ParkSpriteFactory.AnimalKind.Sapo:        return 0.95f;
+                case ParkSpriteFactory.AnimalKind.Passarinhos: return 0.85f;
+                case ParkSpriteFactory.AnimalKind.Gato:        return 1.25f;
+                case ParkSpriteFactory.AnimalKind.Quati:       return 1.45f;
                 case ParkSpriteFactory.AnimalKind.Guaxinim:
-                case ParkSpriteFactory.AnimalKind.Castor:
-                case ParkSpriteFactory.AnimalKind.CorujaNoturna: return 1.95f;
-                case ParkSpriteFactory.AnimalKind.Ourico:
-                case ParkSpriteFactory.AnimalKind.Passarinhos: return 1.55f;
-                case ParkSpriteFactory.AnimalKind.Sapo:        return 1.45f;
-                default:                                       return 2.0f;
+                case ParkSpriteFactory.AnimalKind.Castor:      return 1.55f;
+                case ParkSpriteFactory.AnimalKind.Raposa:      return 1.55f;
+                case ParkSpriteFactory.AnimalKind.CorujaNoturna: return 1.45f;
+                case ParkSpriteFactory.AnimalKind.FilhoteUrso: return 1.95f;
+                case ParkSpriteFactory.AnimalKind.Lobo:        return 2.1f;
+                case ParkSpriteFactory.AnimalKind.Cervo:       return 2.3f;
+                default:                                       return 1.35f;
             }
         }
 

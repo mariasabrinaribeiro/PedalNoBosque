@@ -58,8 +58,14 @@ namespace FlorestaBicicleta
 
             bool hasRecipe = bike.foodBasket.Contains(FoodType.SaladaFrutasBosque)
                           || bike.foodBasket.Contains(FoodType.CestaDaLua);
-            bool canStart = Mathf.Abs(bike.currentSpeed) < 0.25f && hasRecipe;
-            if (picnicButton != null) picnicButton.interactable = canStart;
+            bool isRunning = remainingTime > 0f;
+            bool shouldShow = hasRecipe || isRunning;
+            if (picnicButton != null)
+            {
+                if (picnicButton.gameObject.activeSelf != shouldShow)
+                    picnicButton.gameObject.SetActive(shouldShow);
+                picnicButton.interactable = (Mathf.Abs(bike.currentSpeed) < 0.25f && hasRecipe) || isRunning;
+            }
             if (buttonLabel != null) buttonLabel.text = hasRecipe ? "PIQUENIQUE" : "PIQUENIQUE (RECEITA)";
         }
 
@@ -106,10 +112,10 @@ namespace FlorestaBicicleta
             GameObject buttonObject = new GameObject("BtnPiquenique", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             buttonObject.transform.SetParent(canvasObject.transform, false);
             RectTransform rect = buttonObject.GetComponent<RectTransform>();
-            rect.anchorMin = rect.anchorMax = Vector2.zero;
-            rect.pivot = Vector2.zero;
-            rect.anchoredPosition = new Vector2(632f, 26f);
-            rect.sizeDelta = new Vector2(145f, 46f);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(155f, 78f);
+            rect.sizeDelta = new Vector2(138f, 36f);
 
             Image image = buttonObject.GetComponent<Image>();
             image.sprite = StorybookUISpriteFactory.GetRoundedPillSprite();

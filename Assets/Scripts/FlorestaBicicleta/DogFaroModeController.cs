@@ -39,6 +39,12 @@ namespace FlorestaBicicleta
         {
             if (bike == null) return;
             SyncMode(false);
+            if (modeButton != null)
+            {
+                bool canShow = bike.isFaroMode || bike.isOnFoot || Mathf.Abs(bike.currentSpeed) < 1.2f;
+                if (modeButton.gameObject.activeSelf != canShow)
+                    modeButton.gameObject.SetActive(canShow);
+            }
             if (!bike.isFaroMode || Time.time < nextScanTime) return;
 
             nextScanTime = Time.time + 0.7f;
@@ -126,10 +132,10 @@ namespace FlorestaBicicleta
             GameObject buttonObject = new GameObject("BtnModoFaro", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             buttonObject.transform.SetParent(canvasObject.transform, false);
             RectTransform rect = buttonObject.GetComponent<RectTransform>();
-            rect.anchorMin = rect.anchorMax = Vector2.zero;
-            rect.pivot = new Vector2(0f, 0f);
-            rect.anchoredPosition = new Vector2(470f, 26f);
-            rect.sizeDelta = new Vector2(154f, 46f);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(-155f, 78f);
+            rect.sizeDelta = new Vector2(138f, 36f);
 
             Image image = buttonObject.GetComponent<Image>();
             image.sprite = StorybookUISpriteFactory.GetRoundedPillSprite();
@@ -148,9 +154,9 @@ namespace FlorestaBicicleta
             labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
 
             buttonLabel = labelObject.GetComponent<TextMeshProUGUI>();
-            buttonLabel.text = "MODO FARO  (F)";
+            buttonLabel.text = "MODO FARO (F)";
             buttonLabel.font = TMP_Settings.defaultFontAsset;
-            buttonLabel.fontSize = 15f;
+            buttonLabel.fontSize = 13f;
             buttonLabel.fontStyle = FontStyles.Bold;
             buttonLabel.alignment = TextAlignmentOptions.Center;
             buttonLabel.color = Color.white;

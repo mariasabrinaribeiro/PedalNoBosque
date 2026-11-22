@@ -312,7 +312,7 @@ namespace FlorestaBicicleta
             if (cachedBench != null) return cachedBench;
             Texture2D benchTex = Resources.Load<Texture2D>("Floresta/banco_praca");
             cachedBench = benchTex != null
-                ? Sprite.Create(benchTex, new Rect(0, 0, benchTex.width, benchTex.height), new Vector2(0.5f, 0.05f), benchTex.height / 2.2f)
+                ? Sprite.Create(benchTex, new Rect(0, 0, benchTex.width, benchTex.height), new Vector2(0.5f, 0.05f), benchTex.height / 1.25f)
                 : ParkSpriteFactory.CreateParkBenchSprite();
             return cachedBench;
         }
@@ -380,168 +380,244 @@ namespace FlorestaBicicleta
         public static Sprite CreateRiverWaterSprite()
         {
             if (cachedRiver != null) return cachedRiver;
-            int w = 240, h = 64;
+            int w = 360, h = 80;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color deepBlue = new Color(0.10f, 0.44f, 0.72f, 0.96f);
-            Color turquoise = new Color(0.22f, 0.68f, 0.88f, 0.96f);
-            Color surfaceLight = new Color(0.56f, 0.88f, 0.96f, 0.95f);
-            Color lilyGreen = new Color(0.20f, 0.62f, 0.28f, 1f);
+            Color deepBlue = new Color(0.08f, 0.30f, 0.52f, 0.96f);
+            Color turquoise = new Color(0.18f, 0.62f, 0.82f, 0.94f);
+            Color surfaceLight = new Color(0.62f, 0.90f, 0.98f, 0.92f);
+            Color foamCol = new Color(0.92f, 0.98f, 1f, 0.68f);
+            Color lilyGreen = new Color(0.22f, 0.64f, 0.30f, 1f);
 
             for (int y = 0; y < h; y++)
             {
                 float t = y / (float)h;
-                Color rowCol = t < 0.75f
-                    ? Color.Lerp(deepBlue, turquoise, t / 0.75f)
-                    : Color.Lerp(turquoise, surfaceLight, (t - 0.75f) / 0.25f);
+                Color baseCol = t < 0.65f
+                    ? Color.Lerp(deepBlue, turquoise, t / 0.65f)
+                    : Color.Lerp(turquoise, surfaceLight, (t - 0.65f) / 0.35f);
+
                 for (int x = 0; x < w; x++)
                 {
-                    // Borda orgânica nas extremidades do rio
-                    float edgeFade = Mathf.Clamp01(Mathf.Min(x, w - 1 - x) / 16f);
-                    Color c = rowCol;
+                    float edgeFade = Mathf.Clamp01(Mathf.Min(x, w - 1 - x) / 24f);
+                    // Ondulação suave natural de correnteza
+                    float wave = Mathf.Sin((x * 0.08f) + (y * 0.15f)) * 0.04f;
+                    Color c = baseCol + new Color(wave, wave, wave, 0f);
                     c.a *= edgeFade;
                     tex.SetPixel(x, y, c);
                 }
             }
 
-            // Reflexos suaves na água e vitórias-régias discretas
-            for (int i = 0; i < 12; i++)
+            // Ondas de correnteza suaves com brilho de aquarela
+            for (int i = 0; i < 22; i++)
             {
-                int rx = 20 + (i * 19) % (w - 44);
-                int ry = 10 + (i * 13) % (h - 22);
-                FillRect(tex, rx, ry, rx + 16, ry + 1, new Color(0.88f, 0.98f, 1f, 0.55f));
+                int rx = 24 + (i * 27) % (w - 56);
+                int ry = 8 + (i * 17) % (h - 24);
+                int len = 18 + (i * 5) % 22;
+                for (int lx = 0; lx < len; lx++)
+                {
+                    int px = rx + lx;
+                    if (px >= w - 10) break;
+                    int py = ry + Mathf.RoundToInt(Mathf.Sin(lx * 0.35f) * 1.5f);
+                    if (py >= 0 && py < h)
+                    {
+                        Color cur = tex.GetPixel(px, py);
+                        tex.SetPixel(px, py, Color.Lerp(cur, foamCol, 0.65f));
+                    }
+                }
             }
-            FillEllipse(tex, 42, 46, 11, 4, lilyGreen);
-            FillCircle(tex, 42, 48, 3, new Color(1f, 0.72f, 0.84f, 1f));
-            FillEllipse(tex, 198, 44, 10, 4, lilyGreen);
+
+            // Vitórias-régias com florzinhas aquáticas floridas
+            FillEllipse(tex, 62, 54, 14, 6, lilyGreen);
+            FillCircle(tex, 62, 56, 4, new Color(1f, 0.74f, 0.86f, 1f));
+            FillCircle(tex, 62, 56, 2, new Color(1f, 0.94f, 0.40f, 1f));
+
+            FillEllipse(tex, 298, 52, 13, 5, lilyGreen);
+            FillCircle(tex, 298, 54, 3, new Color(1f, 0.80f, 0.90f, 1f));
 
             tex.Apply();
-            cachedRiver = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 26f);
+            cachedRiver = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 38f);
             return cachedRiver;
         }
 
-        /// <summary>Camada de brilho móvel da correnteza do rio.</summary>
+        /// <summary>Camada de brilho móvel e espuma delicada da correnteza do rio.</summary>
         public static Sprite CreateRiverShimmerSprite()
         {
             if (cachedRiverShimmer != null) return cachedRiverShimmer;
-            int w = 220, h = 48;
+            int w = 340, h = 60;
             Texture2D tex = CreateBlankTex(w, h);
-            Color foam = new Color(0.92f, 0.99f, 1f, 0.72f);
-            for (int i = 0; i < 16; i++)
+            Color foam = new Color(0.92f, 0.99f, 1f, 0.70f);
+            for (int i = 0; i < 24; i++)
             {
-                int rx = 12 + (i * 23) % (w - 34);
-                int ry = 8 + (i * 11) % (h - 14);
-                FillRect(tex, rx, ry, rx + 18, ry + 2, foam);
+                int rx = 16 + (i * 31) % (w - 48);
+                int ry = 6 + (i * 13) % (h - 16);
+                int span = 16 + (i * 7) % 20;
+                for (int sx = 0; sx < span; sx++)
+                {
+                    int px = rx + sx;
+                    if (px >= w - 6) break;
+                    int py = ry + Mathf.RoundToInt(Mathf.Sin(sx * 0.4f) * 1.2f);
+                    if (py >= 0 && py < h)
+                        tex.SetPixel(px, py, foam);
+                }
             }
             tex.Apply();
-            cachedRiverShimmer = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 26f);
+            cachedRiverShimmer = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 38f);
             return cachedRiverShimmer;
         }
 
         /// <summary>
-        /// Ponte de madeira redesenhada: proporcional à bicicleta, madeira trabalhada,
-        /// pilares ancorados na água e corrimão baixo/aberto que não esconde a paisagem!
+        /// Ponte de madeira rústica e acolhedora: tablado arqueado de carvalho trabalhado,
+        /// pilares robustos ancorados na água, cabeceiras de pedra com musgo e corrimão aberto.
         /// </summary>
         public static Sprite CreateWoodenBridgeSprite()
         {
             if (cachedBridge != null) return cachedBridge;
-            int w = 240, h = 84;
+            int w = 360, h = 110;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color woodDark = new Color(0.40f, 0.23f, 0.11f, 1f);
-            Color woodMid = new Color(0.62f, 0.39f, 0.19f, 1f);
-            Color woodLight = new Color(0.78f, 0.55f, 0.30f, 1f);
+            Color woodShadow = new Color(0.28f, 0.16f, 0.08f, 1f);
+            Color woodDark = new Color(0.42f, 0.24f, 0.12f, 1f);
+            Color woodMid = new Color(0.64f, 0.40f, 0.22f, 1f);
+            Color woodLight = new Color(0.80f, 0.56f, 0.32f, 1f);
+            Color woodSun = new Color(0.92f, 0.74f, 0.46f, 1f);
             Color rope = new Color(0.84f, 0.72f, 0.48f, 1f);
-            Color stone = new Color(0.52f, 0.54f, 0.56f, 1f);
-            Color stoneLight = new Color(0.68f, 0.70f, 0.72f, 1f);
+            Color stoneDark = new Color(0.44f, 0.46f, 0.48f, 1f);
+            Color stoneMid = new Color(0.60f, 0.62f, 0.65f, 1f);
+            Color stoneLight = new Color(0.76f, 0.78f, 0.80f, 1f);
+            Color moss = new Color(0.36f, 0.56f, 0.26f, 0.90f);
 
-            // Pilares de madeira mergulhando na água com base de pedra
-            int[] pillars = { 34, 92, 148, 206 };
+            // 4 Pilares mestres mergulhando na água com sapatas de pedra e madeira molhada
+            int[] pillars = { 54, 136, 224, 306 };
             for (int i = 0; i < pillars.Length; i++)
             {
                 int px = pillars[i];
-                FillRect(tex, px - 5, 2, px + 5, 42, woodDark);
-                FillRect(tex, px - 2, 4, px + 2, 40, woodMid);
+                // Madeira submersa escura
+                FillRect(tex, px - 6, 2, px + 6, 14, woodShadow);
+                // Pilar principal com chanfro de luz
+                FillRect(tex, px - 6, 14, px + 6, 56, woodDark);
+                FillRect(tex, px - 3, 14, px + 2, 55, woodMid);
+                FillRect(tex, px - 1, 14, px + 1, 55, woodLight);
+                // Musgo clinging perto da linha d'água
+                FillEllipse(tex, px, 15, 7, 4, moss);
             }
 
-            // Cabeceiras de pedra integrando a ponte às margens
-            FillEllipse(tex, 12, 34, 12, 12, stone);
-            FillEllipse(tex, 10, 38, 8, 7, stoneLight);
-            FillEllipse(tex, w - 12, 34, 12, 12, stone);
-            FillEllipse(tex, w - 10, 38, 8, 7, stoneLight);
-
-            // Tablado suavemente arqueado (proporcional e delicado)
-            for (int x = 6; x < w - 6; x++)
+            // Cabeceiras de pedra nas duas margens
+            for (int side = 0; side < 2; side++)
             {
-                float t = (x - 6f) / (w - 12f);
-                int arch = Mathf.RoundToInt(Mathf.Sin(t * Mathf.PI) * 5f);
-                int yBot = 34 + arch;
-                int yTop = 44 + arch;
-                bool plankGap = (x % 14 == 0);
-                FillRect(tex, x, yBot, x, yTop, plankGap ? woodDark : woodMid);
-                if (!plankGap)
+                int cx = side == 0 ? 18 : w - 18;
+                FillEllipse(tex, cx, 46, 18, 16, stoneDark);
+                FillEllipse(tex, cx, 48, 14, 12, stoneMid);
+                FillEllipse(tex, cx + (side == 0 ? -3 : 3), 52, 9, 7, stoneLight);
+                FillEllipse(tex, cx, 58, 12, 4, moss);
+            }
+
+            // Tablado suavemente arqueado (proporção natural e acolhedora)
+            for (int x = 10; x < w - 10; x++)
+            {
+                float t = (x - 10f) / (w - 20f);
+                int arch = Mathf.RoundToInt(Mathf.Sin(t * Mathf.PI) * 7f);
+                int yBot = 46 + arch;
+                int yTop = 60 + arch;
+
+                bool plankGap = (x % 16 == 0);
+                if (plankGap)
                 {
-                    FillRect(tex, x, yTop - 2, x, yTop, woodLight);
-                    FillRect(tex, x, yBot, x, yBot + 1, woodDark);
+                    FillRect(tex, x, yBot, x, yTop, woodShadow);
+                }
+                else
+                {
+                    FillRect(tex, x, yBot, x, yTop, woodMid);
+                    FillRect(tex, x, yBot, x, yBot + 2, woodDark);
+                    FillRect(tex, x, yTop - 3, x, yTop, woodLight);
+                    // Brilho dourado suave do sol na borda superior
+                    tex.SetPixel(x, yTop, woodSun);
                 }
             }
 
-            // Postes baixos e abertos do corrimão (não bloqueiam o cenário atrás!)
-            for (int px = 14; px <= w - 14; px += 42)
+            // Postes do corrimão com topos arredondados (abertos para valorizar a vista)
+            for (int px = 22; px <= w - 22; px += 45)
             {
-                float t = (px - 6f) / (w - 12f);
-                int arch = Mathf.RoundToInt(Mathf.Sin(t * Mathf.PI) * 5f);
-                FillRect(tex, px - 3, 42 + arch, px + 3, 68 + arch, woodDark);
-                FillRect(tex, px - 1, 44 + arch, px + 1, 67 + arch, woodLight);
+                float t = (px - 10f) / (w - 20f);
+                int arch = Mathf.RoundToInt(Mathf.Sin(t * Mathf.PI) * 7f);
+                int pBot = 58 + arch;
+                int pTop = 92 + arch;
+                FillRect(tex, px - 4, pBot, px + 4, pTop, woodDark);
+                FillRect(tex, px - 2, pBot, px + 1, pTop - 1, woodMid);
+                FillRect(tex, px - 1, pBot, px, pTop - 1, woodLight);
+                // Topo arredondado
+                FillCircle(tex, px, pTop + 2, 4, woodMid);
+                FillCircle(tex, px, pTop + 3, 2, woodSun);
             }
 
-            // Corrimão superior fino e corda/trave média delicada
-            for (int x = 14; x <= w - 14; x++)
+            // Corrimão duplo aberto com amarrações de corda
+            for (int x = 20; x <= w - 20; x++)
             {
-                float t = (x - 6f) / (w - 12f);
-                int arch = Mathf.RoundToInt(Mathf.Sin(t * Mathf.PI) * 5f);
-                FillRect(tex, x, 64 + arch, x, 67 + arch, woodLight);
-                FillRect(tex, x, 63 + arch, x, 63 + arch, woodDark);
-                int ropeDip = Mathf.RoundToInt(Mathf.Sin(((x - 14) % 42) / 42f * Mathf.PI) * 3f);
-                FillRect(tex, x, 54 + arch - ropeDip, x, 55 + arch - ropeDip, rope);
+                float t = (x - 10f) / (w - 20f);
+                int arch = Mathf.RoundToInt(Mathf.Sin(t * Mathf.PI) * 7f);
+
+                // Barra superior
+                FillRect(tex, x, 87 + arch, x, 91 + arch, woodMid);
+                tex.SetPixel(x, 92 + arch, woodSun);
+                tex.SetPixel(x, 86 + arch, woodDark);
+
+                // Barra intermediária
+                int ropeDip = Mathf.RoundToInt(Mathf.Sin(((x - 20) % 45) / 45f * Mathf.PI) * 3f);
+                FillRect(tex, x, 74 + arch - ropeDip, x, 76 + arch - ropeDip, rope);
+                tex.SetPixel(x, 73 + arch - ropeDip, woodShadow);
             }
 
             tex.Apply();
-            cachedBridge = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.48f), 26f);
+            cachedBridge = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.46f), 38f);
             return cachedBridge;
         }
 
-        /// <summary>Margem natural do rio com pedras arredondadas, juncos aquáticos e flores.</summary>
+        /// <summary>Margem natural do rio com pedras polidas sombreadas, taboas aveludadas e flores.</summary>
         public static Sprite CreateRiverBankRocksAndReedsSprite()
         {
             if (cachedRiverBank != null) return cachedRiverBank;
-            int w = 96, h = 72;
+            int w = 128, h = 84;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color reed = new Color(0.18f, 0.54f, 0.24f, 1f);
-            Color cattail = new Color(0.46f, 0.26f, 0.14f, 1f);
-            Color rockDark = new Color(0.42f, 0.46f, 0.50f, 1f);
-            Color rockLight = new Color(0.64f, 0.68f, 0.72f, 1f);
+            Color reedDark = new Color(0.16f, 0.44f, 0.20f, 1f);
+            Color reedLight = new Color(0.32f, 0.68f, 0.28f, 1f);
+            Color cattailDark = new Color(0.36f, 0.20f, 0.10f, 1f);
+            Color cattailMid = new Color(0.52f, 0.30f, 0.16f, 1f);
+            Color rockDark = new Color(0.38f, 0.42f, 0.46f, 1f);
+            Color rockMid = new Color(0.56f, 0.60f, 0.64f, 1f);
+            Color rockLight = new Color(0.74f, 0.78f, 0.82f, 1f);
 
-            // Juncos e taboas aquáticas
-            int[] rx = { 22, 34, 48, 66, 76 };
-            int[] rh = { 54, 62, 48, 58, 44 };
+            // Juncos ondulantes e taboas com folhagem suave
+            int[] rx = { 26, 42, 58, 82, 102 };
+            int[] rh = { 64, 74, 58, 70, 52 };
             for (int i = 0; i < rx.Length; i++)
             {
-                FillRect(tex, rx[i] - 1, 12, rx[i] + 1, rh[i], reed);
+                int bx = rx[i];
+                int topH = rh[i];
+                DrawCurvedBranch(tex, new Vector2(bx, 10), new Vector2(bx + (i % 2 == 0 ? 3 : -3), topH * 0.5f),
+                    new Vector2(bx + (i % 2 == 0 ? 5 : -4), topH), 2.5f, 1f, reedDark, reedLight);
                 if (i % 2 == 0)
-                    FillEllipse(tex, rx[i], rh[i] - 8, 3, 7, cattail);
+                {
+                    // Espiga aveludada de taboa
+                    FillEllipse(tex, bx + 4, topH - 10, 4, 9, cattailDark);
+                    FillEllipse(tex, bx + 3, topH - 10, 2, 7, cattailMid);
+                }
             }
 
-            // Pedras na margem
-            FillEllipse(tex, 32, 18, 18, 12, rockDark);
-            FillEllipse(tex, 29, 21, 12, 8, rockLight);
-            FillEllipse(tex, 60, 16, 16, 11, rockDark);
-            FillEllipse(tex, 58, 19, 10, 7, rockLight);
+            // Pedras de rio polidas com volume 3D suave
+            FillEllipse(tex, 44, 22, 22, 14, rockDark);
+            FillEllipse(tex, 42, 25, 17, 10, rockMid);
+            FillEllipse(tex, 39, 29, 10, 6, rockLight);
 
-            // Florzinhas na margem
-            FillCircle(tex, 46, 26, 4, new Color(1f, 0.86f, 0.24f, 1f));
-            FillCircle(tex, 74, 24, 4, new Color(1f, 0.48f, 0.72f, 1f));
+            FillEllipse(tex, 84, 18, 19, 12, rockDark);
+            FillEllipse(tex, 82, 21, 14, 8, rockMid);
+            FillEllipse(tex, 79, 24, 8, 5, rockLight);
+
+            // Florzinhas delicadas não-me-esqueças às margens d'água
+            FillCircle(tex, 60, 32, 4, new Color(0.36f, 0.72f, 0.98f, 1f));
+            FillCircle(tex, 60, 32, 2, new Color(1f, 0.92f, 0.35f, 1f));
+
+            FillCircle(tex, 98, 28, 4, new Color(1f, 0.62f, 0.78f, 1f));
+            FillCircle(tex, 98, 28, 2, new Color(1f, 0.92f, 0.35f, 1f));
 
             tex.Apply();
             cachedRiverBank = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.15f), 32f);
@@ -1110,63 +1186,66 @@ namespace FlorestaBicicleta
         public static Sprite CreateWillowTreeWithBirdSprite()
         {
             if (cachedWillowTree != null) return cachedWillowTree;
-            int w = 160, h = 160;
+            int w = 320, h = 320;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color trunk = new Color(0.42f, 0.28f, 0.16f, 0.95f);
-            Color trunkLight = new Color(0.54f, 0.38f, 0.22f, 0.95f);
-            Color crownDark = new Color(0.18f, 0.50f, 0.28f, 0.92f);
-            Color crownMid = new Color(0.28f, 0.64f, 0.34f, 0.92f);
-            Color frondLight = new Color(0.42f, 0.76f, 0.38f, 0.88f);
+            Color trunkDark = new Color(0.36f, 0.24f, 0.14f, 0.98f);
+            Color trunkMid = new Color(0.50f, 0.34f, 0.20f, 0.98f);
+            Color trunkLight = new Color(0.66f, 0.48f, 0.30f, 0.98f);
+            Color crownDark = new Color(0.14f, 0.42f, 0.22f, 0.94f);
+            Color crownMid = new Color(0.24f, 0.58f, 0.30f, 0.94f);
+            Color crownLight = new Color(0.40f, 0.74f, 0.36f, 0.90f);
+            Color frondSun = new Color(0.58f, 0.86f, 0.42f, 0.88f);
 
-            // Tronco elegante + galho lateral onde o passarinho pousa
-            DrawCurvedBranch(tex, new Vector2(80, 5), new Vector2(74, 48), new Vector2(81, 95), 10f, 5f, trunk, trunkLight);
-            DrawCurvedBranch(tex, new Vector2(80, 72), new Vector2(56, 93), new Vector2(43, 118), 6f, 2f, trunk, trunkLight);
-            DrawCurvedBranch(tex, new Vector2(82, 74), new Vector2(104, 83), new Vector2(121, 77), 5f, 2f, trunk, trunkLight);
-            DrawCurvedBranch(tex, new Vector2(80, 12), new Vector2(64, 5), new Vector2(52, 4), 4f, 2f, trunk, trunkLight);
-            DrawCurvedBranch(tex, new Vector2(81, 12), new Vector2(96, 5), new Vector2(108, 4), 4f, 2f, trunk, trunkLight);
+            // Raízes e tronco gracioso de salgueiro
+            DrawCurvedBranch(tex, new Vector2(160, 10), new Vector2(132, 6), new Vector2(106, 5), 10f, 3f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(162, 10), new Vector2(192, 6), new Vector2(218, 5), 10f, 3f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(160, 8), new Vector2(150, 95), new Vector2(162, 185), 18f, 10f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(158, 140), new Vector2(115, 180), new Vector2(88, 226), 11f, 4f, trunkDark, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(164, 145), new Vector2(208, 164), new Vector2(242, 152), 10f, 4f, trunkDark, trunkLight);
 
-            // Copa arredondada de salgueiro
-            DrawOrganicFoliageLobe(tex, 53, 107, 30, 27, crownDark, crownMid, new Color(0.10f, 0.34f, 0.18f, 0.95f));
-            DrawOrganicFoliageLobe(tex, 106, 107, 29, 26, crownDark, crownMid, new Color(0.10f, 0.34f, 0.18f, 0.95f));
-            DrawOrganicFoliageLobe(tex, 80, 124, 36, 32, crownMid, frondLight, crownDark);
-            DrawOrganicFoliageLobe(tex, 67, 134, 23, 18, crownMid, frondLight, crownDark);
-            DrawOrganicFoliageLobe(tex, 95, 133, 22, 17, crownMid, frondLight, crownDark);
-            ScatterCanopyHighlights(tex, 80, 117, 50, 34, 17,
-                new Color(0.62f, 0.82f, 0.43f, 0.86f), new Color(0.14f, 0.40f, 0.22f, 0.92f));
+            // Copa de salgueiro em nuvens suaves de folhagem
+            DrawOrganicFoliageLobe(tex, 108, 214, 58, 52, crownDark, crownMid, new Color(0.08f, 0.30f, 0.14f, 0.95f));
+            DrawOrganicFoliageLobe(tex, 212, 214, 56, 50, crownDark, crownMid, new Color(0.08f, 0.30f, 0.14f, 0.95f));
+            DrawOrganicFoliageLobe(tex, 160, 246, 72, 62, crownMid, crownLight, crownDark);
+            DrawOrganicFoliageLobe(tex, 134, 268, 46, 36, crownMid, crownLight, crownDark);
+            DrawOrganicFoliageLobe(tex, 190, 266, 44, 34, crownMid, crownLight, crownDark);
+            ScatterCanopyHighlights(tex, 160, 234, 98, 68, 36, frondSun, crownDark);
 
-            // Ramos pendentes curvos de salgueiro chorão com folhas em cascata
-            int[] fxStart = { 34, 48, 62, 74, 88, 98, 112, 124 };
-            int[] fl =      { 52, 60, 50, 42, 44, 50, 58, 48 };
-            int[] swayDx =  { -10, -6, -4, -2, 3, 5, 8, 12 };
+            // Ramos pendentes curvos de salgueiro chorão com folhas fluidas em cascata
+            int[] fxStart = { 68, 96, 124, 148, 176, 198, 224, 248 };
+            int[] fl =      { 102, 118, 98, 84, 88, 98, 114, 96 };
+            int[] swayDx =  { -20, -12, -8, -4, 6, 10, 16, 24 };
             for (int i = 0; i < fxStart.Length; i++)
             {
-                Vector2 p0 = new Vector2(fxStart[i], 106);
-                Vector2 p1 = new Vector2(fxStart[i] + swayDx[i] * 0.45f, 106 - fl[i] * 0.5f);
-                Vector2 p2 = new Vector2(fxStart[i] + swayDx[i], 106 - fl[i]);
-                DrawCurvedBranch(tex, p0, p1, p2, 2.5f, 1f, crownDark, frondLight);
-                for (int s = 3; s <= fl[i]; s += 5)
+                Vector2 p0 = new Vector2(fxStart[i], 212);
+                Vector2 p1 = new Vector2(fxStart[i] + swayDx[i] * 0.45f, 212 - fl[i] * 0.5f);
+                Vector2 p2 = new Vector2(fxStart[i] + swayDx[i], 212 - fl[i]);
+                DrawCurvedBranch(tex, p0, p1, p2, 4.5f, 1.8f, crownDark, crownLight);
+                for (int s = 6; s <= fl[i]; s += 8)
                 {
                     float t = s / (float)fl[i];
                     float omt = 1f - t;
                     Vector2 pt = omt * omt * p0 + 2f * omt * t * p1 + t * t * p2;
                     int px = Mathf.RoundToInt(pt.x);
                     int py = Mathf.RoundToInt(pt.y);
-                    Color leafC = (s % 10 == 0) ? frondLight : crownMid;
-                    FillEllipse(tex, px, py, 3, 2, leafC);
+                    Color leafC = (s % 16 == 0) ? frondSun : crownMid;
+                    FillEllipse(tex, px, py, 5, 3, leafC);
                 }
             }
 
-            // Pequeno passarinho azul pousado discretamente no galho!
-            Color birdBlue = new Color(0.26f, 0.70f, 0.98f, 1f);
-            FillEllipse(tex, 112, 84, 7, 5, birdBlue);
-            FillEllipse(tex, 111, 83, 4, 3, new Color(0.85f, 0.95f, 1f, 1f)); // Peitinho branco
-            FillCircle(tex, 117, 89, 4, birdBlue);
-            FillTriangle(tex, 120, 90, 120, 87, 125, 88, new Color(1f, 0.74f, 0.16f, 1f)); // Biquinho
-            FillCircle(tex, 118, 90, 1, Color.black);
+            // Pequeno passarinho azul pousado no galho (storybook acolhedor)
+            Color birdBlue = new Color(0.24f, 0.65f, 0.96f, 1f);
+            Color birdChest = new Color(0.88f, 0.96f, 1f, 1f);
+            Color birdBeak = new Color(1f, 0.76f, 0.18f, 1f);
+            FillEllipse(tex, 224, 166, 13, 9, birdBlue);
+            FillEllipse(tex, 222, 164, 7, 5, birdChest);
+            FillCircle(tex, 234, 175, 7, birdBlue);
+            FillTriangle(tex, 240, 177, 240, 171, 248, 174, birdBeak);
+            FillCircle(tex, 236, 176, 1, Color.black);
 
             tex.Apply();
-            cachedWillowTree = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 26f);
+            cachedWillowTree = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 52f);
             return cachedWillowTree;
         }
 
@@ -1196,40 +1275,55 @@ namespace FlorestaBicicleta
         public static Sprite CreateFruitTreeSprite()
         {
             if (cachedFruitTree != null) return cachedFruitTree;
-            int w = 160, h = 160;
+            int w = 320, h = 320;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color trunkDark = new Color(0.36f, 0.22f, 0.12f, 0.98f);
-            Color trunkMid = new Color(0.48f, 0.32f, 0.18f, 0.98f);
-            FillRect(tex, 73, 6, 87, 74, trunkDark);
-            FillRect(tex, 77, 8, 83, 72, trunkMid);
+            Color trunkDark = new Color(0.32f, 0.18f, 0.10f, 0.98f);
+            Color trunkMid = new Color(0.46f, 0.28f, 0.16f, 0.98f);
+            Color trunkLight = new Color(0.60f, 0.38f, 0.22f, 0.98f);
 
-            Color fDark = new Color(0.18f, 0.44f, 0.22f, 0.98f);
-            Color fMid = new Color(0.28f, 0.60f, 0.28f, 0.98f);
-            Color fLight = new Color(0.44f, 0.76f, 0.34f, 0.98f);
+            Color fDark = new Color(0.14f, 0.38f, 0.18f, 0.98f);
+            Color fMid = new Color(0.24f, 0.56f, 0.24f, 0.98f);
+            Color fLight = new Color(0.40f, 0.72f, 0.30f, 0.98f);
+            Color fSun = new Color(0.58f, 0.86f, 0.38f, 0.98f);
 
-            DrawCurvedBranch(tex, new Vector2(80, 10), new Vector2(76, 43), new Vector2(80, 82), 9f, 5f, trunkDark, trunkMid);
-            DrawCurvedBranch(tex, new Vector2(79, 62), new Vector2(58, 82), new Vector2(46, 102), 5f, 2f, trunkDark, trunkMid);
-            DrawCurvedBranch(tex, new Vector2(82, 62), new Vector2(103, 80), new Vector2(117, 101), 5f, 2f, trunkDark, trunkMid);
+            // Tronco orgânico esculpido com raízes de suporte
+            DrawCurvedBranch(tex, new Vector2(160, 10), new Vector2(134, 6), new Vector2(110, 4), 9f, 3f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(162, 10), new Vector2(188, 6), new Vector2(212, 4), 9f, 3f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(160, 8), new Vector2(152, 85), new Vector2(160, 164), 18f, 10f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(158, 124), new Vector2(116, 164), new Vector2(92, 204), 10f, 4f, trunkDark, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(164, 124), new Vector2(206, 160), new Vector2(234, 202), 10f, 4f, trunkDark, trunkLight);
 
-            DrawOrganicFoliageLobe(tex, 54, 94, 32, 24, fMid, fLight, fDark);
-            DrawOrganicFoliageLobe(tex, 106, 94, 32, 24, fMid, fLight, fDark);
-            DrawOrganicFoliageLobe(tex, 80, 114, 38, 28, fMid, fLight, fDark);
-            DrawOrganicFoliageLobe(tex, 80, 134, 26, 18, fLight, new Color(0.64f, 0.88f, 0.42f, 1f), fMid);
-            ScatterCanopyHighlights(tex, 80, 108, 48, 39, 31,
-                new Color(0.68f, 0.88f, 0.46f, 0.94f), new Color(0.14f, 0.37f, 0.19f, 0.96f));
+            // Copa frondosa em camadas orgânicas sombreadas
+            DrawOrganicFoliageLobe(tex, 108, 188, 64, 48, fMid, fLight, fDark);
+            DrawOrganicFoliageLobe(tex, 212, 188, 64, 48, fMid, fLight, fDark);
+            DrawOrganicFoliageLobe(tex, 160, 228, 76, 56, fMid, fLight, fDark);
+            DrawOrganicFoliageLobe(tex, 160, 268, 52, 36, fLight, fSun, fMid);
+            ScatterCanopyHighlights(tex, 160, 216, 96, 78, 38,
+                new Color(0.68f, 0.88f, 0.46f, 0.94f), new Color(0.12f, 0.32f, 0.16f, 0.96f));
 
-            // Maçãzinhas vermelhas com brilho delicado
-            int[] ax = { 50, 72, 96, 62, 88, 108 };
-            int[] ay = { 92, 118, 96, 108, 112, 104 };
+            // Maçãs volumosas sombreadas com degradê esférico suave e folhinha
+            int[] ax = { 100, 144, 192, 124, 176, 216, 160 };
+            int[] ay = { 184, 236, 192, 216, 224, 208, 252 };
             for (int i = 0; i < ax.Length; i++)
             {
-                FillCircle(tex, ax[i], ay[i], 4, new Color(0.92f, 0.22f, 0.24f, 1f));
-                FillCircle(tex, ax[i] - 1, ay[i] + 1, 1, Color.white);
+                int mx = ax[i];
+                int my = ay[i];
+                // Sombra de folha atrás da maçã
+                FillEllipse(tex, mx - 2, my + 7, 3, 2, fDark);
+                // Maçã vermelha com degradê suave
+                FillCircle(tex, mx, my, 7, new Color(0.78f, 0.14f, 0.16f, 1f));
+                FillCircle(tex, mx, my + 1, 5, new Color(0.92f, 0.24f, 0.22f, 1f));
+                FillCircle(tex, mx - 2, my + 3, 3, new Color(1f, 0.44f, 0.36f, 1f));
+                FillCircle(tex, mx - 2, my + 3, 1, new Color(1f, 0.92f, 0.85f, 1f)); // Ponto de luz
+                // Cabinho de madeira
+                FillRect(tex, mx - 1, my + 7, mx, my + 9, trunkDark);
+                // Folhinha verde no cabinho
+                FillEllipse(tex, mx + 2, my + 9, 3, 2, fSun);
             }
 
             tex.Apply();
-            cachedFruitTree = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 28f);
+            cachedFruitTree = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 52f);
             return cachedFruitTree;
         }
 

@@ -880,28 +880,28 @@ namespace FlorestaBicicleta
 
         private void BuildKitchenPanel(Transform canvasT)
         {
-            // Painel compacto de cartões ilustrados no canto superior esquerdo (nunca cobre a protagonista!)
+            // Painel compacto e translúcido de cartões ilustrados no canto superior esquerdo (nunca obstrui o centro nem a pista!)
             kitchenPanel = CreateRoundedCardPanel(canvasT, "KitchenPanel",
                 new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(228f, -260f), new Vector2(420f, 360f),
-                new Color(0.97f, 0.94f, 0.88f, 0.95f));
+                new Vector2(212f, -195f), new Vector2(396f, 268f),
+                new Color(0.98f, 0.96f, 0.91f, 0.88f));
 
             CreateTMP(kitchenPanel.transform, "KTitle", "Cozinha do Bosque",
-                17, new Vector2(-40f, 158f), new Vector2(280f, 26f), TextAlignmentOptions.Left)
+                16, new Vector2(-32f, 115f), new Vector2(260f, 24f), TextAlignmentOptions.Left)
                 .color = new Color(0.24f, 0.44f, 0.32f, 1f);
 
             // Botão Fechar fácil (ícone X real)
             CreateIconClickButton(kitchenPanel.transform, "BtnFecharCozinha", "",
                 StorybookUISpriteFactory.UIIconKind.CloseX,
-                new Vector2(1f, 1f), new Vector2(-26f, -22f), new Vector2(32f, 30f),
-                new Color(0.76f, 0.36f, 0.42f, 0.92f), 14,
+                new Vector2(1f, 1f), new Vector2(-22f, -18f), new Vector2(28f, 28f),
+                new Color(0.76f, 0.36f, 0.42f, 0.92f), 13,
                 () =>
                 {
                     kitchenManuallyClosed = true;
                     kitchenPanel.SetActive(false);
                 });
 
-            // 10 cartões compactos com ícones reais dos alimentos (2 linhas x 5 colunas)
+            // 10 cartões compactos com ícones reais dos alimentos (2 linhas x 6 colunas)
             FoodType[] gridFoods =
             {
                 FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes, FoodType.FrutasSilvestres,
@@ -913,28 +913,28 @@ namespace FlorestaBicicleta
                 FoodType ft = gridFoods[i];
                 int col = i % 6;
                 int row = i / 6;
-                float x = -160f + col * 64f;
-                float y = 72f - row * 72f;
+                float x = -150f + col * 60f;
+                float y = 56f - row * 54f;
 
                 GameObject card = CreateRoundedCardPanel(kitchenPanel.transform, $"FoodCard_{ft}",
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(x, y), new Vector2(60f, 64f),
-                    row == 0 ? new Color(0.88f, 0.96f, 0.88f, 1f) : new Color(0.98f, 0.94f, 0.86f, 1f));
+                    new Vector2(x, y), new Vector2(56f, 50f),
+                    row == 0 ? new Color(0.88f, 0.96f, 0.88f, 0.92f) : new Color(0.98f, 0.94f, 0.86f, 0.92f));
 
                 if (foodSprites.TryGetValue(ft, out Sprite fsp) && fsp != null)
                 {
                     GameObject imgObj = new GameObject("Icon");
                     imgObj.transform.SetParent(card.transform, false);
                     RectTransform irt = imgObj.AddComponent<RectTransform>();
-                    irt.anchoredPosition = new Vector2(0f, 9f);
-                    irt.sizeDelta = new Vector2(33f, 33f);
+                    irt.anchoredPosition = new Vector2(0f, 7f);
+                    irt.sizeDelta = new Vector2(28f, 28f);
                     Image im = imgObj.AddComponent<Image>();
                     im.sprite = fsp;
                     im.preserveAspect = true;
                 }
 
                 TextMeshProUGUI lbl = CreateTMP(card.transform, "Lbl", FoodInfo.GetDisplayName(ft),
-                    9, new Vector2(0f, -21f), new Vector2(58f, 17f), TextAlignmentOptions.Center);
+                    9, new Vector2(0f, -16f), new Vector2(54f, 15f), TextAlignmentOptions.Center);
                 lbl.color = new Color(0.24f, 0.22f, 0.20f, 1f);
 
                 Button btn = card.AddComponent<Button>();
@@ -943,35 +943,35 @@ namespace FlorestaBicicleta
 
             // Pratos especiais consomem os ingredientes correspondentes da cesta.
             GameObject sandwichRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepSanduiche", "Sanduiche",
-                new Vector2(0.5f, 0.5f), new Vector2(-150f, -82f), new Vector2(92f, 30f),
+                new Vector2(0.5f, 0.5f), new Vector2(-140f, -48f), new Vector2(88f, 26f),
                 new Color(0.84f, 0.54f, 0.22f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.Sanduiche));
             GameObject hotDogRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepHotDog", "Hot Dog",
-                new Vector2(0.5f, 0.5f), new Vector2(-50f, -82f), new Vector2(92f, 30f),
+                new Vector2(0.5f, 0.5f), new Vector2(-48f, -48f), new Vector2(88f, 26f),
                 new Color(0.82f, 0.36f, 0.46f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.HotDog));
-            GameObject saladRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepSalada", "Salada (3 pedidos)",
-                new Vector2(0.5f, 0.5f), new Vector2(50f, -82f), new Vector2(92f, 30f),
+            GameObject saladRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepSalada", "Salada (3)",
+                new Vector2(0.5f, 0.5f), new Vector2(48f, -48f), new Vector2(88f, 26f),
                 new Color(0.38f, 0.66f, 0.38f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.SaladaFrutasBosque));
             GameObject moonBasketRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepCestaLua", "Cesta Lua (8)",
-                new Vector2(0.5f, 0.5f), new Vector2(150f, -82f), new Vector2(92f, 30f),
+                new Vector2(0.5f, 0.5f), new Vector2(140f, -48f), new Vector2(88f, 26f),
                 new Color(0.48f, 0.42f, 0.72f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.CestaDaLua));
-            GameObject tartRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnTortinha", "Tortinha (3 pedidos)",
-                new Vector2(0.5f, 0.5f), new Vector2(-150f, -116f), new Vector2(92f, 30f),
+            GameObject tartRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnTortinha", "Tortinha (3)",
+                new Vector2(0.5f, 0.5f), new Vector2(-140f, -78f), new Vector2(88f, 26f),
                 new Color(0.82f, 0.52f, 0.30f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.TortinhaDeMaca));
-            GameObject jamRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnGeleia", "Geleia (5 pedidos)",
-                new Vector2(0.5f, 0.5f), new Vector2(-50f, -116f), new Vector2(92f, 30f),
+            GameObject jamRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnGeleia", "Geleia (5)",
+                new Vector2(0.5f, 0.5f), new Vector2(-48f, -78f), new Vector2(88f, 26f),
                 new Color(0.58f, 0.34f, 0.68f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.GeleiaSilvestre));
             GameObject quickKit = CreateRoundedClickButton(kitchenPanel.transform, "BtnKitRapido", "Kit Rapido",
-                new Vector2(0.5f, 0.5f), new Vector2(50f, -116f), new Vector2(92f, 30f),
+                new Vector2(0.5f, 0.5f), new Vector2(48f, -78f), new Vector2(88f, 26f),
                 new Color(0.28f, 0.58f, 0.46f, 0.95f), 10,
                 OnClickQuickRestockBasket);
-            GameObject plantButton = CreateRoundedClickButton(kitchenPanel.transform, "BtnPlantarSementes", "Plantar sementes",
-                new Vector2(0.5f, 0.5f), new Vector2(150f, -116f), new Vector2(92f, 30f),
+            GameObject plantButton = CreateRoundedClickButton(kitchenPanel.transform, "BtnPlantarSementes", "Plantar",
+                new Vector2(0.5f, 0.5f), new Vector2(140f, -78f), new Vector2(88f, 26f),
                 new Color(0.30f, 0.62f, 0.34f, 0.95f), 10,
                 OnClickPlantSeeds);
             foreach (GameObject recipeButton in new[] { sandwichRecipe, hotDogRecipe, saladRecipe, moonBasketRecipe, tartRecipe, jamRecipe, quickKit, plantButton })
@@ -994,7 +994,7 @@ namespace FlorestaBicicleta
             jamRecipeLabel = jamRecipe.GetComponentInChildren<TextMeshProUGUI>();
 
             kitchenPrepStatus = CreateTMP(kitchenPanel.transform, "PrepStatus", "Toque em um cartao para pegar na cesta!",
-                12, new Vector2(0f, -154f), new Vector2(396f, 22f), TextAlignmentOptions.Center);
+                11, new Vector2(0f, -112f), new Vector2(380f, 20f), TextAlignmentOptions.Center);
             kitchenPrepStatus.color = new Color(0.32f, 0.28f, 0.22f, 1f);
 
             miniPrepPanel = gameObject.AddComponent<KitchenMiniGamePanel>();

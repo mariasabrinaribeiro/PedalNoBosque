@@ -42,12 +42,12 @@ namespace FlorestaBicicleta
             float height;
             switch (kind)
             {
-                case AnimalKind.Esquilo: fileName = "animal_esquilo"; height = 1.9f; break;
-                case AnimalKind.Coelho:  fileName = "animal_coelho";  height = 2.0f; break;
-                case AnimalKind.Gato:    fileName = "animal_gato";    height = 2.1f; break;
-                case AnimalKind.Lobo:    fileName = "animal_lobo";    height = 2.4f; break;
-                case AnimalKind.Quati:   fileName = "animal_quati";   height = 2.2f; break;
-                default:                 fileName = "animal_esquilo"; height = 2.0f; break;
+                case AnimalKind.Esquilo: fileName = "animal_esquilo"; height = 1.15f; break;
+                case AnimalKind.Coelho:  fileName = "animal_coelho";  height = 1.15f; break;
+                case AnimalKind.Gato:    fileName = "animal_gato";    height = 1.25f; break;
+                case AnimalKind.Lobo:    fileName = "animal_lobo";    height = 2.1f;  break;
+                case AnimalKind.Quati:   fileName = "animal_quati";   height = 1.45f; break;
+                default:                 fileName = "animal_esquilo"; height = 1.15f; break;
             }
             return LoadResourceSprite($"Floresta/{fileName}", height, 0.05f);
         }
