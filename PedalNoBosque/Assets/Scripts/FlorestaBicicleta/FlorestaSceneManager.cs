@@ -641,45 +641,45 @@ namespace FlorestaBicicleta
             sunsetOverlay.color = Color.clear;
             sunsetOverlay.raycastTarget = false;
 
-            // Barra Superior Orgânica Arredondada (apenas informações essenciais: Estrelas, Região/Período, Distância e Água)
+            // Barra Superior Orgânica Arredondada (espaçada com respiro generoso, sem colisões!)
             GameObject topBar = CreateRoundedPanel(canvasObj.transform, "TopBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -26f), new Vector2(1060f, 44f),
-                new Color(0.14f, 0.28f, 0.22f, 0.80f));
+                new Vector2(0f, -26f), new Vector2(1160f, 44f),
+                new Color(0.14f, 0.28f, 0.22f, 0.85f));
 
-            // Ícone real de Estrela + contador (sem caractere Unicode quadrado!)
+            // Ícone real de Estrela + contador de estrelas e pontuação
             CreateUIIcon(topBar.transform, "StarIcon", StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(-478f, 0f), new Vector2(28f, 28f));
+                new Vector2(-530f, 0f), new Vector2(28f, 28f));
             scoreText = CreateTMP(topBar.transform, "ScoreText", "0  (0 pts)",
-                18, new Vector2(-368f, 0f), new Vector2(185f, 34f), TextAlignmentOptions.Left);
+                17, new Vector2(-430f, 0f), new Vector2(165f, 34f), TextAlignmentOptions.Left);
             scoreText.color = new Color(1f, 0.96f, 0.80f, 1f);
 
             // Esquilo / Progresso discreto
             squirrelText = CreateTMP(topBar.transform, "SquirrelText", "Esquilo 0/6",
-                15, new Vector2(-195f, 0f), new Vector2(145f, 30f), TextAlignmentOptions.Center);
+                15, new Vector2(-285f, 0f), new Vector2(115f, 30f), TextAlignmentOptions.Center);
             squirrelText.color = new Color(1f, 0.90f, 0.58f, 0.95f);
 
-            // Região Atual + Período do Dia
+            // Região Atual + Período do Dia (Centro)
             biomeSlopeText = CreateTMP(topBar.transform, "BiomeSlopeText", "Vale das Flores - Manha",
-                17, new Vector2(30f, 0f), new Vector2(290f, 34f), TextAlignmentOptions.Center);
+                17, new Vector2(0f, 0f), new Vector2(340f, 34f), TextAlignmentOptions.Center);
             biomeSlopeText.color = InfiniteTrackGenerator.GetBiomeAccentColor(BiomeType.CampoFlorido);
 
             // Distância (km)
             distanceKmText = CreateTMP(topBar.transform, "DistanceKmText", "0.00 km",
-                18, new Vector2(235f, 0f), new Vector2(115f, 34f), TextAlignmentOptions.Center);
+                17, new Vector2(285f, 0f), new Vector2(115f, 34f), TextAlignmentOptions.Center);
             distanceKmText.color = new Color(1f, 0.96f, 0.72f, 1f);
 
             // Ícone real de Gota d'Água + Barra visual
             CreateUIIcon(topBar.transform, "WaterDropIcon", StorybookUISpriteFactory.UIIconKind.WaterDrop,
-                new Vector2(330f, 0f), new Vector2(26f, 26f));
+                new Vector2(390f, 0f), new Vector2(26f, 26f));
 
             waterLabel = CreateTMP(topBar.transform, "WaterLabel", "100%",
-                14, new Vector2(492f, 0f), new Vector2(56f, 24f), TextAlignmentOptions.Left);
+                14, new Vector2(535f, 0f), new Vector2(50f, 24f), TextAlignmentOptions.Left);
             waterLabel.color = new Color(0.76f, 0.96f, 1f, 1f);
 
             GameObject sliderObj = CreateRoundedPanel(topBar.transform, "WaterSlider",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(405f, 0f), new Vector2(118f, 14f),
+                new Vector2(462f, 0f), new Vector2(112f, 14f),
                 new Color(0.12f, 0.22f, 0.28f, 0.90f));
             waterSlider = sliderObj.AddComponent<Slider>();
             waterSlider.minValue = 0f; waterSlider.maxValue = 100f; waterSlider.value = 100f;
@@ -699,18 +699,18 @@ namespace FlorestaBicicleta
             fillImg.color = new Color(0.32f, 0.84f, 0.98f, 0.98f);
             waterSlider.fillRect = fRT;
 
-            // Sub-barra secundária discreta arredondada (Cesta + Pedido próximo)
+            // Sub-barra secundária discreta arredondada (Cesta + Pedido próximo com separação garantida)
             GameObject subBar = CreateRoundedPanel(canvasObj.transform, "SubBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -64f), new Vector2(1060f, 26f),
-                new Color(0.12f, 0.18f, 0.16f, 0.62f));
+                new Vector2(0f, -64f), new Vector2(1160f, 28f),
+                new Color(0.12f, 0.18f, 0.16f, 0.65f));
 
             basketText = CreateTMP(subBar.transform, "BasketText", "Cesta: ...",
-                14, new Vector2(-245f, 0f), new Vector2(540f, 22f), TextAlignmentOptions.Left);
+                14, new Vector2(-285f, 0f), new Vector2(520f, 24f), TextAlignmentOptions.Left);
             basketText.color = new Color(1f, 0.96f, 0.84f, 0.95f);
 
             nearbyOrderText = CreateTMP(subBar.transform, "NearbyOrder", "",
-                14, new Vector2(255f, 0f), new Vector2(520f, 22f), TextAlignmentOptions.Right);
+                14, new Vector2(285f, 0f), new Vector2(520f, 24f), TextAlignmentOptions.Right);
             nearbyOrderText.color = new Color(0.84f, 1f, 0.88f, 0.96f);
 
             CreateRoundedClickButton(canvasObj.transform, "BtnHabilidades", "Habilidades",
@@ -718,14 +718,16 @@ namespace FlorestaBicicleta
                 new Color(0.27f, 0.43f, 0.34f, 0.96f), 14, ToggleSkillsPanel);
             BuildSkillsPanel(canvasObj.transform);
 
-            // Mensagem de feedback suave
-            messageText = CreateTMP(canvasObj.transform, "MessageText", "",
-                18, new Vector2(0f, -94f), new Vector2(1060f, 30f), TextAlignmentOptions.Center);
+            // Mensagem de feedback com moldura acolhedora arredondada (livro ilustrado)
+            messagePlate = CreateRoundedPanel(canvasObj.transform, "MessagePlate",
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -100f), new Vector2(740f, 38f),
+                new Color(0.10f, 0.20f, 0.15f, 0.90f));
+            messageText = CreateTMP(messagePlate.transform, "MessageText", "",
+                15, Vector2.zero, new Vector2(720f, 32f), TextAlignmentOptions.Center);
             messageText.outlineColor = new Color32(28, 49, 40, 255);
             messageText.outlineWidth = 0.25f;
-            RectTransform msgRT = messageText.GetComponent<RectTransform>();
-            msgRT.anchorMin = new Vector2(0.5f, 1f);
-            msgRT.anchorMax = new Vector2(0.5f, 1f);
+            messagePlate.SetActive(false);
 
             // Painel Compacto da Cozinha (canto superior esquerdo — nunca cobre a protagonista!)
             BuildKitchenPanel(canvasObj.transform);
@@ -733,8 +735,8 @@ namespace FlorestaBicicleta
             // Botão especial de Cavar com o Esquilo
             digButtonObj = CreateIconClickButton(canvasObj.transform, "BtnCavar", "Cavar Junto",
                 StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(0.5f, 0f), new Vector2(0f, 76f), new Vector2(220f, 44f),
-                new Color(0.24f, 0.62f, 0.78f, 0.92f), 17,
+                new Vector2(0.5f, 0f), new Vector2(0f, 78f), new Vector2(220f, 42f),
+                new Color(0.24f, 0.62f, 0.78f, 0.92f), 16,
                 () => digSite.HelpDig());
             digButtonLabel = digButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             digButtonObj.SetActive(false);
@@ -742,7 +744,7 @@ namespace FlorestaBicicleta
             // Botão contextual de Evento de Aventura (regar flores, ajudar passarinho, consertar ponte, abrir tesouro)
             adventureEventButtonObj = CreateIconClickButton(canvasObj.transform, "BtnEventoAventura", "Interagir",
                 StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(0.5f, 0f), new Vector2(0f, 76f), new Vector2(260f, 44f),
+                new Vector2(0.5f, 0f), new Vector2(0f, 78f), new Vector2(260f, 42f),
                 new Color(0.28f, 0.62f, 0.44f, 0.94f), 15,
                 () => player.TryInteractNearbyEvent());
             adventureEventButtonLabel = adventureEventButtonObj.GetComponentInChildren<TextMeshProUGUI>();
@@ -750,7 +752,7 @@ namespace FlorestaBicicleta
 
             exploreModeButtonObj = CreateIconClickButton(canvasObj.transform, "BtnExplorarAPe", "Descer da bicicleta (Q)",
                 StorybookUISpriteFactory.UIIconKind.Stroll,
-                new Vector2(0.5f, 0f), new Vector2(0f, 128f), new Vector2(260f, 40f),
+                new Vector2(0.5f, 0f), new Vector2(0f, 126f), new Vector2(260f, 38f),
                 new Color(0.42f, 0.50f, 0.34f, 0.94f), 15,
                 () => player.ToggleExploreMode());
             exploreModeButtonLabel = exploreModeButtonObj.GetComponentInChildren<TextMeshProUGUI>();
@@ -781,11 +783,12 @@ namespace FlorestaBicicleta
                 new Color(0.26f, 0.56f, 0.68f, 0.88f), 16,
                 () => player.TriggerJump());
 
-            CreateIconClickButton(canvasObj.transform, "BtnComida", "Entregar",
+            GameObject comidaBtnObj = CreateIconClickButton(canvasObj.transform, "BtnComida", "Entregar",
                 StorybookUISpriteFactory.UIIconKind.Basket,
                 new Vector2(1f, 0f), new Vector2(-102f, 28f), new Vector2(158f, 44f),
                 new Color(0.80f, 0.40f, 0.48f, 0.90f), 17,
                 () => player.ThrowFood());
+            comidaButtonImage = comidaBtnObj.GetComponent<Image>();
 
             // Botões delicados para o Diário de Descobertas, Oficina e Campainha (B)
             CreateIconClickButton(canvasObj.transform, "BtnDiario", "Livro",
@@ -1126,6 +1129,14 @@ namespace FlorestaBicicleta
                 }
             }
 
+            if (comidaButtonImage != null)
+            {
+                bool canDeliver = nearest != null && bestD < 4.5f && player != null && player.foodBasket.Contains(nearest.wantedFood);
+                comidaButtonImage.color = canDeliver
+                    ? new Color(0.96f, 0.44f, 0.42f, 1f)
+                    : new Color(0.74f, 0.46f, 0.52f, 0.72f);
+            }
+
             if (player.waterLevel < 25f && Time.time > messageExpireTime)
             {
                 ShowMessage("O cachorrinho está com sede! Passe em uma Coluna de Água!", 2.5f, new Color(0.65f, 0.92f, 1f, 1f));
@@ -1133,6 +1144,7 @@ namespace FlorestaBicicleta
             else if (messageText != null && Time.time > messageExpireTime && !string.IsNullOrEmpty(messageText.text))
             {
                 messageText.text = "";
+                if (messagePlate != null) messagePlate.SetActive(false);
             }
         }
 
