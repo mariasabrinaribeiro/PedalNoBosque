@@ -252,9 +252,9 @@ namespace FlorestaBicicleta
 
             switch (period)
             {
-                case DayPeriod.Manha:     return new Color(1f, 0.98f, 0.86f, 0.04f);
-                case DayPeriod.Tarde:     return new Color(1f, 0.92f, 0.70f, 0.06f);
-                case DayPeriod.PorDoSol:  return new Color(0.98f, 0.48f, 0.22f, 0.18f);
+                case DayPeriod.Manha:     return new Color(1f, 0.95f, 0.82f, 0.08f);
+                case DayPeriod.Tarde:     return new Color(1f, 0.94f, 0.74f, 0.06f);
+                case DayPeriod.PorDoSol:  return new Color(0.98f, 0.52f, 0.24f, 0.18f);
                 case DayPeriod.Noite:     return new Color(0.06f, 0.10f, 0.28f, 0.36f);
                 case DayPeriod.Madrugada: return new Color(0.24f, 0.18f, 0.42f, 0.24f);
                 default:                  return Color.clear;

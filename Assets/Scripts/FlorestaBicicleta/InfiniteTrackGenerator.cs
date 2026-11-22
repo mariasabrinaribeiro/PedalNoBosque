@@ -179,7 +179,7 @@ namespace FlorestaBicicleta
                     bgObj.transform.SetParent(transform, false);
                     SpriteRenderer sr = bgObj.AddComponent<SpriteRenderer>();
                     sr.sprite = bgSprite;
-                    sr.flipX = (Mathf.Abs(i) % 2 == 1);
+                    sr.flipX = false;
                     sr.sortingOrder = -20;
                     bgTiles[i] = bgObj;
                 }
