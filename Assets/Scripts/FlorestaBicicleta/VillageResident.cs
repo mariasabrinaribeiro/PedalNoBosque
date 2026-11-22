@@ -40,9 +40,10 @@ namespace FlorestaBicicleta
         private Vector3 basePos;
         private float bobPhase;
 
-        private static readonly Dictionary<ResidentKind, Sprite> residentSpriteCache =
+        private static readonly Dictionary<ResidentKind, Sprite> residentPropCache =
             new Dictionary<ResidentKind, Sprite>();
         private static Sprite cachedMusicNote;
+        private const float BubbleBaseY = 1.52f;
 
         public void Setup(
             ResidentKind residentKind,
@@ -62,10 +63,22 @@ namespace FlorestaBicicleta
             bodySR.sprite = GetOrCreateResidentSprite(kind);
             bodySR.sortingOrder = 6;
 
+            // Adereço ilustrado temático da missão do morador (violão, cesta de piquenique, caixote de feira, balão...)
+            Sprite propSp = GetOrCreateResidentPropSprite(kind);
+            if (propSp != null)
+            {
+                GameObject propObj = new GameObject("AderecoMorador");
+                propObj.transform.SetParent(transform, false);
+                propObj.transform.localPosition = new Vector3(0.58f, 0.02f, 0f);
+                SpriteRenderer propSR = propObj.AddComponent<SpriteRenderer>();
+                propSR.sprite = propSp;
+                propSR.sortingOrder = 7;
+            }
+
             GameObject bubbleObj = new GameObject("MissionBubble");
             bubbleObj.transform.SetParent(transform, false);
-            bubbleObj.transform.localPosition = new Vector3(0f, 2.75f, 0f);
-            bubbleObj.transform.localScale = new Vector3(0.95f, 0.95f, 1f);
+            bubbleObj.transform.localPosition = new Vector3(0f, BubbleBaseY, 0f);
+            bubbleObj.transform.localScale = new Vector3(0.76f, 0.76f, 1f);
             bubbleTransform = bubbleObj.transform;
 
             bubbleSR = bubbleObj.AddComponent<SpriteRenderer>();
@@ -75,8 +88,8 @@ namespace FlorestaBicicleta
 
             BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
-            col.size = new Vector2(2.4f, 2.6f);
-            col.offset = new Vector2(0f, 1.2f);
+            col.size = new Vector2(2.4f, 2.2f);
+            col.offset = new Vector2(0f, 0.9f);
         }
 
         private void ConfigureMissionByKind()
@@ -140,20 +153,20 @@ namespace FlorestaBicicleta
         {
             if (bubbleTransform != null)
             {
-                float amp = isHelped ? 0.08f : 0.14f;
+                float amp = isHelped ? 0.06f : 0.10f;
                 float spd = isHelped ? 3.0f : 5.2f;
-                bubbleTransform.localPosition = new Vector3(0f, 2.75f + Mathf.Sin(Time.time * spd + bobPhase) * amp, 0f);
+                bubbleTransform.localPosition = new Vector3(0f, BubbleBaseY + Mathf.Sin(Time.time * spd + bobPhase) * amp, 0f);
             }
 
             // Movimento sutil e acolhedor do morador (músico balança no ritmo!)
             if (kind == ResidentKind.Musico)
             {
-                float sway = Mathf.Sin(Time.time * 4.2f + bobPhase) * 3.5f;
+                float sway = Mathf.Sin(Time.time * 4.2f + bobPhase) * 2.5f;
                 transform.localRotation = Quaternion.Euler(0f, 0f, sway);
             }
             else if (kind == ResidentKind.Crianca && !isHelped)
             {
-                float hop = Mathf.Abs(Mathf.Sin(Time.time * 3.2f + bobPhase)) * 0.14f;
+                float hop = Mathf.Abs(Mathf.Sin(Time.time * 3.2f + bobPhase)) * 0.08f;
                 transform.position = basePos + new Vector3(0f, hop, 0f);
             }
         }
@@ -198,7 +211,7 @@ namespace FlorestaBicicleta
             for (int i = 0; i < 10; i++)
             {
                 GameObject p = new GameObject("CelebracaoMorador");
-                p.transform.position = transform.position + new Vector3(Random.Range(-0.9f, 0.9f), Random.Range(1.7f, 2.5f), 0f);
+                p.transform.position = transform.position + new Vector3(Random.Range(-0.9f, 0.9f), Random.Range(1.4f, 2.1f), 0f);
                 float sc = Random.Range(0.75f, 1.1f);
                 p.transform.localScale = new Vector3(sc, sc, 1f);
                 SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
@@ -216,7 +229,7 @@ namespace FlorestaBicicleta
             }
         }
 
-        // ─── Artes Ilustradas Procedurais dos 5 Moradores ────────────
+        // ─── Artes Ilustradas em Alta Resolução dos Moradores da Vila ────
 
         private static Texture2D BlankTex(int w, int h)
         {
@@ -268,112 +281,106 @@ namespace FlorestaBicicleta
             }
         }
 
-        private static void DrawPersonBase(Texture2D tex, int cx, int feetY, int scalePct, Color shirt, Color pants, Color hair, Color skin)
-        {
-            float s = scalePct / 100f;
-            int legH = Mathf.RoundToInt(22 * s);
-            int torsoH = Mathf.RoundToInt(28 * s);
-            int headR = Mathf.RoundToInt(15 * s);
-            int w = Mathf.RoundToInt(14 * s);
-
-            // Sombra
-            EllipsePx(tex, cx, feetY, Mathf.RoundToInt(22 * s), 5, new Color(0f, 0f, 0f, 0.20f));
-            // Pernas
-            RectPx(tex, cx - w / 2 - 4, feetY + 2, cx - 2, feetY + legH, pants);
-            RectPx(tex, cx + 2, feetY + 2, cx + w / 2 + 4, feetY + legH, pants);
-            // Tronco
-            EllipsePx(tex, cx, feetY + legH + torsoH / 2, w + 4, torsoH / 2 + 3, shirt);
-            // Cabeça
-            int headY = feetY + legH + torsoH + headR - 2;
-            CirclePx(tex, cx, headY, headR, skin);
-            // Cabelo
-            CirclePx(tex, cx, headY + 4, headR, hair);
-            CirclePx(tex, cx, headY - 2, headR - 2, skin);
-            // Olhos e sorriso
-            CirclePx(tex, cx - 5, headY, 2, new Color(0.12f, 0.12f, 0.14f, 1f));
-            CirclePx(tex, cx + 5, headY, 2, new Color(0.12f, 0.12f, 0.14f, 1f));
-            RectPx(tex, cx - 4, headY - 7, cx + 4, headY - 6, new Color(0.75f, 0.30f, 0.30f, 1f));
-        }
-
+        /// <summary>
+        /// Retorna a arte 1024x1024 de estúdio (Cozy Storybook) correspondente ao morador do bosque,
+        /// garantindo 100% de coesão visual com a protagonista, banco e barraca.
+        /// </summary>
         private static Sprite GetOrCreateResidentSprite(ResidentKind kind)
         {
-            if (residentSpriteCache.TryGetValue(kind, out Sprite cached) && cached != null)
-                return cached;
-
-            int w = 144, h = 144;
-            Texture2D tex = BlankTex(w, h);
-            Color skin = new Color(0.98f, 0.82f, 0.68f, 1f);
-            Color skinWarm = new Color(0.86f, 0.64f, 0.46f, 1f);
-
             switch (kind)
             {
                 case ResidentKind.Crianca:
-                    DrawPersonBase(tex, 68, 10, 82, new Color(0.98f, 0.44f, 0.46f, 1f), new Color(0.24f, 0.48f, 0.86f, 1f), new Color(0.36f, 0.22f, 0.12f, 1f), skin);
-                    // Boné colorido + balão amarelo flutuando na mão!
-                    RectPx(tex, 54, 78, 86, 85, new Color(0.20f, 0.72f, 0.96f, 1f));
-                    RectPx(tex, 96, 46, 98, 92, Color.white);
-                    CirclePx(tex, 97, 106, 15, new Color(1f, 0.82f, 0.20f, 1f));
-                    CirclePx(tex, 92, 111, 4, new Color(1f, 0.96f, 0.76f, 0.9f));
-                    break;
-
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Coelho);
                 case ResidentKind.SenhorBanco:
-                    // Banco aconchegante atrás
-                    RectPx(tex, 18, 12, 126, 26, new Color(0.56f, 0.34f, 0.16f, 1f));
-                    RectPx(tex, 24, 26, 120, 44, new Color(0.72f, 0.48f, 0.24f, 1f));
-                    DrawPersonBase(tex, 72, 14, 98, new Color(0.32f, 0.58f, 0.44f, 1f), new Color(0.34f, 0.32f, 0.36f, 1f), new Color(0.88f, 0.88f, 0.90f, 1f), skin);
-                    // Chapéu de palha e bigodinho branco simpático
-                    EllipsePx(tex, 72, 95, 24, 5, new Color(0.92f, 0.78f, 0.42f, 1f));
-                    RectPx(tex, 58, 96, 86, 107, new Color(0.92f, 0.78f, 0.42f, 1f));
-                    RectPx(tex, 58, 96, 86, 99, new Color(0.76f, 0.24f, 0.24f, 1f));
-                    EllipsePx(tex, 72, 72, 8, 3, Color.white);
-                    break;
-
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Quati);
                 case ResidentKind.FamiliaPiquenique:
-                    // Toalha xadrez vermelha e branca + cesta de piquenique
-                    EllipsePx(tex, 72, 16, 58, 12, new Color(0.96f, 0.96f, 0.96f, 1f));
-                    for (int gx = 24; gx < 120; gx += 16)
-                        RectPx(tex, gx, 10, gx + 8, 22, new Color(0.92f, 0.28f, 0.32f, 0.9f));
-                    DrawPersonBase(tex, 46, 16, 88, new Color(0.96f, 0.62f, 0.22f, 1f), new Color(0.26f, 0.42f, 0.68f, 1f), new Color(0.28f, 0.18f, 0.12f, 1f), skinWarm);
-                    DrawPersonBase(tex, 96, 16, 86, new Color(0.78f, 0.38f, 0.84f, 1f), new Color(0.32f, 0.56f, 0.42f, 1f), new Color(0.42f, 0.24f, 0.14f, 1f), skin);
-                    // Cesta de vime no meio
-                    RectPx(tex, 62, 16, 82, 32, new Color(0.76f, 0.52f, 0.24f, 1f));
-                    RectPx(tex, 60, 30, 84, 34, new Color(0.58f, 0.36f, 0.16f, 1f));
-                    break;
-
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Raposa);
                 case ResidentKind.ViajanteSede:
-                    // Mochilão de trilha nas costas
-                    RectPx(tex, 38, 34, 62, 76, new Color(0.20f, 0.52f, 0.32f, 1f));
-                    RectPx(tex, 40, 62, 60, 74, new Color(0.94f, 0.66f, 0.18f, 1f));
-                    DrawPersonBase(tex, 72, 10, 100, new Color(0.94f, 0.52f, 0.20f, 1f), new Color(0.42f, 0.36f, 0.26f, 1f), new Color(0.24f, 0.18f, 0.14f, 1f), skinWarm);
-                    // Chapéu de explorador
-                    EllipsePx(tex, 72, 92, 22, 5, new Color(0.56f, 0.40f, 0.24f, 1f));
-                    RectPx(tex, 60, 93, 84, 104, new Color(0.56f, 0.40f, 0.24f, 1f));
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Cervo);
+                case ResidentKind.Musico:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Gato);
+                case ResidentKind.Feirante:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.FilhoteUrso);
+                default:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Coelho);
+            }
+        }
+
+        /// <summary>
+        /// Adereço ilustrado Cozy Storybook com contorno #3B1C14 ao lado de cada morador da vila
+        /// (cesta de piquenique xadrez, alaúde/violão de madeira, caixote de feira com potes de mel/geleia, etc.).
+        /// </summary>
+        private static Sprite GetOrCreateResidentPropSprite(ResidentKind kind)
+        {
+            if (residentPropCache.TryGetValue(kind, out Sprite cached) && cached != null)
+                return cached;
+
+            int w = 96, h = 96;
+            Texture2D tex = BlankTex(w, h);
+            Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
+            Color woodDark = new Color(0.52f, 0.28f, 0.14f, 1f);
+            Color woodMid = new Color(0.76f, 0.48f, 0.23f, 1f);
+            Color woodLight = new Color(0.90f, 0.66f, 0.36f, 1f);
+
+            switch (kind)
+            {
+                case ResidentKind.FamiliaPiquenique:
+                case ResidentKind.Crianca:
+                    // Cesta de vime de piquenique com toalhinha xadrez coral e maçã
+                    EllipsePx(tex, 48, 16, 34, 10, ink);
+                    EllipsePx(tex, 48, 16, 31, 8, new Color(0.94f, 0.42f, 0.44f, 1f));
+                    EllipsePx(tex, 48, 17, 22, 5, new Color(0.99f, 0.94f, 0.84f, 1f));
+                    RectPx(tex, 24, 16, 72, 46, ink);
+                    RectPx(tex, 27, 19, 69, 43, woodMid);
+                    RectPx(tex, 27, 36, 69, 43, woodLight);
+                    for (int x = 33; x <= 63; x += 10)
+                        RectPx(tex, x, 19, x + 2, 43, woodDark);
+                    // Maçã vermelha e pãozinho na cesta
+                    CirclePx(tex, 39, 49, 9, ink);
+                    CirclePx(tex, 39, 49, 7, new Color(0.92f, 0.26f, 0.24f, 1f));
+                    EllipsePx(tex, 56, 48, 11, 7, ink);
+                    EllipsePx(tex, 56, 48, 9, 5, woodLight);
                     break;
 
                 case ResidentKind.Musico:
-                    DrawPersonBase(tex, 68, 10, 100, new Color(0.24f, 0.46f, 0.82f, 1f), new Color(0.22f, 0.24f, 0.32f, 1f), new Color(0.34f, 0.20f, 0.12f, 1f), skin);
-                    // Violão acústico dourado nos braços!
-                    CirclePx(tex, 78, 46, 13, new Color(0.84f, 0.52f, 0.20f, 1f));
-                    CirclePx(tex, 66, 52, 9, new Color(0.84f, 0.52f, 0.20f, 1f));
-                    CirclePx(tex, 78, 46, 4, new Color(0.24f, 0.14f, 0.08f, 1f));
-                    RectPx(tex, 86, 48, 118, 54, new Color(0.48f, 0.28f, 0.12f, 1f));
-                    // Boina estilosa
-                    EllipsePx(tex, 68, 92, 18, 7, new Color(0.84f, 0.22f, 0.34f, 1f));
+                    // Violão acústico de madeira esculpida apoiado ao lado do músico
+                    CirclePx(tex, 46, 26, 20, ink);
+                    CirclePx(tex, 46, 26, 17, woodMid);
+                    CirclePx(tex, 44, 28, 13, woodLight);
+                    CirclePx(tex, 46, 44, 15, ink);
+                    CirclePx(tex, 46, 44, 12, woodMid);
+                    CirclePx(tex, 46, 35, 6, ink);
+                    RectPx(tex, 42, 56, 50, 86, ink);
+                    RectPx(tex, 44, 58, 48, 84, woodDark);
                     break;
 
                 case ResidentKind.Feirante:
-                    DrawPersonBase(tex, 70, 10, 100, new Color(0.36f, 0.66f, 0.38f, 1f), new Color(0.56f, 0.34f, 0.24f, 1f), new Color(0.34f, 0.20f, 0.12f, 1f), skinWarm);
-                    EllipsePx(tex, 70, 96, 28, 6, new Color(0.88f, 0.42f, 0.28f, 1f));
-                    RectPx(tex, 54, 96, 86, 108, new Color(0.88f, 0.42f, 0.28f, 1f));
-                    RectPx(tex, 90, 16, 128, 38, new Color(0.64f, 0.36f, 0.18f, 1f));
-                    CirclePx(tex, 99, 41, 7, new Color(0.54f, 0.20f, 0.72f, 1f));
-                    CirclePx(tex, 112, 42, 7, new Color(0.42f, 0.16f, 0.64f, 1f));
+                    // Caixote de madeira da feira com potes de mel dourado e geleia silvestre
+                    RectPx(tex, 18, 12, 78, 46, ink);
+                    RectPx(tex, 21, 15, 75, 43, woodMid);
+                    RectPx(tex, 21, 28, 75, 31, ink);
+                    // Pote de mel e pote de geleia
+                    RectPx(tex, 28, 46, 46, 68, ink);
+                    RectPx(tex, 31, 49, 43, 64, new Color(0.98f, 0.76f, 0.22f, 1f));
+                    RectPx(tex, 29, 64, 45, 70, new Color(0.96f, 0.92f, 0.80f, 1f));
+                    RectPx(tex, 50, 46, 68, 68, ink);
+                    RectPx(tex, 53, 49, 65, 64, new Color(0.68f, 0.26f, 0.62f, 1f));
+                    RectPx(tex, 51, 64, 67, 70, new Color(0.94f, 0.44f, 0.46f, 1f));
+                    break;
+
+                default:
+                    // Mochila e cantil de trilha de couro com contorno #3B1C14
+                    EllipsePx(tex, 48, 30, 22, 20, ink);
+                    EllipsePx(tex, 48, 30, 19, 17, new Color(0.36f, 0.58f, 0.34f, 1f));
+                    EllipsePx(tex, 48, 36, 16, 9, ink);
+                    EllipsePx(tex, 48, 36, 13, 7, woodMid);
+                    CirclePx(tex, 48, 33, 4, new Color(1f, 0.84f, 0.26f, 1f));
                     break;
             }
 
             tex.Apply();
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.05f), h / 2.55f);
-            residentSpriteCache[kind] = sp;
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 10f / (float)h), 96f);
+            residentPropCache[kind] = sp;
             return sp;
         }
 

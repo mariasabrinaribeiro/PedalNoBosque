@@ -380,231 +380,161 @@ namespace FlorestaBicicleta
             string key = $"{kind}_{completed}";
             if (spriteCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
 
-            int w = 96, h = 80;
-            Texture2D tex = Blank(w, h);
-            Color shadow = new Color(0.10f, 0.14f, 0.08f, 0.24f);
-            RectPx(tex, 14, 2, 82, 8, shadow);
-
+            // Para eventos protagonizados por animais que possuem arte 1024x1024 de estúdio, usa o sprite oficial!
             switch (kind)
             {
-                case EventKind.FloresMurchas:
-                    if (!completed)
-                    {
-                        // Flores caidinhas e pálidas esperando água
-                        RectPx(tex, 26, 8, 28, 28, new Color(0.46f, 0.50f, 0.30f, 1f));
-                        RectPx(tex, 48, 8, 50, 32, new Color(0.46f, 0.50f, 0.30f, 1f));
-                        RectPx(tex, 70, 8, 72, 26, new Color(0.46f, 0.50f, 0.30f, 1f));
-                        CirclePx(tex, 32, 24, 6, new Color(0.76f, 0.68f, 0.58f, 1f));
-                        CirclePx(tex, 54, 28, 7, new Color(0.76f, 0.68f, 0.58f, 1f));
-                        CirclePx(tex, 74, 22, 6, new Color(0.76f, 0.68f, 0.58f, 1f));
-                    }
-                    else
-                    {
-                        // Jardim florido exuberante e colorido!
-                        RectPx(tex, 26, 8, 29, 44, new Color(0.22f, 0.66f, 0.28f, 1f));
-                        RectPx(tex, 48, 8, 51, 52, new Color(0.22f, 0.66f, 0.28f, 1f));
-                        RectPx(tex, 70, 8, 73, 46, new Color(0.22f, 0.66f, 0.28f, 1f));
-                        CirclePx(tex, 27, 48, 10, new Color(1f, 0.44f, 0.72f, 1f));
-                        CirclePx(tex, 27, 48, 4, new Color(1f, 0.88f, 0.22f, 1f));
-                        CirclePx(tex, 49, 56, 11, new Color(1f, 0.82f, 0.22f, 1f));
-                        CirclePx(tex, 49, 56, 4, new Color(1f, 0.46f, 0.22f, 1f));
-                        CirclePx(tex, 71, 50, 10, new Color(0.68f, 0.50f, 1f, 1f));
-                        CirclePx(tex, 71, 50, 4, new Color(1f, 0.94f, 0.44f, 1f));
-                    }
-                    break;
-
-                case EventKind.PassaroCaido:
-                    // Tronco baixo com ninho de gravetos no topo
-                    RectPx(tex, 54, 8, 70, 52, new Color(0.46f, 0.28f, 0.14f, 1f));
-                    CirclePx(tex, 62, 54, 15, new Color(0.58f, 0.38f, 0.18f, 1f));
-                    CirclePx(tex, 62, 58, 11, new Color(0.38f, 0.24f, 0.10f, 1f));
-                    if (!completed)
-                    {
-                        // Passarinho azul no chão pedindo ajuda
-                        CirclePx(tex, 28, 18, 9, new Color(0.30f, 0.74f, 0.98f, 1f));
-                        CirclePx(tex, 34, 24, 5, new Color(0.30f, 0.74f, 0.98f, 1f));
-                        CirclePx(tex, 38, 24, 2, new Color(1f, 0.76f, 0.16f, 1f));
-                    }
-                    else
-                    {
-                        // Passarinho feliz e seguro dentro do ninho!
-                        CirclePx(tex, 62, 62, 9, new Color(0.30f, 0.74f, 0.98f, 1f));
-                        CirclePx(tex, 68, 67, 5, new Color(0.30f, 0.74f, 0.98f, 1f));
-                        CirclePx(tex, 72, 67, 2, new Color(1f, 0.76f, 0.16f, 1f));
-                    }
-                    break;
-
                 case EventKind.PonteQuebrada:
-                    Color wood = new Color(0.64f, 0.40f, 0.20f, 1f);
-                    Color woodDark = new Color(0.42f, 0.24f, 0.12f, 1f);
-                    RectPx(tex, 12, 8, 22, 34, woodDark);
-                    RectPx(tex, 74, 8, 84, 34, woodDark);
-                    if (!completed)
-                    {
-                        // Tábuas quebradas/faltando no meio
-                        RectPx(tex, 10, 26, 36, 36, wood);
-                        RectPx(tex, 62, 26, 86, 36, wood);
-                        RectPx(tex, 38, 10, 56, 18, wood); // Tábua caída no chão
-                    }
-                    else
-                    {
-                        // Passarela inteira e firme com flores nas pontas!
-                        RectPx(tex, 10, 26, 86, 37, wood);
-                        RectPx(tex, 10, 35, 86, 38, new Color(0.82f, 0.60f, 0.34f, 1f));
-                        CirclePx(tex, 16, 42, 5, new Color(1f, 0.84f, 0.24f, 1f));
-                        CirclePx(tex, 80, 42, 5, new Color(1f, 0.48f, 0.72f, 1f));
-                    }
-                    break;
-
                 case EventKind.PonteCastorPronta:
-                    // A ponte concluída guarda um detalhe visual que distingue este reencontro.
-                    Color finishedWood = new Color(0.64f, 0.40f, 0.20f, 1f);
-                    RectPx(tex, 12, 8, 22, 34, new Color(0.42f, 0.24f, 0.12f, 1f));
-                    RectPx(tex, 74, 8, 84, 34, new Color(0.42f, 0.24f, 0.12f, 1f));
-                    RectPx(tex, 10, 26, 86, 37, finishedWood);
-                    RectPx(tex, 10, 35, 86, 38, new Color(0.84f, 0.63f, 0.36f, 1f));
-                    CirclePx(tex, 24, 48, 9, new Color(0.56f, 0.36f, 0.19f, 1f));
-                    CirclePx(tex, 27, 52, 6, new Color(0.68f, 0.46f, 0.27f, 1f));
-                    CirclePx(tex, 29, 54, 1, Color.white);
-                    CirclePx(tex, 30, 54, 1, Color.black);
-                    break;
-
-                case EventKind.TesouroEscondido:
-                    if (!completed)
-                    {
-                        // Baú/tesouro semi-escondido em arbusto com brilho sutil
-                        CirclePx(tex, 48, 24, 22, new Color(0.18f, 0.50f, 0.24f, 1f));
-                        RectPx(tex, 34, 12, 62, 30, new Color(0.62f, 0.36f, 0.16f, 1f));
-                        RectPx(tex, 34, 22, 62, 26, new Color(0.98f, 0.82f, 0.22f, 1f));
-                    }
-                    else
-                    {
-                        // Baú aberto cheio de brilho dourado e cristais!
-                        RectPx(tex, 30, 10, 66, 32, new Color(0.62f, 0.36f, 0.16f, 1f));
-                        RectPx(tex, 30, 32, 66, 46, new Color(0.48f, 0.26f, 0.12f, 1f));
-                        CirclePx(tex, 42, 34, 7, new Color(1f, 0.86f, 0.22f, 1f));
-                        CirclePx(tex, 54, 35, 7, new Color(0.46f, 0.92f, 1f, 1f));
-                        CirclePx(tex, 48, 42, 6, new Color(1f, 0.96f, 0.72f, 1f));
-                    }
-                    break;
-
-                case EventKind.ToupeiraSubterranea:
-                    // Monte de terra fofa + Toupeira simpática com focinho rosado
-                    CirclePx(tex, 48, 18, 22, new Color(0.46f, 0.30f, 0.16f, 1f));
-                    CirclePx(tex, 48, 36, 14, new Color(0.30f, 0.26f, 0.24f, 1f));
-                    CirclePx(tex, 48, 34, 4, new Color(1f, 0.62f, 0.72f, 1f)); // Focinho rosado
-                    if (completed) CirclePx(tex, 68, 38, 7, new Color(0.38f, 0.86f, 1f, 1f)); // Cristal achado
-                    break;
-
-                case EventKind.TexugoOficina:
-                    // Bancada de madeira + Texugo listrado
-                    RectPx(tex, 18, 8, 78, 28, new Color(0.62f, 0.40f, 0.20f, 1f));
-                    CirclePx(tex, 48, 42, 16, new Color(0.28f, 0.28f, 0.30f, 1f));
-                    RectPx(tex, 44, 30, 52, 56, Color.white); // Faixa branca clássica do texugo
-                    if (completed) CirclePx(tex, 72, 46, 7, new Color(1f, 0.88f, 0.24f, 1f));
-                    break;
-
-                case EventKind.RatinhoCarteiro:
-                    // Caixa de correio charmosa + Ratinho com orelhinhas redondas e carta
-                    RectPx(tex, 58, 8, 66, 46, new Color(0.44f, 0.28f, 0.14f, 1f));
-                    RectPx(tex, 50, 42, 76, 58, new Color(0.26f, 0.56f, 0.82f, 1f));
-                    CirclePx(tex, 32, 24, 12, new Color(0.76f, 0.74f, 0.72f, 1f));
-                    CirclePx(tex, 24, 34, 6, new Color(1f, 0.72f, 0.78f, 1f));
-                    CirclePx(tex, 40, 34, 6, new Color(1f, 0.72f, 0.78f, 1f));
-                    RectPx(tex, 34, 20, 48, 30, Color.white); // Cartinha!
-                    break;
-
-                case EventKind.PicapauArvore:
-                    // Tronco especial + Pica-pau de topete vermelho
-                    RectPx(tex, 46, 8, 68, 70, new Color(0.48f, 0.30f, 0.16f, 1f));
-                    CirclePx(tex, 38, 46, 10, new Color(0.18f, 0.20f, 0.24f, 1f));
-                    CirclePx(tex, 38, 56, 7, new Color(0.92f, 0.20f, 0.24f, 1f)); // Topete vermelho
-                    if (completed) CirclePx(tex, 58, 48, 7, new Color(1f, 0.84f, 0.24f, 1f));
-                    break;
-
-                case EventKind.LimparRiacho:
-                    CirclePx(tex, 48, 20, 26, new Color(0.24f, 0.70f, 0.92f, 0.92f));
-                    if (!completed)
-                    {
-                        RectPx(tex, 24, 18, 72, 26, new Color(0.46f, 0.28f, 0.14f, 1f)); // Galhos bloqueando
-                    }
-                    else
-                    {
-                        CirclePx(tex, 40, 28, 7, new Color(0.28f, 0.78f, 0.30f, 1f)); // Sapinho feliz
-                        CirclePx(tex, 60, 22, 6, new Color(1f, 0.64f, 0.22f, 1f));    // Peixinho
-                    }
-                    break;
-
-                case EventKind.PegadasCachorro:
-                    // Pegadas na terra levando a um pontinho brilhante
-                    Color paw = new Color(0.42f, 0.26f, 0.14f, 0.92f);
-                    CirclePx(tex, 24, 18, 6, paw);
-                    CirclePx(tex, 44, 22, 6, paw);
-                    CirclePx(tex, 64, 18, 6, paw);
-                    if (completed) CirclePx(tex, 70, 34, 9, new Color(1f, 0.86f, 0.22f, 1f));
-                    break;
-
-                case EventKind.MusicaDaFloresta:
-                    // Tronco musical com flauta de bambu e notas
-                    RectPx(tex, 22, 12, 74, 32, new Color(0.60f, 0.38f, 0.18f, 1f));
-                    RectPx(tex, 30, 34, 66, 42, new Color(0.42f, 0.74f, 0.34f, 1f)); // Flauta de bambu
-                    CirclePx(tex, 48, 56, 7, completed ? new Color(1f, 0.84f, 0.22f, 1f) : new Color(0.64f, 0.50f, 0.96f, 1f));
-                    break;
-
-                case EventKind.CuidadoraAbrigo:
-                    // Casinha/abrigo fofo de folhas com almofada
-                    CirclePx(tex, 48, 28, 22, new Color(0.26f, 0.62f, 0.32f, 1f));
-                    CirclePx(tex, 48, 22, 14, new Color(0.96f, 0.86f, 0.68f, 1f));
-                    if (completed) CirclePx(tex, 48, 52, 8, new Color(1f, 0.42f, 0.66f, 1f)); // Coração!
-                    break;
-
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Castor);
                 case EventKind.EnigmaCoruja:
-                    // Poleiro iluminado da Coruja Sábia
-                    RectPx(tex, 44, 8, 52, 42, new Color(0.46f, 0.28f, 0.14f, 1f));
-                    CirclePx(tex, 48, 50, 14, new Color(0.46f, 0.34f, 0.26f, 1f));
-                    CirclePx(tex, 43, 52, 4, new Color(1f, 0.84f, 0.22f, 1f));
-                    CirclePx(tex, 53, 52, 4, new Color(1f, 0.84f, 0.22f, 1f));
-                    break;
-
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.CorujaNoturna);
                 case EventKind.OuricoProcurandoAbrigo:
                 case EventKind.OuricoTocaBloqueada:
                 case EventKind.OuricoReconstruirAbrigo:
                 case EventKind.OuricoCelebraComAnimais:
-                    Color burrow = new Color(0.24f, 0.16f, 0.10f, 1f);
-                    Color leaf = new Color(0.22f, 0.54f, 0.26f, 1f);
-                    EllipsePx(tex, 53, 18, 34, 13, new Color(0.38f, 0.24f, 0.14f, 1f));
-                    CirclePx(tex, 51, 20, 14, burrow);
-                    CirclePx(tex, 27, 21, 13, leaf);
-                    CirclePx(tex, 76, 21, 13, leaf);
-                    // Ouriço em pixel art: corpo, focinho e pequenas pontas.
-                    CirclePx(tex, 52, 29, 13, new Color(0.62f, 0.38f, 0.22f, 1f));
-                    for (int i = 0; i < 7; i++)
-                        RectPx(tex, 38 + i * 4, 38 + (i % 2) * 2, 41 + i * 4, 48 + (i % 2) * 2, new Color(0.34f, 0.24f, 0.18f, 1f));
-                    CirclePx(tex, 63, 29, 7, new Color(0.82f, 0.58f, 0.38f, 1f));
-                    CirclePx(tex, 66, 31, 2, Color.black);
-                    if (kind == EventKind.OuricoTocaBloqueada)
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Ourico);
+                case EventKind.PassaroCaido:
+                case EventKind.PicapauArvore:
+                    return EcosystemSpriteFactory.GetAnimalSprite(ParkSpriteFactory.AnimalKind.Passarinhos);
+            }
+
+            int w = 144, h = 120;
+            Texture2D tex = Blank(w, h);
+            Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
+            Color shadow = new Color(0.06f, 0.14f, 0.08f, 0.32f);
+            Color grassDark = new Color(0.24f, 0.48f, 0.16f, 1f);
+            Color grassLight = new Color(0.46f, 0.72f, 0.24f, 1f);
+            Color woodDark = new Color(0.48f, 0.26f, 0.13f, 1f);
+            Color woodMid = new Color(0.72f, 0.44f, 0.21f, 1f);
+            Color woodLight = new Color(0.88f, 0.62f, 0.34f, 1f);
+
+            EllipsePx(tex, 72, 12, 48, 8, shadow);
+
+            switch (kind)
+            {
+                case EventKind.FloresMurchas:
+                    // Canteiro de madeira rústica com flores silvestres (antes/depois de regar)
+                    RectPx(tex, 26, 10, 118, 28, ink);
+                    RectPx(tex, 29, 13, 115, 25, woodMid);
+                    RectPx(tex, 29, 21, 115, 25, woodLight);
+                    if (!completed)
                     {
-                        RectPx(tex, 29, 8, 72, 15, new Color(0.42f, 0.27f, 0.15f, 1f));
-                        RectPx(tex, 34, 15, 78, 20, new Color(0.52f, 0.34f, 0.18f, 1f));
+                        int[] fx = { 44, 72, 100 };
+                        for (int i = 0; i < fx.Length; i++)
+                        {
+                            RectPx(tex, fx[i] - 2, 26, fx[i] + 2, 54, ink);
+                            RectPx(tex, fx[i] - 1, 27, fx[i] + 1, 53, new Color(0.48f, 0.56f, 0.32f, 1f));
+                            CirclePx(tex, fx[i] + 4, 52, 10, ink);
+                            CirclePx(tex, fx[i] + 4, 52, 8, new Color(0.84f, 0.76f, 0.66f, 1f));
+                            CirclePx(tex, fx[i] + 4, 52, 3, new Color(0.92f, 0.80f, 0.42f, 1f));
+                        }
                     }
-                    else if (kind == EventKind.OuricoReconstruirAbrigo)
+                    else
                     {
-                        RectPx(tex, 16, 8, 31, 12, new Color(0.50f, 0.32f, 0.16f, 1f));
-                        RectPx(tex, 73, 8, 88, 12, new Color(0.50f, 0.32f, 0.16f, 1f));
-                        CirclePx(tex, 20, 45, 4, new Color(0.90f, 0.54f, 0.26f, 1f));
-                        CirclePx(tex, 82, 44, 4, new Color(0.90f, 0.54f, 0.26f, 1f));
+                        int[] fx = { 44, 72, 100 };
+                        Color[] pCols =
+                        {
+                            new Color(1f, 0.46f, 0.68f, 1f),
+                            new Color(1f, 0.86f, 0.24f, 1f),
+                            new Color(0.56f, 0.78f, 1f, 1f)
+                        };
+                        for (int i = 0; i < fx.Length; i++)
+                        {
+                            RectPx(tex, fx[i] - 2, 26, fx[i] + 2, 68, ink);
+                            RectPx(tex, fx[i] - 1, 27, fx[i] + 1, 67, grassLight);
+                            EllipsePx(tex, fx[i] - 6, 44, 7, 4, ink);
+                            EllipsePx(tex, fx[i] - 6, 44, 5, 3, grassLight);
+                            for (int a = 0; a < 5; a++)
+                            {
+                                float ang = a * Mathf.PI * 2f / 5f;
+                                int px = fx[i] + Mathf.RoundToInt(Mathf.Cos(ang) * 9f);
+                                int py = 72 + Mathf.RoundToInt(Mathf.Sin(ang) * 9f);
+                                CirclePx(tex, px, py, 8, ink);
+                                CirclePx(tex, px, py, 6, pCols[i]);
+                            }
+                            CirclePx(tex, fx[i], 72, 6, ink);
+                            CirclePx(tex, fx[i], 72, 4, new Color(1f, 0.92f, 0.30f, 1f));
+                        }
                     }
-                    else if (kind == EventKind.OuricoCelebraComAnimais)
+                    break;
+
+                case EventKind.TesouroEscondido:
+                case EventKind.PegadasCachorro:
+                    // Baú de madeira e ferragens douradas entre tufos de grama florida
+                    EllipsePx(tex, 72, 20, 44, 14, ink);
+                    EllipsePx(tex, 72, 20, 41, 11, grassDark);
+                    EllipsePx(tex, 68, 22, 30, 8, grassLight);
+                    RectPx(tex, 38, 18, 106, 56, ink);
+                    RectPx(tex, 41, 21, 103, 53, woodMid);
+                    RectPx(tex, 41, 36, 103, 40, ink);
+                    RectPx(tex, 41, 37, 103, 39, new Color(0.98f, 0.80f, 0.24f, 1f));
+                    CirclePx(tex, 72, 38, 6, ink);
+                    CirclePx(tex, 72, 38, 4, new Color(1f, 0.88f, 0.30f, 1f));
+                    if (completed)
                     {
-                        CirclePx(tex, 23, 31, 6, new Color(0.70f, 0.46f, 0.28f, 1f));
-                        CirclePx(tex, 82, 31, 6, new Color(0.86f, 0.72f, 0.46f, 1f));
-                        CirclePx(tex, 52, 55, 4, new Color(1f, 0.84f, 0.26f, 1f));
+                        CirclePx(tex, 60, 62, 10, ink);
+                        CirclePx(tex, 60, 62, 8, new Color(0.46f, 0.92f, 1f, 1f));
+                        CirclePx(tex, 84, 62, 10, ink);
+                        CirclePx(tex, 84, 62, 8, new Color(1f, 0.88f, 0.26f, 1f));
                     }
+                    break;
+
+                case EventKind.ToupeiraSubterranea:
+                    // Canteiro de terra fofa contornado + Toupeira ilustrada com capacete de exploradora e cristal
+                    EllipsePx(tex, 72, 20, 44, 14, ink);
+                    EllipsePx(tex, 72, 20, 41, 11, woodDark);
+                    EllipsePx(tex, 72, 23, 34, 8, woodMid);
+                    // Corpo da toupeira com contorno #3B1C14
+                    EllipsePx(tex, 72, 42, 22, 24, ink);
+                    EllipsePx(tex, 72, 42, 19, 21, new Color(0.38f, 0.32f, 0.30f, 1f));
+                    EllipsePx(tex, 72, 36, 13, 12, new Color(0.86f, 0.76f, 0.68f, 1f));
+                    CirclePx(tex, 65, 48, 3, ink);
+                    CirclePx(tex, 79, 48, 3, ink);
+                    CirclePx(tex, 72, 43, 5, ink);
+                    CirclePx(tex, 72, 43, 3, new Color(1f, 0.62f, 0.72f, 1f));
+                    // Capacete amarelo de mineiro/explorador
+                    EllipsePx(tex, 72, 60, 20, 10, ink);
+                    EllipsePx(tex, 72, 60, 17, 7, new Color(1f, 0.84f, 0.22f, 1f));
+                    CirclePx(tex, 72, 62, 4, Color.white);
+                    break;
+
+                case EventKind.CuidadoraAbrigo:
+                case EventKind.TexugoOficina:
+                case EventKind.RatinhoCarteiro:
+                    // Casinha/abrigo de madeira esculpido na beira da trilha com telhadinho e flores
+                    EllipsePx(tex, 72, 18, 42, 12, ink);
+                    EllipsePx(tex, 72, 18, 39, 9, grassDark);
+                    RectPx(tex, 42, 18, 102, 64, ink);
+                    RectPx(tex, 45, 21, 99, 61, woodLight);
+                    CirclePx(tex, 72, 34, 15, ink);
+                    CirclePx(tex, 72, 34, 12, woodDark);
+                    // Telhadinho em duas águas
+                    for (int y = 60; y <= 92; y++)
+                    {
+                        int halfW = Mathf.RoundToInt((1f - (y - 60f) / 32f) * 40f);
+                        RectPx(tex, 72 - halfW - 3, y, 72 + halfW + 3, y, ink);
+                        RectPx(tex, 72 - halfW, y, 72 + halfW, y, new Color(0.84f, 0.36f, 0.28f, 1f));
+                    }
+                    break;
+
+                case EventKind.MusicaDaFloresta:
+                case EventKind.LimparRiacho:
+                default:
+                    // Tronco musical / canteiro florido do bosque com contorno escuro
+                    EllipsePx(tex, 72, 18, 44, 12, ink);
+                    EllipsePx(tex, 72, 18, 41, 9, grassDark);
+                    RectPx(tex, 36, 18, 108, 48, ink);
+                    RectPx(tex, 39, 21, 105, 45, woodMid);
+                    RectPx(tex, 39, 38, 105, 45, woodLight);
+                    CirclePx(tex, 54, 56, 8, ink);
+                    CirclePx(tex, 54, 56, 6, new Color(1f, 0.86f, 0.24f, 1f));
+                    CirclePx(tex, 90, 56, 8, ink);
+                    CirclePx(tex, 90, 56, 6, new Color(1f, 0.48f, 0.68f, 1f));
                     break;
             }
 
             tex.Apply();
-            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.08f), 34f);
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 10f / (float)h), 84f);
             spriteCache[key] = sp;
             return sp;
         }

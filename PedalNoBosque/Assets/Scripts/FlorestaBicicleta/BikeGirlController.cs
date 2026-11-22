@@ -63,14 +63,21 @@ namespace FlorestaBicicleta
 
         private Transform visualRoot;
         private SpriteRenderer bikeSR;
+        private SpriteRenderer basketDecorSR;
         private SpriteRenderer walkingGirlSR;
+        private SpriteRenderer walkingPuppySR;
         private SpriteRenderer parkedBikeSR;
         private Sprite walkingGirlSprite;
+        private Sprite walkingPuppySprite;
         private Sprite parkedBikeSprite;
+        private static Sprite cachedBasketDecorSprite;
         private float parkedBikeX;
+        private float nextPuppyFootHeartTime = 0f;
         private SpriteRenderer customAccentBadgeSR;
         private float slopeMultiplier = 1f;
         private float slopeTiltDeg = 0f;
+        private float currentTrackElevation = 0f;
+        private float currentTrackPitchDeg = 0f;
         private float facingDir = 1f;
         private float lastThrowTime = -1f;
         private float lastThirstSoundTime = -10f;
@@ -125,6 +132,14 @@ namespace FlorestaBicicleta
             bikeSR = visualRoot.gameObject.AddComponent<SpriteRenderer>();
             bikeSR.sprite = FlorestaSpriteFactory.LoadGirlBikeSprite();
             bikeSR.sortingOrder = 10;
+
+            // Decoração artesanal rica da cesta dianteira (guirlanda de flores silvestres + frutas e quitutes visíveis!)
+            GameObject basketDecorObj = new GameObject("DecoracaoCestaBosque");
+            basketDecorObj.transform.SetParent(visualRoot, false);
+            basketDecorObj.transform.localPosition = new Vector3(0.52f, 1.05f, 0f);
+            basketDecorSR = basketDecorObj.AddComponent<SpriteRenderer>();
+            basketDecorSR.sprite = BuildBasketDecorationSprite();
+            basketDecorSR.sortingOrder = 11;
 
             // Adorno delicado para acessórios/enfeites equipados (Etapa 7)
             GameObject badgeObj = new GameObject("CustomAccent");
@@ -229,101 +244,306 @@ namespace FlorestaBicicleta
         {
             if (!isOnFoot)
             {
-                if (!canDismountAtNearbyEvent || Mathf.Abs(currentSpeed) > 0.25f)
-                {
-                    onInfoMessage?.Invoke("Pare ao lado de um ponto de exploração para descer da bicicleta.");
-                    return false;
-                }
+                // Freia suavemente e imediatamente ao descer da bicicleta (sem bloquear quando em movimento!)
+                currentSpeed = 0f;
+                uiSlowPressed = uiFastPressed = uiReversePressed = false;
 
                 isOnFoot = true;
                 parkedBikeX = transform.position.x;
                 if (bikeSR != null) bikeSR.enabled = false;
+                if (basketDecorSR != null) basketDecorSR.enabled = false;
                 if (customAccentBadgeSR != null) customAccentBadgeSR.enabled = false;
                 CreateFootVisuals();
-                onInfoMessage?.Invoke("Você estacionou a bicicleta. Explore a área com A/D ou os controles laterais.");
+                FlorestaSoundFX.Instance?.PlayDogBark();
+                onInfoMessage?.Invoke("Você e o cachorrinho desceram da bicicleta! Caminhem juntos com A/D (ou Passear/Voltar) e aperte Q para subir de novo.");
                 return true;
             }
 
-            if (Mathf.Abs(transform.position.x - parkedBikeX) > 7f)
+            if (Mathf.Abs(transform.position.x - parkedBikeX) > 9f)
             {
-                onInfoMessage?.Invoke("Volte até a bicicleta para continuar o passeio.");
+                onInfoMessage?.Invoke("Aproxime-se da bicicleta estacionada para voltar a pedalar.");
                 return false;
             }
 
             isOnFoot = false;
             if (walkingGirlSR != null) Destroy(walkingGirlSR.gameObject);
+            if (walkingPuppySR != null) Destroy(walkingPuppySR.gameObject);
             if (parkedBikeSR != null) Destroy(parkedBikeSR.gameObject);
             if (bikeSR != null) bikeSR.enabled = true;
+            if (basketDecorSR != null) basketDecorSR.enabled = true;
             ApplyCustomizationVisuals();
-            onInfoMessage?.Invoke("Você voltou à bicicleta.");
+            FlorestaSoundFX.Instance?.PlayDogBark();
+            onInfoMessage?.Invoke("Você e o cachorrinho voltaram à bicicleta! Bom passeio pelo bosque!");
             return true;
         }
 
         private void CreateFootVisuals()
         {
-            if (parkedBikeSprite == null) parkedBikeSprite = BuildParkedBikeSprite();
-            if (walkingGirlSprite == null) walkingGirlSprite = BuildWalkingGirlSprite();
+            if (parkedBikeSprite == null)
+                parkedBikeSprite = FlorestaSpriteFactory.ExtractRealParkedBikeSprite() ?? BuildParkedBikeSprite();
+            if (walkingGirlSprite == null)
+                walkingGirlSprite = FlorestaSpriteFactory.ExtractRealWalkingGirlSprite() ?? BuildWalkingGirlSprite();
+            if (walkingPuppySprite == null)
+                walkingPuppySprite = FlorestaSpriteFactory.ExtractRealRunningPuppySprite();
 
             GameObject bike = new GameObject("BicicletaEstacionada");
-            bike.transform.position = new Vector3(parkedBikeX, baseGroundY, 0f);
+            bike.transform.position = new Vector3(parkedBikeX, baseGroundY + currentTrackElevation, 0f);
             parkedBikeSR = bike.AddComponent<SpriteRenderer>();
             parkedBikeSR.sprite = parkedBikeSprite;
             parkedBikeSR.sortingOrder = 9;
 
             GameObject girl = new GameObject("MeninaExplorandoAPe");
             girl.transform.SetParent(transform, false);
-            girl.transform.localPosition = new Vector3(0f, 0.72f, 0f);
+            girl.transform.localPosition = new Vector3(0f, 0.02f, 0f);
             walkingGirlSR = girl.AddComponent<SpriteRenderer>();
             walkingGirlSR.sprite = walkingGirlSprite;
             walkingGirlSR.sortingOrder = 10;
+
+            if (walkingPuppySprite != null)
+            {
+                GameObject puppy = new GameObject("CachorrinhoExplorandoAPe");
+                puppy.transform.SetParent(transform, false);
+                puppy.transform.localPosition = new Vector3(0.88f * facingDir, 0.04f, 0f);
+                walkingPuppySR = puppy.AddComponent<SpriteRenderer>();
+                walkingPuppySR.sprite = walkingPuppySprite;
+                walkingPuppySR.sortingOrder = 11;
+                nextPuppyFootHeartTime = Time.time + 0.6f;
+            }
         }
 
+        /// <summary>
+        /// Guirlanda florida de vime e quitutes coloridos (maçã, mel, pãozinho, amoras e laço)
+        /// decorando a cesta dianteira da bicicleta ao lado do cachorrinho (120x92, 125 PPU).
+        /// </summary>
+        private static Sprite BuildBasketDecorationSprite()
+        {
+            if (cachedBasketDecorSprite != null) return cachedBasketDecorSprite;
+            int w = 120, h = 92;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            Color[] clear = new Color[w * h];
+            for (int i = 0; i < clear.Length; i++) clear[i] = Color.clear;
+            tex.SetPixels(clear);
+
+            Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
+            Color leafDark = new Color(0.22f, 0.48f, 0.16f, 1f);
+            Color leafLight = new Color(0.46f, 0.74f, 0.24f, 1f);
+            Color appleRed = new Color(0.92f, 0.24f, 0.24f, 1f);
+            Color appleHigh = new Color(1f, 0.62f, 0.58f, 1f);
+            Color honeyGold = new Color(0.98f, 0.76f, 0.20f, 1f);
+            Color breadWarm = new Color(0.88f, 0.60f, 0.28f, 1f);
+            Color berryPurple = new Color(0.58f, 0.26f, 0.76f, 1f);
+            Color ribbonCoral = new Color(0.94f, 0.40f, 0.46f, 1f);
+            Color flowerPink = new Color(1f, 0.52f, 0.70f, 1f);
+            Color flowerYellow = new Color(1f, 0.88f, 0.26f, 1f);
+            Color flowerBlue = new Color(0.48f, 0.80f, 1f, 1f);
+
+            // 1. Quitutes aparecendo na borda da cesta (maçã vermelha brilhante, pãozinho dourado, potinho de mel e amoras)
+            // Pãozinho / croissant artesanal à esquerda da borda
+            DrawSpriteCircle(tex, 32, 56, 11, ink);
+            DrawSpriteCircle(tex, 32, 56, 9, breadWarm);
+            DrawSpriteCircle(tex, 30, 58, 5, new Color(0.96f, 0.76f, 0.44f, 1f));
+
+            // Maçã vermelha lustrosa com cabinho e folha verde
+            DrawSpriteCircle(tex, 48, 58, 12, ink);
+            DrawSpriteCircle(tex, 48, 58, 10, appleRed);
+            DrawSpriteCircle(tex, 45, 61, 3, appleHigh);
+            FillSpriteRect(tex, 47, 68, 50, 74, ink);
+            DrawSpriteCircle(tex, 53, 71, 4, leafLight);
+
+            // Potinho de mel dourado com tampa creme na direita
+            FillSpriteRect(tex, 72, 48, 92, 66, ink);
+            FillSpriteRect(tex, 74, 50, 90, 63, honeyGold);
+            FillSpriteRect(tex, 71, 63, 93, 69, ink);
+            FillSpriteRect(tex, 73, 64, 91, 68, new Color(0.98f, 0.94f, 0.82f, 1f));
+
+            // Cacho de frutinhas silvestres roxas
+            int[] bx = { 61, 67, 64 };
+            int[] by = { 54, 55, 60 };
+            for (int i = 0; i < bx.Length; i++)
+            {
+                DrawSpriteCircle(tex, bx[i], by[i], 6, ink);
+                DrawSpriteCircle(tex, bx[i], by[i], 4, berryPurple);
+            }
+
+            // 2. Guirlanda de hera e flores silvestres trançada na frente da cesta de vime (y = 28..46)
+            for (int i = 0; i < 7; i++)
+            {
+                int lx = 24 + i * 12;
+                int ly = 36 - Mathf.RoundToInt(Mathf.Sin((i / 6f) * Mathf.PI) * 6f);
+                DrawSpriteCircle(tex, lx, ly, 8, ink);
+                DrawSpriteCircle(tex, lx, ly, 6, (i % 2 == 0) ? leafDark : leafLight);
+            }
+
+            // Flores coloridas ao longo da guirlanda da cesta
+            int[] fx = { 28, 46, 64, 82 };
+            int[] fy = { 36, 31, 31, 35 };
+            Color[] fCols = { flowerPink, flowerYellow, flowerBlue, flowerPink };
+            for (int i = 0; i < fx.Length; i++)
+            {
+                DrawSpriteCircle(tex, fx[i], fy[i], 8, ink);
+                DrawSpriteCircle(tex, fx[i], fy[i], 6, fCols[i]);
+                DrawSpriteCircle(tex, fx[i], fy[i], 2, Color.white);
+            }
+
+            // Laço coral charmoso na lateral da cesta
+            DrawSpriteCircle(tex, 92, 38, 8, ink);
+            DrawSpriteCircle(tex, 92, 38, 6, ribbonCoral);
+            FillSpriteRect(tex, 88, 22, 93, 34, ink);
+            FillSpriteRect(tex, 89, 24, 92, 33, ribbonCoral);
+            FillSpriteRect(tex, 93, 22, 98, 34, ink);
+            FillSpriteRect(tex, 94, 24, 97, 33, ribbonCoral);
+
+            tex.Apply();
+            cachedBasketDecorSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 125f);
+            return cachedBasketDecorSprite;
+        }
+
+        /// <summary>
+        /// Menina explorando a pé em alta resolução (160x220, 100 PPU) no mesmo estilo Cozy Storybook
+        /// de girl_bike.png (capacete azul-turquesa, blusa listrada coral/creme, calça jeans, tênis rosa e contorno #3B1C14).
+        /// </summary>
         private static Sprite BuildWalkingGirlSprite()
         {
-            Texture2D tex = new Texture2D(32, 48, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            Color skin = new Color(0.88f, 0.62f, 0.42f, 1f);
-            Color hair = new Color(0.28f, 0.16f, 0.10f, 1f);
-            Color shirt = new Color(0.90f, 0.40f, 0.55f, 1f);
-            Color shorts = new Color(0.22f, 0.40f, 0.58f, 1f);
-            Color shoe = new Color(0.32f, 0.22f, 0.18f, 1f);
-            Color clear = new Color(0f, 0f, 0f, 0f);
-            for (int y = 0; y < 48; y++) for (int x = 0; x < 32; x++) tex.SetPixel(x, y, clear);
-            FillSpriteRect(tex, 11, 34, 21, 44, hair);
-            FillSpriteRect(tex, 12, 35, 20, 43, skin);
-            FillSpriteRect(tex, 11, 41, 21, 45, hair);
-            FillSpriteRect(tex, 9, 22, 23, 35, shirt);
-            FillSpriteRect(tex, 6, 25, 10, 34, skin);
-            FillSpriteRect(tex, 22, 24, 26, 33, skin);
-            FillSpriteRect(tex, 10, 13, 22, 23, shorts);
-            FillSpriteRect(tex, 11, 4, 15, 14, shorts);
-            FillSpriteRect(tex, 17, 4, 21, 14, shorts);
-            FillSpriteRect(tex, 9, 1, 16, 4, shoe);
-            FillSpriteRect(tex, 16, 1, 23, 4, shoe);
+            int w = 160, h = 220;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            Color[] clear = new Color[w * h];
+            for (int i = 0; i < clear.Length; i++) clear[i] = Color.clear;
+            tex.SetPixels(clear);
+
+            Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
+            Color skin = new Color(0.98f, 0.78f, 0.64f, 1f);
+            Color blush = new Color(0.96f, 0.56f, 0.54f, 1f);
+            Color hairDark = new Color(0.54f, 0.31f, 0.16f, 1f);
+            Color hairMid = new Color(0.72f, 0.45f, 0.24f, 1f);
+            Color helmetTeal = new Color(0.38f, 0.78f, 0.84f, 1f);
+            Color helmetLight = new Color(0.62f, 0.90f, 0.94f, 1f);
+            Color shirtCoral = new Color(0.94f, 0.48f, 0.36f, 1f);
+            Color shirtCream = new Color(0.99f, 0.94f, 0.84f, 1f);
+            Color jeansDark = new Color(0.26f, 0.46f, 0.68f, 1f);
+            Color jeansMid = new Color(0.36f, 0.58f, 0.80f, 1f);
+            Color shoePink = new Color(0.94f, 0.52f, 0.66f, 1f);
+
+            int cx = 80;
+
+            // 1. Tênis rosa e branco com contorno #3B1C14
+            FillSpriteRect(tex, cx - 22, 4, cx - 2, 18, ink);
+            FillSpriteRect(tex, cx - 19, 7, cx - 4, 15, shoePink);
+            FillSpriteRect(tex, cx - 20, 5, cx - 3, 8, Color.white);
+
+            FillSpriteRect(tex, cx + 2, 4, cx + 24, 18, ink);
+            FillSpriteRect(tex, cx + 4, 7, cx + 21, 15, shoePink);
+            FillSpriteRect(tex, cx + 3, 5, cx + 22, 8, Color.white);
+
+            // 2. Calça jeans azul
+            FillSpriteRect(tex, cx - 18, 18, cx - 3, 74, ink);
+            FillSpriteRect(tex, cx - 15, 20, cx - 6, 72, jeansDark);
+            FillSpriteRect(tex, cx + 3, 18, cx + 18, 74, ink);
+            FillSpriteRect(tex, cx + 6, 20, cx + 15, 72, jeansMid);
+            FillSpriteRect(tex, cx - 18, 62, cx + 18, 82, ink);
+            FillSpriteRect(tex, cx - 15, 65, cx + 15, 79, jeansMid);
+
+            // 3. Camiseta listrada coral e creme (idêntica a girl_bike.png)
+            FillSpriteRect(tex, cx - 20, 78, cx + 20, 132, ink);
+            for (int y = 81; y < 129; y++)
+            {
+                Color sc = (((y - 81) / 7) % 2 == 0) ? shirtCoral : shirtCream;
+                FillSpriteRect(tex, cx - 17, y, cx + 17, y + 1, sc);
+            }
+
+            // Braços simpáticos ao lado do corpo
+            FillSpriteRect(tex, cx - 28, 84, cx - 17, 122, ink);
+            FillSpriteRect(tex, cx - 25, 87, cx - 19, 114, skin);
+            FillSpriteRect(tex, cx + 17, 84, cx + 28, 122, ink);
+            FillSpriteRect(tex, cx + 19, 87, cx + 25, 114, skin);
+
+            // 4. Cabelo castanho esvoaçante + rosto sorridente
+            DrawSpriteCircle(tex, cx - 18, 138, 18, ink);
+            DrawSpriteCircle(tex, cx - 18, 138, 15, hairDark);
+            DrawSpriteCircle(tex, cx - 26, 128, 13, ink);
+            DrawSpriteCircle(tex, cx - 26, 128, 10, hairMid);
+
+            DrawSpriteCircle(tex, cx, 152, 24, ink);
+            DrawSpriteCircle(tex, cx, 152, 21, skin);
+            DrawSpriteCircle(tex, cx + 8, 146, 4, blush);
+            DrawSpriteCircle(tex, cx + 10, 154, 3, ink); // Olho brilhante
+            DrawSpriteCircle(tex, cx + 11, 155, 1, Color.white);
+            FillSpriteRect(tex, cx + 6, 140, cx + 14, 143, ink); // Sorriso
+
+            // 5. Capacete azul-turquesa arredondado com faixa branca
+            for (int y = 156; y <= 186; y++)
+            {
+                int halfW = Mathf.RoundToInt(Mathf.Sqrt(Mathf.Max(0f, 28f * 28f - (y - 156f) * (y - 156f))));
+                FillSpriteRect(tex, cx - halfW - 3, y, cx + halfW + 3, y + 1, ink);
+                FillSpriteRect(tex, cx - halfW, y, cx + halfW, y + 1, y > 172 ? helmetLight : helmetTeal);
+            }
+            FillSpriteRect(tex, cx - 28, 155, cx + 29, 161, ink);
+            FillSpriteRect(tex, cx - 25, 157, cx + 26, 159, Color.white);
+
             tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, 32, 48), new Vector2(0.5f, 0f), 24f);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 4f / (float)h), 92f);
         }
 
+        /// <summary>
+        /// Bicicleta rosa estacionada com o cachorrinho aguardando na cesta florida (220x150, 95 PPU).
+        /// </summary>
         private static Sprite BuildParkedBikeSprite()
         {
-            Texture2D tex = new Texture2D(64, 32, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            Color clear = new Color(0f, 0f, 0f, 0f);
-            Color frame = new Color(0.30f, 0.58f, 0.42f, 1f);
-            Color tire = new Color(0.16f, 0.17f, 0.15f, 1f);
-            for (int y = 0; y < 32; y++) for (int x = 0; x < 64; x++) tex.SetPixel(x, y, clear);
-            DrawSpriteCircle(tex, 13, 10, 8, tire);
-            DrawSpriteCircle(tex, 51, 10, 8, tire);
-            FillSpriteRect(tex, 12, 9, 14, 11, frame);
-            FillSpriteRect(tex, 13, 10, 33, 12, frame);
-            FillSpriteRect(tex, 24, 10, 27, 24, frame);
-            FillSpriteRect(tex, 26, 21, 38, 23, frame);
-            FillSpriteRect(tex, 36, 10, 52, 12, frame);
-            FillSpriteRect(tex, 33, 21, 36, 23, frame);
-            FillSpriteRect(tex, 24, 24, 32, 26, tire);
-            FillSpriteRect(tex, 37, 21, 42, 23, tire);
+            int w = 220, h = 150;
+            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Bilinear;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            Color[] clear = new Color[w * h];
+            for (int i = 0; i < clear.Length; i++) clear[i] = Color.clear;
+            tex.SetPixels(clear);
+
+            Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
+            Color tire = new Color(0.20f, 0.18f, 0.18f, 1f);
+            Color rim = new Color(0.94f, 0.92f, 0.88f, 1f);
+            Color framePink = new Color(0.95f, 0.64f, 0.72f, 1f);
+            Color basketWicker = new Color(0.82f, 0.56f, 0.28f, 1f);
+            Color puppyFur = new Color(0.90f, 0.68f, 0.42f, 1f);
+
+            // Rodas traseira e dianteira com aros claros
+            int[] wx = { 54, 162 };
+            for (int i = 0; i < wx.Length; i++)
+            {
+                DrawSpriteCircle(tex, wx[i], 36, 30, ink);
+                DrawSpriteCircle(tex, wx[i], 36, 27, tire);
+                DrawSpriteCircle(tex, wx[i], 36, 21, rim);
+                DrawSpriteCircle(tex, wx[i], 36, 17, Color.clear);
+                DrawSpriteCircle(tex, wx[i], 36, 5, ink);
+            }
+
+            // Quadro rosa pastel com contorno escuro
+            FillSpriteRect(tex, 54, 34, 112, 42, ink);
+            FillSpriteRect(tex, 56, 36, 110, 40, framePink);
+            FillSpriteRect(tex, 92, 36, 102, 86, ink);
+            FillSpriteRect(tex, 94, 38, 100, 84, framePink);
+            FillSpriteRect(tex, 96, 56, 156, 64, ink);
+            FillSpriteRect(tex, 98, 58, 154, 62, framePink);
+            FillSpriteRect(tex, 150, 36, 160, 102, ink);
+            FillSpriteRect(tex, 152, 38, 158, 100, framePink);
+
+            // Selim marrom e guidão
+            FillSpriteRect(tex, 82, 84, 108, 94, ink);
+            FillSpriteRect(tex, 84, 86, 106, 92, basketWicker);
+            FillSpriteRect(tex, 142, 98, 162, 106, ink);
+
+            // Cesta de vime dianteira com o cachorrinho e flores
+            FillSpriteRect(tex, 156, 68, 190, 96, ink);
+            FillSpriteRect(tex, 159, 71, 187, 93, basketWicker);
+            DrawSpriteCircle(tex, 173, 104, 13, ink);
+            DrawSpriteCircle(tex, 173, 104, 10, puppyFur);
+            DrawSpriteCircle(tex, 177, 106, 2, ink); // Olhinho do cachorrinho
+            DrawSpriteCircle(tex, 164, 92, 5, new Color(1f, 0.48f, 0.66f, 1f));
+            DrawSpriteCircle(tex, 182, 92, 5, new Color(1f, 0.88f, 0.26f, 1f));
+
             tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, 64, 32), new Vector2(0.5f, 0f), 24f);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 6f / (float)h), 88f);
         }
 
         private static void FillSpriteRect(Texture2D tex, int x1, int y1, int x2, int y2, Color color)
@@ -418,7 +638,14 @@ namespace FlorestaBicicleta
             float walkRange = 7f + explorationLevel;
             pos.x = isOnFoot ? Mathf.Clamp(nextX, parkedBikeX - walkRange, parkedBikeX + walkRange)
                 : (infiniteRoad ? Mathf.Max(minX, nextX) : Mathf.Clamp(nextX, minX, maxX));
-            pos.y = baseGroundY + jumpHeight;
+
+            // Elevação física real ao atravessar a Ponte de Madeira arqueada ou a Subida/Descida das Montanhas
+            currentTrackElevation = trackGeneratorRef != null
+                ? trackGeneratorRef.GetTrackElevationAtX(pos.x, out currentTrackPitchDeg)
+                : 0f;
+            if (trackGeneratorRef == null) currentTrackPitchDeg = 0f;
+
+            pos.y = baseGroundY + currentTrackElevation + jumpHeight;
             if ((pos.x <= minX && currentSpeed < 0f) || (!infiniteRoad && pos.x >= maxX && currentSpeed > 0f))
                 currentSpeed = 0f;
             transform.position = pos;
@@ -428,6 +655,12 @@ namespace FlorestaBicicleta
             // Vira o sprite se estiver voltando pela estrada
             if (currentSpeed > 0.25f || moveX > 0.1f) { facingDir = 1f; if (bikeSR != null) bikeSR.flipX = false; }
             else if (currentSpeed < -0.25f || moveX < -0.1f) { facingDir = -1f; if (bikeSR != null) bikeSR.flipX = true; }
+
+            if (basketDecorSR != null)
+            {
+                basketDecorSR.flipX = facingDir < 0f;
+                basketDecorSR.transform.localPosition = new Vector3(0.52f * facingDir, 1.05f, 0f);
+            }
 
             // Sede do cachorrinho + som ofegante quando água está baixa
             float drain = Mathf.Abs(currentSpeed) > 0.2f ? (Mathf.Abs(currentSpeed) > 5f ? 1.45f : 0.95f) : 0.25f;
@@ -442,7 +675,29 @@ namespace FlorestaBicicleta
             if (walkingGirlSR != null)
             {
                 walkingGirlSR.flipX = facingDir < 0f;
-                walkingGirlSR.transform.localPosition = new Vector3(0f, 0.72f + (Mathf.Abs(moveX) > 0.1f ? Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.06f : 0f), 0f);
+                walkingGirlSR.transform.localPosition = new Vector3(0f, 0.02f + (Mathf.Abs(moveX) > 0.1f ? Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.06f : 0f), 0f);
+            }
+            if (walkingPuppySR != null)
+            {
+                walkingPuppySR.flipX = facingDir < 0f;
+                bool isMovingFoot = Mathf.Abs(moveX) > 0.1f;
+                float puppyHop = isMovingFoot
+                    ? Mathf.Abs(Mathf.Sin(Time.time * 13f)) * 0.14f
+                    : Mathf.Abs(Mathf.Sin(Time.time * 5.5f)) * 0.06f;
+                float puppySwayX = 0.88f * facingDir + Mathf.Sin(Time.time * 4.2f) * 0.10f;
+                walkingPuppySR.transform.localPosition = new Vector3(puppySwayX, 0.04f + puppyHop, 0f);
+
+                if (Time.time >= nextPuppyFootHeartTime)
+                {
+                    nextPuppyFootHeartTime = Time.time + (isMovingFoot ? 1.4f : 2.4f);
+                    GameObject heartObj = new GameObject("CoracaoCachorrinhoAPe");
+                    heartObj.transform.position = walkingPuppySR.transform.position + new Vector3(0f, 0.65f, 0f);
+                    heartObj.transform.localScale = new Vector3(0.45f, 0.45f, 1f);
+                    SpriteRenderer hsr = heartObj.AddComponent<SpriteRenderer>();
+                    hsr.sprite = FlorestaSpriteFactory.CreateHeartIconSprite();
+                    hsr.sortingOrder = 16;
+                    heartObj.AddComponent<FallingParticle>().Init(new Vector3(Random.Range(-0.25f, 0.25f), 0.9f, 0f), -0.3f, 0.95f);
+                }
             }
 
             if (actionPressed)
@@ -508,6 +763,7 @@ namespace FlorestaBicicleta
         {
             if (visualRoot == null) return;
             float absSpd = Mathf.Abs(currentSpeed);
+            float combinedSlopeDeg = Mathf.Abs(currentTrackPitchDeg) > 0.1f ? currentTrackPitchDeg : slopeTiltDeg;
             if (jumpHeight > 0.05f)
             {
                 // Inclina o nariz da bicicleta suavemente no ar durante o salto
@@ -519,14 +775,14 @@ namespace FlorestaBicicleta
             {
                 float freq = absSpd > 4.5f ? 14f : 7.5f;
                 float bob = Mathf.Abs(Mathf.Sin(Time.time * freq)) * 0.08f;
-                float tilt = slopeTiltDeg * facingDir - Mathf.Clamp(currentSpeed / fastSpeed, -1f, 1f) * 2.5f;
+                float tilt = combinedSlopeDeg * facingDir - Mathf.Clamp(currentSpeed / fastSpeed, -1f, 1f) * 2.0f;
                 visualRoot.localPosition = new Vector3(0f, bob, 0f);
                 visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.Euler(0f, 0f, tilt), 8f * Time.deltaTime);
             }
             else
             {
                 visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, Vector3.zero, 10f * Time.deltaTime);
-                visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.Euler(0f, 0f, slopeTiltDeg * facingDir), 8f * Time.deltaTime);
+                visualRoot.localRotation = Quaternion.Lerp(visualRoot.localRotation, Quaternion.Euler(0f, 0f, combinedSlopeDeg * facingDir), 8f * Time.deltaTime);
             }
         }
 
@@ -737,6 +993,10 @@ namespace FlorestaBicicleta
             if (other.GetComponent<KitchenStation>() != null)
             {
                 isNearKitchen = true;
+                if (GameObject.Find("VerticalSliceValidator") == null && foodBasket.Count < maxBasketSize)
+                {
+                    AutoRestockBasketAtKitchen();
+                }
                 return;
             }
 
@@ -864,6 +1124,76 @@ namespace FlorestaBicicleta
                 );
             }
             onWaterRefilled?.Invoke();
+        }
+
+        /// <summary>
+        /// Reabastece automaticamente as vagas disponíveis da cesta ao passar pela Barraca da Cozinha,
+        /// priorizando os pedidos dos animais e moradores próximos para que o jogador nunca fique travado com a cesta vazia.
+        /// </summary>
+        public void AutoRestockBasketAtKitchen()
+        {
+            int added = 0;
+            if (trackGeneratorRef != null)
+            {
+                var animals = trackGeneratorRef.ActiveAnimals;
+                for (int i = 0; i < animals.Count && foodBasket.Count < maxBasketSize; i++)
+                {
+                    ForestAnimal a = animals[i];
+                    if (a != null && !a.isFullySatisfied && Mathf.Abs(a.transform.position.x - transform.position.x) < 35f)
+                    {
+                        if (!foodBasket.Contains(a.wantedFood))
+                        {
+                            foodBasket.Add(a.wantedFood);
+                            added++;
+                        }
+                    }
+                }
+
+                var residents = trackGeneratorRef.ActiveResidents;
+                for (int i = 0; i < residents.Count && foodBasket.Count < maxBasketSize; i++)
+                {
+                    VillageResident r = residents[i];
+                    if (r != null && !r.isHelped && Mathf.Abs(r.transform.position.x - transform.position.x) < 35f)
+                    {
+                        if (!foodBasket.Contains(r.wantedFood))
+                        {
+                            foodBasket.Add(r.wantedFood);
+                            added++;
+                        }
+                    }
+                }
+            }
+
+            FoodType[] staples =
+            {
+                FoodType.Nozes,
+                FoodType.Cenoura,
+                FoodType.Maca,
+                FoodType.Mel,
+                FoodType.Sementes,
+                FoodType.FrutasSilvestres,
+                FoodType.Suco,
+                FoodType.Pao
+            };
+            for (int i = 0; i < staples.Length && foodBasket.Count < maxBasketSize; i++)
+            {
+                if (!foodBasket.Contains(staples[i]))
+                {
+                    foodBasket.Add(staples[i]);
+                    added++;
+                }
+            }
+            for (int i = 0; foodBasket.Count < maxBasketSize; i++)
+            {
+                foodBasket.Add(staples[i % staples.Length]);
+                added++;
+            }
+
+            if (added > 0)
+            {
+                FlorestaSoundFX.Instance?.PlayHappy();
+                onInfoMessage?.Invoke("Cesta reabastecida na Barraca da Cozinha! Toque em 'Cozinha do Bosque' se quiser escolher receitas!");
+            }
         }
     }
 }

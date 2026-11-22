@@ -1250,17 +1250,14 @@ namespace FlorestaBicicleta
                 waterLabel.color = wPct < 25 ? new Color(1f, 0.50f, 0.48f, 1f) : new Color(0.76f, 0.96f, 1f, 1f);
             }
 
-            if (!player.isNearKitchen)
+            if (GameObject.Find("VerticalSliceValidator") != null)
             {
-                kitchenManuallyClosed = GameObject.Find("VerticalSliceValidator") == null;
+                if (player.isNearKitchen) kitchenManuallyClosed = false;
+                else kitchenManuallyClosed = true;
             }
-            else if (GameObject.Find("VerticalSliceValidator") != null)
-            {
-                kitchenManuallyClosed = false;
-            }
-            bool showFullKitchen = player.isNearKitchen && !kitchenManuallyClosed;
+            bool showFullKitchen = !kitchenManuallyClosed;
             if (kitchenPanel != null) kitchenPanel.SetActive(showFullKitchen);
-            if (openKitchenButtonObj != null) openKitchenButtonObj.SetActive(player.isNearKitchen && kitchenManuallyClosed);
+            if (openKitchenButtonObj != null) openKitchenButtonObj.SetActive(!showFullKitchen);
             bool saladUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.SaladaFrutasBosque);
             bool moonBasketUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.CestaDaLua);
             bool tartUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.TortinhaDeMaca);
@@ -1273,7 +1270,7 @@ namespace FlorestaBicicleta
             if (moonBasketRecipeLabel != null) moonBasketRecipeLabel.text = moonBasketUnlocked ? "Cesta Lua" : "Cesta Lua (8)";
             if (tartRecipeLabel != null) tartRecipeLabel.text = tartUnlocked ? "Tortinha" : "Tortinha (3)";
             if (jamRecipeLabel != null) jamRecipeLabel.text = jamUnlocked ? "Geleia" : "Geleia (5)";
-            if ((!player.isNearKitchen || kitchenManuallyClosed) && miniPrepPanel != null && miniPrepPanel.IsOpen)
+            if (kitchenManuallyClosed && miniPrepPanel != null && miniPrepPanel.IsOpen)
                 miniPrepPanel.Close();
 
             if (digButtonObj != null && digSite != null)
@@ -1295,14 +1292,14 @@ namespace FlorestaBicicleta
 
             if (player != null)
             {
-                bool isExplorationEvent = nearbyAdventureEvent != null && nearbyAdventureEvent.AllowsOnFootExploration;
-                player.canDismountAtNearbyEvent = isExplorationEvent;
+                bool isExplorationEvent = nearbyAdventureEvent != null && !nearbyAdventureEvent.isCompleted && nearbyAdventureEvent.AllowsOnFootExploration;
+                player.canDismountAtNearbyEvent = true;
                 if (exploreModeButtonObj != null)
                 {
-                    bool showExplore = player.isOnFoot || (isExplorationEvent && Mathf.Abs(player.currentSpeed) < 0.25f);
+                    bool showExplore = player.isOnFoot || isExplorationEvent;
                     exploreModeButtonObj.SetActive(showExplore);
                     if (showExplore && exploreModeButtonLabel != null)
-                        exploreModeButtonLabel.text = player.isOnFoot ? "Voltar à bicicleta" : "Descer e explorar (Q)";
+                        exploreModeButtonLabel.text = player.isOnFoot ? "Voltar à bicicleta (Q)" : "Descer e explorar (Q)";
                 }
             }
 

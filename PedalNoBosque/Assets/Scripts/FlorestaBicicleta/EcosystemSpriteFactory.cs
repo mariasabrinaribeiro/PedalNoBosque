@@ -14,6 +14,8 @@ namespace FlorestaBicicleta
         private static readonly Dictionary<ParkSpriteFactory.AnimalKind, Sprite> spriteCache =
             new Dictionary<ParkSpriteFactory.AnimalKind, Sprite>();
 
+        public static Sprite GetAnimalSprite(ParkSpriteFactory.AnimalKind kind) => LoadOrCreateAnimalSprite(kind);
+
         public static Sprite LoadOrCreateAnimalSprite(ParkSpriteFactory.AnimalKind kind)
         {
             if (spriteCache.TryGetValue(kind, out Sprite cached) && cached != null)

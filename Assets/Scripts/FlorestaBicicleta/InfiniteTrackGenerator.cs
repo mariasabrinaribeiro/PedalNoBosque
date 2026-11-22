@@ -108,6 +108,46 @@ namespace FlorestaBicicleta
             return activeSegments.Count > 0 ? activeSegments[0].biome : BiomeType.CampoFlorido;
         }
 
+        /// <summary>
+        /// Retorna a elevação vertical da trilha (em metros/unidades de mundo acima do nível base da estrada)
+        /// e a inclinação visual da bicicleta (em graus) ao atravessar a Ponte de Madeira ou a Subida/Descida das Montanhas.
+        /// </summary>
+        public float GetTrackElevationAtX(float worldX, out float pitchAngleDeg)
+        {
+            pitchAngleDeg = 0f;
+            for (int i = 0; i < activeSegments.Count; i++)
+            {
+                TrackSegment seg = activeSegments[i];
+                if (worldX < seg.startX || worldX >= seg.endX) continue;
+
+                if (seg.biome == BiomeType.RegiaoDoRio)
+                {
+                    float bridgeCenterX = seg.startX + 22f;
+                    const float halfSpan = 4.25f;
+                    float dx = worldX - bridgeCenterX;
+                    if (Mathf.Abs(dx) <= halfSpan)
+                    {
+                        float t = (dx + halfSpan) / (2f * halfSpan);
+                        pitchAngleDeg = Mathf.Cos(t * Mathf.PI) * 7.5f;
+                        return Mathf.Sin(t * Mathf.PI) * 0.375f;
+                    }
+                }
+                else if (seg.biome == BiomeType.Colinas)
+                {
+                    float hillStart = seg.startX + 6f;
+                    float hillEnd = seg.startX + 30f;
+                    if (worldX >= hillStart && worldX <= hillEnd)
+                    {
+                        float t = (worldX - hillStart) / (hillEnd - hillStart);
+                        pitchAngleDeg = Mathf.Sin(t * 2f * Mathf.PI) * 11.5f;
+                        return 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI)) * 0.96f;
+                    }
+                }
+                break;
+            }
+            return 0f;
+        }
+
         public static string GetBiomeDisplayName(BiomeType biome)
         {
             switch (biome)
@@ -487,18 +527,19 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Colinas verdes ao fundo
-            SpawnProp(p, BiomePropsFactory.CreateRollingHillSprite(), new Vector3(s + 12f, -2.3f, 0f), 1.35f, -5);
-            SpawnProp(p, BiomePropsFactory.CreateRollingHillSprite(), new Vector3(s + 34f, -2.3f, 0f), 1.55f, -5);
+            // Talude ilustrado da trilha de montanha (24m de extensão, de s+6 a s+30, subindo +0.96m no pico s+18)
+            SpawnProp(p, BiomePropsFactory.CreateMountainHillTrailSprite(), new Vector3(s + 18f, -3.49f, 0f), 1.0f, 1);
 
-            // Carvalho na encosta acima do meio-fio (sortOrder -4)
-            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 22f, -2.28f, 0f), 0.70f, -4, 1.1f);
+            // Carvalhos acompanhando a encosta elevada da montanha (sortOrder -4)
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 10f, -1.96f, 0f), 0.70f, -4, 1.1f);
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 26f, -1.96f, 0f), 0.68f, -4, 1.0f);
 
-            // Subida longa seguida de descida embalada + rampa de salto!
-            CreateSlope(p, SlopeZone.SlopeType.Subida, s + 10f, 10f);
-            CreateSlope(p, SlopeZone.SlopeType.Descida, s + 26f, 10f);
+            // Subida longa (s+6..s+18) seguida de descida embalada (s+18..s+30) + rampa de salto!
+            CreateSlope(p, SlopeZone.SlopeType.Subida, s + 12f, 12f);
+            CreateSlope(p, SlopeZone.SlopeType.Descida, s + 24f, 12f);
+            blocked.Add((s + 5f, s + 31f));
 
-            SpawnRampWithStars(p, s + 33f, blocked);
+            SpawnRampWithStars(p, s + 34f, blocked);
 
             ParkSpriteFactory.AnimalKind[] colinasPool =
             {
@@ -508,7 +549,7 @@ namespace FlorestaBicicleta
                 ParkSpriteFactory.AnimalKind.Passarinhos
             };
             ParkSpriteFactory.AnimalKind a1 = colinasPool[seg.index % colinasPool.Length];
-            SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 19f, blocked);
+            SpawnAnimal(seg, a1, GetAnimalName(a1), GetAnimalMeals(a1), s + 18.5f, blocked);
 
             // Água opcional no pé da colina
             if (segmentsSinceLastWater >= 1)
@@ -528,35 +569,35 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Conjunto integrado: Rio com correnteza + Ponte de Madeira alinhada ao leito da estrada
+            // Conjunto integrado: Rio sob a ponte + Ponte de Madeira arqueada calibrada no piso das rodas (-3.49f)
             float bridgeCenterX = s + 22f;
             GameObject riverGroup = new GameObject($"RioPonteIntegrada_{seg.index}");
             riverGroup.transform.SetParent(p, false);
-            riverGroup.transform.position = new Vector3(bridgeCenterX, -2.98f, 0f);
+            riverGroup.transform.position = new Vector3(bridgeCenterX, -3.49f, 0f);
 
-            // Água cristalina atravessando o leito da estrada sob a ponte
+            // Água cristalina contida sob o tablado da ponte (nunca sobe atrás do corrimão!)
             GameObject waterObj = new GameObject("AguaRio");
             waterObj.transform.SetParent(riverGroup.transform, false);
-            waterObj.transform.localPosition = new Vector3(0f, -0.05f, 0f);
+            waterObj.transform.localPosition = new Vector3(0f, -0.39f, 0f);
             SpriteRenderer waterSR = waterObj.AddComponent<SpriteRenderer>();
             waterSR.sprite = BiomePropsFactory.CreateRiverWaterSprite();
             waterSR.sortingOrder = 1;
 
-            // Camada de correnteza cintilante animada
+            // Camada de correnteza cintilante animada sob os pilares
             GameObject shimmerObj = new GameObject("CorrentezaBrilho");
             shimmerObj.transform.SetParent(riverGroup.transform, false);
-            shimmerObj.transform.localPosition = new Vector3(0f, -0.04f, 0f);
+            shimmerObj.transform.localPosition = new Vector3(0f, -0.37f, 0f);
             SpriteRenderer shimmerSR = shimmerObj.AddComponent<SpriteRenderer>();
             shimmerSR.sprite = BiomePropsFactory.CreateRiverShimmerSprite();
             shimmerSR.sortingOrder = 2;
 
-            // Ponte de madeira proporcional, integrada ao nível da trilha
+            // Ponte de madeira proporcional: pivô nas extremidades em -3.49f e arco de +0.375m no centro
             GameObject bridgeObj = new GameObject("PonteMadeira");
             bridgeObj.transform.SetParent(riverGroup.transform, false);
-            bridgeObj.transform.localPosition = new Vector3(0f, 0.14f, 0f);
+            bridgeObj.transform.localPosition = Vector3.zero;
             SpriteRenderer bridgeSR = bridgeObj.AddComponent<SpriteRenderer>();
             bridgeSR.sprite = BiomePropsFactory.CreateWoodenBridgeSprite();
-            bridgeSR.sortingOrder = 4;
+            bridgeSR.sortingOrder = 3;
 
             // Carvalhos ilustrados nas margens atrás do meio-fio da estrada
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(bridgeCenterX - 8.2f, -2.28f, 0f), 0.72f, -4, 1.2f);
@@ -596,9 +637,9 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Arbustos densos de floresta
-            for (int i = 0; i < 5; i++)
-                SpawnProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 5f + i * 9.5f, -2.65f, 0f), Random.Range(0.95f, 1.25f), 2);
+            // Arbustos densos de floresta atrás do meio-fio (nunca na pista)
+            for (int i = 0; i < 4; i++)
+                SpawnProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 6f + i * 11.5f, -2.38f, 0f), Random.Range(0.85f, 1.05f), 1);
 
             // Carvalhos imponentes da mata atrás do meio-fio da trilha (sortOrder -4)
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 12f, -2.28f, 0f), 0.72f, -4, 1.1f);
@@ -634,33 +675,36 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Casinhas charmosas da vila ao fundo
-            SpawnProp(p, BiomePropsFactory.CreateVillageCottageSprite(seg.index), new Vector3(s + 11f, -2.50f, 0f), 1.1f, 1);
-            SpawnProp(p, BiomePropsFactory.CreateVillageCottageSprite(seg.index + 1), new Vector3(s + 29f, -2.50f, 0f), 1.05f, 1);
-            SpawnProp(p, BiomePropsFactory.CreateVillageCottageSprite(seg.index + 2), new Vector3(s + 42f, -2.50f, 0f), 1.0f, 1);
+            // Chalés enxaimel ilustrados espaçados harmoniosamente ao longo do meio-fio (-2.36f) sem sobrepor bebedouro ou barraca
+            SpawnProp(p, BiomePropsFactory.CreateVillageCottageSprite(seg.index), new Vector3(s + 7.5f, -2.36f, 0f), 1.0f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateVillageCottageSprite(seg.index + 1), new Vector3(s + 41.5f, -2.36f, 0f), 0.98f, 1);
 
-            // Postes com lanterna, varal de bandeirinhas festivas e bancos de praça
-            SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 6f, -2.55f, 0f), 0.95f, 3);
-            SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 16f, 0.35f, 0f), 1.15f, 4);
-            SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 32f, 0.35f, 0f), 1.15f, 4);
-            SpawnBench(p, s + 23f);
-            SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 38f, -2.55f, 0f), 0.95f, 3);
+            // Postes de ferro forjado com lanterna, guirlandas de bandeirolas e banco de praça
+            SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 3.2f, -2.40f, 0f), 1.0f, 2);
+            SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 21.0f, -2.40f, 0f), 1.0f, 2);
+            SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 36.8f, -2.40f, 0f), 1.0f, 2);
 
-            // Carvalho acolhedor da praça da vila atrás do meio-fio (sortOrder -4)
-            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 36f, -2.28f, 0f), 0.70f, -4, 1.1f);
+            SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 12.1f, 0.12f, 0f), 1.0f, 2);
+            SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 28.9f, 0.12f, 0f), 1.0f, 2);
 
-            // Barraca da Cozinha garantida na Vila dos Viajantes!
-            SpawnKitchenStation(p, s + 14f, blocked);
+            // Barraca da Cozinha garantida na Vila dos Viajantes (s + 15.5f)
+            SpawnKitchenStation(p, s + 15.5f, blocked);
             hasKitchen = true;
 
-            // Bebedouro na praça da vila
+            // Banco de praça na área central (s + 25.0f)
+            SpawnBench(p, s + 25.0f);
+
+            // Bebedouro na praça da vila (s + 31.8f, livre de qualquer chalé!)
             if (segmentsSinceLastWater >= 1)
             {
-                SpawnWaterColumn(p, s + 31f, blocked);
+                SpawnWaterColumn(p, s + 31.8f, blocked);
                 hasWater = true;
             }
 
-            // Moradores da Vila com Missões Aleatórias (Etapa 5)
+            // Carvalho acolhedor da praça da vila atrás do meio-fio (sortOrder -4)
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 28.5f, -2.28f, 0f), 0.70f, -4, 1.1f);
+
+            // Moradores da Vila com Missões Aleatórias posicionados ao lado do banco e na saída da praça (sem sobreposição!)
             VillageResident.ResidentKind[] residentPool =
             {
                 VillageResident.ResidentKind.Crianca,
@@ -672,11 +716,11 @@ namespace FlorestaBicicleta
             };
             VillageResident.ResidentKind r1 = residentPool[seg.index % residentPool.Length];
             VillageResident.ResidentKind r2 = residentPool[(seg.index + 2) % residentPool.Length];
-            SpawnResident(seg, r1, s + 22f, blocked);
-            SpawnResident(seg, r2, s + 36f, blocked);
+            SpawnResident(seg, r1, s + 20.2f, blocked);
+            SpawnResident(seg, r2, s + 35.0f, blocked);
 
             // Gato companheiro da vila
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 43f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 45.2f, blocked);
 
             // Evolução persistente da Vila dos Viajantes conforme as boas ações do jogador (Etapa 10)!
             int vLevel = (PlayerProgressManager.Instance != null && PlayerProgressManager.Instance.Data != null)
@@ -686,20 +730,18 @@ namespace FlorestaBicicleta
             if (vLevel >= 1)
             {
                 // Nível 1 (Vila Florida): canteiros floridos balançando na entrada e praça
-                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(0), new Vector3(s + 9f, -2.72f, 0f), 1.05f, 3, 3.2f);
-                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(1), new Vector3(s + 26f, -2.72f, 0f), 1.05f, 3, 3.2f);
+                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(0), new Vector3(s + 11.5f, -2.42f, 0f), 0.95f, 2, 3.2f);
+                SpawnSwayingProp(p, BiomePropsFactory.CreateFlowerPatchSprite(1), new Vector3(s + 28.2f, -2.42f, 0f), 0.95f, 2, 3.2f);
             }
             if (vLevel >= 2)
             {
-                // Nível 2 (Praça Festiva): bandeirinhas extras + animais da floresta visitando a vila!
-                SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 24f, 0.85f, 0f), 1.2f, 4);
-                SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo da Feira", 3, s + 19f, blocked);
+                // Nível 2 (Praça Festiva): animais da floresta visitando a vila!
+                SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo da Feira", 3, s + 11.8f, blocked);
             }
             if (vLevel >= 3)
             {
                 // Nível 3 (Vila Encantada): jardim luminoso especial + Filhote de Urso cuidando da horta!
-                SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 34f, -2.72f, 0f), 1.0f, 3, 2.8f);
-                SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Urso da Horta", 3, s + 45f, blocked);
+                SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 38.2f, -2.42f, 0f), 0.92f, 2, 2.8f);
             }
         }
 
@@ -773,9 +815,8 @@ namespace FlorestaBicicleta
         {
             GameObject obj = new GameObject(type == SlopeZone.SlopeType.Subida ? "ZonaSubida" : "ZonaDescida");
             obj.transform.SetParent(parent, false);
-            obj.transform.position = new Vector3(xCenter, -3.15f, 0f);
-            float angle = type == SlopeZone.SlopeType.Subida ? -72f : -108f;
-            obj.AddComponent<SlopeZone>().Setup(type, new Vector2(length, 2.2f), angle);
+            obj.transform.position = new Vector3(xCenter, -2.95f, 0f);
+            obj.AddComponent<SlopeZone>().SetupSideTrail(type, new Vector2(length, 3.8f));
         }
 
         private void SpawnRampWithStars(Transform parent, float rx, List<(float min, float max)> blocked)
@@ -836,9 +877,21 @@ namespace FlorestaBicicleta
             float xPos,
             List<(float min, float max)> blocked)
         {
+            float hillOffset = 0f;
+            if (seg.biome == BiomeType.Colinas)
+            {
+                float hillStart = seg.startX + 6f;
+                float hillEnd = seg.startX + 30f;
+                if (xPos >= hillStart && xPos <= hillEnd)
+                {
+                    float t = (xPos - hillStart) / (hillEnd - hillStart);
+                    hillOffset = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI)) * 0.96f;
+                }
+            }
+
             GameObject obj = new GameObject($"Animal_{displayName}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
-            obj.transform.position = new Vector3(xPos, -2.45f, 0f);
+            obj.transform.position = new Vector3(xPos, -2.42f + hillOffset, 0f);
 
             ForestAnimal a = obj.AddComponent<ForestAnimal>();
             a.Setup(kind, displayName, meals, foodSprites, happySp, crySp, tearSp, heartParticles);
@@ -859,7 +912,7 @@ namespace FlorestaBicicleta
         {
             GameObject obj = new GameObject($"Morador_{kind}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
-            obj.transform.position = new Vector3(xPos, -2.45f, 0f);
+            obj.transform.position = new Vector3(xPos, -2.42f, 0f);
 
             VillageResident r = obj.AddComponent<VillageResident>();
             BiomePropsFactory.AddContactShadow(obj.transform, new Vector3(0f, 0.01f, 0f), new Vector2(1.1f, 0.24f), 2);
@@ -1003,7 +1056,7 @@ namespace FlorestaBicicleta
             float ex = (seg.index == 0) ? startX + 27.5f : startX + 35f;
             GameObject evObj = new GameObject($"EventoAventura_{kind}_{seg.index}");
             evObj.transform.SetParent(seg.root.transform, false);
-            evObj.transform.position = new Vector3(ex, -2.65f, 0f);
+            evObj.transform.position = new Vector3(ex, -2.42f, 0f);
             TrailAdventureEvent ev = evObj.AddComponent<TrailAdventureEvent>();
             ev.Setup(kind);
             seg.events.Add(ev);
@@ -1034,7 +1087,7 @@ namespace FlorestaBicicleta
             float eventX = startX + 35f;
             GameObject eventObject = new GameObject($"HistoriaOurico_{pm.Data.hedgehogStoryStage + 1}_{seg.index}");
             eventObject.transform.SetParent(seg.root.transform, false);
-            eventObject.transform.position = new Vector3(eventX, -2.65f, 0f);
+            eventObject.transform.position = new Vector3(eventX, -2.42f, 0f);
             TrailAdventureEvent adventure = eventObject.AddComponent<TrailAdventureEvent>();
             adventure.Setup(storyKind);
             seg.events.Add(adventure);
@@ -1085,23 +1138,24 @@ namespace FlorestaBicicleta
         {
             GameObject signObj = new GameObject($"PlacaKm_{kmValue:F1}");
             signObj.transform.SetParent(parent, false);
-            signObj.transform.position = new Vector3(xPos, -2.55f, 0f);
+            signObj.transform.position = new Vector3(xPos, -2.40f, 0f);
 
             SpriteRenderer sr = signObj.AddComponent<SpriteRenderer>();
             sr.sprite = BiomePropsFactory.CreateDistanceSignSprite();
-            sr.sortingOrder = 4;
+            sr.sortingOrder = 3;
+            BiomePropsFactory.AddContactShadow(signObj.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.85f, 0.18f), 2);
 
             GameObject txtObj = new GameObject("KmLabel");
             txtObj.transform.SetParent(signObj.transform, false);
-            txtObj.transform.localPosition = new Vector3(0f, 1.62f, -0.05f);
+            txtObj.transform.localPosition = new Vector3(0f, 1.24f, -0.05f);
             TextMeshPro tmp = txtObj.AddComponent<TextMeshPro>();
-            tmp.rectTransform.sizeDelta = new Vector2(2.4f, 0.9f);
+            tmp.rectTransform.sizeDelta = new Vector2(2.2f, 0.8f);
             tmp.text = $"{kmValue:0.0} km";
-            tmp.fontSize = 3.8f;
+            tmp.fontSize = 3.2f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = new Color(0.22f, 0.12f, 0.04f, 1f);
-            tmp.sortingOrder = 5;
+            tmp.color = new Color(0.23f, 0.11f, 0.06f, 1f);
+            tmp.sortingOrder = 4;
         }
 
         private static string GetAnimalName(ParkSpriteFactory.AnimalKind kind)

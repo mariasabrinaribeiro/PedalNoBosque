@@ -28,5 +28,19 @@ namespace FlorestaTopDown
             col.isTrigger = true;
             col.size = new Vector2(3f, 3f);
         }
+
+        /// <summary>
+        /// Configuração limpa para a trilha lateral (FlorestaBicicleta) sem os feixes vermelhos/azuis do modo top-down.
+        /// </summary>
+        public void SetupSideTrail(SlopeType type, Vector2 size)
+        {
+            slopeType = type;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+
+            BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
+            col.isTrigger = true;
+            col.size = size;
+        }
     }
 }
