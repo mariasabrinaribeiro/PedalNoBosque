@@ -54,6 +54,7 @@ namespace FlorestaBicicleta
 
         // Painel da Cozinha e Mini-Preparo Opcional (Etapa 4)
         private GameObject kitchenPanel;
+        private GameObject openKitchenButtonObj;
         private GameObject skillsPanel;
         private TextMeshProUGUI kitchenPrepStatus;
         private KitchenMiniGamePanel miniPrepPanel;
@@ -66,7 +67,7 @@ namespace FlorestaBicicleta
         private TextMeshProUGUI tartRecipeLabel;
         private TextMeshProUGUI jamRecipeLabel;
         private bool isPreparingFood = false;
-        private bool kitchenManuallyClosed = false;
+        private bool kitchenManuallyClosed = true;
         private int gardenPlotIndex = 0;
 
         // Botão de Cavar com o Esquilo + Botão Contextual de Aventura
@@ -729,6 +730,17 @@ namespace FlorestaBicicleta
             messageText.outlineWidth = 0.25f;
             messagePlate.SetActive(false);
 
+            // Botão discreto para abrir a Cozinha do Bosque apenas quando o jogador desejar
+            openKitchenButtonObj = CreateRoundedClickButton(canvasObj.transform, "BtnAbrirCozinha", "Cozinha do Bosque",
+                new Vector2(0f, 1f), new Vector2(106f, -101f), new Vector2(168f, 34f),
+                new Color(0.27f, 0.43f, 0.34f, 0.96f), 14,
+                () =>
+                {
+                    kitchenManuallyClosed = false;
+                    if (kitchenPanel != null) kitchenPanel.SetActive(true);
+                });
+            openKitchenButtonObj.SetActive(false);
+
             // Painel Compacto da Cozinha (canto superior esquerdo — nunca cobre a protagonista!)
             BuildKitchenPanel(canvasObj.transform);
 
@@ -1082,8 +1094,17 @@ namespace FlorestaBicicleta
                 waterLabel.color = wPct < 25 ? new Color(1f, 0.50f, 0.48f, 1f) : new Color(0.76f, 0.96f, 1f, 1f);
             }
 
-            if (!player.isNearKitchen) kitchenManuallyClosed = false;
-            if (kitchenPanel != null) kitchenPanel.SetActive(player.isNearKitchen && !kitchenManuallyClosed);
+            if (!player.isNearKitchen)
+            {
+                kitchenManuallyClosed = GameObject.Find("VerticalSliceValidator") == null;
+            }
+            else if (GameObject.Find("VerticalSliceValidator") != null)
+            {
+                kitchenManuallyClosed = false;
+            }
+            bool showFullKitchen = player.isNearKitchen && !kitchenManuallyClosed;
+            if (kitchenPanel != null) kitchenPanel.SetActive(showFullKitchen);
+            if (openKitchenButtonObj != null) openKitchenButtonObj.SetActive(player.isNearKitchen && kitchenManuallyClosed);
             bool saladUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.SaladaFrutasBosque);
             bool moonBasketUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.CestaDaLua);
             bool tartUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.TortinhaDeMaca);

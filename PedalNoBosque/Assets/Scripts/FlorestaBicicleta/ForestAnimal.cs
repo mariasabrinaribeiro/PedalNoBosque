@@ -55,6 +55,7 @@ namespace FlorestaBicicleta
         private bool picnicAttracted = false;
         private float picnicAttractionTime = 0f;
         private float picnicTargetX = 0f;
+        private float bubbleBaseY = 1.55f;
 
         public void Setup(
             ParkSpriteFactory.AnimalKind animalKind,
@@ -82,16 +83,16 @@ namespace FlorestaBicicleta
             bodyRenderer.sprite = LoadSideAnimalSprite(kind);
             bodyRenderer.sortingOrder = 6;
 
-            // Sombra de contato suave para ancoragem realista no solo
-            BiomePropsFactory.AddContactShadow(transform, new Vector3(0f, 0.04f, 0f), new Vector2(0.85f, 0.22f), 5);
+            // Sombra de contato suave diretamente sob as patinhas
+            BiomePropsFactory.AddContactShadow(transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.88f, 0.20f), 5);
 
             GameObject iconObj = new GameObject("OrderBubble");
             iconObj.transform.SetParent(transform);
-            float bubbleY = (kind == ParkSpriteFactory.AnimalKind.Esquilo || kind == ParkSpriteFactory.AnimalKind.Coelho
+            bubbleBaseY = (kind == ParkSpriteFactory.AnimalKind.Esquilo || kind == ParkSpriteFactory.AnimalKind.Coelho
                 || kind == ParkSpriteFactory.AnimalKind.Ourico || kind == ParkSpriteFactory.AnimalKind.Sapo
-                || kind == ParkSpriteFactory.AnimalKind.Passarinhos) ? 1.42f : 2.1f;
-            iconObj.transform.localPosition = new Vector3(0f, bubbleY, 0f);
-            iconObj.transform.localScale = new Vector3(0.82f, 0.82f, 1f);
+                || kind == ParkSpriteFactory.AnimalKind.Passarinhos) ? 1.48f : 1.95f;
+            iconObj.transform.localPosition = new Vector3(0f, bubbleBaseY, 0f);
+            iconObj.transform.localScale = new Vector3(0.76f, 0.76f, 1f);
             statusIconTransform = iconObj.transform;
 
             statusIconRenderer = iconObj.AddComponent<SpriteRenderer>();
@@ -171,8 +172,8 @@ namespace FlorestaBicicleta
             if (statusIconTransform != null)
             {
                 float spd = (emotion == EmotionState.Empolgado || emotion == EmotionState.Comendo) ? 7.5f : 3.4f;
-                float amp = (emotion == EmotionState.Empolgado || emotion == EmotionState.Comendo) ? 0.16f : 0.10f;
-                statusIconTransform.localPosition = new Vector3(0f, 2.55f + Mathf.Sin(Time.time * spd + bobPhase) * amp, 0f);
+                float amp = (emotion == EmotionState.Empolgado || emotion == EmotionState.Comendo) ? 0.12f : 0.07f;
+                statusIconTransform.localPosition = new Vector3(0f, bubbleBaseY + Mathf.Sin(Time.time * spd + bobPhase) * amp, 0f);
             }
 
             // Lobo se acalma depois de alguns segundos quando a menina desacelera

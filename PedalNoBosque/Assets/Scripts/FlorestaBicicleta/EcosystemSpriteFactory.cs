@@ -27,7 +27,8 @@ namespace FlorestaBicicleta
                 Texture2D tex = Resources.Load<Texture2D>($"Floresta/{resourceName}");
                 if (tex != null)
                 {
-                    Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.05f), tex.height / targetHeight);
+                    Vector2 pivot = GetResourcePivot(kind);
+                    Sprite sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), pivot, tex.height / targetHeight);
                     spriteCache[kind] = sp;
                     return sp;
                 }
@@ -60,25 +61,40 @@ namespace FlorestaBicicleta
             }
         }
 
+        private static Vector2 GetResourcePivot(ParkSpriteFactory.AnimalKind kind)
+        {
+            switch (kind)
+            {
+                case ParkSpriteFactory.AnimalKind.Esquilo: return new Vector2(0.46f, 0.0947f);
+                case ParkSpriteFactory.AnimalKind.Coelho:  return new Vector2(0.52f, 0.1143f);
+                case ParkSpriteFactory.AnimalKind.Gato:    return new Vector2(0.53f, 0.0967f);
+                case ParkSpriteFactory.AnimalKind.Lobo:    return new Vector2(0.56f, 0.0771f);
+                case ParkSpriteFactory.AnimalKind.Quati:   return new Vector2(0.53f, 0.0928f);
+                case ParkSpriteFactory.AnimalKind.Raposa:  return new Vector2(0.55f, 0.1338f);
+                case ParkSpriteFactory.AnimalKind.Cervo:   return new Vector2(0.48f, 0.1553f);
+                default:                                   return new Vector2(0.50f, 0.0947f);
+            }
+        }
+
         private static float GetTargetWorldHeight(ParkSpriteFactory.AnimalKind kind)
         {
             switch (kind)
             {
-                case ParkSpriteFactory.AnimalKind.Esquilo:     return 1.15f;
-                case ParkSpriteFactory.AnimalKind.Coelho:      return 1.15f;
-                case ParkSpriteFactory.AnimalKind.Ourico:      return 1.05f;
-                case ParkSpriteFactory.AnimalKind.Sapo:        return 0.95f;
-                case ParkSpriteFactory.AnimalKind.Passarinhos: return 0.85f;
-                case ParkSpriteFactory.AnimalKind.Gato:        return 1.25f;
-                case ParkSpriteFactory.AnimalKind.Quati:       return 1.45f;
+                case ParkSpriteFactory.AnimalKind.Esquilo:       return 1.48f; // ~1.20m visível
+                case ParkSpriteFactory.AnimalKind.Coelho:        return 1.48f; // ~1.15m visível
+                case ParkSpriteFactory.AnimalKind.Ourico:        return 1.15f;
+                case ParkSpriteFactory.AnimalKind.Sapo:          return 1.05f;
+                case ParkSpriteFactory.AnimalKind.Passarinhos:   return 0.95f;
+                case ParkSpriteFactory.AnimalKind.Gato:          return 1.55f;
+                case ParkSpriteFactory.AnimalKind.Quati:         return 1.65f;
                 case ParkSpriteFactory.AnimalKind.Guaxinim:
-                case ParkSpriteFactory.AnimalKind.Castor:      return 1.55f;
-                case ParkSpriteFactory.AnimalKind.Raposa:      return 1.55f;
-                case ParkSpriteFactory.AnimalKind.CorujaNoturna: return 1.45f;
-                case ParkSpriteFactory.AnimalKind.FilhoteUrso: return 1.95f;
-                case ParkSpriteFactory.AnimalKind.Lobo:        return 2.1f;
-                case ParkSpriteFactory.AnimalKind.Cervo:       return 2.3f;
-                default:                                       return 1.35f;
+                case ParkSpriteFactory.AnimalKind.Castor:        return 1.60f;
+                case ParkSpriteFactory.AnimalKind.Raposa:        return 1.85f;
+                case ParkSpriteFactory.AnimalKind.CorujaNoturna: return 1.50f;
+                case ParkSpriteFactory.AnimalKind.FilhoteUrso:   return 2.00f;
+                case ParkSpriteFactory.AnimalKind.Lobo:          return 2.25f;
+                case ParkSpriteFactory.AnimalKind.Cervo:         return 2.75f; // ~1.80m visível
+                default:                                         return 1.48f;
             }
         }
 

@@ -56,17 +56,8 @@ namespace FlorestaBicicleta
                 return;
             }
 
-            bool hasRecipe = bike.foodBasket.Contains(FoodType.SaladaFrutasBosque)
-                          || bike.foodBasket.Contains(FoodType.CestaDaLua);
-            bool isRunning = remainingTime > 0f;
-            bool shouldShow = hasRecipe || isRunning;
-            if (picnicButton != null)
-            {
-                if (picnicButton.gameObject.activeSelf != shouldShow)
-                    picnicButton.gameObject.SetActive(shouldShow);
-                picnicButton.interactable = (Mathf.Abs(bike.currentSpeed) < 0.25f && hasRecipe) || isRunning;
-            }
-            if (buttonLabel != null) buttonLabel.text = hasRecipe ? "PIQUENIQUE" : "PIQUENIQUE (RECEITA)";
+            if (picnicButton != null && picnicButton.gameObject.activeSelf)
+                picnicButton.gameObject.SetActive(false);
         }
 
         private void StartPicnic()

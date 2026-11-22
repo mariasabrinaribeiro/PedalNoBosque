@@ -39,12 +39,8 @@ namespace FlorestaBicicleta
         {
             if (bike == null) return;
             SyncMode(false);
-            if (modeButton != null)
-            {
-                bool canShow = bike.isFaroMode || bike.isOnFoot || Mathf.Abs(bike.currentSpeed) < 1.2f;
-                if (modeButton.gameObject.activeSelf != canShow)
-                    modeButton.gameObject.SetActive(canShow);
-            }
+            if (modeButton != null && modeButton.gameObject.activeSelf)
+                modeButton.gameObject.SetActive(false);
             if (!bike.isFaroMode || Time.time < nextScanTime) return;
 
             nextScanTime = Time.time + 0.7f;
