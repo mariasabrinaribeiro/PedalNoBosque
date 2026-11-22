@@ -14,7 +14,13 @@ namespace FlorestaTopDown
         Cenoura,
         Maca,
         Mel,
-        Sementes
+        Sementes,
+        SaladaFrutasBosque,
+        CestaDaLua,
+        FrutasSilvestres,
+        Pao,
+        GeleiaSilvestre,
+        TortinhaDeMaca
     }
 
     public static class FoodInfo
@@ -35,13 +41,21 @@ namespace FlorestaTopDown
                 FoodType.Maca         => "Maçã",
                 FoodType.Mel          => "Mel",
                 FoodType.Sementes     => "Sementes",
+                FoodType.SaladaFrutasBosque => "Salada do Bosque",
+                FoodType.CestaDaLua => "Cesta da Lua",
+                FoodType.FrutasSilvestres => "Frutas silvestres",
+                FoodType.Pao => "Pão",
+                FoodType.GeleiaSilvestre => "Geleia silvestre",
+                FoodType.TortinhaDeMaca => "Tortinha de maçã",
                 _ => "Lanche"
             };
         }
 
         public static bool NeedsPreparation(FoodType type)
         {
-            return type == FoodType.Sanduiche || type == FoodType.HotDog;
+            return type == FoodType.Sanduiche || type == FoodType.HotDog
+                || type == FoodType.SaladaFrutasBosque || type == FoodType.CestaDaLua
+                || type == FoodType.GeleiaSilvestre || type == FoodType.TortinhaDeMaca;
         }
 
         public static bool IsNaturalFood(FoodType type)
@@ -50,7 +64,8 @@ namespace FlorestaTopDown
                 || type == FoodType.Cenoura
                 || type == FoodType.Maca
                 || type == FoodType.Mel
-                || type == FoodType.Sementes;
+                || type == FoodType.Sementes
+                || type == FoodType.FrutasSilvestres;
         }
     }
 }

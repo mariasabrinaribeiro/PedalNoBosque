@@ -110,18 +110,39 @@ namespace FlorestaBicicleta
 
             if (foodType == FoodType.Sanduiche)
             {
-                titleText.text = "MONTAR SANDUÍCHE (+60 pts)";
-                currentRecipe = new[] { "1. Pão", "2. Alface", "3. Queijo", "4. Tomate" };
+                titleText.text = "SANDUÍCHE DE MAÇÃ E MEL (+60 pts)";
+                currentRecipe = new[] { "1. Pão", "2. Maçã", "3. Mel" };
             }
-            else
+            else if (foodType == FoodType.HotDog)
             {
                 titleText.text = "MONTAR HOT DOG (+60 pts)";
                 currentRecipe = new[] { "1. Pão", "2. Salsicha", "3. Molho", "4. Mostarda" };
             }
 
+            if (foodType == FoodType.SaladaFrutasBosque)
+            {
+                titleText.text = "SALADA DO BOSQUE (+60 pts)";
+                currentRecipe = new[] { "1. Maca", "2. Cenoura", "3. Sementes", "4. Mel" };
+            }
+            else if (foodType == FoodType.CestaDaLua)
+            {
+                titleText.text = "CESTA DA LUA (+60 pts)";
+                currentRecipe = new[] { "1. Nozes", "2. Maca", "3. Sementes", "4. Mel" };
+            }
+            else if (foodType == FoodType.TortinhaDeMaca)
+            {
+                titleText.text = "TORTINHA DE MAÇÃ (+60 pts)";
+                currentRecipe = new[] { "1. Maçã", "2. Mel" };
+            }
+            else if (foodType == FoodType.GeleiaSilvestre)
+            {
+                titleText.text = "GELEIA DA FEIRA (+60 pts)";
+                currentRecipe = new[] { "1. Frutas silvestres", "2. Mel" };
+            }
+
             // Embaralha a posição dos 4 botões para ficar divertido de montar
-            for (int i = 0; i < 4; i++) shuffledToRecipeIndex[i] = i;
-            for (int i = 3; i > 0; i--)
+            for (int i = 0; i < currentRecipe.Length; i++) shuffledToRecipeIndex[i] = i;
+            for (int i = currentRecipe.Length - 1; i > 0; i--)
             {
                 int j = Random.Range(0, i + 1);
                 int tmp = shuffledToRecipeIndex[i];
@@ -131,6 +152,8 @@ namespace FlorestaBicicleta
 
             for (int i = 0; i < 4; i++)
             {
+                ingredientButtons[i].gameObject.SetActive(i < currentRecipe.Length);
+                if (i >= currentRecipe.Length) continue;
                 int recipeIdx = shuffledToRecipeIndex[i];
                 ingredientLabels[i].text = currentRecipe[recipeIdx];
                 ingredientButtons[i].interactable = true;
@@ -149,7 +172,7 @@ namespace FlorestaBicicleta
 
         private void OnClickIngredient(int slot)
         {
-            if (!isOpen) return;
+            if (!isOpen || slot < 0 || slot >= currentRecipe.Length) return;
             int chosenRecipeIdx = shuffledToRecipeIndex[slot];
 
             if (chosenRecipeIdx == currentStep)

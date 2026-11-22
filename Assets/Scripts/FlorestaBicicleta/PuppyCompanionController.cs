@@ -21,6 +21,8 @@ namespace FlorestaBicicleta
         private Sprite iconSniff;
         private Sprite iconSleep;
         private Sprite iconWater;
+        private Sprite iconEarsUp;
+        private bool isFaroMode;
 
         private float idleTime = 0f;
         private float timedMoodRemaining = 0f;
@@ -32,6 +34,7 @@ namespace FlorestaBicicleta
             iconWater = StorybookUISpriteFactory.GetIcon(StorybookUISpriteFactory.UIIconKind.WaterDrop);
             iconSniff = CreateSniffIconSprite();
             iconSleep = CreateSleepZzzSprite();
+            iconEarsUp = CreateEarsUpSprite();
 
             GameObject bubbleObj = new GameObject("HumorCachorrinho");
             bubbleObj.transform.SetParent(bike.transform, false);
@@ -56,6 +59,17 @@ namespace FlorestaBicicleta
             timedMoodRemaining = duration;
         }
 
+        public void SetFaroMode(bool active)
+        {
+            isFaroMode = active;
+            if (active) TriggerCurious(float.MaxValue);
+            else if (CurrentMood == PuppyMood.Curioso)
+            {
+                timedMoodRemaining = 0f;
+                CurrentMood = PuppyMood.Neutro;
+            }
+        }
+
         private void Update()
         {
             if (bike == null || moodBubbleSR == null) return;
@@ -74,7 +88,9 @@ namespace FlorestaBicicleta
 
             // Prioridade de estados emocionais do cachorrinho
             PuppyMood displayMood = CurrentMood;
-            if (displayMood == PuppyMood.Neutro)
+            if (isFaroMode)
+                displayMood = PuppyMood.Curioso;
+            else if (displayMood == PuppyMood.Neutro)
             {
                 if (bike.waterLevel < 25f) displayMood = PuppyMood.Sede;
                 else if (idleTime > 7.5f) displayMood = PuppyMood.Dormindo;
@@ -90,7 +106,7 @@ namespace FlorestaBicicleta
             switch (displayMood)
             {
                 case PuppyMood.Feliz:    moodBubbleSR.sprite = iconHeart; break;
-                case PuppyMood.Curioso:  moodBubbleSR.sprite = iconSniff; break;
+                case PuppyMood.Curioso:  moodBubbleSR.sprite = isFaroMode ? iconEarsUp : iconSniff; break;
                 case PuppyMood.Dormindo: moodBubbleSR.sprite = iconSleep; break;
                 case PuppyMood.Sede:     moodBubbleSR.sprite = iconWater; break;
             }
@@ -145,6 +161,33 @@ namespace FlorestaBicicleta
             for (int x = 15; x <= 33; x++) { tex.SetPixel(x, 33, zCol); tex.SetPixel(x, 32, zCol); tex.SetPixel(x, 15, zCol); tex.SetPixel(x, 14, zCol); }
             for (int i = 0; i <= 18; i++) { tex.SetPixel(15 + i, 15 + i, zCol); tex.SetPixel(16 + i, 15 + i, zCol); }
 
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 48f);
+        }
+
+        private static Sprite CreateEarsUpSprite()
+        {
+            const int s = 64;
+            Texture2D tex = Blank(s);
+            Color outer = new Color(0.43f, 0.25f, 0.15f, 1f);
+            Color inner = new Color(0.96f, 0.54f, 0.48f, 1f);
+            for (int y = 14; y < 55; y++)
+            {
+                float t = (y - 14f) / 41f;
+                int half = Mathf.RoundToInt(3f + t * 10f);
+                int leftCenter = Mathf.RoundToInt(19f - t * 2f);
+                int rightCenter = Mathf.RoundToInt(45f + t * 2f);
+                for (int x = leftCenter - half; x <= leftCenter + half; x++)
+                    if (x >= 0 && x < s) tex.SetPixel(x, y, outer);
+                for (int x = rightCenter - half; x <= rightCenter + half; x++)
+                    if (x >= 0 && x < s) tex.SetPixel(x, y, outer);
+
+                int innerHalf = Mathf.Max(1, half - 4);
+                for (int x = leftCenter - innerHalf; x <= leftCenter + innerHalf; x++)
+                    if (x >= 0 && x < s && y > 20) tex.SetPixel(x, y, inner);
+                for (int x = rightCenter - innerHalf; x <= rightCenter + innerHalf; x++)
+                    if (x >= 0 && x < s && y > 20) tex.SetPixel(x, y, inner);
+            }
             tex.Apply();
             return Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 48f);
         }

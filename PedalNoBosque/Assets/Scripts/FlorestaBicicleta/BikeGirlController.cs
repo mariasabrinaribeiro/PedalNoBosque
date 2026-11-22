@@ -369,6 +369,9 @@ namespace FlorestaBicicleta
             float thirstPenalty = waterLevel <= 1f ? 0.55f : 1f;
             float stumblePenalty = stumbleTimer > 0f ? 0.35f : 1f;
             float targetSpeed = baseTargetSpeed * slopeMultiplier * comboBoost * thirstPenalty * stumblePenalty;
+            int pedalingLevel = PlayerProgressManager.Instance != null
+                ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Pedalada) : 0;
+            if (slopeTiltDeg > 0f) targetSpeed *= 1f + pedalingLevel * 0.06f;
             if (isFaroMode || isOnFoot) targetSpeed = 0f;
 
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
@@ -392,7 +395,10 @@ namespace FlorestaBicicleta
                 && (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed));
             float moveX = isOnFoot ? ((footRight ? 1f : 0f) - (footLeft ? 1f : 0f)) * 2f : currentSpeed;
             float nextX = pos.x + moveX * Time.deltaTime;
-            pos.x = isOnFoot ? Mathf.Clamp(nextX, parkedBikeX - 7f, parkedBikeX + 7f)
+            int explorationLevel = PlayerProgressManager.Instance != null
+                ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Exploracao) : 0;
+            float walkRange = 7f + explorationLevel;
+            pos.x = isOnFoot ? Mathf.Clamp(nextX, parkedBikeX - walkRange, parkedBikeX + walkRange)
                 : (infiniteRoad ? Mathf.Max(minX, nextX) : Mathf.Clamp(nextX, minX, maxX));
             pos.y = baseGroundY + jumpHeight;
             if ((pos.x <= minX && currentSpeed < 0f) || (!infiniteRoad && pos.x >= maxX && currentSpeed > 0f))
@@ -758,16 +764,19 @@ namespace FlorestaBicicleta
                     if (obstacle.TryRewardJumpOver())
                     {
                         score += 15;
+                        PlayerProgressManager.Instance?.RecordSkillProgress(PlayerSkillKind.Equilibrio);
                         FlorestaSoundFX.Instance?.PlayStar();
                         onInfoMessage?.Invoke($"Belo salto sobre o(a) {obstacle.DisplayName}! +15 pts");
                     }
                 }
                 else if (obstacle.TryHit())
                 {
-                    stumbleTimer = 0.85f;
+                    int balanceLevel = PlayerProgressManager.Instance != null
+                        ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Equilibrio) : 0;
+                    stumbleTimer = 0.85f - balanceLevel * 0.12f;
                     currentSpeed *= 0.25f;
                     FlorestaSoundFX.Instance?.PlayBump();
-                    if (Mathf.Abs(currentSpeed) > 1.2f && foodBasket.Count > 1)
+                    if (balanceLevel < 3 && Mathf.Abs(currentSpeed) > 1.2f && foodBasket.Count > 1)
                     {
                         FoodType dropped = foodBasket[foodBasket.Count - 1];
                         foodBasket.RemoveAt(foodBasket.Count - 1);

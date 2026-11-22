@@ -52,6 +52,9 @@ namespace FlorestaBicicleta
         private float catHeartTimer = 0f;
         private Transform trackedPlayer;
         private bool isRestingBySchedule = false;
+        private bool picnicAttracted = false;
+        private float picnicAttractionTime = 0f;
+        private float picnicTargetX = 0f;
 
         public void Setup(
             ParkSpriteFactory.AnimalKind animalKind,
@@ -116,7 +119,7 @@ namespace FlorestaBicicleta
                 case ParkSpriteFactory.AnimalKind.Esquilo:
                     return new[] { FoodType.Nozes, FoodType.Sementes, FoodType.Pipoca };
                 case ParkSpriteFactory.AnimalKind.Coelho:
-                    return new[] { FoodType.Cenoura, FoodType.Maca };
+                    return new[] { FoodType.Cenoura, FoodType.Maca, FoodType.FrutasSilvestres };
                 case ParkSpriteFactory.AnimalKind.Cervo:
                     return new[] { FoodType.Maca, FoodType.Cenoura };
                 case ParkSpriteFactory.AnimalKind.FilhoteUrso:
@@ -136,7 +139,7 @@ namespace FlorestaBicicleta
                 case ParkSpriteFactory.AnimalKind.Raposa:
                     return new[] { FoodType.Maca, FoodType.Sanduiche, FoodType.Coxinha };
                 case ParkSpriteFactory.AnimalKind.Quati:
-                    return new[] { FoodType.Maca, FoodType.Mel, FoodType.Pipoca };
+                    return new[] { FoodType.Maca, FoodType.Mel, FoodType.Pipoca, FoodType.FrutasSilvestres };
                 case ParkSpriteFactory.AnimalKind.Gato:
                     return new[] { FoodType.Suco, FoodType.Sanduiche, FoodType.HotDog, FoodType.Doces };
                 case ParkSpriteFactory.AnimalKind.Lobo:
@@ -178,7 +181,32 @@ namespace FlorestaBicicleta
             }
 
             // Comportamento especial do Gato: acompanha a bicicleta alegremente após ser alimentado!
-            if (isCatFollowing && trackedPlayer != null)
+            if (picnicAttracted)
+            {
+                if (picnicAttractionTime > 0f)
+                {
+                    picnicAttractionTime -= Time.deltaTime;
+                    float dx = picnicTargetX - transform.position.x;
+                    float step = Mathf.Clamp(dx * 2.8f, -3.8f, 3.8f) * Time.deltaTime;
+                    float bob = Mathf.Abs(Mathf.Sin(Time.time * 5.4f + bobPhase)) * (Mathf.Abs(dx) > 0.3f ? 0.12f : 0.04f);
+                    transform.position = new Vector3(transform.position.x + step, basePosition.y + bob, 0f);
+                    if (bodyRenderer != null && Mathf.Abs(dx) > 0.2f) bodyRenderer.flipX = dx < 0f;
+                }
+                else
+                {
+                    float dx = basePosition.x - transform.position.x;
+                    float step = Mathf.Clamp(dx * 2.2f, -3f, 3f) * Time.deltaTime;
+                    transform.position = new Vector3(transform.position.x + step, basePosition.y, 0f);
+                    if (Mathf.Abs(dx) < 0.12f)
+                    {
+                        transform.position = basePosition;
+                        picnicAttracted = false;
+                        emotion = mealsEaten >= requiredMeals ? EmotionState.Saciado : EmotionState.ComFome;
+                        UpdateBubble();
+                    }
+                }
+            }
+            else if (isCatFollowing && trackedPlayer != null)
             {
                 catFollowTimer -= Time.deltaTime;
                 float targetX = trackedPlayer.position.x - 2.6f;
@@ -228,6 +256,16 @@ namespace FlorestaBicicleta
                     PickNextFoodOrder();
                 }
             }
+        }
+
+        public void AttractToPicnic(Vector3 picnicPosition, float duration)
+        {
+            if (emotion == EmotionState.Chorando || isCatFollowing) return;
+            picnicAttracted = true;
+            picnicAttractionTime = duration;
+            picnicTargetX = picnicPosition.x + Random.Range(-2.5f, 2.5f);
+            emotion = EmotionState.Empolgado;
+            UpdateBubble();
         }
 
         public bool OnPlayerApproaching(bool isClose, float playerSpeed = 0f, Transform playerTransform = null)

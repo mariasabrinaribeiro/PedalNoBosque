@@ -444,6 +444,56 @@ namespace FlorestaTopDown
                     FillRect(tex, 37, 27, 2, 6, new Color(0.94f, 0.90f, 0.78f, 1f));
                     FillRect(tex, 31, 34, 2, 6, new Color(0.94f, 0.90f, 0.78f, 1f));
                     break;
+
+                case FoodType.SaladaFrutasBosque:
+                    // Tigela de frutas, folhas e sementes para o piquenique.
+                    FillRect(tex, 15, 22, 34, 18, new Color(0.62f, 0.34f, 0.20f, 1f));
+                    FillRect(tex, 19, 18, 26, 4, new Color(0.90f, 0.65f, 0.35f, 1f));
+                    FillCircle(tex, 24, 43, 8, new Color(0.92f, 0.18f, 0.22f, 1f));
+                    FillCircle(tex, 38, 42, 8, new Color(1f, 0.66f, 0.12f, 1f));
+                    FillCircle(tex, 31, 48, 7, new Color(0.42f, 0.76f, 0.30f, 1f));
+                    FillCircle(tex, 31, 36, 4, new Color(0.98f, 0.86f, 0.38f, 1f));
+                    break;
+
+                case FoodType.CestaDaLua:
+                    // Cesta noturna com frutas, mel e sementes brilhantes.
+                    FillRect(tex, 15, 19, 34, 20, new Color(0.60f, 0.34f, 0.18f, 1f));
+                    FillRect(tex, 18, 39, 4, 10, new Color(0.72f, 0.46f, 0.26f, 1f));
+                    FillRect(tex, 42, 39, 4, 10, new Color(0.72f, 0.46f, 0.26f, 1f));
+                    FillCircle(tex, 23, 46, 7, new Color(0.92f, 0.18f, 0.22f, 1f));
+                    FillCircle(tex, 34, 48, 7, new Color(1f, 0.78f, 0.22f, 1f));
+                    FillCircle(tex, 42, 46, 5, new Color(0.76f, 0.62f, 1f, 1f));
+                    break;
+
+                case FoodType.FrutasSilvestres:
+                    FillCircle(tex, 22, 28, 10, new Color(0.42f, 0.16f, 0.68f, 1f));
+                    FillCircle(tex, 36, 28, 10, new Color(0.56f, 0.18f, 0.70f, 1f));
+                    FillCircle(tex, 29, 40, 10, new Color(0.38f, 0.12f, 0.62f, 1f));
+                    FillCircle(tex, 25, 32, 3, new Color(0.90f, 0.72f, 1f, 1f));
+                    FillRect(tex, 28, 45, 8, 3, new Color(0.20f, 0.64f, 0.26f, 1f));
+                    break;
+
+                case FoodType.Pao:
+                    FillCircle(tex, 23, 28, 13, new Color(0.86f, 0.58f, 0.26f, 1f));
+                    FillCircle(tex, 40, 28, 13, new Color(0.92f, 0.68f, 0.34f, 1f));
+                    FillRect(tex, 20, 16, 24, 7, new Color(0.76f, 0.42f, 0.16f, 1f));
+                    FillRect(tex, 29, 19, 3, 8, new Color(1f, 0.84f, 0.54f, 1f));
+                    break;
+
+                case FoodType.GeleiaSilvestre:
+                    FillRect(tex, 20, 17, 24, 27, new Color(0.52f, 0.20f, 0.56f, 1f));
+                    FillRect(tex, 23, 42, 18, 7, new Color(0.82f, 0.36f, 0.72f, 1f));
+                    FillRect(tex, 24, 44, 16, 3, new Color(0.96f, 0.78f, 0.56f, 1f));
+                    FillCircle(tex, 32, 30, 3, new Color(0.94f, 0.64f, 0.90f, 1f));
+                    break;
+
+                case FoodType.TortinhaDeMaca:
+                    FillCircle(tex, 32, 24, 18, new Color(0.70f, 0.38f, 0.16f, 1f));
+                    FillCircle(tex, 32, 28, 14, new Color(0.98f, 0.74f, 0.30f, 1f));
+                    FillRect(tex, 19, 31, 26, 4, new Color(0.90f, 0.30f, 0.20f, 1f));
+                    FillRect(tex, 27, 22, 26, 4, new Color(0.90f, 0.30f, 0.20f, 1f));
+                    FillRect(tex, 27, 31, 4, 14, new Color(0.58f, 0.28f, 0.12f, 1f));
+                    break;
             }
 
             tex.Apply();

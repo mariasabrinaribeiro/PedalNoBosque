@@ -693,7 +693,8 @@ namespace FlorestaBicicleta
                 VillageResident.ResidentKind.SenhorBanco,
                 VillageResident.ResidentKind.FamiliaPiquenique,
                 VillageResident.ResidentKind.ViajanteSede,
-                VillageResident.ResidentKind.Musico
+                VillageResident.ResidentKind.Musico,
+                VillageResident.ResidentKind.Feirante
             };
             VillageResident.ResidentKind r1 = residentPool[seg.index % residentPool.Length];
             VillageResident.ResidentKind r2 = residentPool[(seg.index + 2) % residentPool.Length];
@@ -945,6 +946,7 @@ namespace FlorestaBicicleta
 
         private void SpawnContextualAdventureEvent(TrackSegment seg, BiomeType biome, float startX, List<(float min, float max)> blocked)
         {
+            if (seg.index != 0 && TrySpawnHedgehogStoryEvent(seg, biome, startX, blocked)) return;
             // Nem todo trecho precisa de uma missão: intervalos sem eventos deixam o passeio respirar.
             if (seg.index != 0 && Random.value > 0.72f) return;
 
@@ -1021,6 +1023,38 @@ namespace FlorestaBicicleta
             seg.events.Add(ev);
             ActiveEvents.Add(ev);
             blocked.Add((ex - 3.5f, ex + 3.5f));
+        }
+
+        private bool TrySpawnHedgehogStoryEvent(TrackSegment seg, BiomeType biome, float startX, List<(float min, float max)> blocked)
+        {
+            PlayerProgressManager pm = PlayerProgressManager.Instance;
+            if (pm == null || pm.Data == null || pm.Data.hedgehogStoryStage >= 4) return false;
+            if (biome != BiomeType.CampoFlorido && biome != BiomeType.TrilhaDaFloresta && biome != BiomeType.PequenaVila) return false;
+
+            TrailAdventureEvent.EventKind storyKind;
+            switch (pm.Data.hedgehogStoryStage)
+            {
+                case 0: storyKind = TrailAdventureEvent.EventKind.OuricoProcurandoAbrigo; break;
+                case 1: storyKind = TrailAdventureEvent.EventKind.OuricoTocaBloqueada; break;
+                case 2: storyKind = TrailAdventureEvent.EventKind.OuricoReconstruirAbrigo; break;
+                default: storyKind = TrailAdventureEvent.EventKind.OuricoCelebraComAnimais; break;
+            }
+
+            for (int i = 0; i < ActiveEvents.Count; i++)
+                if (ActiveEvents[i] != null && !ActiveEvents[i].isCompleted && ActiveEvents[i].kind == storyKind)
+                    return false;
+            if (Random.value > 0.28f) return false;
+
+            float eventX = startX + 35f;
+            GameObject eventObject = new GameObject($"HistoriaOurico_{pm.Data.hedgehogStoryStage + 1}_{seg.index}");
+            eventObject.transform.SetParent(seg.root.transform, false);
+            eventObject.transform.position = new Vector3(eventX, -2.65f, 0f);
+            TrailAdventureEvent adventure = eventObject.AddComponent<TrailAdventureEvent>();
+            adventure.Setup(storyKind);
+            seg.events.Add(adventure);
+            ActiveEvents.Add(adventure);
+            blocked.Add((eventX - 3.5f, eventX + 3.5f));
+            return true;
         }
 
         private TrailAdventureEvent.EventKind ChooseWeightedAdventureEvent(TrailAdventureEvent.EventKind[] candidates)

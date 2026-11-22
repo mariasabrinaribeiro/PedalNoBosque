@@ -25,6 +25,16 @@ namespace FlorestaBicicleta
         Cachorrinho
     }
 
+    public enum PlayerSkillKind
+    {
+        Equilibrio,
+        Pedalada,
+        Exploracao,
+        Faro,
+        Jardinagem,
+        Culinaria
+    }
+
     public class AnimalBookEntry
     {
         public ParkSpriteFactory.AnimalKind kind;
@@ -77,6 +87,7 @@ namespace FlorestaBicicleta
             BuildAchievements();
             BuildCustomizations();
             Data = SaveSystem.Load();
+            RefreshSpecialRecipeUnlocks();
         }
 
         private void OnApplicationPause(bool pause)
@@ -326,6 +337,7 @@ namespace FlorestaBicicleta
         {
             if (Data == null) return;
             Data.totalDeliveries++;
+            RefreshSpecialRecipeUnlocks();
             if (Data.totalDeliveries == 1)
                 TryUnlockAchievement("first_feed");
             if (Data.totalDeliveries >= 10)
@@ -341,6 +353,38 @@ namespace FlorestaBicicleta
             SaveSystem.Save(Data);
         }
 
+        public bool IsRecipeUnlocked(FoodType recipe)
+        {
+            if (Data == null) return false;
+            if (recipe == FoodType.Sanduiche || recipe == FoodType.HotDog) return true;
+            return Data.unlockedRecipes.Contains(recipe.ToString());
+        }
+
+        private void RefreshSpecialRecipeUnlocks()
+        {
+            if (Data == null) return;
+            if (Data.totalDeliveries >= 3) UnlockSpecialRecipe(FoodType.SaladaFrutasBosque);
+            if (Data.totalDeliveries >= 8) UnlockSpecialRecipe(FoodType.CestaDaLua);
+            if (Data.totalDeliveries >= 3) UnlockSpecialRecipe(FoodType.TortinhaDeMaca);
+            if (Data.totalDeliveries >= 5) UnlockSpecialRecipe(FoodType.GeleiaSilvestre);
+            if (GetSkillLevel(PlayerSkillKind.Culinaria) >= 2)
+            {
+                UnlockSpecialRecipe(FoodType.TortinhaDeMaca);
+                UnlockSpecialRecipe(FoodType.GeleiaSilvestre);
+            }
+        }
+
+        private void UnlockSpecialRecipe(FoodType recipe)
+        {
+            string key = recipe.ToString();
+            if (Data.unlockedRecipes.Contains(key)) return;
+            Data.unlockedRecipes.Add(key);
+            FlorestaSoundFX.Instance?.PlayDiamond();
+            OnMilestoneBanner?.Invoke(
+                $"Nova receita desbloqueada: {FoodInfo.GetDisplayName(recipe)}! Prepare-a na Cozinha do Bosque.",
+                new Color(1f, 0.88f, 0.50f, 1f));
+        }
+
         public void RecordAdventureAction(TrailAdventureEvent.EventKind eventKind)
         {
             if (Data == null) return;
@@ -348,9 +392,30 @@ namespace FlorestaBicicleta
             {
                 case TrailAdventureEvent.EventKind.FloresMurchas:
                     Data.flowersWateredCount++;
+                    RecordSkillProgress(PlayerSkillKind.Jardinagem, saveNow: false);
                     break;
                 case TrailAdventureEvent.EventKind.PonteQuebrada:
                     Data.bridgesRepairedCount++;
+                    Data.castorBridgeRepaired = true;
+                    break;
+                case TrailAdventureEvent.EventKind.PonteCastorPronta:
+                    Data.castorBridgeFollowupScheduled = true;
+                    break;
+                case TrailAdventureEvent.EventKind.OuricoProcurandoAbrigo:
+                    if (Data.hedgehogStoryStage == 0) Data.hedgehogStoryStage = 1;
+                    RecordAnimalDiscovery(ParkSpriteFactory.AnimalKind.Ourico);
+                    break;
+                case TrailAdventureEvent.EventKind.OuricoTocaBloqueada:
+                    if (Data.hedgehogStoryStage == 1) Data.hedgehogStoryStage = 2;
+                    RecordAnimalDiscovery(ParkSpriteFactory.AnimalKind.Ourico);
+                    break;
+                case TrailAdventureEvent.EventKind.OuricoReconstruirAbrigo:
+                    if (Data.hedgehogStoryStage == 2) Data.hedgehogStoryStage = 3;
+                    RecordAnimalDiscovery(ParkSpriteFactory.AnimalKind.Ourico);
+                    break;
+                case TrailAdventureEvent.EventKind.OuricoCelebraComAnimais:
+                    if (Data.hedgehogStoryStage == 3) Data.hedgehogStoryStage = 4;
+                    RecordAnimalDiscovery(ParkSpriteFactory.AnimalKind.Ourico);
                     break;
                 case TrailAdventureEvent.EventKind.PassaroCaido:
                     Data.birdsRescuedCount++;
@@ -359,8 +424,17 @@ namespace FlorestaBicicleta
                     Data.totalDeliveries++;
                     break;
             }
+            RefreshSpecialRecipeUnlocks();
             EvaluateVillageEvolution();
             SaveSystem.Save(Data);
+        }
+
+        public bool TryScheduleCastorBridgeFollowup()
+        {
+            if (Data == null || !Data.castorBridgeRepaired || Data.castorBridgeFollowupScheduled) return false;
+            Data.castorBridgeFollowupScheduled = true;
+            SaveSystem.Save(Data);
+            return true;
         }
 
         public void EvaluateVillageEvolution()
@@ -383,6 +457,112 @@ namespace FlorestaBicicleta
             if (Data == null) return;
             if (km > Data.bestDistanceKm) Data.bestDistanceKm = km;
             if (km >= 1.0f) TryUnlockAchievement("first_km");
+            int reachedSteps = Mathf.FloorToInt(km * 2f);
+            if (reachedSteps > Data.pedalingDistanceSteps)
+            {
+                int gainedSteps = reachedSteps - Data.pedalingDistanceSteps;
+                Data.pedalingDistanceSteps = reachedSteps;
+                RecordSkillProgress(PlayerSkillKind.Pedalada, gainedSteps, saveNow: false);
+                SaveSystem.Save(Data);
+            }
+        }
+
+        private const int SkillLevelOneXp = 3;
+        private const int SkillLevelTwoXp = 8;
+        private const int SkillLevelThreeXp = 15;
+
+        public int GetSkillXp(PlayerSkillKind skill)
+        {
+            if (Data == null) return 0;
+            switch (skill)
+            {
+                case PlayerSkillKind.Equilibrio: return Data.balanceSkillXp;
+                case PlayerSkillKind.Pedalada: return Data.pedalingSkillXp;
+                case PlayerSkillKind.Exploracao: return Data.explorationSkillXp;
+                case PlayerSkillKind.Faro: return Data.puppyScentSkillXp;
+                case PlayerSkillKind.Jardinagem: return Data.gardeningSkillXp;
+                case PlayerSkillKind.Culinaria: return Data.cookingSkillXp;
+                default: return 0;
+            }
+        }
+
+        public int GetSkillLevel(PlayerSkillKind skill)
+        {
+            int xp = GetSkillXp(skill);
+            return xp >= SkillLevelThreeXp ? 3 : (xp >= SkillLevelTwoXp ? 2 : (xp >= SkillLevelOneXp ? 1 : 0));
+        }
+
+        public void RecordSkillProgress(PlayerSkillKind skill, int amount = 1, bool saveNow = true)
+        {
+            if (Data == null || amount <= 0) return;
+            int previousLevel = GetSkillLevel(skill);
+            switch (skill)
+            {
+                case PlayerSkillKind.Equilibrio: Data.balanceSkillXp += amount; break;
+                case PlayerSkillKind.Pedalada: Data.pedalingSkillXp += amount; break;
+                case PlayerSkillKind.Exploracao: Data.explorationSkillXp += amount; break;
+                case PlayerSkillKind.Faro: Data.puppyScentSkillXp += amount; break;
+                case PlayerSkillKind.Jardinagem: Data.gardeningSkillXp += amount; break;
+                case PlayerSkillKind.Culinaria: Data.cookingSkillXp += amount; break;
+            }
+
+            int newLevel = GetSkillLevel(skill);
+            if (newLevel > previousLevel)
+            {
+                FlorestaSoundFX.Instance?.PlayDiamond();
+                OnMilestoneBanner?.Invoke(
+                    $"{GetSkillDisplayName(skill)} evoluiu para o nível {newLevel}. {GetSkillBenefit(skill, newLevel)}",
+                    new Color(0.76f, 0.96f, 0.72f, 1f));
+                if (skill == PlayerSkillKind.Culinaria) RefreshSpecialRecipeUnlocks();
+            }
+            if (saveNow) SaveSystem.Save(Data);
+        }
+
+        public string GetSkillsSummary()
+        {
+            return "HABILIDADES DA AVENTURA\n"
+                + SkillLine(PlayerSkillKind.Equilibrio, "Equilíbrio") + "\n"
+                + SkillLine(PlayerSkillKind.Pedalada, "Pedalada") + "\n"
+                + SkillLine(PlayerSkillKind.Exploracao, "Exploração") + "\n"
+                + SkillLine(PlayerSkillKind.Faro, "Faro do cachorro") + "\n"
+                + SkillLine(PlayerSkillKind.Jardinagem, "Jardinagem") + "\n"
+                + SkillLine(PlayerSkillKind.Culinaria, "Culinária");
+        }
+
+        private string SkillLine(PlayerSkillKind skill, string label)
+        {
+            int level = GetSkillLevel(skill);
+            int xp = GetSkillXp(skill);
+            int next = level == 0 ? SkillLevelOneXp : (level == 1 ? SkillLevelTwoXp : SkillLevelThreeXp);
+            return level >= 3 ? $"{label}: Nv. 3 (máximo)" : $"{label}: Nv. {level} — {xp}/{next}";
+        }
+
+        public static string GetSkillDisplayName(PlayerSkillKind skill)
+        {
+            switch (skill)
+            {
+                case PlayerSkillKind.Equilibrio: return "Equilíbrio";
+                case PlayerSkillKind.Pedalada: return "Pedalada";
+                case PlayerSkillKind.Exploracao: return "Exploração";
+                case PlayerSkillKind.Faro: return "Faro do cachorro";
+                case PlayerSkillKind.Jardinagem: return "Jardinagem";
+                case PlayerSkillKind.Culinaria: return "Culinária";
+                default: return "Habilidade";
+            }
+        }
+
+        private static string GetSkillBenefit(PlayerSkillKind skill, int level)
+        {
+            switch (skill)
+            {
+                case PlayerSkillKind.Equilibrio: return level == 3 ? "A cesta já não perde lanches nos tropeços." : "A menina se recupera melhor dos obstáculos.";
+                case PlayerSkillKind.Pedalada: return "As subidas ficam um pouco mais fáceis.";
+                case PlayerSkillKind.Exploracao: return "A menina alcança uma área maior a pé.";
+                case PlayerSkillKind.Faro: return "O cachorrinho fareja pistas de mais longe.";
+                case PlayerSkillKind.Jardinagem: return "Canteiros maduros podem render mais frutas.";
+                case PlayerSkillKind.Culinaria: return "A cozinha pode liberar receitas especiais.";
+                default: return "";
+            }
         }
 
         public void AddStars(int amount)

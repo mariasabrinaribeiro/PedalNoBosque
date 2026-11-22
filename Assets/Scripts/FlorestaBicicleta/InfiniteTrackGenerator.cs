@@ -51,6 +51,7 @@ namespace FlorestaBicicleta
         private readonly List<TrackSegment> activeSegments = new List<TrackSegment>();
         private readonly Dictionary<int, GameObject> bgTiles = new Dictionary<int, GameObject>();
         private readonly List<BiomeType> biomeBag = new List<BiomeType>();
+        private readonly Queue<TrailAdventureEvent.EventKind> recentAdventureEvents = new Queue<TrailAdventureEvent.EventKind>();
 
         private Dictionary<FoodType, Sprite> foodSprites;
         private Sprite happySp;
@@ -692,7 +693,8 @@ namespace FlorestaBicicleta
                 VillageResident.ResidentKind.SenhorBanco,
                 VillageResident.ResidentKind.FamiliaPiquenique,
                 VillageResident.ResidentKind.ViajanteSede,
-                VillageResident.ResidentKind.Musico
+                VillageResident.ResidentKind.Musico,
+                VillageResident.ResidentKind.Feirante
             };
             VillageResident.ResidentKind r1 = residentPool[seg.index % residentPool.Length];
             VillageResident.ResidentKind r2 = residentPool[(seg.index + 2) % residentPool.Length];
@@ -944,71 +946,73 @@ namespace FlorestaBicicleta
 
         private void SpawnContextualAdventureEvent(TrackSegment seg, BiomeType biome, float startX, List<(float min, float max)> blocked)
         {
-            TrailAdventureEvent.EventKind kind;
+            if (seg.index != 0 && TrySpawnHedgehogStoryEvent(seg, biome, startX, blocked)) return;
+            // Nem todo trecho precisa de uma missão: intervalos sem eventos deixam o passeio respirar.
+            if (seg.index != 0 && Random.value > 0.72f) return;
+
+            TrailAdventureEvent.EventKind[] candidates;
             switch (biome)
             {
                 case BiomeType.CampoFlorido:
-                    TrailAdventureEvent.EventKind[] campoEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.FloresMurchas,
                         TrailAdventureEvent.EventKind.MusicaDaFloresta,
                         TrailAdventureEvent.EventKind.CuidadoraAbrigo,
                         TrailAdventureEvent.EventKind.PassaroCaido
                     };
-                    kind = (seg.index == 0) ? TrailAdventureEvent.EventKind.FloresMurchas : campoEv[seg.index % campoEv.Length];
                     break;
                 case BiomeType.Colinas:
-                    TrailAdventureEvent.EventKind[] colinasEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.PicapauArvore,
                         TrailAdventureEvent.EventKind.PegadasCachorro,
                         TrailAdventureEvent.EventKind.PassaroCaido
                     };
-                    kind = colinasEv[seg.index % colinasEv.Length];
                     break;
                 case BiomeType.RegiaoDoRio:
-                    TrailAdventureEvent.EventKind[] rioEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.LimparRiacho,
                         TrailAdventureEvent.EventKind.PonteQuebrada,
                         TrailAdventureEvent.EventKind.MusicaDaFloresta
                     };
-                    kind = rioEv[seg.index % rioEv.Length];
+                    PlayerProgressManager pm = PlayerProgressManager.Instance;
+                    if (pm != null && pm.Data != null && pm.Data.castorBridgeRepaired
+                        && pm.TryScheduleCastorBridgeFollowup())
+                    {
+                        candidates = new[] { TrailAdventureEvent.EventKind.PonteCastorPronta };
+                    }
                     break;
                 case BiomeType.TrilhaDaFloresta:
-                    TrailAdventureEvent.EventKind[] mataEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.ToupeiraSubterranea,
                         TrailAdventureEvent.EventKind.EnigmaCoruja,
                         TrailAdventureEvent.EventKind.TesouroEscondido,
                         TrailAdventureEvent.EventKind.PicapauArvore
                     };
-                    kind = mataEv[seg.index % mataEv.Length];
                     break;
                 case BiomeType.PequenaVila:
-                    TrailAdventureEvent.EventKind[] vilaEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.RatinhoCarteiro,
                         TrailAdventureEvent.EventKind.TexugoOficina,
                         TrailAdventureEvent.EventKind.CuidadoraAbrigo,
                         TrailAdventureEvent.EventKind.FloresMurchas
                     };
-                    kind = vilaEv[seg.index % vilaEv.Length];
                     break;
                 case BiomeType.BosqueDaLua:
-                    TrailAdventureEvent.EventKind[] luaEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.EnigmaCoruja,
                         TrailAdventureEvent.EventKind.MusicaDaFloresta,
                         TrailAdventureEvent.EventKind.ToupeiraSubterranea,
                         TrailAdventureEvent.EventKind.TesouroEscondido
                     };
-                    kind = luaEv[seg.index % luaEv.Length];
                     break;
                 default:
-                    kind = TrailAdventureEvent.EventKind.FloresMurchas;
+                    candidates = new[] { TrailAdventureEvent.EventKind.FloresMurchas };
                     break;
             }
+
+            TrailAdventureEvent.EventKind kind = seg.index == 0
+                ? TrailAdventureEvent.EventKind.FloresMurchas
+                : ChooseWeightedAdventureEvent(candidates);
 
             float ex = (seg.index == 0) ? startX + 27.5f : startX + 35f;
             GameObject evObj = new GameObject($"EventoAventura_{kind}_{seg.index}");
@@ -1019,6 +1023,76 @@ namespace FlorestaBicicleta
             seg.events.Add(ev);
             ActiveEvents.Add(ev);
             blocked.Add((ex - 3.5f, ex + 3.5f));
+        }
+
+        private bool TrySpawnHedgehogStoryEvent(TrackSegment seg, BiomeType biome, float startX, List<(float min, float max)> blocked)
+        {
+            PlayerProgressManager pm = PlayerProgressManager.Instance;
+            if (pm == null || pm.Data == null || pm.Data.hedgehogStoryStage >= 4) return false;
+            if (biome != BiomeType.CampoFlorido && biome != BiomeType.TrilhaDaFloresta && biome != BiomeType.PequenaVila) return false;
+
+            TrailAdventureEvent.EventKind storyKind;
+            switch (pm.Data.hedgehogStoryStage)
+            {
+                case 0: storyKind = TrailAdventureEvent.EventKind.OuricoProcurandoAbrigo; break;
+                case 1: storyKind = TrailAdventureEvent.EventKind.OuricoTocaBloqueada; break;
+                case 2: storyKind = TrailAdventureEvent.EventKind.OuricoReconstruirAbrigo; break;
+                default: storyKind = TrailAdventureEvent.EventKind.OuricoCelebraComAnimais; break;
+            }
+
+            for (int i = 0; i < ActiveEvents.Count; i++)
+                if (ActiveEvents[i] != null && !ActiveEvents[i].isCompleted && ActiveEvents[i].kind == storyKind)
+                    return false;
+            if (Random.value > 0.28f) return false;
+
+            float eventX = startX + 35f;
+            GameObject eventObject = new GameObject($"HistoriaOurico_{pm.Data.hedgehogStoryStage + 1}_{seg.index}");
+            eventObject.transform.SetParent(seg.root.transform, false);
+            eventObject.transform.position = new Vector3(eventX, -2.65f, 0f);
+            TrailAdventureEvent adventure = eventObject.AddComponent<TrailAdventureEvent>();
+            adventure.Setup(storyKind);
+            seg.events.Add(adventure);
+            ActiveEvents.Add(adventure);
+            blocked.Add((eventX - 3.5f, eventX + 3.5f));
+            return true;
+        }
+
+        private TrailAdventureEvent.EventKind ChooseWeightedAdventureEvent(TrailAdventureEvent.EventKind[] candidates)
+        {
+            // A raridade é escolhida primeiro; a lista do bioma limita o resultado ao contexto local.
+            float roll = Random.value;
+            int targetRarity = roll < 0.62f ? 0 : (roll < 0.91f ? 1 : 2);
+            List<TrailAdventureEvent.EventKind> pool = new List<TrailAdventureEvent.EventKind>();
+            for (int pass = 0; pass < 3 && pool.Count == 0; pass++)
+            {
+                int rarity = (targetRarity + pass) % 3;
+                for (int i = 0; i < candidates.Length; i++)
+                    if (GetAdventureRarity(candidates[i]) == rarity && !recentAdventureEvents.Contains(candidates[i]))
+                        pool.Add(candidates[i]);
+                if (pool.Count == 0)
+                {
+                    for (int i = 0; i < candidates.Length; i++)
+                        if (GetAdventureRarity(candidates[i]) == rarity) pool.Add(candidates[i]);
+                }
+            }
+
+            TrailAdventureEvent.EventKind selected = pool.Count > 0
+                ? pool[Random.Range(0, pool.Count)] : candidates[Random.Range(0, candidates.Length)];
+            recentAdventureEvents.Enqueue(selected);
+            while (recentAdventureEvents.Count > 3) recentAdventureEvents.Dequeue();
+            return selected;
+        }
+
+        private static int GetAdventureRarity(TrailAdventureEvent.EventKind kind)
+        {
+            if (kind == TrailAdventureEvent.EventKind.TesouroEscondido
+                || kind == TrailAdventureEvent.EventKind.EnigmaCoruja
+                || kind == TrailAdventureEvent.EventKind.PonteCastorPronta) return 2;
+            if (kind == TrailAdventureEvent.EventKind.PegadasCachorro
+                || kind == TrailAdventureEvent.EventKind.ToupeiraSubterranea
+                || kind == TrailAdventureEvent.EventKind.PonteQuebrada
+                || kind == TrailAdventureEvent.EventKind.LimparRiacho) return 1;
+            return 0;
         }
 
         private void SpawnDistanceSign(Transform parent, float xPos, float kmValue)

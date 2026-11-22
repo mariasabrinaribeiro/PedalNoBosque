@@ -30,8 +30,24 @@ namespace FlorestaBicicleta
             PegadasCachorro,
             MusicaDaFloresta,
             CuidadoraAbrigo,
-            EnigmaCoruja
+            EnigmaCoruja,
+            PonteCastorPronta,
+            OuricoProcurandoAbrigo,
+            OuricoTocaBloqueada,
+            OuricoReconstruirAbrigo,
+            OuricoCelebraComAnimais
         }
+
+        public bool AllowsOnFootExploration => kind == EventKind.TesouroEscondido
+            || kind == EventKind.PegadasCachorro
+            || kind == EventKind.ToupeiraSubterranea
+            || kind == EventKind.PonteQuebrada
+            || kind == EventKind.PonteCastorPronta
+            || kind == EventKind.OuricoProcurandoAbrigo
+            || kind == EventKind.OuricoTocaBloqueada
+            || kind == EventKind.OuricoReconstruirAbrigo
+            || kind == EventKind.OuricoCelebraComAnimais
+            || kind == EventKind.EnigmaCoruja;
 
         public EventKind kind { get; private set; }
         public bool isCompleted { get; private set; } = false;
@@ -45,7 +61,7 @@ namespace FlorestaBicicleta
                 {
                     case EventKind.FloresMurchas:       return "Regar Flores (Espaco)";
                     case EventKind.PassaroCaido:        return "Ajudar Passarinho (Espaco)";
-                    case EventKind.PonteQuebrada:       return "Consertar Ponte (Espaco)";
+                    case EventKind.PonteQuebrada:       return "Ajudar o castor na ponte (Espaço)";
                     case EventKind.TesouroEscondido:    return "Abrir Tesouro (Espaco)";
                     case EventKind.ToupeiraSubterranea: return "Ajudar Toupeira (Espaco)";
                     case EventKind.TexugoOficina:       return "Oficina do Texugo (Espaco)";
@@ -56,6 +72,11 @@ namespace FlorestaBicicleta
                     case EventKind.MusicaDaFloresta:    return "Tocar Musica (Espaco)";
                     case EventKind.CuidadoraAbrigo:     return "Cuidar do Bichinho (Espaco)";
                     case EventKind.EnigmaCoruja:        return "Ouvir Coruja (Espaco)";
+                    case EventKind.PonteCastorPronta:   return "Explorar ponte do castor (Espaco)";
+                    case EventKind.OuricoProcurandoAbrigo: return "Ajudar o ouriço (Espaço)";
+                    case EventKind.OuricoTocaBloqueada: return "Investigar a toca (Espaço)";
+                    case EventKind.OuricoReconstruirAbrigo: return "Liberar o abrigo (Espaço)";
+                    case EventKind.OuricoCelebraComAnimais: return "Participar do reencontro (Espaço)";
                     default: return "Interagir (Espaco)";
                 }
             }
@@ -69,7 +90,7 @@ namespace FlorestaBicicleta
                 {
                     case EventKind.FloresMurchas:       return "Flores murchas na beira da trilha! Aperte ESPACO para regar!";
                     case EventKind.PassaroCaido:        return "Um passarinho caiu do ninho! Aperte ESPACO para ajuda-lo!";
-                    case EventKind.PonteQuebrada:       return "Passarela com tabuas soltas! Aperte ESPACO para consertar!";
+                    case EventKind.PonteQuebrada:       return "O castor precisa de ajuda com as tábuas da ponte!";
                     case EventKind.TesouroEscondido:    return "Algo brilha escondido nos arbustos! Aperte ESPACO para investigar!";
                     case EventKind.ToupeiraSubterranea: return "A Toupeira encontrou algo subterraneo! Aperte ESPACO para ajudar!";
                     case EventKind.TexugoOficina:       return "O Texugo esta na pequena oficina! Aperte ESPACO para revisar a bike!";
@@ -80,6 +101,11 @@ namespace FlorestaBicicleta
                     case EventKind.MusicaDaFloresta:    return "Instrumentos naturais da floresta! Aperte ESPACO para tocar musica!";
                     case EventKind.CuidadoraAbrigo:     return "Um bichinho precisa de escovacao e abrigo! Aperte ESPACO para cuidar!";
                     case EventKind.EnigmaCoruja:        return "A Coruja Sabia quer contar um enigma! Aperte ESPACO para ouvir!";
+                    case EventKind.PonteCastorPronta:   return "O castor terminou a ponte! Desça para ver a construção.";
+                    case EventKind.OuricoProcurandoAbrigo: return "Um ouriço procura um cantinho seguro entre as folhas.";
+                    case EventKind.OuricoTocaBloqueada: return "Você encontrou o ouriço outra vez. Galhos bloqueiam a toca.";
+                    case EventKind.OuricoReconstruirAbrigo: return "Ajude a retirar os galhos e arrumar o abrigo do ouriço.";
+                    case EventKind.OuricoCelebraComAnimais: return "O ouriço voltou com amigos para mostrar o abrigo pronto!";
                     default: return "";
                 }
             }
@@ -167,6 +193,14 @@ namespace FlorestaBicicleta
             int stars = 2;
             int pts = 140;
 
+            if (kind == EventKind.PonteCastorPronta)
+            {
+                stars = 3; pts = 190;
+                completionMessage = "O castor reconheceu sua ajuda e terminou a ponte! Agora os animais atravessam em segurança. +3 Estrelas!";
+                CompleteEventNow(player, stars, pts, completionMessage);
+                return true;
+            }
+
             switch (kind)
             {
                 case EventKind.FloresMurchas:
@@ -186,8 +220,9 @@ namespace FlorestaBicicleta
                 case EventKind.PonteQuebrada:
                     stars = 3; pts = 180;
                     FlorestaSoundFX.Instance?.PlayVillagerHappy();
-                    completionMessage = "Passarela consertada! Agora todos os animais podem atravessar! +3 Estrelas e +180 pts!";
+                    completionMessage = "Você ajudou o castor a reconstruir a ponte! Mais tarde, passe por aqui para ver como ficou. +3 Estrelas e +180 pts!";
                     break;
+
 
                 case EventKind.TesouroEscondido:
                     stars = 3; pts = 200;
@@ -237,6 +272,23 @@ namespace FlorestaBicicleta
                     PlayerProgressManager.Instance?.AddCollectible(CollectibleKind.TesourosSecretos, 1);
                     completionMessage = "O cachorrinho seguiu as pegadas e cavou um tesouro escondido! +3 Estrelas!";
                     break;
+
+                case EventKind.OuricoProcurandoAbrigo:
+                    stars = 2; pts = 150;
+                    completionMessage = "Você ajudou o ouriço a encontrar um lugar protegido. Ele seguiu para sua toca.";
+                    break;
+                case EventKind.OuricoTocaBloqueada:
+                    stars = 2; pts = 160;
+                    completionMessage = "A toca estava bloqueada por galhos. O ouriço precisa de ajuda para desobstruí-la.";
+                    break;
+                case EventKind.OuricoReconstruirAbrigo:
+                    stars = 3; pts = 190;
+                    completionMessage = "Galhos retirados e abrigo reorganizado! O ouriço ficou em segurança.";
+                    break;
+                case EventKind.OuricoCelebraComAnimais:
+                    stars = 3; pts = 210;
+                    completionMessage = "O ouriço reuniu seus amigos para agradecer. A pequena história terminou feliz!";
+                    break;
             }
 
             CompleteEventNow(player, stars, pts, completionMessage);
@@ -253,6 +305,8 @@ namespace FlorestaBicicleta
             player.score += pts;
             PlayerProgressManager.Instance?.AddStars(stars);
             PlayerProgressManager.Instance?.RecordAdventureAction(kind);
+            if (player.isOnFoot && AllowsOnFootExploration)
+                PlayerProgressManager.Instance?.RecordSkillProgress(PlayerSkillKind.Exploracao);
             FlorestaSoundFX.Instance?.PlayDiamond();
             StartCoroutine(BloomPopRoutine());
         }
@@ -302,6 +356,21 @@ namespace FlorestaBicicleta
                 {
                     if (x < 0 || x >= tex.width) continue;
                     if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r2) tex.SetPixel(x, y, c);
+                }
+            }
+        }
+
+        private static void EllipsePx(Texture2D tex, int cx, int cy, int rx, int ry, Color c)
+        {
+            for (int y = cy - ry; y <= cy + ry; y++)
+            {
+                if (y < 0 || y >= tex.height) continue;
+                for (int x = cx - rx; x <= cx + rx; x++)
+                {
+                    if (x < 0 || x >= tex.width) continue;
+                    float nx = (x - cx) / (float)Mathf.Max(1, rx);
+                    float ny = (y - cy) / (float)Mathf.Max(1, ry);
+                    if (nx * nx + ny * ny <= 1f) tex.SetPixel(x, y, c);
                 }
             }
         }
@@ -385,6 +454,19 @@ namespace FlorestaBicicleta
                         CirclePx(tex, 16, 42, 5, new Color(1f, 0.84f, 0.24f, 1f));
                         CirclePx(tex, 80, 42, 5, new Color(1f, 0.48f, 0.72f, 1f));
                     }
+                    break;
+
+                case EventKind.PonteCastorPronta:
+                    // A ponte concluída guarda um detalhe visual que distingue este reencontro.
+                    Color finishedWood = new Color(0.64f, 0.40f, 0.20f, 1f);
+                    RectPx(tex, 12, 8, 22, 34, new Color(0.42f, 0.24f, 0.12f, 1f));
+                    RectPx(tex, 74, 8, 84, 34, new Color(0.42f, 0.24f, 0.12f, 1f));
+                    RectPx(tex, 10, 26, 86, 37, finishedWood);
+                    RectPx(tex, 10, 35, 86, 38, new Color(0.84f, 0.63f, 0.36f, 1f));
+                    CirclePx(tex, 24, 48, 9, new Color(0.56f, 0.36f, 0.19f, 1f));
+                    CirclePx(tex, 27, 52, 6, new Color(0.68f, 0.46f, 0.27f, 1f));
+                    CirclePx(tex, 29, 54, 1, Color.white);
+                    CirclePx(tex, 30, 54, 1, Color.black);
                     break;
 
                 case EventKind.TesouroEscondido:
@@ -482,6 +564,42 @@ namespace FlorestaBicicleta
                     CirclePx(tex, 48, 50, 14, new Color(0.46f, 0.34f, 0.26f, 1f));
                     CirclePx(tex, 43, 52, 4, new Color(1f, 0.84f, 0.22f, 1f));
                     CirclePx(tex, 53, 52, 4, new Color(1f, 0.84f, 0.22f, 1f));
+                    break;
+
+                case EventKind.OuricoProcurandoAbrigo:
+                case EventKind.OuricoTocaBloqueada:
+                case EventKind.OuricoReconstruirAbrigo:
+                case EventKind.OuricoCelebraComAnimais:
+                    Color burrow = new Color(0.24f, 0.16f, 0.10f, 1f);
+                    Color leaf = new Color(0.22f, 0.54f, 0.26f, 1f);
+                    EllipsePx(tex, 53, 18, 34, 13, new Color(0.38f, 0.24f, 0.14f, 1f));
+                    CirclePx(tex, 51, 20, 14, burrow);
+                    CirclePx(tex, 27, 21, 13, leaf);
+                    CirclePx(tex, 76, 21, 13, leaf);
+                    // Ouriço em pixel art: corpo, focinho e pequenas pontas.
+                    CirclePx(tex, 52, 29, 13, new Color(0.62f, 0.38f, 0.22f, 1f));
+                    for (int i = 0; i < 7; i++)
+                        RectPx(tex, 38 + i * 4, 38 + (i % 2) * 2, 41 + i * 4, 48 + (i % 2) * 2, new Color(0.34f, 0.24f, 0.18f, 1f));
+                    CirclePx(tex, 63, 29, 7, new Color(0.82f, 0.58f, 0.38f, 1f));
+                    CirclePx(tex, 66, 31, 2, Color.black);
+                    if (kind == EventKind.OuricoTocaBloqueada)
+                    {
+                        RectPx(tex, 29, 8, 72, 15, new Color(0.42f, 0.27f, 0.15f, 1f));
+                        RectPx(tex, 34, 15, 78, 20, new Color(0.52f, 0.34f, 0.18f, 1f));
+                    }
+                    else if (kind == EventKind.OuricoReconstruirAbrigo)
+                    {
+                        RectPx(tex, 16, 8, 31, 12, new Color(0.50f, 0.32f, 0.16f, 1f));
+                        RectPx(tex, 73, 8, 88, 12, new Color(0.50f, 0.32f, 0.16f, 1f));
+                        CirclePx(tex, 20, 45, 4, new Color(0.90f, 0.54f, 0.26f, 1f));
+                        CirclePx(tex, 82, 44, 4, new Color(0.90f, 0.54f, 0.26f, 1f));
+                    }
+                    else if (kind == EventKind.OuricoCelebraComAnimais)
+                    {
+                        CirclePx(tex, 23, 31, 6, new Color(0.70f, 0.46f, 0.28f, 1f));
+                        CirclePx(tex, 82, 31, 6, new Color(0.86f, 0.72f, 0.46f, 1f));
+                        CirclePx(tex, 52, 55, 4, new Color(1f, 0.84f, 0.26f, 1f));
+                    }
                     break;
             }
 

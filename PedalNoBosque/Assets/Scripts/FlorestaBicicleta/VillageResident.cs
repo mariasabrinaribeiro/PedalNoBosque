@@ -18,7 +18,8 @@ namespace FlorestaBicicleta
             SenhorBanco,
             FamiliaPiquenique,
             ViajanteSede,
-            Musico
+            Musico,
+            Feirante
         }
 
         public enum DeliveryResult { WrongItem, Completed, AlreadyHelped }
@@ -85,7 +86,7 @@ namespace FlorestaBicicleta
                 case ResidentKind.Crianca:
                     residentName = "Criança da Vila";
                     missionTitle = "Lanche da Tarde";
-                    wantedFood = PickFrom(FoodType.Doces, FoodType.Pipoca, FoodType.Suco);
+                    wantedFood = PickFrom(FoodType.Doces, FoodType.Pipoca, FoodType.Suco, FoodType.Pao);
                     starReward = 2;
                     pointReward = 130;
                     break;
@@ -116,6 +117,16 @@ namespace FlorestaBicicleta
                     wantedFood = PickFrom(FoodType.Suco, FoodType.Coxinha, FoodType.Doces);
                     starReward = 3;
                     pointReward = 175;
+                    break;
+                case ResidentKind.Feirante:
+                    residentName = "Feirante do Bosque";
+                    bool jamUnlocked = PlayerProgressManager.Instance != null
+                        && PlayerProgressManager.Instance.IsRecipeUnlocked(FoodType.GeleiaSilvestre);
+                    wantedFood = jamUnlocked && Random.value < 0.55f
+                        ? FoodType.GeleiaSilvestre : FoodType.Mel;
+                    missionTitle = wantedFood == FoodType.GeleiaSilvestre ? "Geleia para a Feira" : "Mel para a Feira";
+                    starReward = 3;
+                    pointReward = 185;
                     break;
             }
         }
@@ -348,6 +359,15 @@ namespace FlorestaBicicleta
                     RectPx(tex, 86, 48, 118, 54, new Color(0.48f, 0.28f, 0.12f, 1f));
                     // Boina estilosa
                     EllipsePx(tex, 68, 92, 18, 7, new Color(0.84f, 0.22f, 0.34f, 1f));
+                    break;
+
+                case ResidentKind.Feirante:
+                    DrawPersonBase(tex, 70, 10, 100, new Color(0.36f, 0.66f, 0.38f, 1f), new Color(0.56f, 0.34f, 0.24f, 1f), new Color(0.34f, 0.20f, 0.12f, 1f), skinWarm);
+                    EllipsePx(tex, 70, 96, 28, 6, new Color(0.88f, 0.42f, 0.28f, 1f));
+                    RectPx(tex, 54, 96, 86, 108, new Color(0.88f, 0.42f, 0.28f, 1f));
+                    RectPx(tex, 90, 16, 128, 38, new Color(0.64f, 0.36f, 0.18f, 1f));
+                    CirclePx(tex, 99, 41, 7, new Color(0.54f, 0.20f, 0.72f, 1f));
+                    CirclePx(tex, 112, 42, 7, new Color(0.42f, 0.16f, 0.64f, 1f));
                     break;
             }
 

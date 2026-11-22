@@ -119,7 +119,7 @@ namespace FlorestaBicicleta
                 case ParkSpriteFactory.AnimalKind.Esquilo:
                     return new[] { FoodType.Nozes, FoodType.Sementes, FoodType.Pipoca };
                 case ParkSpriteFactory.AnimalKind.Coelho:
-                    return new[] { FoodType.Cenoura, FoodType.Maca };
+                    return new[] { FoodType.Cenoura, FoodType.Maca, FoodType.FrutasSilvestres };
                 case ParkSpriteFactory.AnimalKind.Cervo:
                     return new[] { FoodType.Maca, FoodType.Cenoura };
                 case ParkSpriteFactory.AnimalKind.FilhoteUrso:
@@ -139,7 +139,7 @@ namespace FlorestaBicicleta
                 case ParkSpriteFactory.AnimalKind.Raposa:
                     return new[] { FoodType.Maca, FoodType.Sanduiche, FoodType.Coxinha };
                 case ParkSpriteFactory.AnimalKind.Quati:
-                    return new[] { FoodType.Maca, FoodType.Mel, FoodType.Pipoca };
+                    return new[] { FoodType.Maca, FoodType.Mel, FoodType.Pipoca, FoodType.FrutasSilvestres };
                 case ParkSpriteFactory.AnimalKind.Gato:
                     return new[] { FoodType.Suco, FoodType.Sanduiche, FoodType.HotDog, FoodType.Doces };
                 case ParkSpriteFactory.AnimalKind.Lobo:

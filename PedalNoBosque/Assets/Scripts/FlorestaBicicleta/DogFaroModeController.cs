@@ -73,6 +73,10 @@ namespace FlorestaBicicleta
             float nearestDistance = float.MaxValue;
             int nearestId = 0;
             string message = null;
+            int scentLevel = PlayerProgressManager.Instance != null
+                ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Faro) : 0;
+            float eventRange = EventRange + scentLevel * 2.5f;
+            float animalRange = AnimalRange + scentLevel * 2.5f;
 
             if (track != null)
             {
@@ -81,7 +85,7 @@ namespace FlorestaBicicleta
                     TrailAdventureEvent ev = track.ActiveEvents[i];
                     if (ev == null || ev.isCompleted) continue;
                     float distance = Mathf.Abs(ev.transform.position.x - bike.transform.position.x);
-                    if (distance > EventRange || distance >= nearestDistance) continue;
+                    if (distance > eventRange || distance >= nearestDistance) continue;
                     nearestDistance = distance;
                     nearestId = ev.GetInstanceID();
                     message = "O cachorrinho farejou uma descoberta: " + ev.NearbyPrompt;
@@ -92,7 +96,7 @@ namespace FlorestaBicicleta
                     ForestAnimal animal = track.ActiveAnimals[i];
                     if (animal == null) continue;
                     float distance = Mathf.Abs(animal.transform.position.x - bike.transform.position.x);
-                    if (distance > AnimalRange || distance >= nearestDistance) continue;
+                    if (distance > animalRange || distance >= nearestDistance) continue;
                     nearestDistance = distance;
                     nearestId = animal.GetInstanceID();
                     string name = string.IsNullOrWhiteSpace(animal.animalName) ? animal.kind.ToString() : animal.animalName;
@@ -108,6 +112,7 @@ namespace FlorestaBicicleta
             if (nearestId == lastSignalId) return;
 
             lastSignalId = nearestId;
+            PlayerProgressManager.Instance?.RecordSkillProgress(PlayerSkillKind.Faro);
             puppy?.TriggerCurious(2.5f);
             FlorestaSoundFX.Instance?.PlayDogBark();
             showMessage?.Invoke(message);

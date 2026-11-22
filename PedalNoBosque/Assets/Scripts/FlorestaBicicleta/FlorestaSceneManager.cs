@@ -54,6 +54,7 @@ namespace FlorestaBicicleta
 
         // Painel da Cozinha e Mini-Preparo Opcional (Etapa 4)
         private GameObject kitchenPanel;
+        private GameObject skillsPanel;
         private TextMeshProUGUI kitchenPrepStatus;
         private KitchenMiniGamePanel miniPrepPanel;
         private Button saladRecipeButton;
@@ -481,12 +482,13 @@ namespace FlorestaBicicleta
                     kitchenPrepStatus.text = $"{name} GOURMET pronto! (+60 pts + bônus na entrega!)";
                 ShowMessage($"Chef da Floresta! {name} Gourmet montado com perfeição! +60 pts!", 3.5f, new Color(1f, 0.90f, 0.42f, 1f));
             }
+            progressManager?.RecordSkillProgress(PlayerSkillKind.Culinaria);
         }
 
         private void OnClickQuickRestockBasket()
         {
             if (player == null || isPreparingFood) return;
-            FoodType[] quickKit = { FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes, FoodType.Suco };
+            FoodType[] quickKit = { FoodType.Nozes, FoodType.Maca, FoodType.Mel, FoodType.Sementes, FoodType.Pao, FoodType.FrutasSilvestres };
             player.foodBasket.Clear();
             for (int i = 0; i < quickKit.Length && i < player.maxBasketSize; i++)
                 player.AddFoodToBasket(quickKit[i]);
@@ -556,6 +558,7 @@ namespace FlorestaBicicleta
             renderer.sortingOrder = 6;
             patch.transform.localScale = new Vector3(0.72f, 0.72f, 1f);
             StartCoroutine(GrowBerryPatch(patch, renderer));
+            progressManager?.RecordSkillProgress(PlayerSkillKind.Jardinagem);
             ShowMessage("Sementes plantadas. O canteiro vai amadurecer durante o passeio.", 3.2f, new Color(0.76f, 1f, 0.76f, 1f));
         }
 
@@ -569,10 +572,19 @@ namespace FlorestaBicicleta
             renderer.sprite = foodSprites[FoodType.FrutasSilvestres];
             renderer.color = Color.white;
             patch.transform.localScale = new Vector3(0.92f, 0.92f, 1f);
+            if (player != null && player.foodBasket.Count >= player.maxBasketSize)
+                ShowMessage("O canteiro amadureceu, mas a cesta está cheia. Libere espaço para colher.", 3.2f, new Color(0.90f, 0.78f, 1f, 1f));
             while (player != null && !player.TryAddFoodToBasket(FoodType.FrutasSilvestres))
                 yield return new WaitForSeconds(1f);
             if (player != null)
+            {
+                progressManager?.RecordSkillProgress(PlayerSkillKind.Jardinagem);
+                int gardeningLevel = progressManager != null ? progressManager.GetSkillLevel(PlayerSkillKind.Jardinagem) : 0;
+                if (gardeningLevel >= 2 && player.TryAddFoodToBasket(FoodType.FrutasSilvestres))
+                    ShowMessage("A jardinagem aprimorada rendeu uma colheita extra!", 2.8f, new Color(0.86f, 0.72f, 1f, 1f));
+                else
                 ShowMessage("Frutas silvestres maduras! Foram para a sua cesta.", 3.2f, new Color(0.86f, 0.72f, 1f, 1f));
+            }
             if (patch != null) Destroy(patch);
         }
 
@@ -590,7 +602,14 @@ namespace FlorestaBicicleta
                     kitchenPrepStatus.text = $"Preparando {name} quentinho... {pct}%";
                 yield return null;
             }
+            if (!TryConsumeRecipeIngredients(type))
+            {
+                ShowMessage(GetMissingRecipeIngredientsMessage(type), 3.0f, new Color(1f, 0.76f, 0.50f, 1f));
+                isPreparingFood = false;
+                yield break;
+            }
             player.AddFoodToBasket(type);
+            progressManager?.RecordSkillProgress(PlayerSkillKind.Culinaria);
             FlorestaSoundFX.Instance?.PlayHappy();
             if (kitchenPrepStatus != null)
                 kitchenPrepStatus.text = $"{name} pronto na cesta!";
@@ -690,6 +709,11 @@ namespace FlorestaBicicleta
             nearbyOrderText = CreateTMP(subBar.transform, "NearbyOrder", "",
                 14, new Vector2(255f, 0f), new Vector2(520f, 22f), TextAlignmentOptions.Right);
             nearbyOrderText.color = new Color(0.84f, 1f, 0.88f, 0.96f);
+
+            CreateRoundedClickButton(canvasObj.transform, "BtnHabilidades", "Habilidades",
+                new Vector2(1f, 1f), new Vector2(-74f, -101f), new Vector2(132f, 34f),
+                new Color(0.27f, 0.43f, 0.34f, 0.96f), 14, ToggleSkillsPanel);
+            BuildSkillsPanel(canvasObj.transform);
 
             // Mensagem de feedback suave
             messageText = CreateTMP(canvasObj.transform, "MessageText", "",
@@ -819,16 +843,45 @@ namespace FlorestaBicicleta
             victoryPanel.SetActive(false);
         }
 
+        private void BuildSkillsPanel(Transform parent)
+        {
+            skillsPanel = CreateRoundedPanel(parent, "SkillsPanel",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(470f, 340f),
+                new Color(0.95f, 0.91f, 0.79f, 0.98f));
+            CreateTMP(skillsPanel.transform, "SkillsTitle", "Habilidades da aventura", 23,
+                new Vector2(0f, 132f), new Vector2(410f, 38f), TextAlignmentOptions.Center).color = new Color(0.20f, 0.31f, 0.24f, 1f);
+            TextMeshProUGUI body = CreateTMP(skillsPanel.transform, "SkillsBody",
+                "Cada habilidade evolui quando você a utiliza. Suba de nível para perceber melhorias no passeio.", 18,
+                new Vector2(0f, -4f), new Vector2(410f, 210f), TextAlignmentOptions.Left);
+            body.color = new Color(0.24f, 0.27f, 0.22f, 1f);
+            body.lineSpacing = 8f;
+            CreateRoundedClickButton(skillsPanel.transform, "BtnCloseSkills", "Voltar ao passeio",
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -132f), new Vector2(180f, 36f),
+                new Color(0.26f, 0.49f, 0.36f, 1f), 15, ToggleSkillsPanel);
+            skillsPanel.SetActive(false);
+        }
+
+        private void ToggleSkillsPanel()
+        {
+            if (skillsPanel == null) return;
+            bool show = !skillsPanel.activeSelf;
+            skillsPanel.SetActive(show);
+            if (!show) return;
+            TextMeshProUGUI body = skillsPanel.transform.Find("SkillsBody")?.GetComponent<TextMeshProUGUI>();
+            if (body != null && progressManager != null)
+                body.text = progressManager.GetSkillsSummary() + "\n\nEquilíbrio reduz tropeços; pedalada facilita subidas; exploração amplia a caminhada; faro aumenta o alcance; jardinagem rende mais frutas; culinária libera receitas.\nPróximo nível: 3, 8 e 15 usos.";
+        }
+
         private void BuildKitchenPanel(Transform canvasT)
         {
             // Painel compacto de cartões ilustrados no canto superior esquerdo (nunca cobre a protagonista!)
             kitchenPanel = CreateRoundedCardPanel(canvasT, "KitchenPanel",
                 new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(228f, -238f), new Vector2(420f, 290f),
+                new Vector2(228f, -260f), new Vector2(420f, 360f),
                 new Color(0.97f, 0.94f, 0.88f, 0.95f));
 
             CreateTMP(kitchenPanel.transform, "KTitle", "Cozinha do Bosque",
-                17, new Vector2(-40f, 124f), new Vector2(280f, 26f), TextAlignmentOptions.Left)
+                17, new Vector2(-40f, 158f), new Vector2(280f, 26f), TextAlignmentOptions.Left)
                 .color = new Color(0.24f, 0.44f, 0.32f, 1f);
 
             // Botão Fechar fácil (ícone X real)
@@ -845,21 +898,21 @@ namespace FlorestaBicicleta
             // 10 cartões compactos com ícones reais dos alimentos (2 linhas x 5 colunas)
             FoodType[] gridFoods =
             {
-                FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes,
-                FoodType.Suco, FoodType.Pipoca, FoodType.Coxinha, FoodType.Doces, FoodType.Refrigerante
+                FoodType.Nozes, FoodType.Cenoura, FoodType.Maca, FoodType.Mel, FoodType.Sementes, FoodType.FrutasSilvestres,
+                FoodType.Pao, FoodType.Suco, FoodType.Pipoca, FoodType.Coxinha, FoodType.Doces, FoodType.Refrigerante
             };
 
             for (int i = 0; i < gridFoods.Length; i++)
             {
                 FoodType ft = gridFoods[i];
-                int col = i % 5;
-                int row = i / 5;
-                float x = -158f + col * 79f;
-                float y = 66f - row * 74f;
+                int col = i % 6;
+                int row = i / 6;
+                float x = -160f + col * 64f;
+                float y = 72f - row * 72f;
 
                 GameObject card = CreateRoundedCardPanel(kitchenPanel.transform, $"FoodCard_{ft}",
                     new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2(x, y), new Vector2(72f, 66f),
+                    new Vector2(x, y), new Vector2(60f, 64f),
                     row == 0 ? new Color(0.88f, 0.96f, 0.88f, 1f) : new Color(0.98f, 0.94f, 0.86f, 1f));
 
                 if (foodSprites.TryGetValue(ft, out Sprite fsp) && fsp != null)
@@ -868,42 +921,54 @@ namespace FlorestaBicicleta
                     imgObj.transform.SetParent(card.transform, false);
                     RectTransform irt = imgObj.AddComponent<RectTransform>();
                     irt.anchoredPosition = new Vector2(0f, 9f);
-                    irt.sizeDelta = new Vector2(38f, 38f);
+                    irt.sizeDelta = new Vector2(33f, 33f);
                     Image im = imgObj.AddComponent<Image>();
                     im.sprite = fsp;
                     im.preserveAspect = true;
                 }
 
                 TextMeshProUGUI lbl = CreateTMP(card.transform, "Lbl", FoodInfo.GetDisplayName(ft),
-                    11, new Vector2(0f, -20f), new Vector2(68f, 18f), TextAlignmentOptions.Center);
+                    9, new Vector2(0f, -21f), new Vector2(58f, 17f), TextAlignmentOptions.Center);
                 lbl.color = new Color(0.24f, 0.22f, 0.20f, 1f);
 
                 Button btn = card.AddComponent<Button>();
                 btn.onClick.AddListener(() => OnClickKitchenFood(ft));
             }
 
-            // Linha inferior: Preparar Sanduíche, Preparar Hot Dog e Kit Rápido
+            // Pratos especiais consomem os ingredientes correspondentes da cesta.
             GameObject sandwichRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepSanduiche", "Sanduiche",
-                new Vector2(0.5f, 0.5f), new Vector2(-162f, -86f), new Vector2(74f, 32f),
+                new Vector2(0.5f, 0.5f), new Vector2(-150f, -82f), new Vector2(92f, 30f),
                 new Color(0.84f, 0.54f, 0.22f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.Sanduiche));
             GameObject hotDogRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepHotDog", "Hot Dog",
-                new Vector2(0.5f, 0.5f), new Vector2(-81f, -86f), new Vector2(74f, 32f),
+                new Vector2(0.5f, 0.5f), new Vector2(-50f, -82f), new Vector2(92f, 30f),
                 new Color(0.82f, 0.36f, 0.46f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.HotDog));
             GameObject saladRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepSalada", "Salada (3 pedidos)",
-                new Vector2(0.5f, 0.5f), new Vector2(0f, -86f), new Vector2(74f, 32f),
+                new Vector2(0.5f, 0.5f), new Vector2(50f, -82f), new Vector2(92f, 30f),
                 new Color(0.38f, 0.66f, 0.38f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.SaladaFrutasBosque));
             GameObject moonBasketRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnPrepCestaLua", "Cesta Lua (8)",
-                new Vector2(0.5f, 0.5f), new Vector2(81f, -86f), new Vector2(74f, 32f),
+                new Vector2(0.5f, 0.5f), new Vector2(150f, -82f), new Vector2(92f, 30f),
                 new Color(0.48f, 0.42f, 0.72f, 0.95f), 10,
                 () => OnClickKitchenFood(FoodType.CestaDaLua));
+            GameObject tartRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnTortinha", "Tortinha (3 pedidos)",
+                new Vector2(0.5f, 0.5f), new Vector2(-150f, -116f), new Vector2(92f, 30f),
+                new Color(0.82f, 0.52f, 0.30f, 0.95f), 10,
+                () => OnClickKitchenFood(FoodType.TortinhaDeMaca));
+            GameObject jamRecipe = CreateRoundedClickButton(kitchenPanel.transform, "BtnGeleia", "Geleia (5 pedidos)",
+                new Vector2(0.5f, 0.5f), new Vector2(-50f, -116f), new Vector2(92f, 30f),
+                new Color(0.58f, 0.34f, 0.68f, 0.95f), 10,
+                () => OnClickKitchenFood(FoodType.GeleiaSilvestre));
             GameObject quickKit = CreateRoundedClickButton(kitchenPanel.transform, "BtnKitRapido", "Kit Rapido",
-                new Vector2(0.5f, 0.5f), new Vector2(162f, -86f), new Vector2(74f, 32f),
+                new Vector2(0.5f, 0.5f), new Vector2(50f, -116f), new Vector2(92f, 30f),
                 new Color(0.28f, 0.58f, 0.46f, 0.95f), 10,
                 OnClickQuickRestockBasket);
-            foreach (GameObject recipeButton in new[] { sandwichRecipe, hotDogRecipe, saladRecipe, moonBasketRecipe, quickKit })
+            GameObject plantButton = CreateRoundedClickButton(kitchenPanel.transform, "BtnPlantarSementes", "Plantar sementes",
+                new Vector2(0.5f, 0.5f), new Vector2(150f, -116f), new Vector2(92f, 30f),
+                new Color(0.30f, 0.62f, 0.34f, 0.95f), 10,
+                OnClickPlantSeeds);
+            foreach (GameObject recipeButton in new[] { sandwichRecipe, hotDogRecipe, saladRecipe, moonBasketRecipe, tartRecipe, jamRecipe, quickKit, plantButton })
             {
                 TextMeshProUGUI label = recipeButton.GetComponentInChildren<TextMeshProUGUI>();
                 if (label != null)
@@ -917,9 +982,13 @@ namespace FlorestaBicicleta
             moonBasketRecipeButton = moonBasketRecipe.GetComponent<Button>();
             saladRecipeLabel = saladRecipe.GetComponentInChildren<TextMeshProUGUI>();
             moonBasketRecipeLabel = moonBasketRecipe.GetComponentInChildren<TextMeshProUGUI>();
+            tartRecipeButton = tartRecipe.GetComponent<Button>();
+            jamRecipeButton = jamRecipe.GetComponent<Button>();
+            tartRecipeLabel = tartRecipe.GetComponentInChildren<TextMeshProUGUI>();
+            jamRecipeLabel = jamRecipe.GetComponentInChildren<TextMeshProUGUI>();
 
             kitchenPrepStatus = CreateTMP(kitchenPanel.transform, "PrepStatus", "Toque em um cartao para pegar na cesta!",
-                13, new Vector2(0f, -124f), new Vector2(396f, 22f), TextAlignmentOptions.Center);
+                12, new Vector2(0f, -154f), new Vector2(396f, 22f), TextAlignmentOptions.Center);
             kitchenPrepStatus.color = new Color(0.32f, 0.28f, 0.22f, 1f);
 
             miniPrepPanel = gameObject.AddComponent<KitchenMiniGamePanel>();
@@ -1011,10 +1080,16 @@ namespace FlorestaBicicleta
             if (kitchenPanel != null) kitchenPanel.SetActive(player.isNearKitchen && !kitchenManuallyClosed);
             bool saladUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.SaladaFrutasBosque);
             bool moonBasketUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.CestaDaLua);
+            bool tartUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.TortinhaDeMaca);
+            bool jamUnlocked = progressManager != null && progressManager.IsRecipeUnlocked(FoodType.GeleiaSilvestre);
             if (saladRecipeButton != null) saladRecipeButton.interactable = saladUnlocked;
             if (moonBasketRecipeButton != null) moonBasketRecipeButton.interactable = moonBasketUnlocked;
+            if (tartRecipeButton != null) tartRecipeButton.interactable = tartUnlocked;
+            if (jamRecipeButton != null) jamRecipeButton.interactable = jamUnlocked;
             if (saladRecipeLabel != null) saladRecipeLabel.text = saladUnlocked ? "Salada" : "Salada (3)";
             if (moonBasketRecipeLabel != null) moonBasketRecipeLabel.text = moonBasketUnlocked ? "Cesta Lua" : "Cesta Lua (8)";
+            if (tartRecipeLabel != null) tartRecipeLabel.text = tartUnlocked ? "Tortinha" : "Tortinha (3)";
+            if (jamRecipeLabel != null) jamRecipeLabel.text = jamUnlocked ? "Geleia" : "Geleia (5)";
             if ((!player.isNearKitchen || kitchenManuallyClosed) && miniPrepPanel != null && miniPrepPanel.IsOpen)
                 miniPrepPanel.Close();
 
