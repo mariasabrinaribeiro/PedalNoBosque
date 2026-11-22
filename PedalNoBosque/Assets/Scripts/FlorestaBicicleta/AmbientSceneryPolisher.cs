@@ -87,7 +87,10 @@ namespace FlorestaBicicleta
             moteSprite = CreateGlowMoteSprite();
             petalSprite = CreatePetalSprite();
 
+            BuildSkyClouds();
+            BuildMidgroundLayer();
             BuildNearTreesLayer();
+            BuildForegroundLayer();
             BuildFlyingBirds();
             BuildButterflies();
             BuildAtmosphericMotes();
@@ -195,13 +198,13 @@ namespace FlorestaBicicleta
             }
         }
 
-        /// <summary>Plano 4 — Primeiro Plano (paralaxe 1.28x): samambaias, cogumelos, flores grandes e pedras/raízes.</summary>
+        /// <summary>Plano 4 — Primeiro Plano (paralaxe 1.28x): grama florida, samambaias e flores passando mais rápido que a bicicleta na borda inferior.</summary>
         private void BuildForegroundLayer()
         {
-            // A vegetação baixa cria uma moldura viva nas bordas da tela. A faixa
-            // central permanece livre para leitura da estrada e dos personagens.
-            float[] offsets = { -20f, -14f, -8f, -2f, 5f, 12f, 19f, 26f, 33f, 40f };
-            float totalSpan = 66f;
+            // A vegetação baixa na margem inferior (Y = -4.25f) desloca-se a 1.28x da câmera,
+            // produzindo sensação nítida de velocidade durante a pedalada sem cobrir a pista nem escorregar na estrada!
+            float[] offsets = { -24f, -18f, -12f, -6f, 0f, 6f, 12f, 18f, 24f, 30f, 36f, 42f };
+            float totalSpan = 72f;
 
             for (int i = 0; i < offsets.Length; i++)
             {
@@ -210,30 +213,25 @@ namespace FlorestaBicicleta
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = 16;
 
-                int kind = i % 5;
-                if (kind == 0 || kind == 4)
+                if (i % 3 == 0)
                     sr.sprite = BiomePropsFactory.CreateForegroundFernSprite();
-                else if (kind == 1)
-                    sr.sprite = BiomePropsFactory.CreateForegroundMushroomClusterSprite();
-                else if (kind == 2 || kind == 3)
-                    sr.sprite = BiomePropsFactory.CreateForegroundBigFlowerSprite(i);
+                else
+                    sr.sprite = BiomePropsFactory.CreateFlowerPatchSprite(i);
 
-                float sc = 0.58f + (i % 4) * 0.11f;
+                float sc = (i % 3 == 0) ? (0.48f + (i % 2) * 0.08f) : (0.92f + (i % 3) * 0.10f);
                 go.transform.localScale = new Vector3(sc, sc, 1f);
-                sr.color = new Color(0.84f, 0.91f, 0.78f, 0.90f);
+                sr.color = new Color(0.94f, 0.98f, 0.90f, 0.96f);
 
-                if (kind == 0 || kind == 2)
-                {
-                    GentleSway sway = go.AddComponent<GentleSway>();
-                    sway.maxAngleDeg = 4.0f;
-                    sway.speed = 1.15f + (i % 3) * 0.22f;
-                }
+                GentleSway sway = go.AddComponent<GentleSway>();
+                sway.maxAngleDeg = 2.6f;
+                sway.speed = 1.25f + (i % 3) * 0.22f;
 
                 foregroundProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
+                    sr = sr,
                     baseWorldX = offsets[i],
-                    y = -4.92f + (i % 2) * 0.08f,
+                    y = -4.24f + (i % 2) * 0.04f,
                     parallax = 1.28f,
                     spanWidth = totalSpan
                 });
@@ -350,10 +348,13 @@ namespace FlorestaBicicleta
                 c.tr.position = p;
             }
 
-            // Plano 2.5 (Árvores Próximas — 0.78x) com spanWidth = 80f (2 * 40f)
-            UpdateParallaxList(midgroundProps, camX, 24f);
+            // Planos de Parallax com reciclagem perfeitamente simétrica (wrapHalfRange = 0.5 * spanWidth):
+            // - Plano 2 (Árvores Intermediárias — 0.55x): spanWidth = 7 * 13.4 = 93.8f -> wrapHalfRange = 46.9f
+            // - Plano 2.5 (Árvores Próximas — 0.78x): spanWidth = 80f -> wrapHalfRange = 40f
+            // - Plano 4 (Vegetação de Primeiro Plano — 1.28x): spanWidth = 72f -> wrapHalfRange = 36f
+            UpdateParallaxList(midgroundProps, camX, 46.9f);
             UpdateParallaxList(nearTreeProps, camX, 40f);
-            UpdateParallaxList(foregroundProps, camX, 20f);
+            UpdateParallaxList(foregroundProps, camX, 36f);
 
             // Pássaros voando no céu com batida de asas suave
             for (int i = 0; i < birds.Count; i++)
@@ -407,15 +408,22 @@ namespace FlorestaBicicleta
 
         private void UpdateParallaxList(List<ParallaxProp> list, float camX, float wrapHalfRange)
         {
+            // Posição aparente de tela para objetos com parallax p:
+            // screenX = (baseWorldX - camX) * p => worldX = camX + (baseWorldX - camX) * p
+            // - Se p = 0.22 (montanhas): move-se a 22% da câmera (lento ao fundo)
+            // - Se p = 0.55 (árvores intermediárias): move-se a 55% da câmera
+            // - Se p = 0.78 (árvores próximas): move-se a 78% da câmera
+            // - Se p = 1.00 (estrada e objetos físicos): move-se a 100% da câmera (fixo no mundo)
+            // - Se p = 1.28 (vegetação de primeiro plano): move-se a 128% da câmera (28% mais rápido que a menina!)
             for (int i = 0; i < list.Count; i++)
             {
                 ParallaxProp item = list[i];
-                // Posição relativa com velocidade independente do plano de interação (parallax != 1.0)
-                float screenOffset = item.baseWorldX - camX * item.parallax;
+                float screenOffset = (item.baseWorldX - camX) * item.parallax;
+                float worldStep = item.spanWidth / Mathf.Max(0.1f, item.parallax);
                 while (screenOffset < -wrapHalfRange)
                 {
-                    item.baseWorldX += item.spanWidth;
-                    screenOffset = item.baseWorldX - camX * item.parallax;
+                    item.baseWorldX += worldStep;
+                    screenOffset = (item.baseWorldX - camX) * item.parallax;
                     if (item.isTreeLayer && item.sr != null)
                     {
                         item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
@@ -424,8 +432,8 @@ namespace FlorestaBicicleta
                 }
                 while (screenOffset > wrapHalfRange)
                 {
-                    item.baseWorldX -= item.spanWidth;
-                    screenOffset = item.baseWorldX - camX * item.parallax;
+                    item.baseWorldX -= worldStep;
+                    screenOffset = (item.baseWorldX - camX) * item.parallax;
                     if (item.isTreeLayer && item.sr != null)
                     {
                         item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);

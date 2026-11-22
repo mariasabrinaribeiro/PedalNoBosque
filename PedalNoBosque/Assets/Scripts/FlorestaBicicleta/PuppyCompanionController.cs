@@ -112,7 +112,14 @@ namespace FlorestaBicicleta
             }
 
             float bob = Mathf.Sin(Time.time * (displayMood == PuppyMood.Dormindo ? 1.8f : 5.2f)) * 0.10f;
-            moodBubbleTr.localPosition = new Vector3(0.95f, 2.55f + bob, 0f);
+            if (bike.isOnFoot && bike.ActivePuppyTransform != null)
+            {
+                moodBubbleTr.position = bike.ActivePuppyTransform.position + new Vector3(0f, 1.35f + bob, 0f);
+            }
+            else
+            {
+                moodBubbleTr.localPosition = new Vector3(0.95f, 2.55f + bob, 0f);
+            }
         }
 
         private static Texture2D Blank(int s)

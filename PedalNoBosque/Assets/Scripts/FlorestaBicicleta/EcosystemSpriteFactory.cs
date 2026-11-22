@@ -13,6 +13,8 @@ namespace FlorestaBicicleta
     {
         private static readonly Dictionary<ParkSpriteFactory.AnimalKind, Sprite> spriteCache =
             new Dictionary<ParkSpriteFactory.AnimalKind, Sprite>();
+        private static readonly Dictionary<int, Sprite> ambientDogCache =
+            new Dictionary<int, Sprite>();
 
         public static Sprite GetAnimalSprite(ParkSpriteFactory.AnimalKind kind) => LoadOrCreateAnimalSprite(kind);
 
@@ -303,13 +305,13 @@ namespace FlorestaBicicleta
         {
             if (kind == ParkSpriteFactory.AnimalKind.FilhoteUrso)
             {
-                // Família de Ursos do Bosque em alta resolução (Papai Urso, Mamãe Ursa, Irmão Urso e Bebê Ursinho juntos!)
-                int bw = 420, bh = 280;
+                // Família de Ursos do Bosque em alta resolução (Papai Urso, Mamãe Ursa, Irmão Urso e Bebê Ursinho bem espaçados, sem amontoar!)
+                int bw = 500, bh = 280;
                 Texture2D bTex = BlankTex(bw, bh);
 
                 // Papai Urso (à esquerda, castanho escuro, cachecol verde musgo e pote de mel)
                 DrawDetailedStorybookBear(
-                    bTex, 108, 14, 1.02f,
+                    bTex, 86, 14, 0.98f,
                     new Color(0.46f, 0.26f, 0.14f, 1f),
                     new Color(0.60f, 0.36f, 0.19f, 1f),
                     new Color(0.74f, 0.48f, 0.27f, 1f),
@@ -317,19 +319,9 @@ namespace FlorestaBicicleta
                     new Color(0.28f, 0.56f, 0.36f, 1f),
                     hasFlowerCrown: false, holdsHoneyPot: true);
 
-                // Mamãe Ursa (à direita, castanho canela dourado, coroa de flores e lenço coral)
+                // Irmãozinho Urso (centro-esquerda, cachecol azul céu, espaçado do Papai Urso)
                 DrawDetailedStorybookBear(
-                    bTex, 304, 14, 0.94f,
-                    new Color(0.54f, 0.31f, 0.16f, 1f),
-                    new Color(0.70f, 0.43f, 0.23f, 1f),
-                    new Color(0.84f, 0.57f, 0.33f, 1f),
-                    new Color(0.97f, 0.86f, 0.70f, 1f),
-                    new Color(0.92f, 0.42f, 0.46f, 1f),
-                    hasFlowerCrown: true, holdsHoneyPot: false);
-
-                // Irmãozinho Urso (centro-esquerda, cachecol azul céu)
-                DrawDetailedStorybookBear(
-                    bTex, 184, 10, 0.66f,
+                    bTex, 200, 12, 0.66f,
                     new Color(0.50f, 0.29f, 0.15f, 1f),
                     new Color(0.66f, 0.41f, 0.22f, 1f),
                     new Color(0.80f, 0.54f, 0.31f, 1f),
@@ -339,13 +331,23 @@ namespace FlorestaBicicleta
 
                 // Bebê Ursinho / Neném (centro-direita, cachecol amarelo mel)
                 DrawDetailedStorybookBear(
-                    bTex, 242, 8, 0.52f,
+                    bTex, 290, 10, 0.52f,
                     new Color(0.56f, 0.34f, 0.18f, 1f),
                     new Color(0.74f, 0.47f, 0.26f, 1f),
                     new Color(0.88f, 0.62f, 0.36f, 1f),
                     new Color(0.98f, 0.89f, 0.74f, 1f),
                     new Color(0.98f, 0.78f, 0.24f, 1f),
                     hasFlowerCrown: false, holdsHoneyPot: false);
+
+                // Mamãe Ursa (à direita, castanho canela dourado, coroa de flores e lenço coral)
+                DrawDetailedStorybookBear(
+                    bTex, 404, 14, 0.92f,
+                    new Color(0.54f, 0.31f, 0.16f, 1f),
+                    new Color(0.70f, 0.43f, 0.23f, 1f),
+                    new Color(0.84f, 0.57f, 0.33f, 1f),
+                    new Color(0.97f, 0.86f, 0.70f, 1f),
+                    new Color(0.92f, 0.42f, 0.46f, 1f),
+                    hasFlowerCrown: true, holdsHoneyPot: false);
 
                 bTex.Apply();
                 return Sprite.Create(bTex, new Rect(0, 0, bw, bh), new Vector2(0.5f, 10f / (float)bh), bh / 2.15f);
@@ -550,6 +552,89 @@ namespace FlorestaBicicleta
 
             OutlinedEllipse(tex, 92, 26, 14, 8, ink, gold, gold, 3);
             OutlinedEllipse(tex, 128, 26, 14, 8, ink, gold, gold, 3);
+        }
+
+        /// <summary>
+        /// Cãozinho ambiental amigo da floresta com variações de pelagem (malhado caramelo/branco, chocolate com lenço azul,
+        /// creme com manchas avelã e lenço verde) para diferenciar claramente os cãezinhos do cenário do cachorrinho
+        /// companheiro dourado da protagonista!
+        /// </summary>
+        public static Sprite LoadOrCreateAmbientForestDogSprite(int variant)
+        {
+            int key = Mathf.Abs(variant) % 3;
+            if (ambientDogCache.TryGetValue(key, out Sprite cached) && cached != null)
+                return cached;
+
+            int w = 220, h = 210;
+            Texture2D tex = BlankTex(w, h);
+            Color ink = new Color(0.20f, 0.09f, 0.06f, 1f);
+
+            Color furMain, furSpot, furBelly, scarfCol;
+            if (key == 0)
+            {
+                // Cãozinho Malhado (branco creme com manchas caramelo e lenço azul céu)
+                furMain = new Color(0.96f, 0.92f, 0.84f, 1f);
+                furSpot = new Color(0.68f, 0.38f, 0.18f, 1f);
+                furBelly = new Color(1.00f, 0.98f, 0.94f, 1f);
+                scarfCol = new Color(0.32f, 0.66f, 0.92f, 1f);
+            }
+            else if (key == 1)
+            {
+                // Cãozinho Chocolate com peito creme e lenço verde musgo
+                furMain = new Color(0.54f, 0.32f, 0.18f, 1f);
+                furSpot = new Color(0.38f, 0.21f, 0.11f, 1f);
+                furBelly = new Color(0.94f, 0.86f, 0.72f, 1f);
+                scarfCol = new Color(0.34f, 0.68f, 0.36f, 1f);
+            }
+            else
+            {
+                // Cãozinho Tricolor do Bosque com lenço amarelo sol
+                furMain = new Color(0.84f, 0.56f, 0.30f, 1f);
+                furSpot = new Color(0.34f, 0.22f, 0.16f, 1f);
+                furBelly = new Color(0.97f, 0.93f, 0.86f, 1f);
+                scarfCol = new Color(0.98f, 0.78f, 0.22f, 1f);
+            }
+
+            // Rabinho alegre levantado
+            OutlinedEllipse(tex, 54, 76, 20, 10, ink, furSpot, furMain, 4);
+
+            // Patinhas apoiadas no chão
+            int[] px = { 76, 98, 128, 150 };
+            for (int i = 0; i < px.Length; i++)
+            {
+                OutlinedEllipse(tex, px[i], 28, 11, 16, ink, (i % 2 == 0) ? furSpot : furMain, furBelly, 3);
+                OutlinedEllipse(tex, px[i] + 2, 16, 11, 6, ink, furBelly, Color.white, 3);
+            }
+
+            // Tronco e manchinha nas costas
+            OutlinedEllipse(tex, 112, 56, 44, 26, ink, furMain, furBelly, 4);
+            EllipsePx(tex, 98, 66, 18, 12, furSpot);
+            EllipsePx(tex, 118, 48, 26, 13, furBelly);
+
+            // Lenço colorido de explorador no pescoço
+            OutlinedEllipse(tex, 130, 74, 24, 8, ink, scarfCol, Color.white, 3);
+
+            // Cabeça, mancha no olho e orelhas pontudas/dobradas distintas do companheiro
+            OutlinedCircle(tex, 134, 112, 34, ink, furMain, furBelly, 4);
+            CirclePx(tex, 122, 118, 14, furSpot);
+
+            // Orelhas erguidas/dobradas charmosas
+            OutlinedEllipse(tex, 106, 138, 13, 20, ink, furSpot, furMain, 3);
+            OutlinedEllipse(tex, 156, 138, 13, 20, ink, furSpot, furMain, 3);
+
+            // Focinho sorridente com linguinha rosada
+            OutlinedEllipse(tex, 144, 102, 16, 11, ink, furBelly, Color.white, 3);
+            EllipsePx(tex, 150, 107, 6, 4, ink);
+            CuteEye(tex, 124, 118, 5);
+            CuteEye(tex, 146, 118, 5);
+
+            // Linguinha rosada simpática
+            OutlinedEllipse(tex, 146, 91, 5, 6, ink, new Color(1f, 0.48f, 0.60f, 1f), new Color(1f, 0.70f, 0.78f, 1f), 2);
+
+            tex.Apply();
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.52f, 12f / (float)h), 175f);
+            ambientDogCache[key] = sp;
+            return sp;
         }
     }
 }

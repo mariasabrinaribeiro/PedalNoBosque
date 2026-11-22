@@ -64,15 +64,21 @@ namespace FlorestaBicicleta
         private Transform visualRoot;
         private SpriteRenderer bikeSR;
         private SpriteRenderer basketDecorSR;
+        private SpriteRenderer basketPuppySR;
         private SpriteRenderer walkingGirlSR;
         private SpriteRenderer walkingPuppySR;
         private SpriteRenderer parkedBikeSR;
         private Sprite walkingGirlSprite;
+        private Sprite[] walkingGirlFrames;
         private Sprite walkingPuppySprite;
         private Sprite parkedBikeSprite;
         private static Sprite cachedBasketDecorSprite;
         private float parkedBikeX;
         private float nextPuppyFootHeartTime = 0f;
+        private float footIdleTime = 0f;
+        private float puppyPettingTimer = 0f;
+        public FlorestaSpriteFactory.PuppyAnimState CurrentPuppyAnimState { get; private set; } = FlorestaSpriteFactory.PuppyAnimState.NaCestinha;
+        public Transform ActivePuppyTransform => (isOnFoot && walkingPuppySR != null) ? walkingPuppySR.transform : (basketPuppySR != null ? basketPuppySR.transform : transform);
         private SpriteRenderer customAccentBadgeSR;
         private float slopeMultiplier = 1f;
         private float slopeTiltDeg = 0f;
@@ -140,6 +146,15 @@ namespace FlorestaBicicleta
             basketDecorSR = basketDecorObj.AddComponent<SpriteRenderer>();
             basketDecorSR.sprite = BuildBasketDecorationSprite();
             basketDecorSR.sortingOrder = 11;
+
+            // Cachorrinho expressivo na cestinha (sorriso alegre, linguinha rosada e orelhinhas animadas!)
+            GameObject basketPuppyObj = new GameObject("CachorrinhoNaCestaExpressivo");
+            basketPuppyObj.transform.SetParent(visualRoot, false);
+            basketPuppyObj.transform.localPosition = new Vector3(0.76f, 1.54f, 0f);
+            basketPuppySR = basketPuppyObj.AddComponent<SpriteRenderer>();
+            Sprite[] basketFrames = FlorestaSpriteFactory.GetPuppyStateFrames(FlorestaSpriteFactory.PuppyAnimState.NaCestinha);
+            if (basketFrames != null && basketFrames.Length > 0) basketPuppySR.sprite = basketFrames[0];
+            basketPuppySR.sortingOrder = 11;
 
             // Adorno delicado para acessórios/enfeites equipados (Etapa 7)
             GameObject badgeObj = new GameObject("CustomAccent");
@@ -240,22 +255,40 @@ namespace FlorestaBicicleta
             transform.position = new Vector3(targetX, baseGroundY, 0f);
         }
 
+        public void PetPuppy()
+        {
+            puppyPettingTimer = 3.2f;
+            CurrentPuppyAnimState = FlorestaSpriteFactory.PuppyAnimState.RecebendoCarinho;
+            FlorestaSoundFX.Instance?.PlayDogBark();
+            onInfoMessage?.Invoke("Carinho no cachorrinho! Ele fechou os olhinhos de alegria e abanou o rabinho!");
+        }
+
         public bool ToggleExploreMode()
         {
             if (!isOnFoot)
             {
-                // Freia suavemente e imediatamente ao descer da bicicleta (sem bloquear quando em movimento!)
+                // Freia suavemente e imediatamente ao descer da bicicleta
                 currentSpeed = 0f;
                 uiSlowPressed = uiFastPressed = uiReversePressed = false;
 
                 isOnFoot = true;
+                footIdleTime = 0f;
+                puppyPettingTimer = 0f;
                 parkedBikeX = transform.position.x;
+
+                // Desloca a menina 1.45m à frente da bicicleta estacionada para NUNCA sobrepor a roda ou o quadro!
+                Vector3 pos = transform.position;
+                pos.x = parkedBikeX + 1.45f * facingDir;
+                transform.position = pos;
+
                 if (bikeSR != null) bikeSR.enabled = false;
                 if (basketDecorSR != null) basketDecorSR.enabled = false;
+                if (basketPuppySR != null) basketPuppySR.enabled = false;
                 if (customAccentBadgeSR != null) customAccentBadgeSR.enabled = false;
                 CreateFootVisuals();
+                CurrentPuppyAnimState = FlorestaSpriteFactory.PuppyAnimState.Feliz;
                 FlorestaSoundFX.Instance?.PlayDogBark();
-                onInfoMessage?.Invoke("Você e o cachorrinho desceram da bicicleta! Caminhem juntos com A/D (ou Passear/Voltar) e aperte Q para subir de novo.");
+                onInfoMessage?.Invoke("Você e o cachorrinho desceram da bicicleta! Caminhem juntos (A/D), faça carinho nele (C) ou aperte Q para voltar a pedalar.");
                 return true;
             }
 
@@ -266,11 +299,19 @@ namespace FlorestaBicicleta
             }
 
             isOnFoot = false;
+            CurrentPuppyAnimState = FlorestaSpriteFactory.PuppyAnimState.NaCestinha;
             if (walkingGirlSR != null) Destroy(walkingGirlSR.gameObject);
             if (walkingPuppySR != null) Destroy(walkingPuppySR.gameObject);
             if (parkedBikeSR != null) Destroy(parkedBikeSR.gameObject);
+
+            // Reposiciona suavemente no selim da bicicleta estacionada
+            Vector3 bikePos = transform.position;
+            bikePos.x = parkedBikeX;
+            transform.position = bikePos;
+
             if (bikeSR != null) bikeSR.enabled = true;
             if (basketDecorSR != null) basketDecorSR.enabled = true;
+            if (basketPuppySR != null) basketPuppySR.enabled = true;
             ApplyCustomizationVisuals();
             FlorestaSoundFX.Instance?.PlayDogBark();
             onInfoMessage?.Invoke("Você e o cachorrinho voltaram à bicicleta! Bom passeio pelo bosque!");
@@ -281,32 +322,46 @@ namespace FlorestaBicicleta
         {
             if (parkedBikeSprite == null)
                 parkedBikeSprite = FlorestaSpriteFactory.ExtractRealParkedBikeSprite() ?? BuildParkedBikeSprite();
+            if (walkingGirlFrames == null || walkingGirlFrames.Length == 0)
+                walkingGirlFrames = FlorestaSpriteFactory.GetWalkingGirlSprites();
             if (walkingGirlSprite == null)
-                walkingGirlSprite = FlorestaSpriteFactory.ExtractRealWalkingGirlSprite() ?? BuildWalkingGirlSprite();
+                walkingGirlSprite = (walkingGirlFrames != null && walkingGirlFrames.Length > 0)
+                    ? walkingGirlFrames[0]
+                    : (FlorestaSpriteFactory.ExtractRealWalkingGirlSprite() ?? BuildWalkingGirlSprite());
             if (walkingPuppySprite == null)
                 walkingPuppySprite = FlorestaSpriteFactory.ExtractRealRunningPuppySprite();
 
+            float parkedElev = trackGeneratorRef != null
+                ? trackGeneratorRef.GetTrackElevationAtX(parkedBikeX, out _)
+                : currentTrackElevation;
+
             GameObject bike = new GameObject("BicicletaEstacionada");
-            bike.transform.position = new Vector3(parkedBikeX, baseGroundY + currentTrackElevation, 0f);
+            bike.transform.position = new Vector3(parkedBikeX, baseGroundY + parkedElev, 0f);
             parkedBikeSR = bike.AddComponent<SpriteRenderer>();
             parkedBikeSR.sprite = parkedBikeSprite;
+            parkedBikeSR.flipX = facingDir < 0f;
             parkedBikeSR.sortingOrder = 9;
+            BiomePropsFactory.AddContactShadow(bike.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.95f, 0.24f), 8);
 
             GameObject girl = new GameObject("MeninaExplorandoAPe");
             girl.transform.SetParent(transform, false);
-            girl.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+            girl.transform.localPosition = Vector3.zero;
             walkingGirlSR = girl.AddComponent<SpriteRenderer>();
             walkingGirlSR.sprite = walkingGirlSprite;
+            walkingGirlSR.flipX = facingDir < 0f;
             walkingGirlSR.sortingOrder = 10;
+            BiomePropsFactory.AddContactShadow(girl.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.85f, 0.18f), 9);
 
             if (walkingPuppySprite != null)
             {
                 GameObject puppy = new GameObject("CachorrinhoExplorandoAPe");
                 puppy.transform.SetParent(transform, false);
-                puppy.transform.localPosition = new Vector3(0.88f * facingDir, 0.04f, 0f);
+                puppy.transform.localPosition = new Vector3(1.05f * facingDir, 0f, 0f);
                 walkingPuppySR = puppy.AddComponent<SpriteRenderer>();
                 walkingPuppySR.sprite = walkingPuppySprite;
+                walkingPuppySR.flipX = facingDir < 0f;
                 walkingPuppySR.sortingOrder = 11;
+                BiomePropsFactory.AddContactShadow(puppy.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.72f, 0.16f), 10);
                 nextPuppyFootHeartTime = Time.time + 0.6f;
             }
         }
@@ -588,6 +643,7 @@ namespace FlorestaBicicleta
                 bellPressed = Keyboard.current.bKey.wasPressedThisFrame;
                 faroPressed = Keyboard.current.fKey.wasPressedThisFrame;
                 explorePressed = Keyboard.current.qKey.wasPressedThisFrame;
+                if (Keyboard.current.cKey.wasPressedThisFrame) PetPuppy();
             }
             else
             {
@@ -661,6 +717,19 @@ namespace FlorestaBicicleta
                 basketDecorSR.flipX = facingDir < 0f;
                 basketDecorSR.transform.localPosition = new Vector3(0.52f * facingDir, 1.05f, 0f);
             }
+            if (basketPuppySR != null && !isOnFoot)
+            {
+                basketPuppySR.flipX = facingDir < 0f;
+                CurrentPuppyAnimState = FlorestaSpriteFactory.PuppyAnimState.NaCestinha;
+                Sprite[] bFrames = FlorestaSpriteFactory.GetPuppyStateFrames(FlorestaSpriteFactory.PuppyAnimState.NaCestinha);
+                if (bFrames != null && bFrames.Length > 0)
+                {
+                    int bIdx = Mathf.FloorToInt(Time.time * (Mathf.Abs(currentSpeed) > 0.2f ? 5.5f : 2.2f)) % bFrames.Length;
+                    basketPuppySR.sprite = bFrames[bIdx];
+                }
+                float basketBob = Mathf.Sin(Time.time * 4.5f) * 0.015f;
+                basketPuppySR.transform.localPosition = new Vector3(0.76f * facingDir, 1.54f + basketBob, 0f);
+            }
 
             // Sede do cachorrinho + som ofegante quando água está baixa
             float drain = Mathf.Abs(currentSpeed) > 0.2f ? (Mathf.Abs(currentSpeed) > 5f ? 1.45f : 0.95f) : 0.25f;
@@ -675,28 +744,82 @@ namespace FlorestaBicicleta
             if (walkingGirlSR != null)
             {
                 walkingGirlSR.flipX = facingDir < 0f;
-                walkingGirlSR.transform.localPosition = new Vector3(0f, 0.02f + (Mathf.Abs(moveX) > 0.1f ? Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.06f : 0f), 0f);
+                bool isMovingFoot = Mathf.Abs(moveX) > 0.1f;
+                if (walkingGirlFrames != null && walkingGirlFrames.Length >= 3)
+                {
+                    if (isMovingFoot)
+                    {
+                        int stepFrame = 1 + (Mathf.FloorToInt(Time.time * 7.5f) % 2);
+                        walkingGirlSR.sprite = walkingGirlFrames[stepFrame];
+                    }
+                    else
+                    {
+                        walkingGirlSR.sprite = walkingGirlFrames[0];
+                    }
+                }
+                float girlBob = isMovingFoot ? Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.04f : Mathf.Sin(Time.time * 2.4f) * 0.01f;
+                walkingGirlSR.transform.localPosition = new Vector3(0f, girlBob, 0f);
             }
             if (walkingPuppySR != null)
             {
                 walkingPuppySR.flipX = facingDir < 0f;
                 bool isMovingFoot = Mathf.Abs(moveX) > 0.1f;
+                if (isMovingFoot) footIdleTime = 0f;
+                else footIdleTime += Time.deltaTime;
+
+                if (puppyPettingTimer > 0f) puppyPettingTimer -= Time.deltaTime;
+
+                // Determina o estado animado dentre os 8 estados do cachorrinho
+                FlorestaSpriteFactory.PuppyAnimState state;
+                if (puppyPettingTimer > 0f)
+                    state = FlorestaSpriteFactory.PuppyAnimState.RecebendoCarinho;
+                else if (isFaroMode)
+                    state = FlorestaSpriteFactory.PuppyAnimState.Farejando;
+                else if (isMovingFoot)
+                    state = FlorestaSpriteFactory.PuppyAnimState.Correndo;
+                else if (footIdleTime > 7.5f)
+                    state = FlorestaSpriteFactory.PuppyAnimState.Descansando;
+                else if (footIdleTime > 3.6f && Mathf.FloorToInt(footIdleTime) % 3 == 0)
+                    state = FlorestaSpriteFactory.PuppyAnimState.Curioso;
+                else if (footIdleTime < 2.2f)
+                    state = FlorestaSpriteFactory.PuppyAnimState.Feliz;
+                else
+                    state = FlorestaSpriteFactory.PuppyAnimState.Parado;
+
+                CurrentPuppyAnimState = state;
+                Sprite[] pFrames = FlorestaSpriteFactory.GetPuppyStateFrames(state);
+                if (pFrames != null && pFrames.Length > 0)
+                {
+                    float animRate = (state == FlorestaSpriteFactory.PuppyAnimState.Correndo) ? 9.5f
+                        : (state == FlorestaSpriteFactory.PuppyAnimState.Descansando ? 1.8f : 4.8f);
+                    int pIdx = Mathf.FloorToInt(Time.time * animRate) % pFrames.Length;
+                    walkingPuppySR.sprite = pFrames[pIdx];
+                }
+
                 float puppyHop = isMovingFoot
-                    ? Mathf.Abs(Mathf.Sin(Time.time * 13f)) * 0.14f
-                    : Mathf.Abs(Mathf.Sin(Time.time * 5.5f)) * 0.06f;
-                float puppySwayX = 0.88f * facingDir + Mathf.Sin(Time.time * 4.2f) * 0.10f;
-                walkingPuppySR.transform.localPosition = new Vector3(puppySwayX, 0.04f + puppyHop, 0f);
+                    ? Mathf.Abs(Mathf.Sin(Time.time * 13f)) * 0.11f
+                    : (state == FlorestaSpriteFactory.PuppyAnimState.Descansando ? 0f : Mathf.Abs(Mathf.Sin(Time.time * 4.5f)) * 0.03f);
+
+                // Mantém distância adequada da menina e nunca atravessa a bicicleta estacionada!
+                float targetPuppyLocalX = 1.08f * facingDir + Mathf.Sin(Time.time * 3.6f) * 0.08f;
+                float puppyWorldX = transform.position.x + targetPuppyLocalX;
+                if (Mathf.Abs(puppyWorldX - parkedBikeX) < 1.15f)
+                {
+                    float pushDir = (transform.position.x >= parkedBikeX) ? 1f : -1f;
+                    targetPuppyLocalX = 1.18f * pushDir;
+                }
+                walkingPuppySR.transform.localPosition = new Vector3(targetPuppyLocalX, puppyHop, 0f);
 
                 if (Time.time >= nextPuppyFootHeartTime)
                 {
-                    nextPuppyFootHeartTime = Time.time + (isMovingFoot ? 1.4f : 2.4f);
+                    nextPuppyFootHeartTime = Time.time + (puppyPettingTimer > 0f ? 0.65f : (isMovingFoot ? 1.6f : 2.8f));
                     GameObject heartObj = new GameObject("CoracaoCachorrinhoAPe");
-                    heartObj.transform.position = walkingPuppySR.transform.position + new Vector3(0f, 0.65f, 0f);
-                    heartObj.transform.localScale = new Vector3(0.45f, 0.45f, 1f);
+                    heartObj.transform.position = walkingPuppySR.transform.position + new Vector3(0f, 0.78f, 0f);
+                    heartObj.transform.localScale = new Vector3(0.42f, 0.42f, 1f);
                     SpriteRenderer hsr = heartObj.AddComponent<SpriteRenderer>();
                     hsr.sprite = FlorestaSpriteFactory.CreateHeartIconSprite();
                     hsr.sortingOrder = 16;
-                    heartObj.AddComponent<FallingParticle>().Init(new Vector3(Random.Range(-0.25f, 0.25f), 0.9f, 0f), -0.3f, 0.95f);
+                    heartObj.AddComponent<FallingParticle>().Init(new Vector3(Random.Range(-0.22f, 0.22f), 0.85f, 0f), -0.3f, 0.95f);
                 }
             }
 

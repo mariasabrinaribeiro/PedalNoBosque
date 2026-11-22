@@ -81,6 +81,7 @@ namespace FlorestaBicicleta
 
             bodyRenderer = gameObject.AddComponent<SpriteRenderer>();
             bodyRenderer.sprite = LoadSideAnimalSprite(kind);
+            bodyRenderer.flipX = (Mathf.Abs(Mathf.RoundToInt(basePosition.x * 10f)) % 2 == 1);
             bodyRenderer.sortingOrder = 6;
 
             // Sombra de contato suave diretamente sob as patinhas
@@ -88,9 +89,10 @@ namespace FlorestaBicicleta
 
             GameObject iconObj = new GameObject("OrderBubble");
             iconObj.transform.SetParent(transform);
-            bubbleBaseY = (kind == ParkSpriteFactory.AnimalKind.Esquilo || kind == ParkSpriteFactory.AnimalKind.Coelho
+            float heightStep = (Mathf.Abs(Mathf.RoundToInt(basePosition.x)) % 3) * 0.14f;
+            bubbleBaseY = ((kind == ParkSpriteFactory.AnimalKind.Esquilo || kind == ParkSpriteFactory.AnimalKind.Coelho
                 || kind == ParkSpriteFactory.AnimalKind.Ourico || kind == ParkSpriteFactory.AnimalKind.Sapo
-                || kind == ParkSpriteFactory.AnimalKind.Passarinhos) ? 1.48f : 1.95f;
+                || kind == ParkSpriteFactory.AnimalKind.Passarinhos) ? 1.48f : 1.95f) + heightStep;
             iconObj.transform.localPosition = new Vector3(0f, bubbleBaseY, 0f);
             iconObj.transform.localScale = new Vector3(0.76f, 0.76f, 1f);
             statusIconTransform = iconObj.transform;
@@ -110,7 +112,8 @@ namespace FlorestaBicicleta
         {
             if (!string.IsNullOrEmpty(animalName) && (animalName.Contains("Cachorr") || animalName.Contains("Cão")))
             {
-                Sprite dogSp = FlorestaSpriteFactory.ExtractRealRunningPuppySprite();
+                int variant = Mathf.Abs(Mathf.RoundToInt(basePosition.x));
+                Sprite dogSp = EcosystemSpriteFactory.LoadOrCreateAmbientForestDogSprite(variant);
                 if (dogSp != null) return dogSp;
             }
             return EcosystemSpriteFactory.LoadOrCreateAnimalSprite(k);
