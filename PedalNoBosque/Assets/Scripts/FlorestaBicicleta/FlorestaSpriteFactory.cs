@@ -17,11 +17,37 @@ namespace FlorestaBicicleta
             Quati
         }
 
+        public enum PuppyAnimState
+        {
+            Feliz,
+            Correndo,
+            Parado,
+            Farejando,
+            Curioso,
+            RecebendoCarinho,
+            NaCestinha,
+            Descansando
+        }
+
         private static Sprite cachedSeamlessBgSprite;
+        private static Sprite cachedSeamlessRoadStripSprite;
         private static Sprite cachedRealWalkingGirlSprite;
+        private static Sprite[] cachedWalkingGirlFrames;
         private static Sprite cachedRealRunningPuppySprite;
+        private static readonly System.Collections.Generic.Dictionary<int, Sprite[]> cachedPuppyStateFrames =
+            new System.Collections.Generic.Dictionary<int, Sprite[]>();
         private static Sprite cachedRealParkedBikeSprite;
         private static Texture2D cachedReadableGirlBikeTex;
+        private static Texture2D cachedReadableBgTex;
+
+        private static Texture2D GetReadableBgTexture()
+        {
+            if (cachedReadableBgTex != null) return cachedReadableBgTex;
+            Texture2D raw = Resources.Load<Texture2D>("Floresta/bg_floresta");
+            if (raw == null) return null;
+            cachedReadableBgTex = GetReadableTextureCopy(raw);
+            return cachedReadableBgTex;
+        }
 
         private static Texture2D GetReadableTextureCopy(Texture2D source)
         {
@@ -61,14 +87,59 @@ namespace FlorestaBicicleta
         }
 
         /// <summary>
-        /// Carrega bg_floresta.png preservando 100% da pintura original sem esticar linhas horizontais,
-        /// eliminando qualquer faixa retangular ou bloco escuro nas árvores!
+        /// Carrega bg_floresta.png preservando 100% da pintura original para a camada de montanhas e floresta distante.
+        /// Quando combinada com espelhamento alternado (flipX = i % 2 != 0), as bordas esquerda/direita casam
+        /// pixel a pixel sem nenhuma linha ou emenda vertical!
         /// </summary>
         public static Sprite LoadForestBackgroundSprite(float cameraWorldHeight)
         {
             if (cachedSeamlessBgSprite != null) return cachedSeamlessBgSprite;
             cachedSeamlessBgSprite = LoadResourceSprite("Floresta/bg_floresta", cameraWorldHeight, 0.5f);
             return cachedSeamlessBgSprite;
+        }
+
+        /// <summary>
+        /// Extrai a faixa inferior da estrada e suas margens floridas de bg_floresta.png (linhas 0..310 de 1024)
+        /// com transição de alfa suave no topo da grama superior, para que a ESTRADA se mova a 100% (1.0x)
+        /// presa ao mundo físico da bicicleta, enquanto as montanhas e a floresta ao fundo se movem em parallax!
+        /// </summary>
+        public static Sprite LoadForestRoadStripSprite(float cameraWorldHeight)
+        {
+            if (cachedSeamlessRoadStripSprite != null) return cachedSeamlessRoadStripSprite;
+            Texture2D src = GetReadableBgTexture();
+            if (src == null) return null;
+
+            int w = src.width;
+            int stripH = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.305f), 260, src.height);
+            int featherRows = 28;
+            Texture2D stripTex = new Texture2D(w, stripH, TextureFormat.RGBA32, false);
+            stripTex.filterMode = FilterMode.Bilinear;
+            stripTex.wrapMode = TextureWrapMode.Clamp;
+
+            Color[] srcPixels = src.GetPixels(0, 0, w, stripH);
+            for (int y = stripH - featherRows; y < stripH; y++)
+            {
+                float alpha = 1f - (y - (stripH - featherRows)) / (float)featherRows;
+                alpha = alpha * alpha * (3f - 2f * alpha); // smoothstep
+                int rowOffset = y * w;
+                for (int x = 0; x < w; x++)
+                {
+                    Color c = srcPixels[rowOffset + x];
+                    c.a *= alpha;
+                    srcPixels[rowOffset + x] = c;
+                }
+            }
+
+            stripTex.SetPixels(srcPixels);
+            stripTex.Apply();
+
+            float ppu = src.height / Mathf.Max(0.1f, cameraWorldHeight);
+            cachedSeamlessRoadStripSprite = Sprite.Create(
+                stripTex,
+                new Rect(0, 0, w, stripH),
+                new Vector2(0.5f, 0f),
+                ppu);
+            return cachedSeamlessRoadStripSprite;
         }
 
         public static Sprite LoadGirlBikeSprite()
