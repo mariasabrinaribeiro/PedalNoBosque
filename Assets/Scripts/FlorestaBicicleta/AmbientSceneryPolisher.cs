@@ -16,10 +16,13 @@ namespace FlorestaBicicleta
         private class ParallaxProp
         {
             public Transform tr;
+            public SpriteRenderer sr;
             public float baseWorldX;
             public float y;
             public float parallax; // < 1 = mais lento (fundo), > 1 = mais rápido (primeiro plano)
             public float spanWidth;
+            public int variantIndex;
+            public bool isTreeLayer;
         }
 
         private class CloudItem
@@ -122,85 +125,74 @@ namespace FlorestaBicicleta
         /// <summary>Plano 2 — Fundo Intermediário (paralaxe 0.48x): árvores variadas, colinas e cachoeira espaçada.</summary>
         private void BuildMidgroundLayer()
         {
+            // A linha do horizonte usa grupos em ritmos diferentes para não repetir
+            // a mesma árvore a cada poucos metros nem competir com a arte do fundo.
             const int count = 7;
-            const float spacing = 8.2f;
+            const float spacing = 13.4f;
             float totalSpan = count * spacing;
-
             for (int i = 0; i < count; i++)
             {
                 GameObject go = new GameObject($"FundoIntermediario_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-
-                float y;
-                float sc;
-                if (i == 3)
-                {
-                    // Cachoeira distante com névoa (usada com moderação para compor a paisagem!)
-                    sr.sprite = BiomePropsFactory.CreateDistantWaterfallSprite();
-                    sr.sortingOrder = -10;
-                    sr.color = new Color(0.92f, 0.96f, 1f, 0.88f);
-                    y = -1.95f;
-                    sc = 1.05f;
-                }
-                else if (i % 3 == 0)
-                {
-                    sr.sprite = BiomePropsFactory.CreateRollingHillSprite();
-                    sr.sortingOrder = -11;
-                    sr.color = new Color(0.80f, 0.92f, 0.84f, 0.85f);
-                    y = -2.25f;
-                    sc = 1.25f;
-                }
-                else
-                {
-                    sr.sprite = BiomePropsFactory.CreateMidgroundTreeClusterSprite(i);
-                    sr.sortingOrder = -9;
-                    sr.color = new Color(0.86f, 0.94f, 0.88f, 0.90f);
-                    y = -2.20f;
-                    sc = Random.Range(0.95f, 1.22f);
-                }
-
-                go.transform.localScale = new Vector3(sc, sc, 1f);
+                // Alterna entre bosques/grupos de árvores e árvores individuais para horizonte rico e profundo
+                sr.sprite = (i % 2 == 1)
+                    ? BiomePropsFactory.CreateMidgroundTreeClusterSprite(i)
+                    : BiomePropsFactory.CreateOrganicTreeSprite(i + 1);
+                sr.sortingOrder = -10;
+                sr.color = new Color(0.78f, 0.87f, 0.83f, 0.76f);
+                float y = -2.42f + 0.18f * (i % 3);
+                float scale = (i % 2 == 1) ? 0.38f + (i % 3) * 0.05f : 0.34f + (i % 4) * 0.055f;
+                go.transform.localScale = new Vector3(scale, scale * (0.94f + (i % 2) * 0.08f), 1f);
                 midgroundProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
-                    baseWorldX = -16f + i * spacing,
+                    sr = sr,
+                    baseWorldX = -25f + i * spacing,
                     y = y,
                     parallax = 0.48f,
-                    spanWidth = totalSpan
+                    spanWidth = totalSpan,
+                    variantIndex = i + 1,
+                    isTreeLayer = true
                 });
             }
         }
 
-        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): 5 modelos orgânicos variados sem repetição artificial.</summary>
+        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): 7 modelos orgânicos variados sem repetição artificial.</summary>
         private void BuildNearTreesLayer()
         {
-            float[] offsets = { -15f, -1f, 11.5f, 25f, 38.5f };
-            float totalSpan = 64f;
+            // Árvores maiores em primeiro plano, mas com espaços para deixar
+            // personagens, animais e pontos de interesse legíveis.
+            float[] offsets = { -24f, -11f, 3f, 16f, 29f, 43f, 57f };
+            float totalSpan = 91f;
 
             for (int i = 0; i < offsets.Length; i++)
             {
                 GameObject go = new GameObject($"ArvoreOrganica_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+                // 7 modelos distintos sem repetição imediata (incluindo o carvalho ilustrado!)
                 sr.sprite = BiomePropsFactory.CreateOrganicTreeSprite(i);
                 sr.sortingOrder = -4;
-                sr.color = new Color(0.95f, 0.98f, 0.94f, 0.95f);
+                sr.color = new Color(0.92f, 0.97f, 0.91f, 0.88f);
 
-                float sc = Random.Range(0.90f, 1.16f);
-                go.transform.localScale = new Vector3(sc, sc, 1f);
+                float sc = 0.70f + (i % 4) * 0.095f;
+                go.transform.localScale = new Vector3(sc, sc * (0.92f + (i % 3) * 0.07f), 1f);
 
                 GentleSway sway = go.AddComponent<GentleSway>();
-                sway.maxAngleDeg = 1.5f;
-                sway.speed = Random.Range(0.95f, 1.35f);
+                sway.maxAngleDeg = 1.8f;
+                sway.speed = Random.Range(0.95f, 1.45f);
 
                 nearTreeProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
+                    sr = sr,
                     baseWorldX = offsets[i],
-                    y = -2.65f + (i % 2 == 0 ? 0f : -0.10f),
+                    y = -2.82f + (i % 3) * 0.10f,
                     parallax = 0.78f,
-                    spanWidth = totalSpan
+                    spanWidth = totalSpan,
+                    variantIndex = i,
+                    isTreeLayer = true
                 });
             }
         }
@@ -208,9 +200,10 @@ namespace FlorestaBicicleta
         /// <summary>Plano 4 — Primeiro Plano (paralaxe 1.28x): samambaias, cogumelos, flores grandes e pedras/raízes.</summary>
         private void BuildForegroundLayer()
         {
-            // Espaçamento artístico com respiro para emoldurar sem poluir a tela!
-            float[] offsets = { -14f, -6.5f, 2.2f, 10.5f, 18.0f, 26.5f };
-            float totalSpan = 46f;
+            // A vegetação baixa cria uma moldura viva nas bordas da tela. A faixa
+            // central permanece livre para leitura da estrada e dos personagens.
+            float[] offsets = { -20f, -14f, -8f, -2f, 5f, 12f, 19f, 26f, 33f, 40f };
+            float totalSpan = 66f;
 
             for (int i = 0; i < offsets.Length; i++)
             {
@@ -219,32 +212,30 @@ namespace FlorestaBicicleta
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = 16;
 
-                int kind = i % 4;
-                if (kind == 0)
+                int kind = i % 5;
+                if (kind == 0 || kind == 4)
                     sr.sprite = BiomePropsFactory.CreateForegroundFernSprite();
                 else if (kind == 1)
                     sr.sprite = BiomePropsFactory.CreateForegroundMushroomClusterSprite();
-                else if (kind == 2)
+                else if (kind == 2 || kind == 3)
                     sr.sprite = BiomePropsFactory.CreateForegroundBigFlowerSprite(i);
-                else
-                    sr.sprite = BiomePropsFactory.CreateForegroundStoneRootSprite();
 
-                float sc = Random.Range(0.92f, 1.15f);
+                float sc = 0.58f + (i % 4) * 0.11f;
                 go.transform.localScale = new Vector3(sc, sc, 1f);
-                sr.color = new Color(0.92f, 0.96f, 0.92f, 0.96f);
+                sr.color = new Color(0.84f, 0.91f, 0.78f, 0.90f);
 
                 if (kind == 0 || kind == 2)
                 {
                     GentleSway sway = go.AddComponent<GentleSway>();
-                    sway.maxAngleDeg = 3.2f;
-                    sway.speed = 1.7f;
+                    sway.maxAngleDeg = 4.0f;
+                    sway.speed = 1.15f + (i % 3) * 0.22f;
                 }
 
                 foregroundProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
                     baseWorldX = offsets[i],
-                    y = -5.05f,
+                    y = -4.92f + (i % 2) * 0.08f,
                     parallax = 1.28f,
                     spanWidth = totalSpan
                 });
@@ -253,7 +244,7 @@ namespace FlorestaBicicleta
 
         private void BuildFlyingBirds()
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 GameObject bObj = new GameObject($"PassaroCeu_{i}");
                 bObj.transform.SetParent(transform, false);
@@ -287,7 +278,7 @@ namespace FlorestaBicicleta
                 new Color(0.46f, 0.84f, 1f, 0.95f)
             };
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 5; i++)
             {
                 GameObject bfObj = new GameObject($"Borboleta_{i}");
                 bfObj.transform.SetParent(transform, false);
@@ -312,7 +303,7 @@ namespace FlorestaBicicleta
 
         private void BuildAtmosphericMotes()
         {
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 22; i++)
             {
                 bool isPetal = (i % 2 == 0);
                 GameObject mObj = new GameObject($"Atmosfera_{i}");
@@ -412,7 +403,7 @@ namespace FlorestaBicicleta
             }
         }
 
-        private static void UpdateParallaxList(List<ParallaxProp> list, float camX, float wrapHalfRange)
+        private void UpdateParallaxList(List<ParallaxProp> list, float camX, float wrapHalfRange)
         {
             for (int i = 0; i < list.Count; i++)
             {
@@ -423,14 +414,44 @@ namespace FlorestaBicicleta
                 {
                     item.baseWorldX += item.spanWidth;
                     screenOffset = item.baseWorldX - camX * item.parallax;
+                    if (item.isTreeLayer && item.sr != null)
+                    {
+                        item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
+                        item.sr.color = GetTreeColorForBiome(activeBiome, item.parallax);
+                    }
                 }
                 while (screenOffset > wrapHalfRange)
                 {
                     item.baseWorldX -= item.spanWidth;
                     screenOffset = item.baseWorldX - camX * item.parallax;
+                    if (item.isTreeLayer && item.sr != null)
+                    {
+                        item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
+                        item.sr.color = GetTreeColorForBiome(activeBiome, item.parallax);
+                    }
                 }
                 item.tr.position = new Vector3(camX + screenOffset, item.y, 0f);
             }
+        }
+
+        private static Color GetTreeColorForBiome(BiomeType biome, float parallax)
+        {
+            bool isNear = parallax > 0.6f;
+            if (biome == BiomeType.BosqueDaLua)
+            {
+                return isNear
+                    ? new Color(0.85f, 0.90f, 1f, 0.92f)
+                    : new Color(0.68f, 0.76f, 0.92f, 0.78f);
+            }
+            if (biome == BiomeType.Colinas)
+            {
+                return isNear
+                    ? new Color(0.94f, 0.98f, 0.92f, 0.90f)
+                    : new Color(0.82f, 0.90f, 0.85f, 0.78f);
+            }
+            return isNear
+                ? new Color(0.92f, 0.97f, 0.91f, 0.88f)
+                : new Color(0.78f, 0.87f, 0.83f, 0.76f);
         }
 
         private static Color GetBiomeParticleColor(BiomeType biome)

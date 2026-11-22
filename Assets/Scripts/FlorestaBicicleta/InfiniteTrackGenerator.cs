@@ -422,8 +422,7 @@ namespace FlorestaBicicleta
             float s = seg.startX;
 
             // Flores acolhedoras no Campo Florido inicial
-            for (int i = 0; i < 6; i++)
-                SpawnProp(p, BiomePropsFactory.CreateFlowerPatchSprite(i), new Vector3(s + 5f + i * 7.5f, -2.75f, 0f), 1.05f, 2);
+            SpawnMeadowFlowers(p, s, seg.index);
 
             SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 13f, -2.55f, 0f), 1f, 3);
             SpawnKitchenStation(p, s + 8f, blocked);
@@ -436,6 +435,18 @@ namespace FlorestaBicicleta
             hasKitchen = true;
         }
 
+        // Sparse groups leave clear silhouettes around the kitchen and the first animal.
+        private void SpawnMeadowFlowers(Transform parent, float start, int variant)
+        {
+            float[] positions = { 2.4f, 4.1f, 21.8f, 32.6f, 34.1f };
+            for (int i = 0; i < positions.Length; i++)
+            {
+                bool small = i == 1 || i == 4;
+                float offset = variant % 2 == 0 ? positions[i] : SegmentLength - positions[i];
+                SpawnProp(parent, BiomePropsFactory.CreateFlowerPatchSprite(i + variant),
+                    new Vector3(start + offset, small ? -2.52f : -2.76f, 0f), small ? 0.62f : 0.93f, 2);
+            }
+        }
         private void BuildCampoFlorido(
             TrackSegment seg,
             List<(float min, float max)> blocked,
@@ -446,8 +457,7 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            for (int i = 0; i < 7; i++)
-                SpawnProp(p, BiomePropsFactory.CreateFlowerPatchSprite(i + seg.index), new Vector3(s + 4f + i * 6.5f, -2.78f, 0f), Random.Range(0.95f, 1.2f), 2);
+            SpawnMeadowFlowers(p, s, seg.index);
 
             SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 12f, -2.55f, 0f), 1f, 3);
 
@@ -487,6 +497,9 @@ namespace FlorestaBicicleta
             // Colinas verdes ao fundo
             SpawnProp(p, BiomePropsFactory.CreateRollingHillSprite(), new Vector3(s + 12f, -2.3f, 0f), 1.35f, -5);
             SpawnProp(p, BiomePropsFactory.CreateRollingHillSprite(), new Vector3(s + 34f, -2.3f, 0f), 1.55f, -5);
+
+            // Pinheiro alpino no topo da colina (sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(2), new Vector3(s + 22f, -2.62f, 0f), 0.94f, -2, 1.1f);
 
             // Subida longa seguida de descida embalada + rampa de salto!
             CreateSlope(p, SlopeZone.SlopeType.Subida, s + 10f, 10f);
@@ -554,6 +567,7 @@ namespace FlorestaBicicleta
 
             // Salgueiro ribeirinho com passarinho pousado no galho + pequena ilha no rio!
             SpawnSwayingProp(p, BiomePropsFactory.CreateWillowTreeWithBirdSprite(), new Vector3(bridgeCenterX - 7.8f, -2.65f, 0f), 1.05f, -2, 1.5f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(4), new Vector3(bridgeCenterX + 7.9f, -2.65f, 0f), 0.95f, -2, 1.3f);
             SpawnProp(p, BiomePropsFactory.CreateRiverIsletSprite(), new Vector3(bridgeCenterX + 3.2f, -4.45f, 0f), 0.92f, 3);
 
             // Margens naturais com pedras, juncos aquáticos e flores nas cabeceiras da ponte
@@ -611,6 +625,10 @@ namespace FlorestaBicicleta
             for (int i = 0; i < 5; i++)
                 SpawnProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 5f + i * 9.5f, -2.65f, 0f), Random.Range(0.95f, 1.25f), 2);
 
+            // Árvores imponentes da mata ao longo da trilha (plano de fundo da pista, sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(1), new Vector3(s + 12f, -2.72f, 0f), 0.95f, -2, 1.2f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(6), new Vector3(s + 35f, -2.72f, 0f), 0.92f, -2, 1.0f);
+
             // Animais da mata fechada: Lobo, Filhote de Urso, Guaxinim, Ouriço, Coruja Noturna e Esquilo
             ParkSpriteFactory.AnimalKind[] mataPool =
             {
@@ -652,6 +670,9 @@ namespace FlorestaBicicleta
             SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 32f, 0.35f, 0f), 1.15f, 4);
             SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 23f, -2.55f, 0f), 1f, 3);
             SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 38f, -2.55f, 0f), 0.95f, 3);
+
+            // Árvore frutífera acolhedora da praça da vila (sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateFruitTreeSprite(), new Vector3(s + 36f, -2.68f, 0f), 0.95f, -2, 1.2f);
 
             // Barraca da Cozinha garantida na Vila dos Viajantes!
             SpawnKitchenStation(p, s + 14f, blocked);
@@ -724,6 +745,10 @@ namespace FlorestaBicicleta
                 else
                     SpawnProp(p, BiomePropsFactory.CreateGlowingMushroomSprite(), new Vector3(s + 6f + i * 9f, -2.70f, 0f), Random.Range(0.92f, 1.15f), 2);
             }
+
+            // Árvores Lunares bioluminescentes ao longo da trilha noturna (sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(5), new Vector3(s + 11f, -2.72f, 0f), 0.98f, -2, 1.4f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(5), new Vector3(s + 47f, -2.72f, 0f), 0.88f, -2, 1.2f);
 
             // Coruja Noturna garantida no Bosque da Lua + encontro raro (Raposa / Cervo / Filhote de Urso)
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.CorujaNoturna, "Coruja", 3, s + 17f, blocked);

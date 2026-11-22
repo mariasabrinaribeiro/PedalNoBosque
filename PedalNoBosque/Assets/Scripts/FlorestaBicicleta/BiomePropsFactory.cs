@@ -36,6 +36,9 @@ namespace FlorestaBicicleta
         private static Sprite cachedFruitTree;
         private static Sprite cachedMoonFlower;
         private static Sprite cachedGlowMushroom;
+        private static Sprite cachedOakTree;
+        private static Sprite cachedMoonTree;
+        private static Sprite cachedAncientConifer;
         private static Sprite cachedContactShadow;
 
         /// <summary>
@@ -132,6 +135,68 @@ namespace FlorestaBicicleta
                     float nx = (x - cx) / (float)Mathf.Max(1, rx);
                     float ny = (y - cy) / (float)Mathf.Max(1, ry);
                     if (nx * nx + ny * ny <= 1f) tex.SetPixel(x, y, col);
+                }
+            }
+        }
+
+        private static void DrawCurvedBranch(
+            Texture2D tex, Vector2 start, Vector2 control, Vector2 end,
+            float startRadius, float endRadius, Color shadow, Color light)
+        {
+            const int steps = 28;
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                float oneMinusT = 1f - t;
+                Vector2 point = oneMinusT * oneMinusT * start
+                    + 2f * oneMinusT * t * control
+                    + t * t * end;
+                int radius = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(startRadius, endRadius, t)));
+                int x = Mathf.RoundToInt(point.x);
+                int y = Mathf.RoundToInt(point.y);
+                FillCircle(tex, x, y, radius, shadow);
+                if (radius > 2)
+                    FillCircle(tex, x - 1, y + 1, radius - 2, light);
+            }
+        }
+
+        private static void ScatterCanopyHighlights(
+            Texture2D tex, int centerX, int centerY, int radiusX, int radiusY,
+            int seed, Color leafLight, Color leafShadow)
+        {
+            System.Random random = new System.Random(seed);
+            int placed = 0;
+            for (int attempt = 0; attempt < 100 && placed < 34; attempt++)
+            {
+                int x = centerX + random.Next(-radiusX, radiusX + 1);
+                int y = centerY + random.Next(-radiusY, radiusY + 1);
+                float nx = (x - centerX) / (float)radiusX;
+                float ny = (y - centerY) / (float)radiusY;
+                if (nx * nx + ny * ny > 0.76f) continue;
+
+                bool sunlit = y > centerY || (placed % 4 == 0);
+                Color mark = sunlit ? leafLight : leafShadow;
+                int rx = random.Next(2, 5);
+                int ry = random.Next(2, 4);
+                FillEllipse(tex, x, y, rx, ry, mark);
+                placed++;
+            }
+        }
+
+        private static void ScatterPineNeedles(Texture2D tex, int seed, Color light, Color shadow)
+        {
+            int[] centersY = { 48, 75, 100, 122, 142, 158 };
+            int[] spreads = { 56, 48, 38, 28, 18, 10 };
+            System.Random random = new System.Random(seed);
+            for (int tier = 0; tier < centersY.Length; tier++)
+            {
+                for (int i = 0; i < 11; i++)
+                {
+                    int xOffset = random.Next(-spreads[tier] * 3 / 4, spreads[tier] * 3 / 4 + 1);
+                    float edge = Mathf.Abs(xOffset) / (float)spreads[tier];
+                    int y = centersY[tier] - Mathf.RoundToInt((1f - edge) * 7f) + random.Next(0, 8);
+                    Color color = (i % 4 == 0) ? shadow : light;
+                    FillEllipse(tex, 90 + xOffset, y, random.Next(2, 5), random.Next(1, 3), color);
                 }
             }
         }
@@ -672,7 +737,7 @@ namespace FlorestaBicicleta
         /// <summary>Bosque intermediário de pinheiros e árvores com tom atmosférico de profundidade.</summary>
         public static Sprite CreateMidgroundTreeClusterSprite(int variant)
         {
-            int key = Mathf.Abs(variant) % 2;
+            int key = Mathf.Abs(variant) % 4;
             if (midTreeCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
 
             int w = 180, h = 150;
@@ -703,27 +768,79 @@ namespace FlorestaBicicleta
                 DrawPineBranchTier(tex, 120, 116, 20, 18, pineDark2, pineMid2, pineLight2);
                 DrawPineBranchTier(tex, 120, 132, 12, 15, pineDark2, pineMid2, pineLight2);
             }
-            else
+            else if (key == 1)
             {
-                // Duas Árvores Frondosas de Bosque com copas orgânicas shaded
+                // Duas Árvores Frondosas de Bosque (Carvalho e Bétula agrupados)
                 Color leafDark1 = new Color(0.16f, 0.40f, 0.22f, 0.95f);
                 Color leafMid1 = new Color(0.26f, 0.56f, 0.30f, 0.95f);
                 Color leafLight1 = new Color(0.42f, 0.72f, 0.36f, 0.95f);
 
-                Color leafDark2 = new Color(0.20f, 0.46f, 0.24f, 0.98f);
-                Color leafMid2 = new Color(0.32f, 0.64f, 0.34f, 0.98f);
-                Color leafLight2 = new Color(0.52f, 0.80f, 0.40f, 0.98f);
+                Color leafDark2 = new Color(0.35f, 0.48f, 0.18f, 0.98f);
+                Color leafMid2 = new Color(0.56f, 0.68f, 0.22f, 0.98f);
+                Color leafLight2 = new Color(0.78f, 0.84f, 0.32f, 0.98f);
 
                 FillRect(tex, 52, 6, 62, 65, trunkDark);
                 DrawOrganicFoliageLobe(tex, 36, 75, 26, 20, leafMid1, leafLight1, leafDark1);
                 DrawOrganicFoliageLobe(tex, 76, 78, 28, 22, leafMid1, leafLight1, leafDark1);
                 DrawOrganicFoliageLobe(tex, 56, 98, 32, 26, leafMid1, leafLight1, leafDark1);
 
-                FillRect(tex, 122, 6, 134, 58, trunkMid);
+                FillRect(tex, 124, 6, 132, 58, new Color(0.88f, 0.88f, 0.84f, 0.95f));
                 DrawOrganicFoliageLobe(tex, 104, 70, 24, 20, leafMid2, leafLight2, leafDark2);
                 DrawOrganicFoliageLobe(tex, 146, 72, 26, 22, leafMid2, leafLight2, leafDark2);
                 DrawOrganicFoliageLobe(tex, 125, 92, 34, 26, leafMid2, leafLight2, leafDark2);
-                DrawOrganicFoliageLobe(tex, 122, 114, 26, 18, leafLight2, new Color(0.68f, 0.88f, 0.48f, 1f), leafMid2);
+                DrawOrganicFoliageLobe(tex, 122, 114, 26, 18, leafLight2, new Color(0.92f, 0.90f, 0.46f, 1f), leafMid2);
+            }
+            else if (key == 2)
+            {
+                // Bosque de Salgueiros Ribeirinhos
+                Color sTrunk = new Color(0.38f, 0.26f, 0.16f, 0.95f);
+                Color wDark = new Color(0.16f, 0.44f, 0.24f, 0.92f);
+                Color wMid = new Color(0.24f, 0.58f, 0.30f, 0.92f);
+                Color wLight = new Color(0.38f, 0.72f, 0.34f, 0.92f);
+
+                FillRect(tex, 58, 6, 66, 60, sTrunk);
+                DrawOrganicFoliageLobe(tex, 62, 85, 34, 26, wMid, wLight, wDark);
+                FillRect(tex, 120, 6, 127, 52, sTrunk);
+                DrawOrganicFoliageLobe(tex, 123, 76, 28, 22, wMid, wLight, wDark);
+
+                // Ramos pendentes
+                int[] wx = { 38, 48, 76, 86, 104, 114, 136, 144 };
+                int[] wy = { 35, 42, 38, 32, 36, 40, 34, 38 };
+                for (int i = 0; i < wx.Length; i++)
+                {
+                    DrawCurvedBranch(tex, new Vector2(wx[i], 80), new Vector2(wx[i] + (i % 2 == 0 ? -4 : 4), 60), new Vector2(wx[i], wy[i]), 2f, 1f, wDark, wLight);
+                }
+            }
+            else
+            {
+                // Bosque Lunar Noturno com árvores místicas azul-violeta
+                Color lTrunk = new Color(0.28f, 0.24f, 0.42f, 0.95f);
+                Color mDark = new Color(0.12f, 0.22f, 0.46f, 0.95f);
+                Color mMid = new Color(0.18f, 0.52f, 0.66f, 0.95f);
+                Color mLight = new Color(0.52f, 0.88f, 0.92f, 0.98f);
+
+                FillRect(tex, 54, 6, 62, 58, lTrunk);
+                DrawOrganicFoliageLobe(tex, 58, 86, 32, 26, mMid, mLight, mDark);
+                FillRect(tex, 118, 6, 125, 66, lTrunk);
+                DrawOrganicFoliageLobe(tex, 122, 94, 36, 28, mMid, mLight, mDark);
+                ScatterCanopyHighlights(tex, 90, 88, 72, 38, 59, mLight, mDark);
+            }
+
+            // Névoa suave na base do bosque para fusão atmosférica
+            Color mistCol = (key == 3) ? new Color(0.24f, 0.32f, 0.54f, 0.32f) : new Color(0.72f, 0.84f, 0.78f, 0.28f);
+            for (int y = 6; y <= 24; y++)
+            {
+                float a = (1f - (y - 6f) / 18f) * mistCol.a;
+                for (int x = 12; x < w - 12; x++)
+                {
+                    Color cur = tex.GetPixel(x, y);
+                    if (cur.a > 0.05f)
+                    {
+                        Color blended = Color.Lerp(cur, mistCol, a);
+                        blended.a = cur.a;
+                        tex.SetPixel(x, y, blended);
+                    }
+                }
             }
 
             tex.Apply();
@@ -993,27 +1110,47 @@ namespace FlorestaBicicleta
             Color frondLight = new Color(0.42f, 0.76f, 0.38f, 0.88f);
 
             // Tronco elegante + galho lateral onde o passarinho pousa
-            FillRect(tex, 72, 6, 88, 92, trunk);
-            FillRect(tex, 76, 8, 82, 90, trunkLight);
-            FillRect(tex, 84, 72, 122, 78, trunk); // Galho direito visível
+            DrawCurvedBranch(tex, new Vector2(80, 5), new Vector2(74, 48), new Vector2(81, 95), 10f, 5f, trunk, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(80, 72), new Vector2(56, 93), new Vector2(43, 118), 6f, 2f, trunk, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(82, 74), new Vector2(104, 83), new Vector2(121, 77), 5f, 2f, trunk, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(80, 12), new Vector2(64, 5), new Vector2(52, 4), 4f, 2f, trunk, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(81, 12), new Vector2(96, 5), new Vector2(108, 4), 4f, 2f, trunk, trunkLight);
 
             // Copa arredondada de salgueiro
-            FillCircle(tex, 56, 108, 30, crownDark);
-            FillCircle(tex, 104, 108, 28, crownDark);
-            FillCircle(tex, 80, 124, 34, crownMid);
+            DrawOrganicFoliageLobe(tex, 53, 107, 30, 27, crownDark, crownMid, new Color(0.10f, 0.34f, 0.18f, 0.95f));
+            DrawOrganicFoliageLobe(tex, 106, 107, 29, 26, crownDark, crownMid, new Color(0.10f, 0.34f, 0.18f, 0.95f));
+            DrawOrganicFoliageLobe(tex, 80, 124, 36, 32, crownMid, frondLight, crownDark);
+            DrawOrganicFoliageLobe(tex, 67, 134, 23, 18, crownMid, frondLight, crownDark);
+            DrawOrganicFoliageLobe(tex, 95, 133, 22, 17, crownMid, frondLight, crownDark);
+            ScatterCanopyHighlights(tex, 80, 117, 50, 34, 17,
+                new Color(0.62f, 0.82f, 0.43f, 0.86f), new Color(0.14f, 0.40f, 0.22f, 0.92f));
 
-            // Ramos pendentes delicados de salgueiro
-            int[] fx = { 34, 48, 62, 96, 112, 124 };
-            int[] fl = { 54, 62, 48, 52, 60, 46 };
-            for (int i = 0; i < fx.Length; i++)
+            // Ramos pendentes curvos de salgueiro chorão com folhas em cascata
+            int[] fxStart = { 34, 48, 62, 74, 88, 98, 112, 124 };
+            int[] fl =      { 52, 60, 50, 42, 44, 50, 58, 48 };
+            int[] swayDx =  { -10, -6, -4, -2, 3, 5, 8, 12 };
+            for (int i = 0; i < fxStart.Length; i++)
             {
-                FillRect(tex, fx[i] - 2, 104 - fl[i], fx[i] + 2, 104, frondLight);
-                FillCircle(tex, fx[i], 104 - fl[i], 3, frondLight);
+                Vector2 p0 = new Vector2(fxStart[i], 106);
+                Vector2 p1 = new Vector2(fxStart[i] + swayDx[i] * 0.45f, 106 - fl[i] * 0.5f);
+                Vector2 p2 = new Vector2(fxStart[i] + swayDx[i], 106 - fl[i]);
+                DrawCurvedBranch(tex, p0, p1, p2, 2.5f, 1f, crownDark, frondLight);
+                for (int s = 3; s <= fl[i]; s += 5)
+                {
+                    float t = s / (float)fl[i];
+                    float omt = 1f - t;
+                    Vector2 pt = omt * omt * p0 + 2f * omt * t * p1 + t * t * p2;
+                    int px = Mathf.RoundToInt(pt.x);
+                    int py = Mathf.RoundToInt(pt.y);
+                    Color leafC = (s % 10 == 0) ? frondLight : crownMid;
+                    FillEllipse(tex, px, py, 3, 2, leafC);
+                }
             }
 
             // Pequeno passarinho azul pousado discretamente no galho!
             Color birdBlue = new Color(0.26f, 0.70f, 0.98f, 1f);
             FillEllipse(tex, 112, 84, 7, 5, birdBlue);
+            FillEllipse(tex, 111, 83, 4, 3, new Color(0.85f, 0.95f, 1f, 1f)); // Peitinho branco
             FillCircle(tex, 117, 89, 4, birdBlue);
             FillTriangle(tex, 120, 90, 120, 87, 125, 88, new Color(1f, 0.74f, 0.16f, 1f)); // Biquinho
             FillCircle(tex, 118, 90, 1, Color.black);
@@ -1061,10 +1198,16 @@ namespace FlorestaBicicleta
             Color fMid = new Color(0.28f, 0.60f, 0.28f, 0.98f);
             Color fLight = new Color(0.44f, 0.76f, 0.34f, 0.98f);
 
+            DrawCurvedBranch(tex, new Vector2(80, 10), new Vector2(76, 43), new Vector2(80, 82), 9f, 5f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(79, 62), new Vector2(58, 82), new Vector2(46, 102), 5f, 2f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(82, 62), new Vector2(103, 80), new Vector2(117, 101), 5f, 2f, trunkDark, trunkMid);
+
             DrawOrganicFoliageLobe(tex, 54, 94, 32, 24, fMid, fLight, fDark);
             DrawOrganicFoliageLobe(tex, 106, 94, 32, 24, fMid, fLight, fDark);
             DrawOrganicFoliageLobe(tex, 80, 114, 38, 28, fMid, fLight, fDark);
             DrawOrganicFoliageLobe(tex, 80, 134, 26, 18, fLight, new Color(0.64f, 0.88f, 0.42f, 1f), fMid);
+            ScatterCanopyHighlights(tex, 80, 108, 48, 39, 31,
+                new Color(0.68f, 0.88f, 0.46f, 0.94f), new Color(0.14f, 0.37f, 0.19f, 0.96f));
 
             // Maçãzinhas vermelhas com brilho delicado
             int[] ax = { 50, 72, 96, 62, 88, 108 };
@@ -1137,16 +1280,185 @@ namespace FlorestaBicicleta
             return cachedGlowMushroom;
         }
 
+        /// <summary>Carrega o carvalho ilustrado clássico (Resources/Floresta/carvalho_bosque) com fallback para procedural.</summary>
+        public static Sprite LoadOakTreeSprite()
+        {
+            if (cachedOakTree != null) return cachedOakTree;
+            Sprite sp = Resources.Load<Sprite>("Floresta/carvalho_bosque");
+            if (sp != null)
+            {
+                cachedOakTree = sp;
+                return cachedOakTree;
+            }
+            Texture2D tex = Resources.Load<Texture2D>("Floresta/carvalho_bosque");
+            if (tex != null)
+            {
+                cachedOakTree = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.012f), 205f);
+                return cachedOakTree;
+            }
+            return null;
+        }
+
+        /// <summary>Árvore Lunar Encantada com tronco prateado-violeta e folhagem bioluminescente (Bosque da Lua).</summary>
+        public static Sprite CreateMoonTreeSprite()
+        {
+            if (cachedMoonTree != null) return cachedMoonTree;
+            int w = 180, h = 180;
+            Texture2D tex = CreateBlankTex(w, h);
+
+            Color trunkDark = new Color(0.20f, 0.16f, 0.32f, 0.98f);
+            Color trunkMid = new Color(0.38f, 0.34f, 0.54f, 0.98f);
+            Color trunkLight = new Color(0.68f, 0.64f, 0.86f, 0.98f);
+            Color trunkRune = new Color(0.50f, 0.92f, 1f, 0.95f);
+
+            // Raízes e tronco curvo mágico
+            DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(66, 6), new Vector2(48, 4), 6f, 2f, trunkDark, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(92, 8), new Vector2(114, 6), new Vector2(132, 4), 6f, 2f, trunkDark, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(90, 6), new Vector2(82, 48), new Vector2(90, 96), 11f, 5f, trunkDark, trunkMid);
+
+            // Galhos serpenteantes
+            DrawCurvedBranch(tex, new Vector2(88, 76), new Vector2(62, 102), new Vector2(44, 128), 6f, 2f, trunkDark, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(92, 80), new Vector2(118, 102), new Vector2(136, 126), 6f, 2f, trunkDark, trunkLight);
+            DrawCurvedBranch(tex, new Vector2(90, 84), new Vector2(88, 115), new Vector2(86, 142), 6f, 2f, trunkDark, trunkLight);
+
+            // Detalhes bioluminescentes no tronco
+            FillEllipse(tex, 87, 36, 2, 9, trunkRune);
+            FillEllipse(tex, 90, 62, 2, 7, trunkRune);
+
+            Color moonDark = new Color(0.12f, 0.18f, 0.38f, 0.98f);
+            Color moonMid = new Color(0.18f, 0.54f, 0.68f, 0.98f);
+            Color moonLight = new Color(0.48f, 0.88f, 0.88f, 0.98f);
+            Color moonGlow = new Color(0.82f, 0.96f, 1f, 0.98f);
+
+            // Copas arredondadas místicas com bioluminescência
+            DrawOrganicFoliageLobe(tex, 50, 102, 36, 28, moonMid, moonLight, moonDark);
+            DrawOrganicFoliageLobe(tex, 130, 106, 36, 28, moonMid, moonLight, moonDark);
+            DrawOrganicFoliageLobe(tex, 90, 120, 44, 32, moonMid, moonLight, moonDark);
+            DrawOrganicFoliageLobe(tex, 70, 142, 30, 24, moonLight, moonGlow, moonMid);
+            DrawOrganicFoliageLobe(tex, 110, 138, 28, 22, moonLight, moonGlow, moonMid);
+            DrawOrganicFoliageLobe(tex, 90, 156, 24, 18, moonLight, moonGlow, moonMid);
+
+            // Brilhos e esporos luminosos cintilantes
+            ScatterCanopyHighlights(tex, 90, 122, 74, 50, 42,
+                new Color(0.78f, 0.96f, 1f, 0.96f), new Color(0.14f, 0.34f, 0.54f, 0.96f));
+
+            // Ramos pendentes com esporos bioluminescentes azuis
+            int[] mx = { 38, 56, 72, 108, 124, 140 };
+            int[] my = { 76, 84, 88, 86, 82, 74 };
+            for (int i = 0; i < mx.Length; i++)
+            {
+                FillCircle(tex, mx[i], my[i], 3, moonGlow);
+                FillCircle(tex, mx[i], my[i], 7, new Color(0.48f, 0.88f, 1f, 0.28f));
+                FillCircle(tex, mx[i] + (i % 2 == 0 ? -2 : 2), my[i] - 6, 2, moonLight);
+            }
+
+            tex.Apply();
+            cachedMoonTree = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 26f);
+            return cachedMoonTree;
+        }
+
+        /// <summary>Abeto / Pinheiro Ancião majestoso de mata fechada com líquens e agulhas esmeralda (Trilha da Floresta).</summary>
+        public static Sprite CreateAncientConiferSprite()
+        {
+            if (cachedAncientConifer != null) return cachedAncientConifer;
+            int w = 180, h = 195;
+            Texture2D tex = CreateBlankTex(w, h);
+
+            Color trunkDark = new Color(0.24f, 0.16f, 0.10f, 0.98f);
+            Color trunkMid = new Color(0.38f, 0.24f, 0.14f, 0.98f);
+            Color mossGreen = new Color(0.36f, 0.54f, 0.24f, 0.95f);
+
+            // Raízes e tronco forte
+            DrawCurvedBranch(tex, new Vector2(90, 6), new Vector2(68, 4), new Vector2(48, 3), 7f, 2f, trunkDark, trunkMid);
+            DrawCurvedBranch(tex, new Vector2(90, 6), new Vector2(112, 4), new Vector2(132, 3), 7f, 2f, trunkDark, trunkMid);
+            FillRect(tex, 85, 6, 95, 68, trunkDark);
+            FillRect(tex, 88, 6, 92, 66, trunkMid);
+
+            // Manchas de musgo no tronco
+            FillEllipse(tex, 87, 26, 3, 10, mossGreen);
+            FillEllipse(tex, 93, 44, 3, 8, mossGreen);
+
+            Color pineDark = new Color(0.08f, 0.28f, 0.20f, 0.98f);
+            Color pineMid = new Color(0.14f, 0.44f, 0.28f, 0.98f);
+            Color pineLight = new Color(0.24f, 0.60f, 0.36f, 0.98f);
+
+            // 7 níveis de ramagem densa
+            DrawPineBranchTier(tex, 90, 48, 62, 30, pineDark, pineMid, pineLight);
+            DrawPineBranchTier(tex, 90, 75, 54, 28, pineDark, pineMid, pineLight);
+            DrawPineBranchTier(tex, 90, 102, 44, 26, pineDark, pineMid, pineLight);
+            DrawPineBranchTier(tex, 90, 126, 34, 22, pineDark, pineMid, pineLight);
+            DrawPineBranchTier(tex, 90, 148, 24, 20, pineDark, pineMid, pineLight);
+            DrawPineBranchTier(tex, 90, 166, 16, 16, pineDark, pineMid, pineLight);
+            DrawPineBranchTier(tex, 90, 180, 10, 12, pineDark, pineMid, pineLight);
+
+            ScatterPineNeedles(tex, 77, new Color(0.38f, 0.72f, 0.42f, 0.98f), pineDark);
+
+            // Pequenas pinhas pendentes
+            int[] cx = { 64, 116, 72, 108, 80, 100 };
+            int[] cy = { 46, 48, 74, 76, 100, 102 };
+            Color coneCol = new Color(0.32f, 0.20f, 0.12f, 1f);
+            for (int i = 0; i < cx.Length; i++)
+            {
+                FillEllipse(tex, cx[i], cy[i], 3, 5, coneCol);
+            }
+
+            tex.Apply();
+            cachedAncientConifer = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.035f), 28f);
+            return cachedAncientConifer;
+        }
+
+        /// <summary>Retorna a espécie de árvore mais característica para cada bioma da jornada.</summary>
+        public static Sprite GetTreeForBiome(BiomeType biome, int variant)
+        {
+            int v = Mathf.Abs(variant);
+            switch (biome)
+            {
+                case BiomeType.CampoFlorido:
+                    int[] campoPool = { 1, 4, 3, 1 };
+                    return CreateOrganicTreeSprite(campoPool[v % campoPool.Length]);
+                case BiomeType.Colinas:
+                    int[] colinaPool = { 2, 6, 1, 2 };
+                    return CreateOrganicTreeSprite(colinaPool[v % colinaPool.Length]);
+                case BiomeType.RegiaoDoRio:
+                    int[] rioPool = { 0, 0, 4, 1 };
+                    return CreateOrganicTreeSprite(rioPool[v % rioPool.Length]);
+                case BiomeType.TrilhaDaFloresta:
+                    int[] mataPool = { 1, 6, 2, 6 };
+                    return CreateOrganicTreeSprite(mataPool[v % mataPool.Length]);
+                case BiomeType.PequenaVila:
+                    int[] vilaPool = { 3, 4, 1, 3 };
+                    return CreateOrganicTreeSprite(vilaPool[v % vilaPool.Length]);
+                case BiomeType.BosqueDaLua:
+                    int[] luaPool = { 5, 5, 0, 5 };
+                    return CreateOrganicTreeSprite(luaPool[v % luaPool.Length]);
+                default:
+                    return CreateOrganicTreeSprite(v);
+            }
+        }
+
         /// <summary>
-        /// 5 modelos distintos de árvores orgânicas (Cozy Storybook) para eliminar repetição artificial:
-        /// 0 = Salgueiro com passarinho, 1 = Carvalho antigo volumoso, 2 = Pinheiro alto,
-        /// 3 = Árvore frutífera florida, 4 = Bétula delicada de folhas douradas.
+        /// 7 modelos distintos de árvores orgânicas (Cozy Storybook) para eliminar repetição artificial:
+        /// 0 = Salgueiro com passarinho (Vale das Águas),
+        /// 1 = Carvalho ilustrado clássico (ou Carvalho antigo volumoso),
+        /// 2 = Pinheiro da montanha alto,
+        /// 3 = Árvore frutífera florida com maçãs vermelhas,
+        /// 4 = Bétula dourada com tronco prateado,
+        /// 5 = Árvore Lunar Encantada bioluminescente (Bosque da Lua),
+        /// 6 = Abeto / Pinheiro Ancião majestoso de mata fechada.
         /// </summary>
         public static Sprite CreateOrganicTreeSprite(int modelIndex)
         {
-            int key = Mathf.Abs(modelIndex) % 5;
+            int key = Mathf.Abs(modelIndex) % 7;
             if (key == 0) return CreateWillowTreeWithBirdSprite();
+            if (key == 1)
+            {
+                Sprite oak = LoadOakTreeSprite();
+                if (oak != null) return oak;
+            }
             if (key == 3) return CreateFruitTreeSprite();
+            if (key == 5) return CreateMoonTreeSprite();
+            if (key == 6) return CreateAncientConiferSprite();
+
             if (organicTreeCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
 
             int w = 180, h = 180;
@@ -1158,6 +1470,9 @@ namespace FlorestaBicicleta
                 Color trunkShadow = new Color(0.30f, 0.18f, 0.10f, 0.98f);
                 Color trunkMid = new Color(0.44f, 0.28f, 0.16f, 0.98f);
                 Color trunkLight = new Color(0.58f, 0.38f, 0.22f, 0.98f);
+
+                DrawCurvedBranch(tex, new Vector2(90, 10), new Vector2(66, 6), new Vector2(46, 4), 6f, 2f, trunkShadow, trunkMid);
+                DrawCurvedBranch(tex, new Vector2(90, 10), new Vector2(114, 6), new Vector2(134, 4), 6f, 2f, trunkShadow, trunkMid);
 
                 FillEllipse(tex, 90, 10, 36, 8, trunkShadow);
                 FillEllipse(tex, 72, 12, 16, 6, trunkMid);
@@ -1177,6 +1492,11 @@ namespace FlorestaBicicleta
                 FillEllipse(tex, 68, 82, 22, 7, trunkMid);
                 FillEllipse(tex, 114, 86, 24, 7, trunkMid);
 
+                // Galhos curvos visíveis entre os volumes da copa.
+                DrawCurvedBranch(tex, new Vector2(90, 78), new Vector2(66, 101), new Vector2(48, 126), 8f, 3f, trunkShadow, trunkLight);
+                DrawCurvedBranch(tex, new Vector2(92, 82), new Vector2(116, 101), new Vector2(135, 125), 8f, 3f, trunkShadow, trunkLight);
+                DrawCurvedBranch(tex, new Vector2(90, 84), new Vector2(86, 111), new Vector2(82, 137), 7f, 3f, trunkShadow, trunkLight);
+
                 Color oakDark = new Color(0.15f, 0.38f, 0.18f, 0.98f);
                 Color oakMid = new Color(0.26f, 0.55f, 0.26f, 0.98f);
                 Color oakLight = new Color(0.42f, 0.74f, 0.32f, 0.98f);
@@ -1188,12 +1508,16 @@ namespace FlorestaBicicleta
                 DrawOrganicFoliageLobe(tex, 72, 140, 32, 24, oakLight, oakSun, oakMid);
                 DrawOrganicFoliageLobe(tex, 108, 136, 30, 22, oakLight, oakSun, oakMid);
                 DrawOrganicFoliageLobe(tex, 90, 154, 24, 18, oakLight, oakSun, oakMid);
+                ScatterCanopyHighlights(tex, 90, 120, 78, 53, 11,
+                    new Color(0.68f, 0.88f, 0.43f, 0.96f), new Color(0.13f, 0.35f, 0.17f, 0.96f));
             }
             else if (key == 2)
             {
                 // Pinheiro da Montanha Alto com boughs detalhados e silhueta serrilhada
                 Color barkD = new Color(0.32f, 0.20f, 0.12f, 0.98f);
                 Color barkM = new Color(0.46f, 0.28f, 0.16f, 0.98f);
+                DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(72, 6), new Vector2(56, 4), 5f, 2f, barkD, barkM);
+                DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(108, 6), new Vector2(124, 4), 5f, 2f, barkD, barkM);
                 FillRect(tex, 86, 6, 94, 52, barkD);
                 FillRect(tex, 89, 6, 92, 52, barkM);
 
@@ -1207,6 +1531,8 @@ namespace FlorestaBicicleta
                 DrawPineBranchTier(tex, 90, 122, 28, 20, pDark, pMid, pLight);
                 DrawPineBranchTier(tex, 90, 142, 18, 18, pDark, pMid, pLight);
                 DrawPineBranchTier(tex, 90, 158, 10, 14, pDark, pMid, pLight);
+                ScatterPineNeedles(tex, 43, new Color(0.44f, 0.76f, 0.48f, 0.98f),
+                    new Color(0.10f, 0.32f, 0.22f, 0.98f));
             }
             else
             {
@@ -1215,6 +1541,8 @@ namespace FlorestaBicicleta
                 Color birchMark = new Color(0.25f, 0.24f, 0.24f, 0.92f);
                 Color birchShadow = new Color(0.72f, 0.70f, 0.66f, 0.98f);
 
+                DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(76, 5), new Vector2(62, 4), 4f, 1.5f, birchShadow, birchWhite);
+                DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(104, 5), new Vector2(118, 4), 4f, 1.5f, birchShadow, birchWhite);
                 FillRect(tex, 86, 6, 94, 95, birchWhite);
                 FillRect(tex, 86, 6, 88, 95, birchShadow);
                 for (int y = 14; y < 90; y += 12)
@@ -1223,6 +1551,9 @@ namespace FlorestaBicicleta
                     int markX = ((y / 12) % 2 == 0) ? 87 : 89;
                     FillRect(tex, markX, y, markX + markW, y + 2, birchMark);
                 }
+
+                DrawCurvedBranch(tex, new Vector2(90, 78), new Vector2(68, 101), new Vector2(52, 126), 6f, 2f, birchShadow, birchWhite);
+                DrawCurvedBranch(tex, new Vector2(90, 82), new Vector2(111, 103), new Vector2(128, 127), 6f, 2f, birchShadow, birchWhite);
 
                 Color birchDark = new Color(0.42f, 0.65f, 0.22f, 0.98f);
                 Color birchMid = new Color(0.62f, 0.78f, 0.24f, 0.98f);
@@ -1233,6 +1564,8 @@ namespace FlorestaBicicleta
                 DrawOrganicFoliageLobe(tex, 90, 126, 36, 28, birchMid, birchGold, birchDark);
                 DrawOrganicFoliageLobe(tex, 80, 146, 26, 20, birchMid, birchGold, birchDark);
                 DrawOrganicFoliageLobe(tex, 104, 142, 24, 18, birchMid, birchGold, birchDark);
+                ScatterCanopyHighlights(tex, 90, 123, 66, 47, 29,
+                    new Color(0.96f, 0.91f, 0.46f, 0.96f), new Color(0.35f, 0.56f, 0.20f, 0.96f));
             }
 
             tex.Apply();

@@ -12,6 +12,9 @@ namespace FlorestaBicicleta
     public class PedalTitleScreenUI : MonoBehaviour
     {
         private GameObject titleRoot;
+        private RectTransform menuContent;
+        private RawImage coverPainting;
+        private Vector2 lastCoverSize;
         private TextMeshProUGUI brandTitleTMP;
         private TextMeshProUGUI sloganTMP;
         private TextMeshProUGUI progressBadgeTMP;
@@ -38,53 +41,70 @@ namespace FlorestaBicicleta
         {
             onPlayClicked = playCb;
 
-            // Cartão central acolhedor de livro ilustrado sobre o cenário vivo
-            titleRoot = CreateCard(canvasParent, "PedalTitleOverlay",
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, 16f), new Vector2(640f, 385f),
-                new Color(0.97f, 0.94f, 0.87f, 0.94f));
+            titleRoot = new GameObject("PedalTitleOverlay", typeof(RectTransform), typeof(Image));
+            var root = (RectTransform)titleRoot.transform;
+            root.SetParent(canvasParent, false);
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = root.offsetMax = Vector2.zero;
+            root.GetComponent<Image>().color = new Color32(18, 53, 43, 255);
 
-            // Faixa superior em verde-bosque
-            GameObject ribbon = CreatePill(titleRoot.transform, "BrandRibbon",
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -44f), new Vector2(540f, 64f),
-                new Color(0.22f, 0.46f, 0.36f, 0.98f));
+            var artwork = new GameObject("BosqueAoAmanhecer", typeof(RectTransform), typeof(RawImage));
+            artwork.transform.SetParent(root, false);
+            var painting = artwork.GetComponent<RawImage>();
+            painting.texture = Resources.Load<Texture2D>("Floresta/abertura_bosque");
+            painting.raycastTarget = false;
+            coverPainting = painting;
+            painting.rectTransform.anchorMin = Vector2.zero;
+            painting.rectTransform.anchorMax = Vector2.one;
+            painting.rectTransform.offsetMin = painting.rectTransform.offsetMax = Vector2.zero;
 
-            brandTitleTMP = CreateTMP(ribbon.transform, "BrandTitle", LocalizationManager.Get("brand_title"),
-                30, Vector2.zero, new Vector2(510f, 52f), new Color(1f, 0.96f, 0.80f, 1f));
-
-            sloganTMP = CreateTMP(titleRoot.transform, "Slogan", LocalizationManager.Get("brand_slogan"),
-                19, new Vector2(0f, 82f), new Vector2(580f, 32f), new Color(0.32f, 0.28f, 0.22f, 1f));
-
-            // Resumo de progresso salvo
-            progressBadgeTMP = CreateTMP(titleRoot.transform, "ProgressBadge", "",
-                15, new Vector2(0f, 40f), new Vector2(560f, 28f), new Color(0.24f, 0.48f, 0.34f, 1f));
-
-            // Botão principal JOGAR
-            GameObject playBtn = CreatePillButton(titleRoot.transform, "BtnJogar", LocalizationManager.Get("btn_play"),
-                new Vector2(0f, -20f), new Vector2(300f, 62f),
-                new Color(0.26f, 0.62f, 0.40f, 0.98f), 23, () =>
+            var content = (RectTransform)new GameObject("MenuInicial", typeof(RectTransform)).transform;
+            menuContent = content;
+            content.SetParent(root, false);
+            content.anchorMin = content.anchorMax = new Vector2(0.25f, 0.49f);
+            content.sizeDelta = new Vector2(490f, 390f);
+            var cream = new Color32(255, 246, 217, 255);
+            var pine = new Color32(24, 65, 49, 255);
+            brandTitleTMP = CreateTMP(content, "BrandTitle", "", 61, new Vector2(0, 114), new Vector2(480, 150), cream);
+            brandTitleTMP.lineSpacing = -15;
+            brandTitleTMP.outlineColor = new Color32(22, 52, 40, 255);
+            brandTitleTMP.outlineWidth = 0.14f;
+            sloganTMP = CreateTMP(content, "Slogan", "", 21, new Vector2(0, 16), new Vector2(470, 42), cream);
+            sloganTMP.fontStyle = FontStyles.Italic;
+            sloganTMP.outlineColor = new Color32(22, 52, 40, 255);
+            sloganTMP.outlineWidth = 0.25f;
+            var play = CreatePillButton(content, "BtnJogar", "", new Vector2(0, -55), new Vector2(244, 64),
+                new Color32(255, 204, 111, 255), 25, () =>
                 {
                     FlorestaSoundFX.Instance?.PlayHappy();
                     titleRoot.SetActive(false);
                     onPlayClicked?.Invoke();
                 });
-            playBtnTMP = playBtn.GetComponentInChildren<TextMeshProUGUI>();
+            playBtnTMP = play.GetComponentInChildren<TextMeshProUGUI>();
+            playBtnTMP.color = pine;
+            playBtnTMP.rectTransform.anchoredPosition = new Vector2(15, 0);
+            var glyph = new GameObject("Play", typeof(RectTransform), typeof(Image));
+            glyph.transform.SetParent(play.transform, false);
+            var glyphRect = (RectTransform)glyph.transform;
+            glyphRect.anchoredPosition = new Vector2(-59, 0);
+            glyphRect.sizeDelta = new Vector2(31, 31);
+            var playIcon = glyph.GetComponent<Image>();
+            playIcon.sprite = StorybookUISpriteFactory.GetIcon(StorybookUISpriteFactory.UIIconKind.Play);
+            playIcon.color = pine;
+            playIcon.raycastTarget = false;
 
-            // Seletor de Idiomas (PT | EN | ES)
-            CreatePillButton(titleRoot.transform, "LangPT", "PT", new Vector2(-84f, -96f), new Vector2(68f, 34f),
-                new Color(0.34f, 0.56f, 0.46f, 0.92f), 15, () => LocalizationManager.SetLanguage(GameLanguage.PT));
-            CreatePillButton(titleRoot.transform, "LangEN", "EN", new Vector2(0f, -96f), new Vector2(68f, 34f),
-                new Color(0.34f, 0.52f, 0.72f, 0.92f), 15, () => LocalizationManager.SetLanguage(GameLanguage.EN));
-            CreatePillButton(titleRoot.transform, "LangES", "ES", new Vector2(84f, -96f), new Vector2(68f, 34f),
-                new Color(0.76f, 0.48f, 0.28f, 0.92f), 15, () => LocalizationManager.SetLanguage(GameLanguage.ES));
-
-            // Botão discreto Área dos Pais (com Barreira Parental)
-            GameObject parentsBtn = CreatePillButton(titleRoot.transform, "BtnPais", LocalizationManager.Get("btn_parents"),
-                new Vector2(0f, -150f), new Vector2(210f, 36f),
-                new Color(0.50f, 0.44f, 0.62f, 0.90f), 15, OpenParentalGate);
-            parentsBtnTMP = parentsBtn.GetComponentInChildren<TextMeshProUGUI>();
-
+            CreatePillButton(content, "LangPT", "PT", new Vector2(-62, -135), new Vector2(54, 32), pine, 15,
+                () => LocalizationManager.SetLanguage(GameLanguage.PT));
+            CreatePillButton(content, "LangEN", "EN", new Vector2(0, -135), new Vector2(54, 32), pine, 15,
+                () => LocalizationManager.SetLanguage(GameLanguage.EN));
+            CreatePillButton(content, "LangES", "ES", new Vector2(62, -135), new Vector2(54, 32), pine, 15,
+                () => LocalizationManager.SetLanguage(GameLanguage.ES));
+            var parents = CreatePillButton(content, "BtnPais", "", new Vector2(0, -180), new Vector2(205, 34),
+                pine, 15, OpenParentalGate);
+            parentsBtnTMP = parents.GetComponentInChildren<TextMeshProUGUI>();
+            progressBadgeTMP = CreateTMP(content, "ProgressBadge", "", 15, new Vector2(0, -221), new Vector2(470, 30), cream);
+            AdaptCover();
             BuildParentalGate(canvasParent);
             BuildParentsInfoPanel(canvasParent);
 
@@ -92,6 +112,27 @@ namespace FlorestaBicicleta
             RefreshLocalizedTexts();
         }
 
+        private void LateUpdate()
+        {
+            if (IsShowing) AdaptCover();
+        }
+
+        private void AdaptCover()
+        {
+            Vector2 size = ((RectTransform)titleRoot.transform).rect.size;
+            if (size == lastCoverSize || size.x <= 0 || size.y <= 0) return;
+            lastCoverSize = size;
+            float aspect = size.x / size.y;
+            float artAspect = coverPainting.texture ? (float)coverPainting.texture.width / coverPainting.texture.height : 16f / 9f;
+            float w = Mathf.Min(1f, aspect / artAspect);
+            float h = Mathf.Min(1f, artAspect / aspect);
+            coverPainting.uvRect = new Rect((1f - w) * 0.86f, (1f - h) * 0.5f, w, h);
+            bool narrow = aspect < 1.2f;
+            menuContent.anchorMin = menuContent.anchorMax = narrow ? new Vector2(0.5f, 0.47f) : new Vector2(0.25f, 0.49f);
+            float width = narrow ? size.x * 0.92f : size.x * 0.46f;
+            menuContent.localScale = Vector3.one * Mathf.Min(1f, width / 490f, size.y / 510f);
+            coverPainting.color = narrow ? new Color(0.42f, 0.53f, 0.48f) : Color.white;
+        }
         private void BuildParentalGate(Transform parent)
         {
             gateModal = CreateCard(parent, "ParentalGateModal",
@@ -185,7 +226,7 @@ namespace FlorestaBicicleta
 
         private void RefreshLocalizedTexts()
         {
-            if (brandTitleTMP != null) brandTitleTMP.text = LocalizationManager.Get("brand_title");
+            if (brandTitleTMP != null) brandTitleTMP.text = LocalizationManager.Get("brand_title").Replace("PEDAL ", "PEDAL\n");
             if (sloganTMP != null) sloganTMP.text = LocalizationManager.Get("brand_slogan");
             if (playBtnTMP != null) playBtnTMP.text = LocalizationManager.Get("btn_play");
             if (parentsBtnTMP != null) parentsBtnTMP.text = LocalizationManager.Get("btn_parents");
@@ -197,6 +238,7 @@ namespace FlorestaBicicleta
             var pm = PlayerProgressManager.Instance;
             if (progressBadgeTMP != null && pm != null && pm.Data != null)
             {
+                progressBadgeTMP.gameObject.SetActive(pm.Data.bestDistanceKm > 0 || pm.Data.totalDeliveries > 0);
                 progressBadgeTMP.text = $"Recorde: {pm.Data.bestDistanceKm:0.00} km  |  Animais: {pm.Data.discoveredAnimals.Count}/14  |  Vila Nivel {pm.Data.villageEvolutionLevel}";
             }
         }

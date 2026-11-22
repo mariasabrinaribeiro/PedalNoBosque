@@ -22,7 +22,8 @@ namespace FlorestaBicicleta
             Book,
             Workshop,
             Bell,
-            CloseX
+            CloseX,
+            Play
         }
 
         private static Sprite cachedRoundedPill;
@@ -154,6 +155,13 @@ namespace FlorestaBicicleta
 
             switch (kind)
             {
+                case UIIconKind.Play:
+                    for (int x = 9; x <= 41; x++)
+                    {
+                        int radius = Mathf.RoundToInt((41 - x) * 0.56f);
+                        for (int y = 24 - radius; y <= 24 + radius; y++) tex.SetPixel(x, y, white);
+                    }
+                    break;
                 case UIIconKind.Star:
                     for (int y = 0; y < s; y++)
                     {

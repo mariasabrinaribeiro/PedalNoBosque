@@ -24,7 +24,7 @@ namespace FlorestaBicicleta
             {
                 { "brand_title",   ("PEDAL NO BOSQUE", "PEDAL IN THE WOODS", "PEDAL EN EL BOSQUE") },
                 { "brand_slogan",  ("Pequenas entregas. Grandes descobertas.", "Small deliveries. Big discoveries.", "Pequenas entregas. Grandes descubrimientos.") },
-                { "btn_play",      ("Jogar Aventura", "Play Adventure", "Jugar Aventura") },
+                { "btn_play",      ("Jogar", "Play", "Jugar") },
                 { "btn_parents",   ("Area dos Pais", "Parents Area", "Area de Padres") },
                 { "btn_back",      ("Voltar", "Back", "Volver") },
                 { "btn_stroll",    ("Passear", "Stroll", "Pasear") },

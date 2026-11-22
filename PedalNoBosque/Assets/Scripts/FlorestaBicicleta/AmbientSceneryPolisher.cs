@@ -16,10 +16,13 @@ namespace FlorestaBicicleta
         private class ParallaxProp
         {
             public Transform tr;
+            public SpriteRenderer sr;
             public float baseWorldX;
             public float y;
             public float parallax; // < 1 = mais lento (fundo), > 1 = mais rápido (primeiro plano)
             public float spanWidth;
+            public int variantIndex;
+            public bool isTreeLayer;
         }
 
         private class CloudItem
@@ -132,24 +135,30 @@ namespace FlorestaBicicleta
                 GameObject go = new GameObject($"FundoIntermediario_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = BiomePropsFactory.CreateOrganicTreeSprite(i + 1);
+                // Alterna entre bosques/grupos de árvores e árvores individuais para horizonte rico e profundo
+                sr.sprite = (i % 2 == 1)
+                    ? BiomePropsFactory.CreateMidgroundTreeClusterSprite(i)
+                    : BiomePropsFactory.CreateOrganicTreeSprite(i + 1);
                 sr.sortingOrder = -10;
                 sr.color = new Color(0.78f, 0.87f, 0.83f, 0.76f);
                 float y = -2.42f + 0.18f * (i % 3);
-                float scale = 0.34f + (i % 4) * 0.055f;
+                float scale = (i % 2 == 1) ? 0.38f + (i % 3) * 0.05f : 0.34f + (i % 4) * 0.055f;
                 go.transform.localScale = new Vector3(scale, scale * (0.94f + (i % 2) * 0.08f), 1f);
                 midgroundProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
+                    sr = sr,
                     baseWorldX = -25f + i * spacing,
                     y = y,
                     parallax = 0.48f,
-                    spanWidth = totalSpan
+                    spanWidth = totalSpan,
+                    variantIndex = i + 1,
+                    isTreeLayer = true
                 });
             }
         }
 
-        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): 5 modelos orgânicos variados sem repetição artificial.</summary>
+        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): 7 modelos orgânicos variados sem repetição artificial.</summary>
         private void BuildNearTreesLayer()
         {
             // Árvores maiores em primeiro plano, mas com espaços para deixar
@@ -162,6 +171,7 @@ namespace FlorestaBicicleta
                 GameObject go = new GameObject($"ArvoreOrganica_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+                // 7 modelos distintos sem repetição imediata (incluindo o carvalho ilustrado!)
                 sr.sprite = BiomePropsFactory.CreateOrganicTreeSprite(i);
                 sr.sortingOrder = -4;
                 sr.color = new Color(0.92f, 0.97f, 0.91f, 0.88f);
@@ -170,16 +180,19 @@ namespace FlorestaBicicleta
                 go.transform.localScale = new Vector3(sc, sc * (0.92f + (i % 3) * 0.07f), 1f);
 
                 GentleSway sway = go.AddComponent<GentleSway>();
-                sway.maxAngleDeg = 1.5f;
-                sway.speed = Random.Range(0.95f, 1.35f);
+                sway.maxAngleDeg = 1.8f;
+                sway.speed = Random.Range(0.95f, 1.45f);
 
                 nearTreeProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
+                    sr = sr,
                     baseWorldX = offsets[i],
                     y = -2.82f + (i % 3) * 0.10f,
                     parallax = 0.78f,
-                    spanWidth = totalSpan
+                    spanWidth = totalSpan,
+                    variantIndex = i,
+                    isTreeLayer = true
                 });
             }
         }
@@ -390,7 +403,7 @@ namespace FlorestaBicicleta
             }
         }
 
-        private static void UpdateParallaxList(List<ParallaxProp> list, float camX, float wrapHalfRange)
+        private void UpdateParallaxList(List<ParallaxProp> list, float camX, float wrapHalfRange)
         {
             for (int i = 0; i < list.Count; i++)
             {
@@ -401,14 +414,44 @@ namespace FlorestaBicicleta
                 {
                     item.baseWorldX += item.spanWidth;
                     screenOffset = item.baseWorldX - camX * item.parallax;
+                    if (item.isTreeLayer && item.sr != null)
+                    {
+                        item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
+                        item.sr.color = GetTreeColorForBiome(activeBiome, item.parallax);
+                    }
                 }
                 while (screenOffset > wrapHalfRange)
                 {
                     item.baseWorldX -= item.spanWidth;
                     screenOffset = item.baseWorldX - camX * item.parallax;
+                    if (item.isTreeLayer && item.sr != null)
+                    {
+                        item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
+                        item.sr.color = GetTreeColorForBiome(activeBiome, item.parallax);
+                    }
                 }
                 item.tr.position = new Vector3(camX + screenOffset, item.y, 0f);
             }
+        }
+
+        private static Color GetTreeColorForBiome(BiomeType biome, float parallax)
+        {
+            bool isNear = parallax > 0.6f;
+            if (biome == BiomeType.BosqueDaLua)
+            {
+                return isNear
+                    ? new Color(0.85f, 0.90f, 1f, 0.92f)
+                    : new Color(0.68f, 0.76f, 0.92f, 0.78f);
+            }
+            if (biome == BiomeType.Colinas)
+            {
+                return isNear
+                    ? new Color(0.94f, 0.98f, 0.92f, 0.90f)
+                    : new Color(0.82f, 0.90f, 0.85f, 0.78f);
+            }
+            return isNear
+                ? new Color(0.92f, 0.97f, 0.91f, 0.88f)
+                : new Color(0.78f, 0.87f, 0.83f, 0.76f);
         }
 
         private static Color GetBiomeParticleColor(BiomeType biome)

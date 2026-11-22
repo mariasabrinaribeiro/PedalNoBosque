@@ -51,6 +51,7 @@ namespace FlorestaBicicleta
         private readonly List<TrackSegment> activeSegments = new List<TrackSegment>();
         private readonly Dictionary<int, GameObject> bgTiles = new Dictionary<int, GameObject>();
         private readonly List<BiomeType> biomeBag = new List<BiomeType>();
+        private readonly Queue<TrailAdventureEvent.EventKind> recentAdventureEvents = new Queue<TrailAdventureEvent.EventKind>();
 
         private Dictionary<FoodType, Sprite> foodSprites;
         private Sprite happySp;
@@ -498,6 +499,9 @@ namespace FlorestaBicicleta
             SpawnProp(p, BiomePropsFactory.CreateRollingHillSprite(), new Vector3(s + 12f, -2.3f, 0f), 1.35f, -5);
             SpawnProp(p, BiomePropsFactory.CreateRollingHillSprite(), new Vector3(s + 34f, -2.3f, 0f), 1.55f, -5);
 
+            // Pinheiro alpino no topo da colina (sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(2), new Vector3(s + 22f, -2.62f, 0f), 0.94f, -2, 1.1f);
+
             // Subida longa seguida de descida embalada + rampa de salto!
             CreateSlope(p, SlopeZone.SlopeType.Subida, s + 10f, 10f);
             CreateSlope(p, SlopeZone.SlopeType.Descida, s + 26f, 10f);
@@ -564,6 +568,7 @@ namespace FlorestaBicicleta
 
             // Salgueiro ribeirinho com passarinho pousado no galho + pequena ilha no rio!
             SpawnSwayingProp(p, BiomePropsFactory.CreateWillowTreeWithBirdSprite(), new Vector3(bridgeCenterX - 7.8f, -2.65f, 0f), 1.05f, -2, 1.5f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(4), new Vector3(bridgeCenterX + 7.9f, -2.65f, 0f), 0.95f, -2, 1.3f);
             SpawnProp(p, BiomePropsFactory.CreateRiverIsletSprite(), new Vector3(bridgeCenterX + 3.2f, -4.45f, 0f), 0.92f, 3);
 
             // Margens naturais com pedras, juncos aquáticos e flores nas cabeceiras da ponte
@@ -621,6 +626,10 @@ namespace FlorestaBicicleta
             for (int i = 0; i < 5; i++)
                 SpawnProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 5f + i * 9.5f, -2.65f, 0f), Random.Range(0.95f, 1.25f), 2);
 
+            // Árvores imponentes da mata ao longo da trilha (plano de fundo da pista, sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(1), new Vector3(s + 12f, -2.72f, 0f), 0.95f, -2, 1.2f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(6), new Vector3(s + 35f, -2.72f, 0f), 0.92f, -2, 1.0f);
+
             // Animais da mata fechada: Lobo, Filhote de Urso, Guaxinim, Ouriço, Coruja Noturna e Esquilo
             ParkSpriteFactory.AnimalKind[] mataPool =
             {
@@ -662,6 +671,9 @@ namespace FlorestaBicicleta
             SpawnProp(p, BiomePropsFactory.CreateVillageBuntingSprite(), new Vector3(s + 32f, 0.35f, 0f), 1.15f, 4);
             SpawnProp(p, BiomePropsFactory.LoadParkBenchSprite(), new Vector3(s + 23f, -2.55f, 0f), 1f, 3);
             SpawnProp(p, BiomePropsFactory.CreateVillageLampSprite(), new Vector3(s + 38f, -2.55f, 0f), 0.95f, 3);
+
+            // Árvore frutífera acolhedora da praça da vila (sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateFruitTreeSprite(), new Vector3(s + 36f, -2.68f, 0f), 0.95f, -2, 1.2f);
 
             // Barraca da Cozinha garantida na Vila dos Viajantes!
             SpawnKitchenStation(p, s + 14f, blocked);
@@ -734,6 +746,10 @@ namespace FlorestaBicicleta
                 else
                     SpawnProp(p, BiomePropsFactory.CreateGlowingMushroomSprite(), new Vector3(s + 6f + i * 9f, -2.70f, 0f), Random.Range(0.92f, 1.15f), 2);
             }
+
+            // Árvores Lunares bioluminescentes ao longo da trilha noturna (sortOrder -2)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(5), new Vector3(s + 11f, -2.72f, 0f), 0.98f, -2, 1.4f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateOrganicTreeSprite(5), new Vector3(s + 47f, -2.72f, 0f), 0.88f, -2, 1.2f);
 
             // Coruja Noturna garantida no Bosque da Lua + encontro raro (Raposa / Cervo / Filhote de Urso)
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.CorujaNoturna, "Coruja", 3, s + 17f, blocked);
@@ -929,71 +945,72 @@ namespace FlorestaBicicleta
 
         private void SpawnContextualAdventureEvent(TrackSegment seg, BiomeType biome, float startX, List<(float min, float max)> blocked)
         {
-            TrailAdventureEvent.EventKind kind;
+            // Nem todo trecho precisa de uma missão: intervalos sem eventos deixam o passeio respirar.
+            if (seg.index != 0 && Random.value > 0.72f) return;
+
+            TrailAdventureEvent.EventKind[] candidates;
             switch (biome)
             {
                 case BiomeType.CampoFlorido:
-                    TrailAdventureEvent.EventKind[] campoEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.FloresMurchas,
                         TrailAdventureEvent.EventKind.MusicaDaFloresta,
                         TrailAdventureEvent.EventKind.CuidadoraAbrigo,
                         TrailAdventureEvent.EventKind.PassaroCaido
                     };
-                    kind = (seg.index == 0) ? TrailAdventureEvent.EventKind.FloresMurchas : campoEv[seg.index % campoEv.Length];
                     break;
                 case BiomeType.Colinas:
-                    TrailAdventureEvent.EventKind[] colinasEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.PicapauArvore,
                         TrailAdventureEvent.EventKind.PegadasCachorro,
                         TrailAdventureEvent.EventKind.PassaroCaido
                     };
-                    kind = colinasEv[seg.index % colinasEv.Length];
                     break;
                 case BiomeType.RegiaoDoRio:
-                    TrailAdventureEvent.EventKind[] rioEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.LimparRiacho,
                         TrailAdventureEvent.EventKind.PonteQuebrada,
                         TrailAdventureEvent.EventKind.MusicaDaFloresta
                     };
-                    kind = rioEv[seg.index % rioEv.Length];
+                    PlayerProgressManager pm = PlayerProgressManager.Instance;
+                    if (pm != null && pm.Data != null && pm.Data.castorBridgeRepaired
+                        && pm.TryScheduleCastorBridgeFollowup())
+                    {
+                        candidates = new[] { TrailAdventureEvent.EventKind.PonteCastorPronta };
+                    }
                     break;
                 case BiomeType.TrilhaDaFloresta:
-                    TrailAdventureEvent.EventKind[] mataEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.ToupeiraSubterranea,
                         TrailAdventureEvent.EventKind.EnigmaCoruja,
                         TrailAdventureEvent.EventKind.TesouroEscondido,
                         TrailAdventureEvent.EventKind.PicapauArvore
                     };
-                    kind = mataEv[seg.index % mataEv.Length];
                     break;
                 case BiomeType.PequenaVila:
-                    TrailAdventureEvent.EventKind[] vilaEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.RatinhoCarteiro,
                         TrailAdventureEvent.EventKind.TexugoOficina,
                         TrailAdventureEvent.EventKind.CuidadoraAbrigo,
                         TrailAdventureEvent.EventKind.FloresMurchas
                     };
-                    kind = vilaEv[seg.index % vilaEv.Length];
                     break;
                 case BiomeType.BosqueDaLua:
-                    TrailAdventureEvent.EventKind[] luaEv =
-                    {
+                    candidates = new[] {
                         TrailAdventureEvent.EventKind.EnigmaCoruja,
                         TrailAdventureEvent.EventKind.MusicaDaFloresta,
                         TrailAdventureEvent.EventKind.ToupeiraSubterranea,
                         TrailAdventureEvent.EventKind.TesouroEscondido
                     };
-                    kind = luaEv[seg.index % luaEv.Length];
                     break;
                 default:
-                    kind = TrailAdventureEvent.EventKind.FloresMurchas;
+                    candidates = new[] { TrailAdventureEvent.EventKind.FloresMurchas };
                     break;
             }
+
+            TrailAdventureEvent.EventKind kind = seg.index == 0
+                ? TrailAdventureEvent.EventKind.FloresMurchas
+                : ChooseWeightedAdventureEvent(candidates);
 
             float ex = (seg.index == 0) ? startX + 27.5f : startX + 35f;
             GameObject evObj = new GameObject($"EventoAventura_{kind}_{seg.index}");
@@ -1004,6 +1021,44 @@ namespace FlorestaBicicleta
             seg.events.Add(ev);
             ActiveEvents.Add(ev);
             blocked.Add((ex - 3.5f, ex + 3.5f));
+        }
+
+        private TrailAdventureEvent.EventKind ChooseWeightedAdventureEvent(TrailAdventureEvent.EventKind[] candidates)
+        {
+            // A raridade é escolhida primeiro; a lista do bioma limita o resultado ao contexto local.
+            float roll = Random.value;
+            int targetRarity = roll < 0.62f ? 0 : (roll < 0.91f ? 1 : 2);
+            List<TrailAdventureEvent.EventKind> pool = new List<TrailAdventureEvent.EventKind>();
+            for (int pass = 0; pass < 3 && pool.Count == 0; pass++)
+            {
+                int rarity = (targetRarity + pass) % 3;
+                for (int i = 0; i < candidates.Length; i++)
+                    if (GetAdventureRarity(candidates[i]) == rarity && !recentAdventureEvents.Contains(candidates[i]))
+                        pool.Add(candidates[i]);
+                if (pool.Count == 0)
+                {
+                    for (int i = 0; i < candidates.Length; i++)
+                        if (GetAdventureRarity(candidates[i]) == rarity) pool.Add(candidates[i]);
+                }
+            }
+
+            TrailAdventureEvent.EventKind selected = pool.Count > 0
+                ? pool[Random.Range(0, pool.Count)] : candidates[Random.Range(0, candidates.Length)];
+            recentAdventureEvents.Enqueue(selected);
+            while (recentAdventureEvents.Count > 3) recentAdventureEvents.Dequeue();
+            return selected;
+        }
+
+        private static int GetAdventureRarity(TrailAdventureEvent.EventKind kind)
+        {
+            if (kind == TrailAdventureEvent.EventKind.TesouroEscondido
+                || kind == TrailAdventureEvent.EventKind.EnigmaCoruja
+                || kind == TrailAdventureEvent.EventKind.PonteCastorPronta) return 2;
+            if (kind == TrailAdventureEvent.EventKind.PegadasCachorro
+                || kind == TrailAdventureEvent.EventKind.ToupeiraSubterranea
+                || kind == TrailAdventureEvent.EventKind.PonteQuebrada
+                || kind == TrailAdventureEvent.EventKind.LimparRiacho) return 1;
+            return 0;
         }
 
         private void SpawnDistanceSign(Transform parent, float xPos, float kmValue)

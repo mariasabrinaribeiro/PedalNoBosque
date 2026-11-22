@@ -27,14 +27,26 @@ namespace FlorestaBicicleta
         // Impacto do jogador no mundo vivo e evolução da Vila dos Viajantes (Etapa 10)
         public int flowersWateredCount = 0;
         public int bridgesRepairedCount = 0;
+        public bool castorBridgeRepaired = false;
+        public bool castorBridgeFollowupScheduled = false;
+        public int hedgehogStoryStage = 0;
         public int birdsRescuedCount = 0;
         public int villageEvolutionLevel = 0;
+
+        public int balanceSkillXp = 0;
+        public int pedalingSkillXp = 0;
+        public int explorationSkillXp = 0;
+        public int puppyScentSkillXp = 0;
+        public int gardeningSkillXp = 0;
+        public int cookingSkillXp = 0;
+        public int pedalingDistanceSteps = 0;
 
         public List<string> discoveredAnimals = new List<string>();
         public List<string> visitedBiomes = new List<string>();
         public List<CollectibleSaveEntry> collectibles = new List<CollectibleSaveEntry>();
         public List<string> unlockedAchievements = new List<string>();
         public List<string> unlockedCustomizations = new List<string>();
+        public List<string> unlockedRecipes = new List<string>();
 
         public string equippedBike = "bike_default";
         public string equippedBasket = "basket_default";
@@ -156,6 +168,7 @@ namespace FlorestaBicicleta
             if (data.collectibles == null) data.collectibles = new List<CollectibleSaveEntry>();
             if (data.unlockedAchievements == null) data.unlockedAchievements = new List<string>();
             if (data.unlockedCustomizations == null) data.unlockedCustomizations = new List<string>();
+            if (data.unlockedRecipes == null) data.unlockedRecipes = new List<string>();
 
             // Garante itens gratuitos iniciais sempre desbloqueados
             string[] defaults = { "bike_default", "basket_default", "acc_default", "char_default", "puppy_default" };

@@ -36,6 +36,9 @@ namespace FlorestaBicicleta
 
         public readonly List<FoodType> foodBasket = new List<FoodType>();
         public float currentSpeed { get; private set; } = 0f;
+        public bool isFaroMode { get; private set; }
+        public bool isOnFoot { get; private set; }
+        public bool canDismountAtNearbyEvent { get; set; }
         public string currentSlopeLabel { get; private set; } = "Plano";
         public bool isNearKitchen { get; private set; } = false;
 
@@ -59,6 +62,11 @@ namespace FlorestaBicicleta
 
         private Transform visualRoot;
         private SpriteRenderer bikeSR;
+        private SpriteRenderer walkingGirlSR;
+        private SpriteRenderer parkedBikeSR;
+        private Sprite walkingGirlSprite;
+        private Sprite parkedBikeSprite;
+        private float parkedBikeX;
         private SpriteRenderer customAccentBadgeSR;
         private float slopeMultiplier = 1f;
         private float slopeTiltDeg = 0f;
@@ -144,6 +152,18 @@ namespace FlorestaBicicleta
             foodBasket.Add(type);
         }
 
+        public bool TryAddFoodToBasket(FoodType type)
+        {
+            if (foodBasket.Count >= maxBasketSize) return false;
+            foodBasket.Add(type);
+            return true;
+        }
+
+        public bool TryConsumeFood(FoodType type)
+        {
+            return foodBasket.Remove(type);
+        }
+
         public string GetBasketSummary()
         {
             if (foodBasket.Count == 0) return "Cesta vazia (passe na Barraca da Cozinha!)";
@@ -153,6 +173,16 @@ namespace FlorestaBicicleta
         }
 
         public void SetTrackGenerator(InfiniteTrackGenerator generator) => trackGeneratorRef = generator;
+
+        public void SetFaroMode(bool enabled)
+        {
+            if (isFaroMode == enabled) return;
+            isFaroMode = enabled;
+            if (enabled)
+                onInfoMessage?.Invoke("Modo Faro ativo: pare a bicicleta e siga o sinal do cachorrinho.");
+            else
+                onInfoMessage?.Invoke("Modo Faro encerrado. Vamos continuar pedalando!");
+        }
 
         public void ApplyCustomizationVisuals()
         {
@@ -183,12 +213,127 @@ namespace FlorestaBicicleta
         public void SetUIFast(bool pressed) => uiFastPressed = pressed;
         public void SetUIReverse(bool pressed) => uiReversePressed = pressed;
 
+        public bool ToggleExploreMode()
+        {
+            if (!isOnFoot)
+            {
+                if (!canDismountAtNearbyEvent || Mathf.Abs(currentSpeed) > 0.25f)
+                {
+                    onInfoMessage?.Invoke("Pare ao lado de um ponto de exploração para descer da bicicleta.");
+                    return false;
+                }
+
+                isOnFoot = true;
+                parkedBikeX = transform.position.x;
+                if (bikeSR != null) bikeSR.enabled = false;
+                if (customAccentBadgeSR != null) customAccentBadgeSR.enabled = false;
+                CreateFootVisuals();
+                onInfoMessage?.Invoke("Você estacionou a bicicleta. Explore a área com A/D ou os controles laterais.");
+                return true;
+            }
+
+            if (Mathf.Abs(transform.position.x - parkedBikeX) > 7f)
+            {
+                onInfoMessage?.Invoke("Volte até a bicicleta para continuar o passeio.");
+                return false;
+            }
+
+            isOnFoot = false;
+            if (walkingGirlSR != null) Destroy(walkingGirlSR.gameObject);
+            if (parkedBikeSR != null) Destroy(parkedBikeSR.gameObject);
+            if (bikeSR != null) bikeSR.enabled = true;
+            ApplyCustomizationVisuals();
+            onInfoMessage?.Invoke("Você voltou à bicicleta.");
+            return true;
+        }
+
+        private void CreateFootVisuals()
+        {
+            if (parkedBikeSprite == null) parkedBikeSprite = BuildParkedBikeSprite();
+            if (walkingGirlSprite == null) walkingGirlSprite = BuildWalkingGirlSprite();
+
+            GameObject bike = new GameObject("BicicletaEstacionada");
+            bike.transform.position = new Vector3(parkedBikeX, baseGroundY, 0f);
+            parkedBikeSR = bike.AddComponent<SpriteRenderer>();
+            parkedBikeSR.sprite = parkedBikeSprite;
+            parkedBikeSR.sortingOrder = 9;
+
+            GameObject girl = new GameObject("MeninaExplorandoAPe");
+            girl.transform.SetParent(transform, false);
+            girl.transform.localPosition = new Vector3(0f, 0.72f, 0f);
+            walkingGirlSR = girl.AddComponent<SpriteRenderer>();
+            walkingGirlSR.sprite = walkingGirlSprite;
+            walkingGirlSR.sortingOrder = 10;
+        }
+
+        private static Sprite BuildWalkingGirlSprite()
+        {
+            Texture2D tex = new Texture2D(32, 48, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            Color skin = new Color(0.88f, 0.62f, 0.42f, 1f);
+            Color hair = new Color(0.28f, 0.16f, 0.10f, 1f);
+            Color shirt = new Color(0.90f, 0.40f, 0.55f, 1f);
+            Color shorts = new Color(0.22f, 0.40f, 0.58f, 1f);
+            Color shoe = new Color(0.32f, 0.22f, 0.18f, 1f);
+            Color clear = new Color(0f, 0f, 0f, 0f);
+            for (int y = 0; y < 48; y++) for (int x = 0; x < 32; x++) tex.SetPixel(x, y, clear);
+            FillSpriteRect(tex, 11, 34, 21, 44, hair);
+            FillSpriteRect(tex, 12, 35, 20, 43, skin);
+            FillSpriteRect(tex, 11, 41, 21, 45, hair);
+            FillSpriteRect(tex, 9, 22, 23, 35, shirt);
+            FillSpriteRect(tex, 6, 25, 10, 34, skin);
+            FillSpriteRect(tex, 22, 24, 26, 33, skin);
+            FillSpriteRect(tex, 10, 13, 22, 23, shorts);
+            FillSpriteRect(tex, 11, 4, 15, 14, shorts);
+            FillSpriteRect(tex, 17, 4, 21, 14, shorts);
+            FillSpriteRect(tex, 9, 1, 16, 4, shoe);
+            FillSpriteRect(tex, 16, 1, 23, 4, shoe);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, 32, 48), new Vector2(0.5f, 0f), 24f);
+        }
+
+        private static Sprite BuildParkedBikeSprite()
+        {
+            Texture2D tex = new Texture2D(64, 32, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            Color clear = new Color(0f, 0f, 0f, 0f);
+            Color frame = new Color(0.30f, 0.58f, 0.42f, 1f);
+            Color tire = new Color(0.16f, 0.17f, 0.15f, 1f);
+            for (int y = 0; y < 32; y++) for (int x = 0; x < 64; x++) tex.SetPixel(x, y, clear);
+            DrawSpriteCircle(tex, 13, 10, 8, tire);
+            DrawSpriteCircle(tex, 51, 10, 8, tire);
+            FillSpriteRect(tex, 12, 9, 14, 11, frame);
+            FillSpriteRect(tex, 13, 10, 33, 12, frame);
+            FillSpriteRect(tex, 24, 10, 27, 24, frame);
+            FillSpriteRect(tex, 26, 21, 38, 23, frame);
+            FillSpriteRect(tex, 36, 10, 52, 12, frame);
+            FillSpriteRect(tex, 33, 21, 36, 23, frame);
+            FillSpriteRect(tex, 24, 24, 32, 26, tire);
+            FillSpriteRect(tex, 37, 21, 42, 23, tire);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, 64, 32), new Vector2(0.5f, 0f), 24f);
+        }
+
+        private static void FillSpriteRect(Texture2D tex, int x1, int y1, int x2, int y2, Color color)
+        {
+            for (int x = x1; x < x2; x++) for (int y = y1; y < y2; y++) tex.SetPixel(x, y, color);
+        }
+
+        private static void DrawSpriteCircle(Texture2D tex, int cx, int cy, int radius, Color color)
+        {
+            for (int x = cx - radius; x <= cx + radius; x++) for (int y = cy - radius; y <= cy + radius; y++)
+                if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= radius * radius
+                    && x >= 0 && y >= 0 && x < tex.width && y < tex.height) tex.SetPixel(x, y, color);
+        }
+
         private void Update()
         {
             float baseTargetSpeed = 0f;
             bool actionPressed = false;
             bool bellPressed = false;
             bool jumpPressed = false;
+            bool faroPressed = false;
+            bool explorePressed = false;
 
             if (Keyboard.current != null)
             {
@@ -203,6 +348,8 @@ namespace FlorestaBicicleta
                 actionPressed = Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame;
                 jumpPressed = Keyboard.current.wKey.wasPressedThisFrame || Keyboard.current.upArrowKey.wasPressedThisFrame;
                 bellPressed = Keyboard.current.bKey.wasPressedThisFrame;
+                faroPressed = Keyboard.current.fKey.wasPressedThisFrame;
+                explorePressed = Keyboard.current.qKey.wasPressedThisFrame;
             }
             else
             {
@@ -211,6 +358,8 @@ namespace FlorestaBicicleta
                 else if (uiReversePressed) baseTargetSpeed = reverseSpeed;
             }
 
+            if (faroPressed) SetFaroMode(!isFaroMode);
+            if (explorePressed) ToggleExploreMode();
             if (bellPressed) RingBell();
             if (jumpPressed) TriggerJump();
 
@@ -220,6 +369,7 @@ namespace FlorestaBicicleta
             float thirstPenalty = waterLevel <= 1f ? 0.55f : 1f;
             float stumblePenalty = stumbleTimer > 0f ? 0.35f : 1f;
             float targetSpeed = baseTargetSpeed * slopeMultiplier * comboBoost * thirstPenalty * stumblePenalty;
+            if (isFaroMode || isOnFoot) targetSpeed = 0f;
 
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
 
@@ -236,8 +386,14 @@ namespace FlorestaBicicleta
             }
 
             Vector3 pos = transform.position;
-            float nextX = pos.x + currentSpeed * Time.deltaTime;
-            pos.x = infiniteRoad ? Mathf.Max(minX, nextX) : Mathf.Clamp(nextX, minX, maxX);
+            bool footRight = uiFastPressed || uiSlowPressed || (Keyboard.current != null
+                && (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed));
+            bool footLeft = uiReversePressed || (Keyboard.current != null
+                && (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed));
+            float moveX = isOnFoot ? ((footRight ? 1f : 0f) - (footLeft ? 1f : 0f)) * 2f : currentSpeed;
+            float nextX = pos.x + moveX * Time.deltaTime;
+            pos.x = isOnFoot ? Mathf.Clamp(nextX, parkedBikeX - 7f, parkedBikeX + 7f)
+                : (infiniteRoad ? Mathf.Max(minX, nextX) : Mathf.Clamp(nextX, minX, maxX));
             pos.y = baseGroundY + jumpHeight;
             if ((pos.x <= minX && currentSpeed < 0f) || (!infiniteRoad && pos.x >= maxX && currentSpeed > 0f))
                 currentSpeed = 0f;
@@ -246,8 +402,8 @@ namespace FlorestaBicicleta
             if (distanceKm > maxDistanceKm) maxDistanceKm = distanceKm;
 
             // Vira o sprite se estiver voltando pela estrada
-            if (currentSpeed > 0.25f) { facingDir = 1f; if (bikeSR != null) bikeSR.flipX = false; }
-            else if (currentSpeed < -0.25f) { facingDir = -1f; if (bikeSR != null) bikeSR.flipX = true; }
+            if (currentSpeed > 0.25f || moveX > 0.1f) { facingDir = 1f; if (bikeSR != null) bikeSR.flipX = false; }
+            else if (currentSpeed < -0.25f || moveX < -0.1f) { facingDir = -1f; if (bikeSR != null) bikeSR.flipX = true; }
 
             // Sede do cachorrinho + som ofegante quando água está baixa
             float drain = Mathf.Abs(currentSpeed) > 0.2f ? (Mathf.Abs(currentSpeed) > 5f ? 1.45f : 0.95f) : 0.25f;
@@ -259,6 +415,11 @@ namespace FlorestaBicicleta
             }
 
             UpdateVisualAnimation();
+            if (walkingGirlSR != null)
+            {
+                walkingGirlSR.flipX = facingDir < 0f;
+                walkingGirlSR.transform.localPosition = new Vector3(0f, 0.72f + (Mathf.Abs(moveX) > 0.1f ? Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.06f : 0f), 0f);
+            }
 
             if (actionPressed)
             {

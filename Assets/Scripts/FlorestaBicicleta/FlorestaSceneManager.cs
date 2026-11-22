@@ -146,7 +146,7 @@ namespace FlorestaBicicleta
             }
             mainCam.orthographic = true;
             mainCam.orthographicSize = 5.5f;
-            mainCam.backgroundColor = new Color(0.46f, 0.78f, 0.99f, 1f);
+            mainCam.backgroundColor = new Color32(54, 81, 48, 255);
             mainCam.transform.position = new Vector3(2f, 0.65f, -10f);
         }
 
@@ -581,6 +581,8 @@ namespace FlorestaBicicleta
             // Mensagem de feedback suave
             messageText = CreateTMP(canvasObj.transform, "MessageText", "",
                 18, new Vector2(0f, -94f), new Vector2(1060f, 30f), TextAlignmentOptions.Center);
+            messageText.outlineColor = new Color32(28, 49, 40, 255);
+            messageText.outlineWidth = 0.25f;
             RectTransform msgRT = messageText.GetComponent<RectTransform>();
             msgRT.anchorMin = new Vector2(0.5f, 1f);
             msgRT.anchorMax = new Vector2(0.5f, 1f);

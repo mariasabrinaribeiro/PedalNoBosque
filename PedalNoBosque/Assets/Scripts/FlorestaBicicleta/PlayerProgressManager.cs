@@ -77,6 +77,7 @@ namespace FlorestaBicicleta
             BuildAchievements();
             BuildCustomizations();
             Data = SaveSystem.Load();
+            RefreshSpecialRecipeUnlocks();
         }
 
         private void OnApplicationPause(bool pause)
@@ -326,6 +327,7 @@ namespace FlorestaBicicleta
         {
             if (Data == null) return;
             Data.totalDeliveries++;
+            RefreshSpecialRecipeUnlocks();
             if (Data.totalDeliveries == 1)
                 TryUnlockAchievement("first_feed");
             if (Data.totalDeliveries >= 10)
@@ -341,6 +343,31 @@ namespace FlorestaBicicleta
             SaveSystem.Save(Data);
         }
 
+        public bool IsRecipeUnlocked(FoodType recipe)
+        {
+            if (Data == null) return false;
+            if (recipe == FoodType.Sanduiche || recipe == FoodType.HotDog) return true;
+            return Data.unlockedRecipes.Contains(recipe.ToString());
+        }
+
+        private void RefreshSpecialRecipeUnlocks()
+        {
+            if (Data == null) return;
+            if (Data.totalDeliveries >= 3) UnlockSpecialRecipe(FoodType.SaladaFrutasBosque);
+            if (Data.totalDeliveries >= 8) UnlockSpecialRecipe(FoodType.CestaDaLua);
+        }
+
+        private void UnlockSpecialRecipe(FoodType recipe)
+        {
+            string key = recipe.ToString();
+            if (Data.unlockedRecipes.Contains(key)) return;
+            Data.unlockedRecipes.Add(key);
+            FlorestaSoundFX.Instance?.PlayDiamond();
+            OnMilestoneBanner?.Invoke(
+                $"Nova receita desbloqueada: {FoodInfo.GetDisplayName(recipe)}! Prepare-a na Cozinha do Bosque.",
+                new Color(1f, 0.88f, 0.50f, 1f));
+        }
+
         public void RecordAdventureAction(TrailAdventureEvent.EventKind eventKind)
         {
             if (Data == null) return;
@@ -351,6 +378,10 @@ namespace FlorestaBicicleta
                     break;
                 case TrailAdventureEvent.EventKind.PonteQuebrada:
                     Data.bridgesRepairedCount++;
+                    Data.castorBridgeRepaired = true;
+                    break;
+                case TrailAdventureEvent.EventKind.PonteCastorPronta:
+                    Data.castorBridgeFollowupScheduled = true;
                     break;
                 case TrailAdventureEvent.EventKind.PassaroCaido:
                     Data.birdsRescuedCount++;
@@ -359,8 +390,17 @@ namespace FlorestaBicicleta
                     Data.totalDeliveries++;
                     break;
             }
+            RefreshSpecialRecipeUnlocks();
             EvaluateVillageEvolution();
             SaveSystem.Save(Data);
+        }
+
+        public bool TryScheduleCastorBridgeFollowup()
+        {
+            if (Data == null || !Data.castorBridgeRepaired || Data.castorBridgeFollowupScheduled) return false;
+            Data.castorBridgeFollowupScheduled = true;
+            SaveSystem.Save(Data);
+            return true;
         }
 
         public void EvaluateVillageEvolution()
