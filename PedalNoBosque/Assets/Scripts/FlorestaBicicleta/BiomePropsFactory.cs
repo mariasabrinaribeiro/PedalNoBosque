@@ -193,7 +193,7 @@ namespace FlorestaBicicleta
                 int count = 12 + tier * 2;
                 for (int i = 0; i < count; i++)
                 {
-                    float angle = (float)(random.NextDouble() * Math.PI);
+                    float angle = (float)(random.NextDouble() * Mathf.PI);
                     float r = (float)random.NextDouble() * spreads[tier] * 0.75f;
                     int x = 90 + Mathf.RoundToInt(Mathf.Cos(angle) * r);
                     int y = centersY[tier] + Mathf.RoundToInt(Mathf.Sin(angle) * (spreads[tier] * 0.28f)) - random.Next(0, 6);
@@ -1290,23 +1290,71 @@ namespace FlorestaBicicleta
             return cachedGlowMushroom;
         }
 
-        /// <summary>Carrega o carvalho ilustrado clássico (Resources/Floresta/carvalho_bosque) com fallback para procedural.</summary>
+        /// <summary>Carrega o carvalho ilustrado clássico (Resources/Floresta/carvalho_bosque) com reparo de alfa em memória para eliminar furos e fallback para procedural.</summary>
         public static Sprite LoadOakTreeSprite()
         {
             if (cachedOakTree != null) return cachedOakTree;
+            Texture2D tex = Resources.Load<Texture2D>("Floresta/carvalho_bosque");
+            if (tex != null)
+            {
+                Texture2D solidTex = RepairAlphaHolesInMemory(tex);
+                cachedOakTree = Sprite.Create(solidTex, new Rect(0, 0, solidTex.width, solidTex.height), new Vector2(0.5f, 0.012f), 205f);
+                return cachedOakTree;
+            }
             Sprite sp = Resources.Load<Sprite>("Floresta/carvalho_bosque");
             if (sp != null)
             {
                 cachedOakTree = sp;
                 return cachedOakTree;
             }
-            Texture2D tex = Resources.Load<Texture2D>("Floresta/carvalho_bosque");
-            if (tex != null)
-            {
-                cachedOakTree = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.012f), 205f);
-                return cachedOakTree;
-            }
             return null;
+        }
+
+        private static Texture2D RepairAlphaHolesInMemory(Texture2D source)
+        {
+            int w = source.width;
+            int h = source.height;
+            Texture2D result = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            Color[] pixels = source.GetPixels();
+            Color barkFill = new Color(0.36f, 0.22f, 0.12f, 1f);
+            Color canopyFill = new Color(0.22f, 0.46f, 0.20f, 1f);
+
+            int[] leftBound = new int[h];
+            int[] rightBound = new int[h];
+            for (int y = 0; y < h; y++)
+            {
+                leftBound[y] = -1;
+                rightBound[y] = -1;
+                for (int x = 0; x < w; x++)
+                {
+                    if (pixels[y * w + x].a > 0.08f)
+                    {
+                        if (leftBound[y] == -1) leftBound[y] = x;
+                        rightBound[y] = x;
+                    }
+                }
+            }
+
+            for (int y = 0; y < h; y++)
+            {
+                int minX = leftBound[y];
+                int maxX = rightBound[y];
+                if (minX == -1 || maxX == -1 || maxX - minX < 8) continue;
+
+                for (int x = minX + 2; x <= maxX - 2; x++)
+                {
+                    int idx = y * w + x;
+                    if (pixels[idx].a < 0.15f)
+                    {
+                        Color fill = (y < h * 0.42f) ? barkFill : canopyFill;
+                        pixels[idx] = fill;
+                    }
+                }
+            }
+
+            result.SetPixels(pixels);
+            result.Apply();
+            return result;
         }
 
         /// <summary>Árvore Lunar Encantada com tronco prateado-violeta e folhagem bioluminescente (Bosque da Lua).</summary>
@@ -1555,11 +1603,15 @@ namespace FlorestaBicicleta
                 DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(104, 5), new Vector2(118, 4), 4f, 1.5f, birchShadow, birchWhite);
                 FillRect(tex, 86, 6, 94, 95, birchWhite);
                 FillRect(tex, 86, 6, 88, 95, birchShadow);
-                for (int y = 14; y < 90; y += 12)
+                // Manchas orgânicas da bétula (lenticelas suaves e espaçadas, sem barras horizontais duras)
+                int[] markYs = { 18, 30, 44, 58, 70, 82 };
+                int[] markOffsets = { -1, 1, -2, 1, -1, 0 };
+                for (int m = 0; m < markYs.Length; m++)
                 {
-                    int markW = ((y / 12) % 2 == 0) ? 6 : 4;
-                    int markX = ((y / 12) % 2 == 0) ? 87 : 89;
-                    FillRect(tex, markX, y, markX + markW, y + 2, birchMark);
+                    int my = markYs[m];
+                    int mx = 89 + markOffsets[m];
+                    FillEllipse(tex, mx, my, 3, 1, birchMark);
+                    FillCircle(tex, mx - 2, my, 1, birchShadow);
                 }
 
                 DrawCurvedBranch(tex, new Vector2(90, 78), new Vector2(68, 101), new Vector2(52, 126), 6f, 2f, birchShadow, birchWhite);

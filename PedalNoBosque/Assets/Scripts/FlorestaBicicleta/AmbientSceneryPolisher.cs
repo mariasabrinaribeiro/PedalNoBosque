@@ -161,9 +161,9 @@ namespace FlorestaBicicleta
         /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): 7 modelos orgânicos variados sem repetição artificial.</summary>
         private void BuildNearTreesLayer()
         {
-            // Árvores maiores em primeiro plano, mas com espaços para deixar
-            // personagens, animais e pontos de interesse legíveis.
-            float[] offsets = { -24f, -11f, 3f, 16f, 29f, 43f, 57f };
+            // Árvores maiores em primeiro plano, com espaçamento equilibrado para deixar
+            // a ciclista, os animais e a barraca de cozinha perfeitamente emoldurados sem obstrução.
+            float[] offsets = { -25f, -12f, 8.5f, 22f, 36f, 50f, 64f };
             float totalSpan = 91f;
 
             for (int i = 0; i < offsets.Length; i++)
@@ -174,10 +174,13 @@ namespace FlorestaBicicleta
                 // 7 modelos distintos sem repetição imediata (incluindo o carvalho ilustrado!)
                 sr.sprite = BiomePropsFactory.CreateOrganicTreeSprite(i);
                 sr.sortingOrder = -4;
-                sr.color = new Color(0.92f, 0.97f, 0.91f, 0.88f);
+                sr.color = Color.white; // 100% opaca — sem transparência fantasma
 
                 float sc = 0.70f + (i % 4) * 0.095f;
                 go.transform.localScale = new Vector3(sc, sc * (0.92f + (i % 3) * 0.07f), 1f);
+
+                // Sombra de contato suave no chão para ancoragem perfeita no relevo
+                BiomePropsFactory.AddContactShadow(go.transform, new Vector3(0f, -0.05f, 0f), new Vector2(1.25f, 0.35f), -5);
 
                 GentleSway sway = go.AddComponent<GentleSway>();
                 sway.maxAngleDeg = 1.8f;
@@ -278,50 +281,52 @@ namespace FlorestaBicicleta
                 new Color(0.46f, 0.84f, 1f, 0.95f)
             };
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 3; i++)
             {
                 GameObject bfObj = new GameObject($"Borboleta_{i}");
                 bfObj.transform.SetParent(transform, false);
-                bfObj.transform.localScale = new Vector3(0.65f, 0.65f, 1f);
+                bfObj.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
 
                 SpriteRenderer sr = bfObj.AddComponent<SpriteRenderer>();
                 sr.sprite = butterflySprite;
                 sr.color = colors[i % colors.Length];
-                sr.sortingOrder = 15;
+                sr.sortingOrder = 6;
 
                 butterflies.Add(new ButterflyItem
                 {
                     tr = bfObj.transform,
                     sr = sr,
-                    offsetX = -5f + i * 5.5f,
-                    baseY = Random.Range(-2.2f, -0.4f),
+                    offsetX = -4f + i * 8.5f,
+                    baseY = Random.Range(-1.6f, -0.6f),
                     phase = Random.Range(0f, Mathf.PI * 2f),
-                    speed = Random.Range(0.7f, 1.3f)
+                    speed = Random.Range(0.6f, 1.1f)
                 });
             }
         }
 
         private void BuildAtmosphericMotes()
         {
-            for (int i = 0; i < 22; i++)
+            // Reduzido para 8 partículas leves para manter a cena limpa e destacar a protagonista
+            for (int i = 0; i < 8; i++)
             {
                 bool isPetal = (i % 2 == 0);
                 GameObject mObj = new GameObject($"Atmosfera_{i}");
                 mObj.transform.SetParent(transform, false);
-                mObj.transform.position = new Vector3(Random.Range(-10f, 12f), Random.Range(-3.2f, 4.6f), 0f);
-                float sc = isPetal ? Random.Range(0.32f, 0.56f) : Random.Range(0.24f, 0.48f);
+                // Confinadas ao céu/copa das árvores (Y de 0.8 a 4.6), sem poluir a faixa da bicicleta
+                mObj.transform.position = new Vector3(Random.Range(-10f, 12f), Random.Range(0.8f, 4.6f), 0f);
+                float sc = isPetal ? Random.Range(0.24f, 0.40f) : Random.Range(0.18f, 0.32f);
                 mObj.transform.localScale = new Vector3(sc, sc, 1f);
 
                 SpriteRenderer sr = mObj.AddComponent<SpriteRenderer>();
                 sr.sprite = isPetal ? petalSprite : moteSprite;
-                sr.sortingOrder = 15;
+                sr.sortingOrder = 4; // Atrás da protagonista (camada 10), garantindo nitidez total
                 sr.color = currentMoteColor;
 
                 motes.Add(new MoteItem
                 {
                     tr = mObj.transform,
                     sr = sr,
-                    velocity = new Vector2(Random.Range(-1.3f, -0.45f), Random.Range(-0.4f, 0.22f)),
+                    velocity = new Vector2(Random.Range(-1.0f, -0.35f), Random.Range(-0.2f, 0.12f)),
                     phase = Random.Range(0f, Mathf.PI * 2f),
                     baseScale = sc
                 });
@@ -391,8 +396,8 @@ namespace FlorestaBicicleta
 
                 if (p.x < camX - 13f) p.x = camX + 13f + Random.Range(0f, 3f);
                 if (p.x > camX + 16f) p.x = camX - 12f;
-                if (p.y < -3.8f) p.y = 4.6f;
-                if (p.y > 5.2f) p.y = -3.0f;
+                if (p.y < 0.6f) p.y = 4.6f;
+                if (p.y > 5.2f) p.y = 0.9f;
 
                 m.tr.position = p;
                 m.tr.Rotate(0f, 0f, 42f * Time.deltaTime);

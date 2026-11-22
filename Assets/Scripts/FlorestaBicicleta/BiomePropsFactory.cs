@@ -185,18 +185,20 @@ namespace FlorestaBicicleta
 
         private static void ScatterPineNeedles(Texture2D tex, int seed, Color light, Color shadow)
         {
-            int[] centersY = { 48, 75, 100, 122, 142, 158 };
-            int[] spreads = { 56, 48, 38, 28, 18, 10 };
+            int[] centersY = { 50, 78, 102, 124, 144, 160 };
+            int[] spreads = { 54, 46, 36, 26, 16, 9 };
             System.Random random = new System.Random(seed);
             for (int tier = 0; tier < centersY.Length; tier++)
             {
-                for (int i = 0; i < 11; i++)
+                int count = 12 + tier * 2;
+                for (int i = 0; i < count; i++)
                 {
-                    int xOffset = random.Next(-spreads[tier] * 3 / 4, spreads[tier] * 3 / 4 + 1);
-                    float edge = Mathf.Abs(xOffset) / (float)spreads[tier];
-                    int y = centersY[tier] - Mathf.RoundToInt((1f - edge) * 7f) + random.Next(0, 8);
-                    Color color = (i % 4 == 0) ? shadow : light;
-                    FillEllipse(tex, 90 + xOffset, y, random.Next(2, 5), random.Next(1, 3), color);
+                    float angle = (float)(random.NextDouble() * Mathf.PI);
+                    float r = (float)random.NextDouble() * spreads[tier] * 0.75f;
+                    int x = 90 + Mathf.RoundToInt(Mathf.Cos(angle) * r);
+                    int y = centersY[tier] + Mathf.RoundToInt(Mathf.Sin(angle) * (spreads[tier] * 0.28f)) - random.Next(0, 6);
+                    Color col = (random.Next(0, 4) == 0) ? shadow : light;
+                    FillCircle(tex, x, y, random.Next(1, 3), col);
                 }
             }
         }
@@ -261,39 +263,47 @@ namespace FlorestaBicicleta
 
         private static void DrawPineBranchTier(Texture2D tex, int cx, int cy, int spreadW, int height, Color darkNeedle, Color midNeedle, Color lightNeedle)
         {
-            int numFingers = Mathf.Clamp(spreadW / 5, 5, 14);
-            for (int i = 0; i <= numFingers; i++)
-            {
-                float t = i / (float)numFingers;
-                float xOffset = Mathf.Lerp(-spreadW, spreadW, t);
-                float arch = (1f - (xOffset * xOffset) / (spreadW * spreadW));
-                int tipX = Mathf.RoundToInt(cx + xOffset);
-                int tipY = Mathf.RoundToInt(cy - height * 0.82f + arch * height * 0.32f);
-                int startY = Mathf.RoundToInt(cy + height * 0.18f);
+            // Copa orgânica de pinheiro com silhueta cônica curvada e tufos de agulhas suaves
+            int yBottom = cy - Mathf.RoundToInt(height * 0.65f);
+            int yTop = cy + Mathf.RoundToInt(height * 0.35f);
 
-                for (int py = tipY; py <= startY; py++)
+            // Preenchimento de massa orgânica com bordas atenuadas (sem linhas de varredura nem degraus rígidos)
+            for (int y = yBottom; y <= yTop; y++)
+            {
+                if (y < 0 || y >= tex.height) continue;
+                float yt = (float)(y - yBottom) / Mathf.Max(1, yTop - yBottom);
+                // Silhueta arqueada com pontas caídas
+                float widthFactor = Mathf.Pow(1f - yt, 0.75f);
+                float halfW = spreadW * widthFactor;
+
+                for (int x = Mathf.RoundToInt(cx - halfW); x <= Mathf.RoundToInt(cx + halfW); x++)
                 {
-                    if (py < 0 || py >= tex.height) continue;
-                    float ft = (py - tipY) / (float)Mathf.Max(1, startY - tipY);
-                    int px = Mathf.RoundToInt(Mathf.Lerp(tipX, cx + xOffset * 0.35f, ft));
-                    Color col = (py < tipY + 4) ? lightNeedle : (py > startY - 3 ? darkNeedle : midNeedle);
-                    if (px >= 0 && px < tex.width) tex.SetPixel(px, py, col);
-                    if (px - 1 >= 0 && px - 1 < tex.width) tex.SetPixel(px - 1, py, Color.Lerp(col, darkNeedle, 0.4f));
-                    if (px + 1 >= 0 && px + 1 < tex.width) tex.SetPixel(px + 1, py, col);
+                    if (x < 0 || x >= tex.width) continue;
+                    float nx = (x - cx) / Mathf.Max(1f, halfW);
+                    float edgeDist = 1f - Mathf.Abs(nx);
+
+                    // Sombra na base, luz suave na parte superior exposta ao sol
+                    float lightT = Mathf.Clamp01(yt * 0.7f + (1f - Mathf.Abs(nx)) * 0.3f);
+                    Color baseCol = Color.Lerp(darkNeedle, midNeedle, lightT);
+                    if (yt > 0.65f && edgeDist > 0.25f)
+                        baseCol = Color.Lerp(baseCol, lightNeedle, (yt - 0.65f) / 0.35f);
+
+                    tex.SetPixel(x, y, baseCol);
                 }
             }
 
-            for (int y = cy - Mathf.RoundToInt(height * 0.5f); y <= cy + Mathf.RoundToInt(height * 0.25f); y++)
+            // Tufos de agulhas pendentes nas pontas para contorno vivo e natural
+            int numTips = Mathf.Clamp(spreadW / 6, 6, 12);
+            for (int i = 0; i <= numTips; i++)
             {
-                if (y < 0 || y >= tex.height) continue;
-                float yt = (y - (cy - height * 0.5f)) / (height * 0.75f);
-                int halfW = Mathf.RoundToInt(Mathf.Lerp(spreadW * 0.88f, spreadW * 0.25f, yt));
-                for (int x = cx - halfW; x <= cx + halfW; x++)
-                {
-                    if (x < 0 || x >= tex.width) continue;
-                    Color col = (y > cy) ? lightNeedle : ((x % 3 == 0) ? midNeedle : darkNeedle);
-                    tex.SetPixel(x, y, col);
-                }
+                float t = i / (float)numTips;
+                float xOffset = Mathf.Lerp(-spreadW, spreadW, t);
+                int tipX = Mathf.RoundToInt(cx + xOffset);
+                float droop = (1f - (xOffset * xOffset) / (spreadW * spreadW * 1.05f)) * (height * 0.35f);
+                int tipY = Mathf.RoundToInt(yBottom - droop * 0.6f);
+
+                FillEllipse(tex, tipX, tipY, Mathf.Max(2, spreadW / 14), Mathf.Max(2, height / 10), midNeedle);
+                FillCircle(tex, tipX, tipY - 1, 1, darkNeedle);
             }
         }
 
@@ -1280,23 +1290,71 @@ namespace FlorestaBicicleta
             return cachedGlowMushroom;
         }
 
-        /// <summary>Carrega o carvalho ilustrado clássico (Resources/Floresta/carvalho_bosque) com fallback para procedural.</summary>
+        /// <summary>Carrega o carvalho ilustrado clássico (Resources/Floresta/carvalho_bosque) com reparo de alfa em memória para eliminar furos e fallback para procedural.</summary>
         public static Sprite LoadOakTreeSprite()
         {
             if (cachedOakTree != null) return cachedOakTree;
+            Texture2D tex = Resources.Load<Texture2D>("Floresta/carvalho_bosque");
+            if (tex != null)
+            {
+                Texture2D solidTex = RepairAlphaHolesInMemory(tex);
+                cachedOakTree = Sprite.Create(solidTex, new Rect(0, 0, solidTex.width, solidTex.height), new Vector2(0.5f, 0.012f), 205f);
+                return cachedOakTree;
+            }
             Sprite sp = Resources.Load<Sprite>("Floresta/carvalho_bosque");
             if (sp != null)
             {
                 cachedOakTree = sp;
                 return cachedOakTree;
             }
-            Texture2D tex = Resources.Load<Texture2D>("Floresta/carvalho_bosque");
-            if (tex != null)
-            {
-                cachedOakTree = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.012f), 205f);
-                return cachedOakTree;
-            }
             return null;
+        }
+
+        private static Texture2D RepairAlphaHolesInMemory(Texture2D source)
+        {
+            int w = source.width;
+            int h = source.height;
+            Texture2D result = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            Color[] pixels = source.GetPixels();
+            Color barkFill = new Color(0.36f, 0.22f, 0.12f, 1f);
+            Color canopyFill = new Color(0.22f, 0.46f, 0.20f, 1f);
+
+            int[] leftBound = new int[h];
+            int[] rightBound = new int[h];
+            for (int y = 0; y < h; y++)
+            {
+                leftBound[y] = -1;
+                rightBound[y] = -1;
+                for (int x = 0; x < w; x++)
+                {
+                    if (pixels[y * w + x].a > 0.08f)
+                    {
+                        if (leftBound[y] == -1) leftBound[y] = x;
+                        rightBound[y] = x;
+                    }
+                }
+            }
+
+            for (int y = 0; y < h; y++)
+            {
+                int minX = leftBound[y];
+                int maxX = rightBound[y];
+                if (minX == -1 || maxX == -1 || maxX - minX < 8) continue;
+
+                for (int x = minX + 2; x <= maxX - 2; x++)
+                {
+                    int idx = y * w + x;
+                    if (pixels[idx].a < 0.15f)
+                    {
+                        Color fill = (y < h * 0.42f) ? barkFill : canopyFill;
+                        pixels[idx] = fill;
+                    }
+                }
+            }
+
+            result.SetPixels(pixels);
+            result.Apply();
+            return result;
         }
 
         /// <summary>Árvore Lunar Encantada com tronco prateado-violeta e folhagem bioluminescente (Bosque da Lua).</summary>
@@ -1545,11 +1603,15 @@ namespace FlorestaBicicleta
                 DrawCurvedBranch(tex, new Vector2(90, 8), new Vector2(104, 5), new Vector2(118, 4), 4f, 1.5f, birchShadow, birchWhite);
                 FillRect(tex, 86, 6, 94, 95, birchWhite);
                 FillRect(tex, 86, 6, 88, 95, birchShadow);
-                for (int y = 14; y < 90; y += 12)
+                // Manchas orgânicas da bétula (lenticelas suaves e espaçadas, sem barras horizontais duras)
+                int[] markYs = { 18, 30, 44, 58, 70, 82 };
+                int[] markOffsets = { -1, 1, -2, 1, -1, 0 };
+                for (int m = 0; m < markYs.Length; m++)
                 {
-                    int markW = ((y / 12) % 2 == 0) ? 6 : 4;
-                    int markX = ((y / 12) % 2 == 0) ? 87 : 89;
-                    FillRect(tex, markX, y, markX + markW, y + 2, birchMark);
+                    int my = markYs[m];
+                    int mx = 89 + markOffsets[m];
+                    FillEllipse(tex, mx, my, 3, 1, birchMark);
+                    FillCircle(tex, mx - 2, my, 1, birchShadow);
                 }
 
                 DrawCurvedBranch(tex, new Vector2(90, 78), new Vector2(68, 101), new Vector2(52, 126), 6f, 2f, birchShadow, birchWhite);
