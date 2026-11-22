@@ -242,24 +242,24 @@ namespace FlorestaBicicleta
 
         private void BuildFlyingBirds()
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 8; i++)
             {
                 GameObject bObj = new GameObject($"PassaroCeu_{i}");
                 bObj.transform.SetParent(transform, false);
-                float y = Random.Range(2.4f, 4.4f);
-                bObj.transform.position = new Vector3(-8f + i * 6.5f, y, 0f);
-                float sc = Random.Range(0.55f, 0.85f);
+                float y = Random.Range(2.2f, 4.5f);
+                bObj.transform.position = new Vector3(-11f + i * 4.5f, y, 0f);
+                float sc = Random.Range(0.52f, 0.88f);
                 bObj.transform.localScale = new Vector3(sc, sc, 1f);
 
                 SpriteRenderer sr = bObj.AddComponent<SpriteRenderer>();
                 sr.sprite = birdSprite;
-                sr.color = new Color(0.24f, 0.30f, 0.38f, 0.78f);
+                sr.color = new Color(0.24f, 0.30f, 0.38f, 0.80f);
                 sr.sortingOrder = -12;
 
                 birds.Add(new BirdItem
                 {
                     tr = bObj.transform,
-                    speed = Random.Range(1.2f, 2.0f),
+                    speed = Random.Range(1.2f, 2.1f),
                     baseY = y,
                     phase = Random.Range(0f, Mathf.PI * 2f),
                     baseScale = sc
@@ -273,14 +273,16 @@ namespace FlorestaBicicleta
             {
                 new Color(1f, 0.76f, 0.24f, 0.95f),
                 new Color(1f, 0.46f, 0.76f, 0.95f),
-                new Color(0.46f, 0.84f, 1f, 0.95f)
+                new Color(0.46f, 0.84f, 1f, 0.95f),
+                new Color(0.98f, 0.56f, 0.28f, 0.95f)
             };
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 6; i++)
             {
                 GameObject bfObj = new GameObject($"Borboleta_{i}");
                 bfObj.transform.SetParent(transform, false);
-                bfObj.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
+                float sc = 0.48f + (i % 3) * 0.07f;
+                bfObj.transform.localScale = new Vector3(sc, sc, 1f);
 
                 SpriteRenderer sr = bfObj.AddComponent<SpriteRenderer>();
                 sr.sprite = butterflySprite;
@@ -291,10 +293,10 @@ namespace FlorestaBicicleta
                 {
                     tr = bfObj.transform,
                     sr = sr,
-                    offsetX = -4f + i * 8.5f,
-                    baseY = Random.Range(-1.6f, -0.6f),
+                    offsetX = -8f + i * 4.6f,
+                    baseY = Random.Range(-1.7f, -0.55f),
                     phase = Random.Range(0f, Mathf.PI * 2f),
-                    speed = Random.Range(0.6f, 1.1f)
+                    speed = Random.Range(0.6f, 1.15f)
                 });
             }
         }

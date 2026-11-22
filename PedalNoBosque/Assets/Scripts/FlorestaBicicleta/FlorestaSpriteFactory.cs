@@ -61,46 +61,20 @@ namespace FlorestaBicicleta
         }
 
         /// <summary>
-        /// Carrega bg_floresta.png e suaviza a transição horizontal entre as bordas esquerda e direita,
-        /// eliminando 100% da linha vertical de recorte na estrada de terra, no gramado e no céu!
+        /// Carrega bg_floresta.png preservando 100% da pintura original sem esticar linhas horizontais,
+        /// eliminando qualquer faixa retangular ou bloco escuro nas árvores!
         /// </summary>
         public static Sprite LoadForestBackgroundSprite(float cameraWorldHeight)
         {
             if (cachedSeamlessBgSprite != null) return cachedSeamlessBgSprite;
-            Texture2D raw = Resources.Load<Texture2D>("Floresta/bg_floresta");
-            if (raw == null) return null;
-
-            Texture2D seamless = GetReadableTextureCopy(raw);
-            int w = seamless.width;
-            int h = seamless.height;
-            Color[] pixels = seamless.GetPixels();
-
-            // Faixa de fusão horizontal contínua nas últimas 120 colunas para casar perfeitamente com a coluna 0 do próximo bloco
-            const int blendWidth = 120;
-            for (int y = 0; y < h; y++)
-            {
-                int rowStart = y * w;
-                // Usa média suave das primeiras 4 colunas da esquerda como alvo da costura
-                Color leftTarget = (pixels[rowStart] + pixels[rowStart + 1] + pixels[rowStart + 2] + pixels[rowStart + 3]) * 0.25f;
-                for (int i = 0; i < blendWidth; i++)
-                {
-                    int x = (w - blendWidth) + i;
-                    float t = (i + 1f) / blendWidth;
-                    float smoothT = t * t * (3f - 2f * t);
-                    pixels[rowStart + x] = Color.Lerp(pixels[rowStart + x], leftTarget, smoothT);
-                }
-            }
-
-            seamless.SetPixels(pixels);
-            seamless.Apply();
-            float ppu = h / Mathf.Max(0.1f, cameraWorldHeight);
-            cachedSeamlessBgSprite = Sprite.Create(seamless, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), ppu);
+            cachedSeamlessBgSprite = LoadResourceSprite("Floresta/bg_floresta", cameraWorldHeight, 0.5f);
             return cachedSeamlessBgSprite;
         }
 
         public static Sprite LoadGirlBikeSprite()
         {
-            return LoadResourceSprite("Floresta/girl_bike", 3.3f, 0.05f);
+            // Pivô Y = 83/1024 (0.08105f) corresponde exatamente à base inferior dos pneus em girl_bike.png
+            return LoadResourceSprite("Floresta/girl_bike", 3.3f, 83f / 1024f);
         }
 
         /// <summary>

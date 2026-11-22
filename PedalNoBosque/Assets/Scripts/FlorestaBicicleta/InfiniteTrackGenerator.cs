@@ -139,8 +139,8 @@ namespace FlorestaBicicleta
                     if (worldX >= hillStart && worldX <= hillEnd)
                     {
                         float t = (worldX - hillStart) / (hillEnd - hillStart);
-                        pitchAngleDeg = Mathf.Sin(t * 2f * Mathf.PI) * 11.5f;
-                        return 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI)) * 0.96f;
+                        pitchAngleDeg = Mathf.Sin(t * 2f * Mathf.PI) * 4.5f;
+                        return 0f;
                     }
                 }
                 break;
@@ -219,7 +219,7 @@ namespace FlorestaBicicleta
                     bgObj.transform.SetParent(transform, false);
                     SpriteRenderer sr = bgObj.AddComponent<SpriteRenderer>();
                     sr.sprite = bgSprite;
-                    sr.flipX = false;
+                    sr.flipX = (Mathf.Abs(i) % 2 == 1);
                     sr.sortingOrder = -20;
                     bgTiles[i] = bgObj;
                 }
@@ -464,12 +464,22 @@ namespace FlorestaBicicleta
 
             SpawnMeadowFlowers(p, s, seg.index);
 
+            // Riqueza ambiental e elementos de descoberta atrás do meio-fio da estrada (-2.38f)
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 3.2f, -2.38f, 0f), 0.92f, -1, 1.3f);
+            SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(0), new Vector3(s + 5.4f, -2.38f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreatePicnicBasketAndCrateSprite(), new Vector3(s + 10.6f, -2.40f, 0f), 0.90f, 2);
+            SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 15.6f, -2.38f, 0f), 0.95f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 23.2f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateAnimalBurrowSprite(), new Vector3(s + 35.6f, -2.39f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyStonesClusterSprite(), new Vector3(s + 41.2f, -2.40f, 0f), 0.92f, 1);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 45.0f, -2.38f, 0f), 0.88f, -1, 1.2f);
+
             SpawnKitchenStation(p, s + 8f, blocked);
             SpawnBench(p, s + 13f);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 21.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho do Bosque", 2, s + 21.5f, blocked);
             SpawnWaterColumn(p, s + 25f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 28.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Trilha", 2, s + 28.5f, blocked);
             SpawnRampWithStars(p, s + 32.5f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 38.5f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 43.5f, blocked);
@@ -479,9 +489,16 @@ namespace FlorestaBicicleta
             hasKitchen = true;
         }
 
-        // As flores silvestres já estão pintadas em alta resolução na borda da estrada de bg_floresta.png.
+        // Canteiros extras de flores silvestres, arbustos e samambaias variados na margem superior da estrada (-2.38f).
         private void SpawnMeadowFlowers(Transform parent, float start, int variant)
         {
+            float[] offsets = { 2.0f, 16.4f, 26.8f, 36.6f, 44.2f };
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                float sc = 0.86f + ((i + variant) % 3) * 0.08f;
+                SpawnSwayingProp(parent, BiomePropsFactory.CreateFlowerPatchSprite(variant + i),
+                    new Vector3(start + offsets[i], -2.39f, 0f), sc, 1, 1.4f);
+            }
         }
 
         private void BuildCampoFlorido(
@@ -497,10 +514,21 @@ namespace FlorestaBicicleta
             SpawnMeadowFlowers(p, s, seg.index);
             SpawnBench(p, s + 11.5f);
 
-            // Bastante animais variados no Campo Florido: Gato, Cachorrinho, Coelho, Esquilo, Raposa e Família de Ursos!
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 6.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 15.2f, blocked);
+            // Vegetação extra, casinha de pássaros, placa direcional, tronco musgoso e toca de animais
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 9.2f, -2.28f, 0f), 0.70f, -4, 1.1f);
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 34.5f, -2.28f, 0f), 0.66f, -4, 1.0f);
+            SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(seg.index), new Vector3(s + 4.0f, -2.38f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreatePicnicBasketAndCrateSprite(), new Vector3(s + 13.4f, -2.40f, 0f), 0.90f, 2);
+            SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 17.4f, -2.38f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 28.8f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateAnimalBurrowSprite(), new Vector3(s + 39.8f, -2.39f, 0f), 0.92f, 1);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 44.0f, -2.38f, 0f), 0.90f, -1, 1.2f);
+
+            // Bastante animais variados no Campo Florido: Gato, Cachorrinho, Coelho, Esquilo, Passarinhos, Raposa e Família de Ursos!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho do Campo", 2, s + 6.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho do Bosque", 2, s + 15.2f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 19.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Passarinhos, "Passarinhos", 2, s + 21.8f, blocked);
 
             // Rampa suave no meio do campo
             SpawnRampWithStars(p, s + 24f, blocked);
@@ -525,12 +553,18 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Talude ilustrado da trilha de montanha (24m de extensão, de s+6 a s+30, subindo +0.96m no pico s+18)
-            SpawnProp(p, BiomePropsFactory.CreateMountainHillTrailSprite(), new Vector3(s + 18f, -3.49f, 0f), 1.0f, 1);
+            // Cerca rústica de madeira com pedras musgosas e flores na margem superior da estrada (-2.38f, sem cortar o chão!)
+            SpawnProp(p, BiomePropsFactory.CreateMountainHillTrailSprite(), new Vector3(s + 18f, -2.38f, 0f), 1.0f, -2);
 
-            // Carvalhos acompanhando a encosta elevada da montanha (sortOrder -4)
-            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 10f, -1.96f, 0f), 0.70f, -4, 1.1f);
-            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 26f, -1.96f, 0f), 0.68f, -4, 1.0f);
+            // Carvalhos e decoração de trilha acompanhando a margem da estrada (sortOrder -4..-1)
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 10f, -2.28f, 0f), 0.70f, -4, 1.1f);
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 26f, -2.28f, 0f), 0.68f, -4, 1.0f);
+            SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(2), new Vector3(s + 2.4f, -2.38f, 0f), 0.95f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyStonesClusterSprite(), new Vector3(s + 7.5f, -2.39f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 21.8f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 31.2f, -2.38f, 0f), 0.92f, 1);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 42.2f, -2.38f, 0f), 0.90f, -1, 1.2f);
+            SpawnMeadowFlowers(p, s, seg.index + 1);
 
             // Subida longa (s+6..s+18) seguida de descida embalada (s+18..s+30) + rampa de salto!
             CreateSlope(p, SlopeZone.SlopeType.Subida, s + 12f, 12f);
@@ -539,12 +573,13 @@ namespace FlorestaBicicleta
 
             SpawnRampWithStars(p, s + 34f, blocked);
 
-            // Animais na base, subida, topo e descida da montanha (Família de Ursos, Cervo, Raposa, Gato e Cachorrinho!)
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 4.2f, blocked);
+            // Animais na base, subida, topo e descida da montanha (Família de Ursos, Cervo, Raposa, Esquilo, Gato e Cachorrinho!)
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Trilha", 2, s + 4.2f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Cervo, "Cervo", 4, s + 13.0f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 4, s + 18.5f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 25.0f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 39.8f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 3, s + 28.4f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho da Colina", 2, s + 39.8f, blocked);
 
             // Água opcional no pé da colina
             if (segmentsSinceLastWater >= 1)
@@ -564,16 +599,16 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Conjunto integrado: Rio sob a ponte + Ponte de Madeira arqueada calibrada no piso das rodas (-3.49f)
+            // Conjunto integrado: Rio sob a ponte + Ponte de Madeira com piso superior no exato nível das rodas (-3.45f)
             float bridgeCenterX = s + 22f;
             GameObject riverGroup = new GameObject($"RioPonteIntegrada_{seg.index}");
             riverGroup.transform.SetParent(p, false);
-            riverGroup.transform.position = new Vector3(bridgeCenterX, -3.49f, 0f);
+            riverGroup.transform.position = new Vector3(bridgeCenterX, -3.45f, 0f);
 
-            // Água cristalina contida sob o tablado da ponte (nunca sobe atrás do corrimão!)
+            // Água cristalina contida sob o tablado da ponte
             GameObject waterObj = new GameObject("AguaRio");
             waterObj.transform.SetParent(riverGroup.transform, false);
-            waterObj.transform.localPosition = new Vector3(0f, -0.39f, 0f);
+            waterObj.transform.localPosition = new Vector3(0f, -0.45f, 0f);
             SpriteRenderer waterSR = waterObj.AddComponent<SpriteRenderer>();
             waterSR.sprite = BiomePropsFactory.CreateRiverWaterSprite();
             waterSR.sortingOrder = 1;
@@ -581,12 +616,12 @@ namespace FlorestaBicicleta
             // Camada de correnteza cintilante animada sob os pilares
             GameObject shimmerObj = new GameObject("CorrentezaBrilho");
             shimmerObj.transform.SetParent(riverGroup.transform, false);
-            shimmerObj.transform.localPosition = new Vector3(0f, -0.37f, 0f);
+            shimmerObj.transform.localPosition = new Vector3(0f, -0.43f, 0f);
             SpriteRenderer shimmerSR = shimmerObj.AddComponent<SpriteRenderer>();
             shimmerSR.sprite = BiomePropsFactory.CreateRiverShimmerSprite();
             shimmerSR.sortingOrder = 2;
 
-            // Ponte de madeira proporcional: pivô nas extremidades em -3.49f e arco de +0.375m no centro
+            // Ponte de madeira com piso transitável no topo (todas as vigas e pilares ficam ABAIXO dos pneus da bicicleta!)
             GameObject bridgeObj = new GameObject("PonteMadeira");
             bridgeObj.transform.SetParent(riverGroup.transform, false);
             bridgeObj.transform.localPosition = Vector3.zero;
@@ -594,9 +629,14 @@ namespace FlorestaBicicleta
             bridgeSR.sprite = BiomePropsFactory.CreateWoodenBridgeSprite();
             bridgeSR.sortingOrder = 3;
 
-            // Carvalhos ilustrados nas margens atrás do meio-fio da estrada
+            // Carvalhos ilustrados, arbustos, pedras musgosas e placas nas margens atrás do meio-fio da estrada
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(bridgeCenterX - 8.2f, -2.28f, 0f), 0.72f, -4, 1.2f);
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(bridgeCenterX + 8.4f, -2.28f, 0f), 0.68f, -4, 1.1f);
+            SpawnProp(p, BiomePropsFactory.CreateMossyStonesClusterSprite(), new Vector3(bridgeCenterX - 6.0f, -2.39f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(bridgeCenterX + 6.4f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(1), new Vector3(s + 2.4f, -2.38f, 0f), 0.94f, 1);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 34.8f, -2.38f, 0f), 0.90f, -1, 1.2f);
+            SpawnMeadowFlowers(p, s, seg.index + 2);
 
             // Vida na água (peixes em pool saltando + correnteza + balanço leve da madeira)
             riverGroup.AddComponent<LivingRiverFeature>().Setup(shimmerObj.transform, bridgeObj.transform);
@@ -608,10 +648,12 @@ namespace FlorestaBicicleta
             SpawnWaterColumn(p, s + 9f, blocked);
             hasWater = true;
 
-            // Bastante animais nas duas margens do rio: Quati, Gato, Cachorrinho, Cervo, Castor e Família de Ursos!
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 4.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Quati, "Quati", 3, s + 13.0f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 31.8f, blocked);
+            // Bastante animais nas duas margens do rio: Quati, Castor, Sapo, Gato, Cachorrinho, Cervo e Família de Ursos!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho do Rio", 2, s + 4.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Quati, "Quati", 3, s + 12.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Castor, "Castor", 3, s + 15.4f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Sapo, "Sapo", 2, s + 28.6f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho", 2, s + 31.8f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 37.5f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Cervo, "Cervo", 4, s + 43.5f, blocked);
         }
@@ -630,8 +672,19 @@ namespace FlorestaBicicleta
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 12f, -2.28f, 0f), 0.72f, -4, 1.1f);
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 35f, -2.28f, 0f), 0.68f, -4, 1.0f);
 
-            // Muitos animais na Trilha da Floresta: Família de Ursos, Lobo, Quati, Gato, Cachorrinho, Raposa e Esquilo!
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 4.5f, blocked);
+            // Vegetação densa e elementos de descoberta da floresta
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 2.6f, -2.38f, 0f), 0.94f, -1, 1.2f);
+            SpawnProp(p, BiomePropsFactory.CreateAnimalBurrowSprite(), new Vector3(s + 10.6f, -2.39f, 0f), 0.95f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(seg.index), new Vector3(s + 16.4f, -2.38f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 21.8f, -2.39f, 0f), 0.95f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 31.2f, -2.38f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateGlowingMushroomSprite(), new Vector3(s + 37.8f, -2.40f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyStonesClusterSprite(), new Vector3(s + 43.4f, -2.39f, 0f), 0.92f, 1);
+            SpawnMeadowFlowers(p, s, seg.index + 3);
+
+            // Muitos animais na Trilha da Floresta: Família de Ursos, Lobo, Quati, Ouriço, Gato, Cachorrinho, Raposa e Esquilo!
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho do Bosque", 2, s + 4.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Ourico, "Ouriço", 2, s + 7.2f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 4, s + 13.5f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Lobo, "Lobo", 4, s + 19.5f, blocked);
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 24.0f, blocked);
@@ -680,8 +733,12 @@ namespace FlorestaBicicleta
                 hasWater = true;
             }
 
-            // Carvalho acolhedor da praça da vila atrás do meio-fio (sortOrder -4)
+            // Carvalho acolhedor e detalhes artesanais da praça da vila atrás do meio-fio
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 28.5f, -2.28f, 0f), 0.70f, -4, 1.1f);
+            SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(seg.index), new Vector3(s + 1.8f, -2.38f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreatePicnicBasketAndCrateSprite(), new Vector3(s + 18.2f, -2.40f, 0f), 0.92f, 2);
+            SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 22.8f, -2.38f, 0f), 0.94f, 1);
+            SpawnMeadowFlowers(p, s, seg.index + 4);
 
             // Moradores da Vila com Missões Aleatórias posicionados ao lado do banco e na saída da praça (sem sobreposição!)
             VillageResident.ResidentKind[] residentPool =
@@ -715,9 +772,17 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Carvalhos ao longo da trilha noturna atrás do meio-fio (sortOrder -4)
+            // Carvalhos, flores lunares, cogumelos encantados e elementos de descoberta ao longo da trilha noturna
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 11f, -2.28f, 0f), 0.72f, -4, 1.1f);
             SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 47f, -2.28f, 0f), 0.66f, -4, 1.0f);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 3.4f, -2.39f, 0f), 0.95f, 1, 1.3f);
+            SpawnProp(p, BiomePropsFactory.CreateGlowingMushroomSprite(), new Vector3(s + 9.4f, -2.40f, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateAnimalBurrowSprite(), new Vector3(s + 15.0f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 20.6f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 30.8f, -2.38f, 0f), 0.94f, 1);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateMoonFlowerSprite(), new Vector3(s + 36.4f, -2.39f, 0f), 0.95f, 1, 1.3f);
+            SpawnProp(p, BiomePropsFactory.CreateGlowingMushroomSprite(), new Vector3(s + 41.2f, -2.40f, 0f), 0.92f, 1);
+            SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 44.2f, -2.38f, 0f), 0.90f, -1, 1.2f);
 
             // Bastante animais no Bosque da Lua: Gato, Cachorrinho, Coruja, Família de Ursos, Cervo e Raposa!
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 6.5f, blocked);
@@ -830,21 +895,13 @@ namespace FlorestaBicicleta
             float xPos,
             List<(float min, float max)> blocked)
         {
-            float hillOffset = 0f;
-            if (seg.biome == BiomeType.Colinas)
-            {
-                float hillStart = seg.startX + 6f;
-                float hillEnd = seg.startX + 30f;
-                if (xPos >= hillStart && xPos <= hillEnd)
-                {
-                    float t = (xPos - hillStart) / (hillEnd - hillStart);
-                    hillOffset = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI)) * 0.96f;
-                }
-            }
-
             GameObject obj = new GameObject($"Animal_{displayName}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
-            obj.transform.position = new Vector3(xPos, -2.42f + hillOffset, 0f);
+            obj.transform.position = new Vector3(xPos, -2.42f, 0f);
+
+            // Variação sutil de tamanho para diferenciar os animais ambientais
+            float scaleVar = 0.92f + ((Mathf.Abs(Mathf.RoundToInt(xPos * 10f)) + seg.index) % 4) * 0.05f;
+            obj.transform.localScale = new Vector3(scaleVar, scaleVar, 1f);
 
             ForestAnimal a = obj.AddComponent<ForestAnimal>();
             a.Setup(kind, displayName, meals, foodSprites, happySp, crySp, tearSp, heartParticles);

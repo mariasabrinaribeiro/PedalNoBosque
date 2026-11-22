@@ -220,7 +220,7 @@ namespace FlorestaBicicleta
         private void SpawnPlayer()
         {
             GameObject playerObj = new GameObject("MeninaBicicleta");
-            playerObj.transform.position = new Vector3(0f, -3.55f, 0f);
+            playerObj.transform.position = new Vector3(0f, -3.45f, 0f);
             player = playerObj.AddComponent<BikeGirlController>();
             player.Setup(foodSprites, digSite, OnFoodDelivered, OnAnimalRunOver, OnWaterRefilled, msg => ShowMessage(msg, 3.5f));
             player.SetTrackGenerator(trackGenerator);
