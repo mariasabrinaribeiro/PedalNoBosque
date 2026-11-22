@@ -21,6 +21,7 @@ namespace FlorestaBicicleta
             Basket,
             Book,
             Workshop,
+            Bell,
             CloseX
         }
 
@@ -233,10 +234,38 @@ namespace FlorestaBicicleta
                     break;
 
                 case UIIconKind.Workshop:
-                    // Estrela + brilho da oficina
-                    Circle(tex, 24, 24, 12, new Color(1f, 0.92f, 0.56f, 0.95f));
-                    Circle(tex, 24, 24, 6, white);
-                    Circle(tex, 35, 35, 4, new Color(1f, 0.72f, 0.88f, 1f));
+                    // Engrenagem dourada elegante, perfeitamente simétrica e centralizada em (24, 24)
+                    Color gearGold = new Color(1f, 0.92f, 0.48f, 1f);
+                    for (int a = 0; a < 8; a++)
+                    {
+                        float rad = a * Mathf.PI / 4f;
+                        int gx = Mathf.RoundToInt(24f + Mathf.Cos(rad) * 12f);
+                        int gy = Mathf.RoundToInt(24f + Mathf.Sin(rad) * 12f);
+                        Circle(tex, gx, gy, 4, gearGold);
+                    }
+                    Circle(tex, 24, 24, 11, gearGold);
+                    Circle(tex, 24, 24, 6, new Color(0.44f, 0.28f, 0.58f, 1f));
+                    Circle(tex, 24, 24, 3, white);
+                    break;
+
+                case UIIconKind.Bell:
+                    // Sino dourado fofo com badalo e brilho
+                    Color bellGold = new Color(1f, 0.88f, 0.32f, 1f);
+                    Color bellDark = new Color(0.82f, 0.60f, 0.16f, 1f);
+                    for (int y = 16; y <= 34; y++)
+                    {
+                        float t = (y - 16f) / 18f;
+                        int halfW = Mathf.RoundToInt(Mathf.Lerp(12f, 4f, t));
+                        for (int x = 24 - halfW; x <= 24 + halfW; x++)
+                            tex.SetPixel(x, y, (x < 23) ? bellDark : bellGold);
+                    }
+                    for (int x = 11; x <= 37; x++)
+                    {
+                        tex.SetPixel(x, 15, bellDark);
+                        tex.SetPixel(x, 16, bellGold);
+                    }
+                    Circle(tex, 24, 12, 3, new Color(0.65f, 0.45f, 0.12f, 1f));
+                    Circle(tex, 27, 28, 2, white);
                     break;
 
                 case UIIconKind.CloseX:

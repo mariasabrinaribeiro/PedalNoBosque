@@ -422,10 +422,14 @@ namespace FlorestaBicicleta
             }
             else
             {
+                string replaced = player.foodBasket.Count == player.maxBasketSize
+                    ? FoodInfo.GetDisplayName(player.foodBasket[0]) : null;
                 player.AddFoodToBasket(type);
                 FlorestaSoundFX.Instance?.PlayHappy();
                 if (kitchenPrepStatus != null)
-                    kitchenPrepStatus.text = $"Pegou {FoodInfo.GetDisplayName(type)} na cesta!";
+                    kitchenPrepStatus.text = replaced == null
+                        ? $"{FoodInfo.GetDisplayName(type)} na cesta!"
+                        : $"Cesta cheia! {FoodInfo.GetDisplayName(type)} entrou no lugar de {replaced}.";
             }
         }
 

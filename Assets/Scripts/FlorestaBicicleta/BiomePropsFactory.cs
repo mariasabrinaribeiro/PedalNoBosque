@@ -36,6 +36,52 @@ namespace FlorestaBicicleta
         private static Sprite cachedFruitTree;
         private static Sprite cachedMoonFlower;
         private static Sprite cachedGlowMushroom;
+        private static Sprite cachedContactShadow;
+
+        /// <summary>
+        /// Sombra de contato suave elíptica no chão para ancoragem realista de personagens, banco, barraca e árvores.
+        /// </summary>
+        public static Sprite CreateContactShadowSprite()
+        {
+            if (cachedContactShadow != null) return cachedContactShadow;
+            int w = 64, h = 24;
+            Texture2D tex = CreateBlankTex(w, h);
+            float rx = w * 0.48f;
+            float ry = h * 0.44f;
+            float cx = w * 0.5f;
+            float cy = h * 0.5f;
+            Color shadowCol = new Color(0.04f, 0.12f, 0.08f, 0.52f);
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float dx = (x - cx) / rx;
+                    float dy = (y - cy) / ry;
+                    float d2 = dx * dx + dy * dy;
+                    if (d2 <= 1f)
+                    {
+                        float falloff = 1f - Mathf.Sqrt(d2);
+                        float a = Mathf.Pow(falloff, 0.65f) * shadowCol.a;
+                        tex.SetPixel(x, y, new Color(shadowCol.r, shadowCol.g, shadowCol.b, a));
+                    }
+                }
+            }
+            tex.Apply();
+            cachedContactShadow = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 32f);
+            return cachedContactShadow;
+        }
+
+        public static GameObject AddContactShadow(Transform parent, Vector3 localOffset, Vector2 scale, int sortingOrder = -1)
+        {
+            GameObject shadow = new GameObject("ContactShadow");
+            shadow.transform.SetParent(parent, false);
+            shadow.transform.localPosition = localOffset;
+            shadow.transform.localScale = new Vector3(scale.x, scale.y, 1f);
+            SpriteRenderer sr = shadow.AddComponent<SpriteRenderer>();
+            sr.sprite = CreateContactShadowSprite();
+            sr.sortingOrder = sortingOrder;
+            return shadow;
+        }
 
         private static Texture2D CreateBlankTex(int w, int h)
         {
@@ -105,6 +151,83 @@ namespace FlorestaBicicleta
                     float d3 = (x - x0) * (y2 - y0) - (x2 - x0) * (y - y0);
                     if (!(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0))))
                         tex.SetPixel(x, y, col);
+                }
+            }
+        }
+
+        private static void DrawOrganicFoliageLobe(Texture2D tex, int cx, int cy, int rx, int ry, Color baseCol, Color highCol, Color shadowCol)
+        {
+            for (int y = cy - ry - 2; y <= cy + ry + 2; y++)
+            {
+                if (y < 0 || y >= tex.height) continue;
+                for (int x = cx - rx - 2; x <= cx + rx + 2; x++)
+                {
+                    if (x < 0 || x >= tex.width) continue;
+                    float dx = (x - cx) / (float)Mathf.Max(1, rx);
+                    float dy = (y - cy) / (float)Mathf.Max(1, ry);
+                    float angle = Mathf.Atan2(dy, dx);
+                    float radiusNoise = 1f + Mathf.Sin(angle * 7f + cx * 0.1f) * 0.08f + Mathf.Cos(angle * 4f) * 0.06f;
+                    float d2 = (dx * dx + dy * dy) / (radiusNoise * radiusNoise);
+                    if (d2 <= 1f)
+                    {
+                        float tHeight = Mathf.Clamp01((y - (cy - ry)) / (float)(ry * 2));
+                        float lightFactor = tHeight * 0.68f + (1f - (dx + 1f) * 0.5f) * 0.32f;
+                        Color col;
+                        if (lightFactor > 0.62f)
+                            col = Color.Lerp(baseCol, highCol, (lightFactor - 0.62f) / 0.38f);
+                        else
+                            col = Color.Lerp(shadowCol, baseCol, lightFactor / 0.62f);
+
+                        if ((x * 7 + y * 13) % 9 == 0)
+                            col = Color.Lerp(col, highCol, 0.22f);
+                        else if ((x * 11 + y * 5) % 11 == 0)
+                            col = Color.Lerp(col, shadowCol, 0.28f);
+
+                        if (d2 > 0.82f)
+                        {
+                            float edgeA = Mathf.Clamp01((1f - Mathf.Sqrt(d2)) / 0.18f);
+                            col.a *= edgeA;
+                        }
+                        tex.SetPixel(x, y, col);
+                    }
+                }
+            }
+        }
+
+        private static void DrawPineBranchTier(Texture2D tex, int cx, int cy, int spreadW, int height, Color darkNeedle, Color midNeedle, Color lightNeedle)
+        {
+            int numFingers = Mathf.Clamp(spreadW / 5, 5, 14);
+            for (int i = 0; i <= numFingers; i++)
+            {
+                float t = i / (float)numFingers;
+                float xOffset = Mathf.Lerp(-spreadW, spreadW, t);
+                float arch = (1f - (xOffset * xOffset) / (spreadW * spreadW));
+                int tipX = Mathf.RoundToInt(cx + xOffset);
+                int tipY = Mathf.RoundToInt(cy - height * 0.82f + arch * height * 0.32f);
+                int startY = Mathf.RoundToInt(cy + height * 0.18f);
+
+                for (int py = tipY; py <= startY; py++)
+                {
+                    if (py < 0 || py >= tex.height) continue;
+                    float ft = (py - tipY) / (float)Mathf.Max(1, startY - tipY);
+                    int px = Mathf.RoundToInt(Mathf.Lerp(tipX, cx + xOffset * 0.35f, ft));
+                    Color col = (py < tipY + 4) ? lightNeedle : (py > startY - 3 ? darkNeedle : midNeedle);
+                    if (px >= 0 && px < tex.width) tex.SetPixel(px, py, col);
+                    if (px - 1 >= 0 && px - 1 < tex.width) tex.SetPixel(px - 1, py, Color.Lerp(col, darkNeedle, 0.4f));
+                    if (px + 1 >= 0 && px + 1 < tex.width) tex.SetPixel(px + 1, py, col);
+                }
+            }
+
+            for (int y = cy - Mathf.RoundToInt(height * 0.5f); y <= cy + Mathf.RoundToInt(height * 0.25f); y++)
+            {
+                if (y < 0 || y >= tex.height) continue;
+                float yt = (y - (cy - height * 0.5f)) / (height * 0.75f);
+                int halfW = Mathf.RoundToInt(Mathf.Lerp(spreadW * 0.88f, spreadW * 0.25f, yt));
+                for (int x = cx - halfW; x <= cx + halfW; x++)
+                {
+                    if (x < 0 || x >= tex.width) continue;
+                    Color col = (y > cy) ? lightNeedle : ((x % 3 == 0) ? midNeedle : darkNeedle);
+                    tex.SetPixel(x, y, col);
                 }
             }
         }
@@ -555,36 +678,55 @@ namespace FlorestaBicicleta
             int key = Mathf.Abs(variant) % 2;
             if (midTreeCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
 
-            int w = 180, h = 140;
+            int w = 180, h = 150;
             Texture2D tex = CreateBlankTex(w, h);
-            Color trunk = new Color(0.32f, 0.24f, 0.18f, 0.85f);
-            Color pineBack = new Color(0.16f, 0.44f, 0.36f, 0.82f);
-            Color pineFront = new Color(0.22f, 0.54f, 0.38f, 0.88f);
-            Color leafCrown = new Color(0.28f, 0.62f, 0.36f, 0.88f);
+            Color trunkDark = new Color(0.28f, 0.20f, 0.15f, 0.95f);
+            Color trunkMid = new Color(0.40f, 0.28f, 0.20f, 0.95f);
 
             if (key == 0)
             {
-                // Pinheiros em camadas
-                FillRect(tex, 46, 6, 54, 42, trunk);
-                FillTriangle(tex, 18, 34, 82, 34, 50, 84, pineBack);
-                FillTriangle(tex, 24, 62, 76, 62, 50, 114, pineBack);
+                // Dois Pinheiros Orgânicos com galhos jagged e agulhas em camadas
+                Color pineDark1 = new Color(0.12f, 0.36f, 0.28f, 0.95f);
+                Color pineMid1 = new Color(0.18f, 0.48f, 0.34f, 0.95f);
+                Color pineLight1 = new Color(0.26f, 0.58f, 0.40f, 0.95f);
+                FillRect(tex, 46, 6, 52, 54, trunkDark);
+                DrawPineBranchTier(tex, 49, 44, 38, 22, pineDark1, pineMid1, pineLight1);
+                DrawPineBranchTier(tex, 49, 64, 32, 20, pineDark1, pineMid1, pineLight1);
+                DrawPineBranchTier(tex, 49, 82, 24, 18, pineDark1, pineMid1, pineLight1);
+                DrawPineBranchTier(tex, 49, 98, 16, 16, pineDark1, pineMid1, pineLight1);
+                DrawPineBranchTier(tex, 49, 112, 10, 14, pineDark1, pineMid1, pineLight1);
 
-                FillRect(tex, 114, 6, 124, 48, trunk);
-                FillTriangle(tex, 80, 38, 158, 38, 119, 96, pineFront);
-                FillTriangle(tex, 88, 72, 150, 72, 119, 130, pineFront);
+                Color pineDark2 = new Color(0.15f, 0.42f, 0.30f, 0.98f);
+                Color pineMid2 = new Color(0.22f, 0.54f, 0.38f, 0.98f);
+                Color pineLight2 = new Color(0.32f, 0.68f, 0.46f, 0.98f);
+                FillRect(tex, 116, 6, 124, 60, trunkMid);
+                DrawPineBranchTier(tex, 120, 50, 46, 26, pineDark2, pineMid2, pineLight2);
+                DrawPineBranchTier(tex, 120, 74, 38, 24, pineDark2, pineMid2, pineLight2);
+                DrawPineBranchTier(tex, 120, 96, 28, 22, pineDark2, pineMid2, pineLight2);
+                DrawPineBranchTier(tex, 120, 116, 20, 18, pineDark2, pineMid2, pineLight2);
+                DrawPineBranchTier(tex, 120, 132, 12, 15, pineDark2, pineMid2, pineLight2);
             }
             else
             {
-                // Árvores frondosas arredondadas de livro ilustrado
-                FillRect(tex, 52, 6, 64, 58, trunk);
-                FillCircle(tex, 44, 72, 26, pineBack);
-                FillCircle(tex, 74, 74, 24, pineBack);
-                FillCircle(tex, 58, 94, 28, leafCrown);
+                // Duas Árvores Frondosas de Bosque com copas orgânicas shaded
+                Color leafDark1 = new Color(0.16f, 0.40f, 0.22f, 0.95f);
+                Color leafMid1 = new Color(0.26f, 0.56f, 0.30f, 0.95f);
+                Color leafLight1 = new Color(0.42f, 0.72f, 0.36f, 0.95f);
 
-                FillRect(tex, 124, 6, 134, 48, trunk);
-                FillCircle(tex, 118, 66, 22, pineFront);
-                FillCircle(tex, 142, 66, 20, pineFront);
-                FillCircle(tex, 130, 82, 24, leafCrown);
+                Color leafDark2 = new Color(0.20f, 0.46f, 0.24f, 0.98f);
+                Color leafMid2 = new Color(0.32f, 0.64f, 0.34f, 0.98f);
+                Color leafLight2 = new Color(0.52f, 0.80f, 0.40f, 0.98f);
+
+                FillRect(tex, 52, 6, 62, 65, trunkDark);
+                DrawOrganicFoliageLobe(tex, 36, 75, 26, 20, leafMid1, leafLight1, leafDark1);
+                DrawOrganicFoliageLobe(tex, 76, 78, 28, 22, leafMid1, leafLight1, leafDark1);
+                DrawOrganicFoliageLobe(tex, 56, 98, 32, 26, leafMid1, leafLight1, leafDark1);
+
+                FillRect(tex, 122, 6, 134, 58, trunkMid);
+                DrawOrganicFoliageLobe(tex, 104, 70, 24, 20, leafMid2, leafLight2, leafDark2);
+                DrawOrganicFoliageLobe(tex, 146, 72, 26, 22, leafMid2, leafLight2, leafDark2);
+                DrawOrganicFoliageLobe(tex, 125, 92, 34, 26, leafMid2, leafLight2, leafDark2);
+                DrawOrganicFoliageLobe(tex, 122, 114, 26, 18, leafLight2, new Color(0.68f, 0.88f, 0.48f, 1f), leafMid2);
             }
 
             tex.Apply();
@@ -593,51 +735,133 @@ namespace FlorestaBicicleta
             return sp;
         }
 
-        /// <summary>Cachoeira orgânica pintada com paredão rochoso, múltiplos filetes de água, espuma e névoa suave.</summary>
+        /// <summary>Cachoeira orgânica pintada com paredão rochoso estratificado, cortinas de água, espuma e lago de impacto ondulado.</summary>
         public static Sprite CreateDistantWaterfallSprite()
         {
             if (cachedWaterfall != null) return cachedWaterfall;
-            int w = 160, h = 160;
+            int w = 180, h = 180;
             Texture2D tex = CreateBlankTex(w, h);
 
-            Color cliffDark = new Color(0.28f, 0.36f, 0.40f, 0.88f);
-            Color cliffMid = new Color(0.40f, 0.48f, 0.52f, 0.90f);
-            Color mossDark = new Color(0.18f, 0.48f, 0.28f, 0.92f);
-            Color mossLight = new Color(0.32f, 0.66f, 0.34f, 0.92f);
-            Color aquaDeep = new Color(0.24f, 0.68f, 0.86f, 0.86f);
-            Color aquaLight = new Color(0.56f, 0.90f, 0.98f, 0.88f);
-            Color foam = new Color(0.94f, 0.99f, 1f, 0.92f);
+            Color rockDark = new Color(0.22f, 0.28f, 0.32f, 0.95f);
+            Color rockMid = new Color(0.35f, 0.42f, 0.46f, 0.95f);
+            Color rockLight = new Color(0.48f, 0.56f, 0.60f, 0.95f);
+            Color mossDark = new Color(0.16f, 0.38f, 0.22f, 0.95f);
+            Color mossLight = new Color(0.32f, 0.58f, 0.30f, 0.95f);
 
-            // Paredão rochoso orgânico em camadas
-            FillEllipse(tex, 42, 68, 36, 62, cliffDark);
-            FillEllipse(tex, 118, 62, 34, 56, cliffDark);
-            FillEllipse(tex, 48, 76, 26, 46, cliffMid);
-            FillEllipse(tex, 112, 70, 24, 42, cliffMid);
-            FillEllipse(tex, 40, 122, 34, 18, mossDark);
-            FillEllipse(tex, 118, 114, 30, 16, mossDark);
-            FillEllipse(tex, 46, 128, 24, 12, mossLight);
-            FillEllipse(tex, 114, 120, 20, 10, mossLight);
+            Color waterDeep = new Color(0.20f, 0.58f, 0.82f, 0.90f);
+            Color waterMid = new Color(0.38f, 0.78f, 0.92f, 0.92f);
+            Color waterLight = new Color(0.68f, 0.92f, 0.98f, 0.95f);
+            Color foamWhite = new Color(0.96f, 0.99f, 1f, 0.98f);
+            Color mistCol = new Color(0.85f, 0.95f, 1f, 0.45f);
 
-            // Filetes curvos orgânicos de queda d'água (nunca um retângulo chapado!)
-            for (int y = 16; y <= 130; y++)
+            // 1. Paredões rochosos com estratos naturais e fendas
+            for (int y = 14; y < h - 14; y++)
             {
-                float t = (y - 16f) / 114f;
-                int center = Mathf.RoundToInt(80f + Mathf.Sin(t * 2.6f) * 6f);
-                int halfW = Mathf.RoundToInt(Mathf.Lerp(22f, 13f, t));
-                FillRect(tex, center - halfW, y, center + halfW, y, aquaDeep);
-                FillRect(tex, center - halfW + 5, y, center + halfW - 6, y, aquaLight);
-                if (y % 7 < 4)
+                float yt = y / (float)h;
+                int leftCliffEnd = Mathf.RoundToInt(52f + Mathf.Sin(y * 0.12f) * 8f + Mathf.Cos(y * 0.25f) * 4f - yt * 12f);
+                for (int x = 6; x <= leftCliffEnd; x++)
                 {
-                    FillRect(tex, center - 8, y, center - 3, y, foam);
-                    FillRect(tex, center + 3, y, center + 7, y, foam);
+                    Color c = ((x + y) % 7 == 0 || y % 11 == 0) ? rockDark : (x > leftCliffEnd - 6 ? rockLight : rockMid);
+                    if (y > h - 35 || (y % 19 < 4)) c = Color.Lerp(c, mossDark, 0.6f);
+                    tex.SetPixel(x, y, c);
+                }
+                int rightCliffStart = Mathf.RoundToInt(128f - Mathf.Sin(y * 0.14f) * 7f - Mathf.Cos(y * 0.22f) * 5f + yt * 10f);
+                for (int x = rightCliffStart; x < w - 6; x++)
+                {
+                    Color c = ((x - y) % 7 == 0 || y % 13 == 0) ? rockDark : (x < rightCliffStart + 6 ? rockLight : rockMid);
+                    if (y > h - 35 || (y % 23 < 4)) c = Color.Lerp(c, mossDark, 0.6f);
+                    tex.SetPixel(x, y, c);
                 }
             }
 
-            // Espuma volumosa no topo da queda e névoa na piscina da base
-            FillEllipse(tex, 80, 128, 18, 7, foam);
-            FillEllipse(tex, 80, 22, 44, 15, new Color(0.84f, 0.96f, 1f, 0.72f));
-            FillEllipse(tex, 58, 18, 26, 11, new Color(1f, 1f, 1f, 0.62f));
-            FillEllipse(tex, 104, 18, 26, 11, new Color(1f, 1f, 1f, 0.62f));
+            // Lóbulos de musgo e vegetação sobre as rochas
+            DrawOrganicFoliageLobe(tex, 36, h - 22, 26, 12, mossDark, mossLight, rockDark);
+            DrawOrganicFoliageLobe(tex, 144, h - 24, 24, 11, mossDark, mossLight, rockDark);
+            DrawOrganicFoliageLobe(tex, 42, 92, 16, 8, mossDark, mossLight, rockDark);
+            DrawOrganicFoliageLobe(tex, 136, 84, 18, 9, mossDark, mossLight, rockDark);
+
+            // 2. Queda d'água com filamentos e linhas de velocidade
+            for (int y = 24; y <= h - 20; y++)
+            {
+                float t = (y - 24f) / (h - 44f);
+                float center = 90f + Mathf.Sin(t * 3.14f * 1.5f) * 6f;
+                float streamW = Mathf.Lerp(28f, 18f, t);
+
+                int leftX = Mathf.RoundToInt(center - streamW);
+                int rightX = Mathf.RoundToInt(center + streamW);
+
+                for (int x = leftX; x <= rightX; x++)
+                {
+                    float normX = (x - leftX) / (float)Mathf.Max(1, rightX - leftX);
+                    Color wc;
+                    if (normX < 0.15f || normX > 0.85f)
+                        wc = waterDeep;
+                    else if (normX > 0.35f && normX < 0.65f)
+                        wc = ((x + y * 2) % 5 == 0) ? foamWhite : waterLight;
+                    else
+                        wc = waterMid;
+
+                    if ((x % 6 == 0) && (y % 9 < 5)) wc = foamWhite;
+                    tex.SetPixel(x, y, wc);
+                }
+            }
+
+            // 3. Crista de água no topo
+            for (int x = 74; x <= 106; x++)
+            {
+                for (int y = h - 26; y <= h - 20; y++)
+                {
+                    Color fc = (y == h - 20 || (x % 3 == 0)) ? foamWhite : waterLight;
+                    tex.SetPixel(x, y, fc);
+                }
+            }
+
+            // 4. Lago de impacto com ondulações naturais e espuma dinâmica (sem círculos estáticos chapados)
+            for (int y = 6; y <= 32; y++)
+            {
+                float py = (y - 18f) / 13f;
+                for (int x = 32; x <= 148; x++)
+                {
+                    float px = (x - 90f) / 54f;
+                    float r2 = px * px + py * py;
+                    if (r2 <= 1f)
+                    {
+                        float ripple = Mathf.Sin(Mathf.Sqrt(r2) * 12f - y * 0.4f);
+                        Color poolCol;
+                        if (r2 < 0.28f)
+                            poolCol = (ripple > 0.2f) ? foamWhite : waterLight;
+                        else if (ripple > 0.5f)
+                            poolCol = foamWhite;
+                        else if (ripple > 0f)
+                            poolCol = waterMid;
+                        else
+                            poolCol = waterDeep;
+
+                        if (r2 > 0.82f)
+                        {
+                            float a = Mathf.Clamp01((1f - Mathf.Sqrt(r2)) / 0.18f);
+                            poolCol.a *= a;
+                        }
+                        tex.SetPixel(x, y, poolCol);
+                    }
+                }
+            }
+
+            // 5. Névoa e microgotículas suspensas na base
+            for (int my = 20; my <= 48; my += 3)
+            {
+                for (int mx = 55; mx <= 125; mx += 4)
+                {
+                    if ((mx * 3 + my * 7) % 5 == 0)
+                    {
+                        float dCenter = Mathf.Abs(mx - 90f) / 35f;
+                        Color mc = mistCol;
+                        mc.a = (1f - dCenter) * 0.42f * (1f - (my - 20f) / 28f);
+                        tex.SetPixel(mx, my, mc);
+                        if (mx + 1 < w) tex.SetPixel(mx + 1, my, mc);
+                    }
+                }
+            }
 
             tex.Apply();
             cachedWaterfall = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.05f), 26f);
@@ -828,19 +1052,31 @@ namespace FlorestaBicicleta
         public static Sprite CreateFruitTreeSprite()
         {
             if (cachedFruitTree != null) return cachedFruitTree;
-            int w = 144, h = 152;
+            int w = 160, h = 160;
             Texture2D tex = CreateBlankTex(w, h);
 
-            FillRect(tex, 64, 6, 80, 72, new Color(0.46f, 0.30f, 0.16f, 0.96f));
-            FillCircle(tex, 50, 96, 30, new Color(0.22f, 0.56f, 0.28f, 0.94f));
-            FillCircle(tex, 94, 96, 28, new Color(0.22f, 0.56f, 0.28f, 0.94f));
-            FillCircle(tex, 72, 114, 34, new Color(0.32f, 0.68f, 0.32f, 0.96f));
+            Color trunkDark = new Color(0.36f, 0.22f, 0.12f, 0.98f);
+            Color trunkMid = new Color(0.48f, 0.32f, 0.18f, 0.98f);
+            FillRect(tex, 73, 6, 87, 74, trunkDark);
+            FillRect(tex, 77, 8, 83, 72, trunkMid);
 
-            // Maçãzinhas/frutas vermelhas delicadas na copa
-            int[] ax = { 46, 68, 92, 58, 82 };
-            int[] ay = { 96, 120, 98, 108, 110 };
+            Color fDark = new Color(0.18f, 0.44f, 0.22f, 0.98f);
+            Color fMid = new Color(0.28f, 0.60f, 0.28f, 0.98f);
+            Color fLight = new Color(0.44f, 0.76f, 0.34f, 0.98f);
+
+            DrawOrganicFoliageLobe(tex, 54, 94, 32, 24, fMid, fLight, fDark);
+            DrawOrganicFoliageLobe(tex, 106, 94, 32, 24, fMid, fLight, fDark);
+            DrawOrganicFoliageLobe(tex, 80, 114, 38, 28, fMid, fLight, fDark);
+            DrawOrganicFoliageLobe(tex, 80, 134, 26, 18, fLight, new Color(0.64f, 0.88f, 0.42f, 1f), fMid);
+
+            // Maçãzinhas vermelhas com brilho delicado
+            int[] ax = { 50, 72, 96, 62, 88, 108 };
+            int[] ay = { 92, 118, 96, 108, 112, 104 };
             for (int i = 0; i < ax.Length; i++)
-                FillCircle(tex, ax[i], ay[i], 4, new Color(0.92f, 0.26f, 0.26f, 1f));
+            {
+                FillCircle(tex, ax[i], ay[i], 4, new Color(0.92f, 0.22f, 0.24f, 1f));
+                FillCircle(tex, ax[i] - 1, ay[i] + 1, 1, Color.white);
+            }
 
             tex.Apply();
             cachedFruitTree = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), 28f);
@@ -916,42 +1152,90 @@ namespace FlorestaBicicleta
             if (key == 3) return CreateFruitTreeSprite();
             if (organicTreeCache.TryGetValue(key, out Sprite cached) && cached != null) return cached;
 
-            int w = 160, h = 168;
+            int w = 180, h = 180;
             Texture2D tex = CreateBlankTex(w, h);
 
             if (key == 1)
             {
-                // Carvalho antigo volumoso com raízes, galhos e copa em 3 tons de luz
-                Color bark = new Color(0.38f, 0.24f, 0.14f, 0.96f);
-                Color barkLight = new Color(0.52f, 0.34f, 0.20f, 0.96f);
-                FillEllipse(tex, 80, 12, 28, 10, bark); // Raízes na base
-                FillRect(tex, 68, 10, 92, 84, bark);
-                FillRect(tex, 74, 12, 82, 82, barkLight);
-                FillCircle(tex, 48, 104, 34, new Color(0.16f, 0.44f, 0.22f, 0.95f));
-                FillCircle(tex, 112, 102, 32, new Color(0.16f, 0.44f, 0.22f, 0.95f));
-                FillCircle(tex, 80, 120, 40, new Color(0.24f, 0.58f, 0.28f, 0.96f));
-                FillCircle(tex, 68, 134, 24, new Color(0.38f, 0.72f, 0.32f, 0.95f));
-                FillCircle(tex, 96, 128, 22, new Color(0.38f, 0.72f, 0.32f, 0.95f));
+                // Carvalho Nobre e Frondoso com tronco estriado e copas orgânicas shaded
+                Color trunkShadow = new Color(0.30f, 0.18f, 0.10f, 0.98f);
+                Color trunkMid = new Color(0.44f, 0.28f, 0.16f, 0.98f);
+                Color trunkLight = new Color(0.58f, 0.38f, 0.22f, 0.98f);
+
+                FillEllipse(tex, 90, 10, 36, 8, trunkShadow);
+                FillEllipse(tex, 72, 12, 16, 6, trunkMid);
+                FillEllipse(tex, 108, 12, 16, 6, trunkMid);
+
+                for (int y = 10; y <= 90; y++)
+                {
+                    float t = (y - 10f) / 80f;
+                    int halfW = Mathf.RoundToInt(Mathf.Lerp(18f, 12f, t));
+                    for (int x = 90 - halfW; x <= 90 + halfW; x++)
+                    {
+                        Color tc = (x < 86) ? trunkShadow : ((x > 94) ? trunkLight : trunkMid);
+                        if (x % 5 == 0) tc = Color.Lerp(tc, trunkShadow, 0.25f);
+                        tex.SetPixel(x, y, tc);
+                    }
+                }
+                FillEllipse(tex, 68, 82, 22, 7, trunkMid);
+                FillEllipse(tex, 114, 86, 24, 7, trunkMid);
+
+                Color oakDark = new Color(0.15f, 0.38f, 0.18f, 0.98f);
+                Color oakMid = new Color(0.26f, 0.55f, 0.26f, 0.98f);
+                Color oakLight = new Color(0.42f, 0.74f, 0.32f, 0.98f);
+                Color oakSun = new Color(0.58f, 0.84f, 0.38f, 0.98f);
+
+                DrawOrganicFoliageLobe(tex, 52, 98, 36, 28, oakMid, oakLight, oakDark);
+                DrawOrganicFoliageLobe(tex, 128, 102, 36, 28, oakMid, oakLight, oakDark);
+                DrawOrganicFoliageLobe(tex, 90, 118, 44, 32, oakMid, oakLight, oakDark);
+                DrawOrganicFoliageLobe(tex, 72, 140, 32, 24, oakLight, oakSun, oakMid);
+                DrawOrganicFoliageLobe(tex, 108, 136, 30, 22, oakLight, oakSun, oakMid);
+                DrawOrganicFoliageLobe(tex, 90, 154, 24, 18, oakLight, oakSun, oakMid);
             }
             else if (key == 2)
             {
-                // Pinheiro alto orgânico com camadas assimétricas de folhagem
-                FillRect(tex, 73, 6, 87, 46, new Color(0.36f, 0.22f, 0.12f, 0.96f));
-                FillTriangle(tex, 28, 36, 132, 36, 80, 92, new Color(0.14f, 0.42f, 0.30f, 0.95f));
-                FillTriangle(tex, 36, 68, 124, 68, 80, 124, new Color(0.18f, 0.50f, 0.34f, 0.96f));
-                FillTriangle(tex, 46, 98, 114, 98, 80, 154, new Color(0.26f, 0.60f, 0.38f, 0.96f));
+                // Pinheiro da Montanha Alto com boughs detalhados e silhueta serrilhada
+                Color barkD = new Color(0.32f, 0.20f, 0.12f, 0.98f);
+                Color barkM = new Color(0.46f, 0.28f, 0.16f, 0.98f);
+                FillRect(tex, 86, 6, 94, 52, barkD);
+                FillRect(tex, 89, 6, 92, 52, barkM);
+
+                Color pDark = new Color(0.12f, 0.38f, 0.26f, 0.98f);
+                Color pMid = new Color(0.18f, 0.50f, 0.32f, 0.98f);
+                Color pLight = new Color(0.28f, 0.65f, 0.42f, 0.98f);
+
+                DrawPineBranchTier(tex, 90, 48, 56, 28, pDark, pMid, pLight);
+                DrawPineBranchTier(tex, 90, 75, 48, 26, pDark, pMid, pLight);
+                DrawPineBranchTier(tex, 90, 100, 38, 24, pDark, pMid, pLight);
+                DrawPineBranchTier(tex, 90, 122, 28, 20, pDark, pMid, pLight);
+                DrawPineBranchTier(tex, 90, 142, 18, 18, pDark, pMid, pLight);
+                DrawPineBranchTier(tex, 90, 158, 10, 14, pDark, pMid, pLight);
             }
             else
             {
-                // Bétula delicada de tronco claro e folhas verde-douradas luminosas
-                Color paleBark = new Color(0.86f, 0.84f, 0.78f, 0.96f);
-                Color barkMark = new Color(0.36f, 0.34f, 0.32f, 0.85f);
-                FillRect(tex, 74, 6, 86, 92, paleBark);
-                for (int y = 18; y < 86; y += 14) FillRect(tex, 75, y, 82, y + 2, barkMark);
-                FillCircle(tex, 56, 106, 26, new Color(0.46f, 0.72f, 0.28f, 0.92f));
-                FillCircle(tex, 102, 104, 24, new Color(0.56f, 0.78f, 0.28f, 0.92f));
-                FillCircle(tex, 80, 126, 30, new Color(0.74f, 0.84f, 0.30f, 0.94f));
-                FillCircle(tex, 72, 136, 18, new Color(0.92f, 0.88f, 0.38f, 0.90f));
+                // Bétula Dourada com tronco prateado manchado e folhagem suave
+                Color birchWhite = new Color(0.92f, 0.91f, 0.88f, 0.98f);
+                Color birchMark = new Color(0.25f, 0.24f, 0.24f, 0.92f);
+                Color birchShadow = new Color(0.72f, 0.70f, 0.66f, 0.98f);
+
+                FillRect(tex, 86, 6, 94, 95, birchWhite);
+                FillRect(tex, 86, 6, 88, 95, birchShadow);
+                for (int y = 14; y < 90; y += 12)
+                {
+                    int markW = ((y / 12) % 2 == 0) ? 6 : 4;
+                    int markX = ((y / 12) % 2 == 0) ? 87 : 89;
+                    FillRect(tex, markX, y, markX + markW, y + 2, birchMark);
+                }
+
+                Color birchDark = new Color(0.42f, 0.65f, 0.22f, 0.98f);
+                Color birchMid = new Color(0.62f, 0.78f, 0.24f, 0.98f);
+                Color birchGold = new Color(0.88f, 0.86f, 0.32f, 0.98f);
+
+                DrawOrganicFoliageLobe(tex, 62, 104, 30, 24, birchMid, birchGold, birchDark);
+                DrawOrganicFoliageLobe(tex, 118, 108, 30, 24, birchMid, birchGold, birchDark);
+                DrawOrganicFoliageLobe(tex, 90, 126, 36, 28, birchMid, birchGold, birchDark);
+                DrawOrganicFoliageLobe(tex, 80, 146, 26, 20, birchMid, birchGold, birchDark);
+                DrawOrganicFoliageLobe(tex, 104, 142, 24, 18, birchMid, birchGold, birchDark);
             }
 
             tex.Apply();
@@ -959,5 +1243,7 @@ namespace FlorestaBicicleta
             organicTreeCache[key] = sp;
             return sp;
         }
+
+
     }
 }

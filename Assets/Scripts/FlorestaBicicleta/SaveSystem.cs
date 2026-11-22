@@ -51,8 +51,19 @@ namespace FlorestaBicicleta
     public static class SaveSystem
     {
         private const int CurrentSaveVersion = 1;
-        private static string PrimaryPath => Path.Combine(Application.persistentDataPath, "pedal_no_bosque_save.json");
-        private static string BackupPath => Path.Combine(Application.persistentDataPath, "pedal_no_bosque_save.bak");
+        private static string SaveDirectory
+        {
+            get
+            {
+#if UNITY_EDITOR
+                if (VerticalSliceValidator.TestDirectory != null) return VerticalSliceValidator.TestDirectory;
+#endif
+                return Application.persistentDataPath;
+            }
+        }
+
+        private static string PrimaryPath => Path.Combine(SaveDirectory, "pedal_no_bosque_save.json");
+        private static string BackupPath => Path.Combine(SaveDirectory, "pedal_no_bosque_save.bak");
 
         public static PlayerSaveData Load()
         {
@@ -68,7 +79,7 @@ namespace FlorestaBicicleta
             if (loaded != null)
             {
                 Sanitize(loaded);
-                Save(loaded);
+                WriteSave(loaded, preservePrevious: false);
                 return loaded;
             }
 
@@ -77,7 +88,9 @@ namespace FlorestaBicicleta
             return fresh;
         }
 
-        public static bool Save(PlayerSaveData data)
+        public static bool Save(PlayerSaveData data) => WriteSave(data, preservePrevious: true);
+
+        private static bool WriteSave(PlayerSaveData data, bool preservePrevious)
         {
             if (data == null) return false;
             Sanitize(data);
@@ -91,7 +104,7 @@ namespace FlorestaBicicleta
                 string json = JsonUtility.ToJson(data, true);
 
                 // Cria backup do arquivo anterior válido antes de sobrescrever
-                if (File.Exists(PrimaryPath))
+                if (preservePrevious && File.Exists(PrimaryPath))
                 {
                     File.Copy(PrimaryPath, BackupPath, true);
                 }
