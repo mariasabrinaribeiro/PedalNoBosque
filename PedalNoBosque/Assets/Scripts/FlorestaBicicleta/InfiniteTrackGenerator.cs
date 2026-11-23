@@ -91,8 +91,8 @@ namespace FlorestaBicicleta
             roadStripSprite = FlorestaSpriteFactory.LoadForestRoadStripSprite(cameraWorldHeight);
             if (bgSprite != null)
             {
-                // Subtrai 0.03f para garantir 1.5px de sobreposição entre tiles adjacentes espelhados (zero fresta/emenda!)
-                bgTileWidth = Mathf.Max(8f, bgSprite.bounds.size.x - 0.03f);
+                // Subtrai 0.12f para 6px de sobreposição entre tiles adjacentes — elimina costuras verticais visíveis!
+                bgTileWidth = Mathf.Max(8f, bgSprite.bounds.size.x - 0.12f);
                 bgBottomWorldY = 1.5f - cameraWorldHeight * 0.5f;
             }
 
