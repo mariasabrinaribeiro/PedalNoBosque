@@ -63,12 +63,16 @@ public static class GirlPowerStreetPrototypeBuilder
         Directory.CreateDirectory(Path.Combine(Application.dataPath, "GirlPower/Art"));
         WriteGroundTexture();
         WritePanelTexture();
+        WriteSunTexture();
+        WriteCloudTexture();
         WriteGirlTexture("Girl_Idle.png", 0);
         WriteGirlTexture("Girl_Walk_A.png", -1);
         WriteGirlTexture("Girl_Walk_B.png", 1);
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         ConfigureSpriteTexture(ArtFolder + "/MatinhosStreet.png", 8);
         ConfigureSpriteTexture(ArtFolder + "/PanelWhite.png", 8);
+        ConfigureSpriteTexture(ArtFolder + "/Sun.png", 32);
+        ConfigureSpriteTexture(ArtFolder + "/Cloud.png", 32);
         ConfigureSpriteTexture(ArtFolder + "/Girl_Idle.png", 32);
         ConfigureSpriteTexture(ArtFolder + "/Girl_Walk_A.png", 32);
         ConfigureSpriteTexture(ArtFolder + "/Girl_Walk_B.png", 32);
@@ -84,36 +88,70 @@ public static class GirlPowerStreetPrototypeBuilder
         SavePng("PanelWhite.png", size, size, px);
     }
 
+    private static void WriteSunTexture()
+    {
+        const int size = 48;
+        Color32[] px = new Color32[size * size];
+        Fill(px, size, size, new Color32(0, 0, 0, 0));
+        FillEllipse(px, size, size, 3, 3, 42, 42, new Color32(255, 221, 143, 255));
+        FillEllipse(px, size, size, 7, 7, 34, 34, new Color32(255, 232, 169, 255));
+        SavePng("Sun.png", size, size, px);
+    }
+
+    private static void WriteCloudTexture()
+    {
+        const int w = 96, h = 48;
+        Color32[] px = new Color32[w * h];
+        Fill(px, w, h, new Color32(0, 0, 0, 0));
+        Color32 cloud = new Color32(229, 242, 229, 245);
+        FillEllipse(px, w, h, 8, 6, 55, 29, cloud);
+        FillEllipse(px, w, h, 26, 18, 38, 24, cloud);
+        FillEllipse(px, w, h, 52, 12, 36, 28, cloud);
+        FillRect(px, w, h, 19, 7, 60, 18, cloud);
+        SavePng("Cloud.png", w, h, px);
+    }
+
     private static void WriteGroundTexture()
     {
         const int w = 512, h = 256;
         Color32[] px = new Color32[w * h];
-        Fill(px, w, h, new Color32(229, 207, 171, 255));
+        Fill(px, w, h, new Color32(145, 207, 210, 255));
+        FillRect(px, w, h, 0, 134, w, 14, new Color32(61, 157, 173, 255));
+        FillRect(px, w, h, 0, 130, w, 4, new Color32(111, 192, 190, 255));
+        FillRect(px, w, h, 0, 127, w, 3, new Color32(226, 218, 177, 255));
+        FillRect(px, w, h, 0, 120, w, 7, new Color32(222, 203, 158, 255));
+        FillRect(px, w, h, 0, 117, w, 3, new Color32(103, 156, 126, 255));
+        FillRect(px, w, h, 0, 92, w, 25, new Color32(219, 211, 190, 255));
+        FillRect(px, w, h, 0, 89, w, 3, new Color32(191, 153, 119, 255));
+        FillRect(px, w, h, 0, 0, w, 89, new Color32(82, 94, 102, 255));
 
-        FillRect(px, w, h, 0, 154, w, 102, new Color32(140, 202, 203, 255));
-        FillRect(px, w, h, 0, 151, w, 3, new Color32(108, 176, 183, 255));
-        for (int y = 164; y < 254; y += 19)
+        // Distant clouds, sea glints, and a low coastal tree line.
+        FillRect(px, w, h, 35, 160, 58, 5, new Color32(225, 239, 226, 255));
+        FillRect(px, w, h, 45, 155, 42, 5, new Color32(225, 239, 226, 255));
+        FillRect(px, w, h, 266, 165, 75, 5, new Color32(229, 240, 226, 255));
+        FillRect(px, w, h, 279, 160, 50, 5, new Color32(229, 240, 226, 255));
+        FillRect(px, w, h, 0, 146, w, 2, new Color32(119, 189, 194, 255));
+        for (int x = 7; x < w; x += 41)
         {
-            int start = (y * 7) % 51;
-            for (int x = start; x < w; x += 67)
-                FillRect(px, w, h, x, y, 23, 2, new Color32(174, 220, 214, 255));
+            int y = 137 + (x % 3);
+            FillRect(px, w, h, x, y, 20, 1, new Color32(147, 211, 203, 255));
+            FillRect(px, w, h, x + 12, y - 4, 13, 1, new Color32(43, 139, 160, 255));
         }
+        for (int x = 0; x < w; x += 28)
+            FillRect(px, w, h, x, 117, 14, 2, new Color32(94, 148, 118, 255));
 
-        FillRect(px, w, h, 0, 130, w, 21, new Color32(231, 207, 168, 255));
-        FillRect(px, w, h, 0, 120, w, 10, new Color32(132, 164, 126, 255));
-        FillRect(px, w, h, 0, 86, w, 34, new Color32(226, 216, 196, 255));
-        FillRect(px, w, h, 0, 80, w, 6, new Color32(190, 151, 125, 255));
-        FillRect(px, w, h, 0, 0, w, 80, new Color32(78, 86, 91, 255));
-
-        for (int x = 0; x < w; x += 64)
-            FillRect(px, w, h, x, 88, 1, 30, new Color32(205, 196, 179, 170));
-        for (int x = 10; x < w; x += 76)
-            FillRect(px, w, h, x, 38, 36, 3, new Color32(232, 211, 155, 230));
-        FillRect(px, w, h, 0, 1, w, 2, new Color32(66, 73, 80, 255));
-
+        // Subtle paving joints keep the walking lane readable without a blank slab.
+        for (int y = 96; y < 117; y += 7)
+            FillRect(px, w, h, 0, y, w, 1, new Color32(204, 196, 176, 255));
+        for (int y = 93; y < 117; y += 7)
+            for (int x = ((y / 7) % 2) * 22; x < w; x += 44)
+                FillRect(px, w, h, x, y, 1, 4, new Color32(204, 196, 176, 255));
+        FillRect(px, w, h, 0, 90, w, 2, new Color32(233, 218, 187, 255));
+        for (int x = 8; x < w; x += 104)
+            FillRect(px, w, h, x, 33, 35, 2, new Color32(222, 202, 151, 255));
+        FillRect(px, w, h, 0, 1, w, 2, new Color32(67, 77, 84, 255));
         SavePng("MatinhosStreet.png", w, h, px);
     }
-
     private static void WriteGirlTexture(string fileName, int step)
     {
         const int w = 32, h = 48;
@@ -186,6 +224,26 @@ public static class GirlPowerStreetPrototypeBuilder
             for (int ix = x0; ix < x1; ix++) pixels[iy * width + ix] = color;
     }
 
+    private static void FillEllipse(Color32[] pixels, int width, int height, int x, int y, int w, int h, Color32 color)
+    {
+        float rx = Mathf.Max(1f, w * 0.5f);
+        float ry = Mathf.Max(1f, h * 0.5f);
+        float cx = x + rx;
+        float cy = y + ry;
+        int x0 = Mathf.Clamp(x, 0, width);
+        int y0 = Mathf.Clamp(y, 0, height);
+        int x1 = Mathf.Clamp(x + w, 0, width);
+        int y1 = Mathf.Clamp(y + h, 0, height);
+        for (int iy = y0; iy < y1; iy++)
+            for (int ix = x0; ix < x1; ix++)
+            {
+                float dx = (ix + 0.5f - cx) / rx;
+                float dy = (iy + 0.5f - cy) / ry;
+                if (dx * dx + dy * dy <= 1f)
+                    pixels[iy * width + ix] = color;
+            }
+    }
+
     private static void CreateStreetGround(Transform parent)
     {
         Sprite street = AssetDatabase.LoadAssetAtPath<Sprite>(ArtFolder + "/MatinhosStreet.png");
@@ -196,42 +254,66 @@ public static class GirlPowerStreetPrototypeBuilder
         renderer.sprite = street;
         renderer.sortingOrder = -20;
 
-        CreatePalm(parent, -12f, 2.5f);
-        CreatePalm(parent, 17f, 2.7f);
-        CreatePalm(parent, 25f, 2.3f);
+        Sprite sun = AssetDatabase.LoadAssetAtPath<Sprite>(ArtFolder + "/Sun.png");
+        Sprite cloud = AssetDatabase.LoadAssetAtPath<Sprite>(ArtFolder + "/Cloud.png");
+        CreateBackdropSprite(parent, "Sol de fim de tarde", sun, new Vector2(-8.5f, 2.7f), 0.85f, -16);
+        CreateBackdropSprite(parent, "Nuvem costeira esquerda", cloud, new Vector2(-6.2f, 3.25f), 0.68f, -15);
+        CreateBackdropSprite(parent, "Nuvem costeira direita", cloud, new Vector2(3.0f, 3.1f), 0.52f, -15);
+
+        CreatePalm(parent, -8.8f, 1.7f);
+        CreatePalm(parent, 10.2f, 1.8f);
+        CreatePalm(parent, 23f, 2.3f);
+    }
+
+    private static void CreateBackdropSprite(Transform parent, string objectName, Sprite sprite, Vector2 position, float scale, int order)
+    {
+        if (sprite == null) return;
+        GameObject item = new GameObject(objectName);
+        item.transform.SetParent(parent, false);
+        item.transform.position = new Vector3(position.x, position.y, 0.1f);
+        item.transform.localScale = Vector3.one * scale;
+        SpriteRenderer spriteRenderer = item.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = sprite;
+        spriteRenderer.sortingOrder = order;
     }
 
     private static void CreatePalm(Transform parent, float x, float y)
     {
         GameObject trunk = CreateRect(parent, "Coqueiro — tronco", new Vector2(x, y), new Vector2(0.34f, 1.25f), new Color(0.47f, 0.34f, 0.25f), -3, false);
-        CreateRect(parent, "Coqueiro — copa", new Vector2(x, y + 0.7f), new Vector2(1.55f, 0.44f), new Color(0.38f, 0.55f, 0.43f), -2, false);
-        CreateRect(parent, "Coqueiro — copa", new Vector2(x, y + 0.7f), new Vector2(0.48f, 1.7f), new Color(0.46f, 0.63f, 0.49f), -1, false);
+        GameObject frondA = CreateRect(parent, "Coqueiro - folha", new Vector2(x - 0.42f, y + 1.18f), new Vector2(1.18f, 0.22f), new Color(0.38f, 0.55f, 0.43f), -2, false);
+        frondA.transform.rotation = Quaternion.Euler(0f, 0f, 28f);
+        GameObject frondB = CreateRect(parent, "Coqueiro - folha", new Vector2(x + 0.42f, y + 1.18f), new Vector2(1.18f, 0.22f), new Color(0.38f, 0.55f, 0.43f), -2, false);
+        frondB.transform.rotation = Quaternion.Euler(0f, 0f, -28f);
+        GameObject frondC = CreateRect(parent, "Coqueiro - folha", new Vector2(x, y + 1.5f), new Vector2(0.22f, 1.12f), new Color(0.46f, 0.63f, 0.49f), -1, false);
         trunk.transform.position = new Vector3(trunk.transform.position.x, trunk.transform.position.y, 0f);
     }
 
     private static void CreateLandmark(Transform parent)
     {
-        Vector2 center = new Vector2(5f, -1.5f);
-        CreateRect(parent, "Quiosque — corpo", center, new Vector2(3.4f, 2.0f), new Color(0.98f, 0.87f, 0.72f), 1, true);
-        CreateRect(parent, "Quiosque — balcão", center + new Vector2(0f, -0.45f), new Vector2(3.55f, 0.36f), new Color(0.34f, 0.54f, 0.51f), 2, false);
-        CreateRect(parent, "Quiosque — toldo", center + new Vector2(0f, 0.84f), new Vector2(4.1f, 0.62f), new Color(0.91f, 0.36f, 0.62f), 3, false);
+        Vector2 center = new Vector2(5f, -0.45f);
+        // Low open-sided pavilion: the sidewalk remains clear and the counter faces the player.
+        CreateRect(parent, "Kiosque roof beam", center + new Vector2(0f, 0.92f), new Vector2(3.8f, 0.20f), new Color(0.48f, 0.30f, 0.23f), 1, false);
+        CreateRect(parent, "Kiosque awning", center + new Vector2(0f, 0.72f), new Vector2(4.1f, 0.48f), new Color(0.88f, 0.31f, 0.56f), 2, false);
         for (int i = -2; i <= 2; i++)
-            CreateRect(parent, "Faixa do toldo", center + new Vector2(i * 0.78f, 0.84f), new Vector2(0.36f, 0.62f), new Color(1f, 0.88f, 0.76f), 4, false);
-        CreateRect(parent, "Placa Girl Power", center + new Vector2(0f, 1.35f), new Vector2(2.7f, 0.42f), new Color(0.34f, 0.24f, 0.43f), 5, false);
+            CreateRect(parent, "Awning stripe", center + new Vector2(i * 0.78f, 0.72f), new Vector2(0.34f, 0.48f), new Color(1f, 0.88f, 0.74f), 3, false);
+        CreateRect(parent, "Kiosque left post", center + new Vector2(-1.55f, -0.12f), new Vector2(0.12f, 1.55f), new Color(0.55f, 0.34f, 0.25f), 1, false);
+        CreateRect(parent, "Kiosque right post", center + new Vector2(1.55f, -0.12f), new Vector2(0.12f, 1.55f), new Color(0.55f, 0.34f, 0.25f), 1, false);
+        CreateRect(parent, "Kiosque counter", center + new Vector2(0f, -0.78f), new Vector2(3.25f, 0.32f), new Color(0.30f, 0.50f, 0.47f), 4, false);
+        CreateRect(parent, "Kiosque counter front", center + new Vector2(0f, -1.00f), new Vector2(3.05f, 0.16f), new Color(0.96f, 0.77f, 0.56f), 3, false);
+        CreateRect(parent, "Girl Power signboard", center + new Vector2(0f, 1.22f), new Vector2(2.5f, 0.34f), new Color(0.34f, 0.24f, 0.43f), 5, false);
 
-        GameObject sign = new GameObject("Nome do ponto de venda");
+        GameObject sign = new GameObject("Sales point name");
         sign.transform.SetParent(parent, false);
-        sign.transform.position = new Vector3(center.x, center.y + 1.27f, -0.2f);
+        sign.transform.position = new Vector3(center.x, center.y + 1.14f, -0.2f);
         TextMeshPro text = sign.AddComponent<TextMeshPro>();
         text.text = "GIRL POWER";
-        text.fontSize = 3.1f;
+        text.fontSize = 2.35f;
         text.alignment = TextAlignmentOptions.Center;
         text.color = new Color(1f, 0.89f, 0.75f);
-        text.rectTransform.sizeDelta = new Vector2(2.7f, 0.45f);
+        text.rectTransform.sizeDelta = new Vector2(2.5f, 0.34f);
         MeshRenderer signRenderer = sign.GetComponent<MeshRenderer>();
         if (signRenderer != null) signRenderer.sortingOrder = 6;
     }
-
     private static void CreateCartAndPlayer(Transform parent, Camera camera)
     {
         Sprite cartSprite = Resources.Load<Sprite>("icecreamvan");
@@ -345,3 +427,4 @@ public static class GirlPowerStreetPrototypeBuilder
         return go;
     }
 }
+

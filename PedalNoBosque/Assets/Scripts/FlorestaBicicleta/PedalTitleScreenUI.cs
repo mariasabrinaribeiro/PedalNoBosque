@@ -359,7 +359,14 @@ namespace FlorestaBicicleta
 
         public void ShowChallengeFailed(string title, string description)
         {
-            if (failedTitleTMP != null) failedTitleTMP.text = string.IsNullOrEmpty(title) ? "DESAFIO NÃO CONCLUÍDO" : title;
+            if (failedTitleTMP != null)
+            {
+                string finalTitle = string.IsNullOrEmpty(title) ? "GAME OVER" : title;
+                failedTitleTMP.text = finalTitle;
+                failedTitleTMP.color = finalTitle.ToUpperInvariant().Contains("GAME OVER")
+                    ? new Color(0.76f, 0.18f, 0.18f, 1f)
+                    : new Color(0.68f, 0.36f, 0.24f, 1f);
+            }
             if (failedSubtitleTMP != null) failedSubtitleTMP.text = description;
             FlorestaSoundFX.Instance?.PlayWrong();
             SetFlowState(GameFlowState.ChallengeFailed);
@@ -543,19 +550,19 @@ namespace FlorestaBicicleta
         {
             challengeFailedPanel = CreateCard(parent, "ChallengeFailedPanel",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(540f, 310f),
+                Vector2.zero, new Vector2(660f, 390f),
                 new Color(0.97f, 0.94f, 0.88f, 0.99f));
 
-            failedTitleTMP = CreateTMP(challengeFailedPanel.transform, "FailedTitle", "QUASE LÁ! TENTE OUTRA VEZ",
-                25, new Vector2(0f, 102f), new Vector2(480f, 38f), new Color(0.68f, 0.36f, 0.24f, 1f));
+            failedTitleTMP = CreateTMP(challengeFailedPanel.transform, "FailedTitle", "GAME OVER",
+                36, new Vector2(0f, 134f), new Vector2(590f, 52f), new Color(0.76f, 0.18f, 0.18f, 1f));
 
             failedSubtitleTMP = CreateTMP(challengeFailedPanel.transform, "FailedSub",
-                "A encomenda especial não chegou a tempo, mas fique tranquila: todo o seu progresso geral no bosque continua salvo!",
-                16, new Vector2(0f, 22f), new Vector2(470f, 78f), new Color(0.28f, 0.24f, 0.20f, 1f));
+                "Os animaizinhos do bosque ficaram com fome! Todo o seu progresso geral continua salvo.",
+                21, new Vector2(0f, 24f), new Vector2(580f, 128f), new Color(0.24f, 0.20f, 0.18f, 1f));
 
             var btnRetry = CreatePillButton(challengeFailedPanel.transform, "BtnTentarNovamente", "Tentar Novamente",
-                new Vector2(-124f, -94f), new Vector2(224f, 48f),
-                new Color(0.84f, 0.54f, 0.22f, 0.98f), 17, () =>
+                new Vector2(-148f, -118f), new Vector2(270f, 58f),
+                new Color(0.84f, 0.50f, 0.20f, 0.98f), 22, () =>
                 {
                     SetFlowState(GameFlowState.Playing);
                     OnRestartChallengeRequested?.Invoke();
@@ -563,8 +570,8 @@ namespace FlorestaBicicleta
             failedRetryTMP = btnRetry.GetComponentInChildren<TextMeshProUGUI>();
 
             var btnBack = CreatePillButton(challengeFailedPanel.transform, "BtnVoltarExploracao", "Voltar a Exploracao",
-                new Vector2(124f, -94f), new Vector2(224f, 48f),
-                new Color(0.28f, 0.60f, 0.42f, 0.98f), 17, () =>
+                new Vector2(148f, -118f), new Vector2(270f, 58f),
+                new Color(0.28f, 0.60f, 0.42f, 0.98f), 22, () =>
                 {
                     SetFlowState(GameFlowState.Playing);
                     OnReturnToExplorationRequested?.Invoke();
@@ -901,7 +908,7 @@ namespace FlorestaBicicleta
         private GameObject CreatePillButton(Transform parent, string name, string label, Vector2 pos, Vector2 size, Color col, int fontSize, Action onClick)
         {
             GameObject go = CreatePill(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, size, col);
-            CreateTMP(go.transform, "Lbl", label, fontSize, Vector2.zero, size, Color.white);
+            CreateTMP(go.transform, "Lbl", label, fontSize, Vector2.zero, new Vector2(Mathf.Max(24f, size.x - 16f), Mathf.Max(20f, size.y - 6f)), Color.white);
             Button btn = go.AddComponent<Button>();
             btn.onClick.AddListener(() => onClick());
             return go;
@@ -914,8 +921,17 @@ namespace FlorestaBicicleta
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchoredPosition = pos; rt.sizeDelta = size;
             TextMeshProUGUI tmp = go.AddComponent<TextMeshProUGUI>();
-            tmp.text = text; tmp.fontSize = fontSize; tmp.fontStyle = FontStyles.Bold;
-            tmp.alignment = TextAlignmentOptions.Center; tmp.color = col;
+            // Amplia automaticamente a tipografia para leitura confortável em celular, tablet e iPhone
+            float boostedSize = fontSize < 44 ? Mathf.Round(fontSize * 1.24f) : fontSize;
+            tmp.text = text;
+            tmp.fontSize = boostedSize;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = col;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMax = boostedSize;
+            tmp.fontSizeMin = Mathf.Max(14f, Mathf.Round(boostedSize * 0.72f));
+            tmp.extraPadding = true;
             return tmp;
         }
     }

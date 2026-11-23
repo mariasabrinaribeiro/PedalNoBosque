@@ -431,11 +431,16 @@ namespace FlorestaBicicleta
             rt.anchoredPosition = pos;
             rt.sizeDelta = size;
             TextMeshProUGUI tmp = go.AddComponent<TextMeshProUGUI>();
+            float boosted = Mathf.Round(fontSize * 1.26f);
             tmp.text = text;
-            tmp.fontSize = fontSize;
+            tmp.fontSize = boosted;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = align;
             tmp.color = col;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMax = boosted;
+            tmp.fontSizeMin = Mathf.Max(14f, Mathf.Round(boosted * 0.72f));
+            tmp.extraPadding = true;
             return tmp;
         }
 

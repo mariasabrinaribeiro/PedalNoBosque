@@ -99,14 +99,15 @@ namespace FlorestaBicicleta
         {
             GameObject canvasObject = GameObject.Find("FlorestaHUD");
             if (canvasObject == null) return;
+            Transform safeParent = canvasObject.transform.Find("SafeAreaRoot") ?? canvasObject.transform;
 
             GameObject buttonObject = new GameObject("BtnPiquenique", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            buttonObject.transform.SetParent(canvasObject.transform, false);
+            buttonObject.transform.SetParent(safeParent, false);
             RectTransform rect = buttonObject.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(155f, 78f);
-            rect.sizeDelta = new Vector2(138f, 36f);
+            rect.anchoredPosition = new Vector2(342f, 92f);
+            rect.sizeDelta = new Vector2(174f, 44f);
 
             Image image = buttonObject.GetComponent<Image>();
             image.sprite = StorybookUISpriteFactory.GetRoundedPillSprite();
@@ -122,18 +123,19 @@ namespace FlorestaBicicleta
             RectTransform labelRect = labelObject.GetComponent<RectTransform>();
             labelRect.anchorMin = Vector2.zero;
             labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            labelRect.offsetMin = new Vector2(8f, 2f);
+            labelRect.offsetMax = new Vector2(-8f, -2f);
 
             buttonLabel = labelObject.GetComponent<TextMeshProUGUI>();
             buttonLabel.text = "PIQUENIQUE";
             buttonLabel.font = TMP_Settings.defaultFontAsset;
-            buttonLabel.fontSize = 14f;
+            buttonLabel.fontSize = 18f;
             buttonLabel.fontStyle = FontStyles.Bold;
             buttonLabel.alignment = TextAlignmentOptions.Center;
             buttonLabel.color = Color.white;
             buttonLabel.enableAutoSizing = true;
-            buttonLabel.fontSizeMin = 10f;
-            buttonLabel.fontSizeMax = 15f;
+            buttonLabel.fontSizeMin = 14f;
+            buttonLabel.fontSizeMax = 19f;
             buttonLabel.raycastTarget = false;
         }
 

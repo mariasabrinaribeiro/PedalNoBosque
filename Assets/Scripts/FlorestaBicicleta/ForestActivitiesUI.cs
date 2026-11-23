@@ -299,8 +299,13 @@ namespace FlorestaBicicleta
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchoredPosition = pos; rt.sizeDelta = size;
             TextMeshProUGUI tmp = go.AddComponent<TextMeshProUGUI>();
-            tmp.text = text; tmp.fontSize = fontSize; tmp.fontStyle = FontStyles.Bold;
+            float boosted = Mathf.Round(fontSize * 1.26f);
+            tmp.text = text; tmp.fontSize = boosted; tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center; tmp.color = col;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMax = boosted;
+            tmp.fontSizeMin = Mathf.Max(14f, Mathf.Round(boosted * 0.72f));
+            tmp.extraPadding = true;
             return tmp;
         }
     }
