@@ -134,9 +134,11 @@ namespace FlorestaBicicleta
         }
 
         /// <summary>
-        /// Extrai APENAS a faixa da estrada e suas margens imediatas de grama de bg_floresta.png (linhas 0..164 de 768)
-        /// com equalização suave da luminosidade da estrada nas bordas e transição alfa suave no topo,
-        /// para que a ESTRADA + meio-fio se movam a 100% (1.0x) presos ao mundo físico sem nenhuma emenda vertical!
+        /// Extrai a faixa da estrada e margens imediatas de bg_floresta.png (linhas 0..164 de 768) e pinta
+        /// sobre a faixa reta de concreto/asfalto uma TRILHA DE BOSQUE COZY STORYBOOK artesanal:
+        /// terra dourada/canela aquecida pelo sol, margens onduladas com musgo e tufinhos de grama,
+        /// rastros suaves de bicicleta, poças de luz filtrada pelas copas, pedras chatas de calçamento
+        /// artesanal, seixos e pétalas caídas — 100% contínuo (harmônicos de cosseno C1) sem emendas!
         /// </summary>
         public static Sprite LoadForestRoadStripSprite(float cameraWorldHeight)
         {
@@ -145,59 +147,20 @@ namespace FlorestaBicicleta
             if (src == null) return null;
 
             int w = src.width;
-            // ~21.4% de 768px = 164px: cobre a grama inferior (0..48), a estrada inteira (48..124)
-            // e a borda imediata do meio-fio superior (124..164), mantendo a campina superior no parallax distante!
-            int stripH = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.214f), 148, src.height);
+            int stripH = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.216f), 150, src.height);
             int featherRows = 26;
             Texture2D stripTex = new Texture2D(w, stripH, TextureFormat.RGBA32, false);
             stripTex.filterMode = FilterMode.Bilinear;
             stripTex.wrapMode = TextureWrapMode.Clamp;
 
             Color[] srcPixels = src.GetPixels(0, 0, w, stripH);
+            PaintCozyForestTrailOntoStrip(srcPixels, w, stripH, src.height);
 
-            // Equaliza o gradiente de iluminação esquerda/direita na faixa de terra batida da estrada (44..128)
-            // para eliminar qualquer degrau de tonalidade (claro/escuro) entre segmentos consecutivos da estrada!
-            int roadY0 = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.058f), 0, stripH - 1);
-            int roadY1 = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.166f), roadY0 + 1, stripH - 1);
-            int blendSpan = Mathf.Min(180, w / 4);
-            for (int y = roadY0; y <= roadY1; y++)
-            {
-                int rowOffset = y * w;
-                Color midRef = srcPixels[rowOffset + w / 2];
-                for (int dx = 0; dx < blendSpan; dx++)
-                {
-                    float u = 1f - (dx / (float)blendSpan);
-                    float wBlend = u * u * (3f - 2f * u) * 0.65f;
-
-                    Color cL = srcPixels[rowOffset + dx];
-                    float lumL = Mathf.Max(0.05f, cL.r * 0.299f + cL.g * 0.587f + cL.b * 0.114f);
-                    float lumMid = Mathf.Max(0.05f, midRef.r * 0.299f + midRef.g * 0.587f + midRef.b * 0.114f);
-                    float ratioL = Mathf.Clamp(lumMid / lumL, 0.85f, 1.20f);
-                    Color normL = new Color(
-                        Mathf.Clamp01(cL.r * Mathf.Lerp(1f, ratioL, wBlend)),
-                        Mathf.Clamp01(cL.g * Mathf.Lerp(1f, ratioL, wBlend)),
-                        Mathf.Clamp01(cL.b * Mathf.Lerp(1f, ratioL, wBlend)),
-                        cL.a);
-                    srcPixels[rowOffset + dx] = Color.Lerp(normL, midRef, wBlend * 0.25f);
-
-                    int rx = w - 1 - dx;
-                    Color cR = srcPixels[rowOffset + rx];
-                    float lumR = Mathf.Max(0.05f, cR.r * 0.299f + cR.g * 0.587f + cR.b * 0.114f);
-                    float ratioR = Mathf.Clamp(lumMid / lumR, 0.85f, 1.20f);
-                    Color normR = new Color(
-                        Mathf.Clamp01(cR.r * Mathf.Lerp(1f, ratioR, wBlend)),
-                        Mathf.Clamp01(cR.g * Mathf.Lerp(1f, ratioR, wBlend)),
-                        Mathf.Clamp01(cR.b * Mathf.Lerp(1f, ratioR, wBlend)),
-                        cR.a);
-                    srcPixels[rowOffset + rx] = Color.Lerp(normR, midRef, wBlend * 0.25f);
-                }
-            }
-
-            // Transição alfa suave no topo da borda gramada superior (sem corte duro)
+            // Transição alfa suave no topo da borda gramada superior (sem corte duro com a campina distante)
             for (int y = stripH - featherRows; y < stripH; y++)
             {
                 float alpha = 1f - (y - (stripH - featherRows)) / (float)featherRows;
-                alpha = alpha * alpha * (3f - 2f * alpha); // smoothstep
+                alpha = alpha * alpha * (3f - 2f * alpha);
                 int rowOffset = y * w;
                 for (int x = 0; x < w; x++)
                 {
@@ -217,6 +180,289 @@ namespace FlorestaBicicleta
                 new Vector2(0.5f, 0f),
                 ppu);
             return cachedSeamlessRoadStripSprite;
+        }
+
+        private static float TrailHash2(int x, int y)
+        {
+            int n = x * 374761393 + y * 668265263;
+            n = (n ^ (n >> 13)) * 1274126177;
+            return ((n ^ (n >> 16)) & 0x7FFFFFFF) / 2147483647f;
+        }
+
+        // Harmônico de cosseno (derivada zero em x=0 e x=w-1) => emenda espelhada flipX 100% invisível!
+        private static float TrailMirrorWave(float x, float w, int freq)
+        {
+            return Mathf.Cos(Mathf.PI * freq * x / Mathf.Max(1f, w - 1f));
+        }
+
+        private static void BlendTrailPx(Color[] buf, int w, int h, int x, int y, Color col, float alpha)
+        {
+            if (x < 0 || x >= w || y < 0 || y >= h || alpha <= 0.001f) return;
+            int idx = y * w + x;
+            Color dst = buf[idx];
+            float a = Mathf.Clamp01(alpha);
+            buf[idx] = new Color(
+                Mathf.Lerp(dst.r, col.r, a),
+                Mathf.Lerp(dst.g, col.g, a),
+                Mathf.Lerp(dst.b, col.b, a),
+                dst.a);
+        }
+
+        private static void DrawTrailSteppingStone(
+            Color[] buf, int w, int h, int cx, int cy, int rx, int ry,
+            Color fill, Color highlight, Color shadow, Color outline)
+        {
+            Color soilShadow = new Color(0.36f, 0.24f, 0.14f, 1f);
+            for (int dy = -ry - 4; dy <= ry + 3; dy++)
+            {
+                for (int dx = -rx - 4; dx <= rx + 4; dx++)
+                {
+                    float nx = dx / (float)(rx + 3);
+                    float ny = (dy + 2) / (float)(ry + 2);
+                    float d = nx * nx + ny * ny;
+                    if (d < 1f)
+                        BlendTrailPx(buf, w, h, cx + dx, cy + dy, soilShadow, (1f - d) * 0.34f);
+                }
+            }
+
+            for (int dy = -ry - 2; dy <= ry + 2; dy++)
+            {
+                for (int dx = -rx - 2; dx <= rx + 2; dx++)
+                {
+                    float angle = Mathf.Atan2(dy, dx);
+                    float wobble = 1f + 0.09f * Mathf.Sin(angle * 3f + cx * 0.13f) + 0.05f * Mathf.Cos(angle * 5f + cy * 0.21f);
+                    float nx = dx / (float)(rx * wobble);
+                    float ny = dy / (float)(ry * wobble);
+                    float d = Mathf.Sqrt(nx * nx + ny * ny);
+                    if (d > 1.12f) continue;
+
+                    if (d > 0.90f)
+                    {
+                        float oa = (1f - Mathf.SmoothStep(0.94f, 1.12f, d)) * 0.54f;
+                        BlendTrailPx(buf, w, h, cx + dx, cy + dy, outline, oa);
+                    }
+                    else
+                    {
+                        float topShade = Mathf.SmoothStep(-0.7f, 0.75f, ny);
+                        Color baseC = Color.Lerp(shadow, fill, 0.35f + 0.65f * topShade);
+                        if (ny > 0.15f && d < 0.72f)
+                            baseC = Color.Lerp(baseC, highlight, Mathf.SmoothStep(0.15f, 0.75f, ny) * 0.52f);
+                        float speckle = (TrailHash2(cx + dx, cy + dy) - 0.5f) * 0.075f;
+                        baseC = new Color(
+                            Mathf.Clamp01(baseC.r + speckle),
+                            Mathf.Clamp01(baseC.g + speckle),
+                            Mathf.Clamp01(baseC.b + speckle * 0.8f), 1f);
+                        BlendTrailPx(buf, w, h, cx + dx, cy + dy, baseC, 0.92f);
+                    }
+                }
+            }
+        }
+
+        private static void DrawTrailGrassTuft(Color[] buf, int w, int h, int cx, int cy, int size, Color darkG, Color lightG)
+        {
+            for (int b = -2; b <= 2; b++)
+            {
+                int bx = cx + b * 3;
+                int bh = size - Mathf.Abs(b) * 2;
+                for (int t = 0; t <= bh; t++)
+                {
+                    float frac = t / (float)Mathf.Max(1, bh);
+                    int px = bx + Mathf.RoundToInt(b * frac * 1.4f);
+                    int py = cy + t;
+                    Color gc = Color.Lerp(darkG, lightG, frac);
+                    BlendTrailPx(buf, w, h, px, py, gc, 0.88f);
+                    BlendTrailPx(buf, w, h, px + 1, py, gc, 0.60f);
+                }
+            }
+        }
+
+        private static void DrawTrailPetalOrPebble(Color[] buf, int w, int h, int cx, int cy, int rx, int ry, Color col, Color hi, bool tilt)
+        {
+            for (int dy = -ry - 1; dy <= ry + 1; dy++)
+            {
+                for (int dx = -rx - 1; dx <= rx + 1; dx++)
+                {
+                    float rdx = tilt ? (dx * 0.86f - dy * 0.5f) : dx;
+                    float rdy = tilt ? (dx * 0.5f + dy * 0.86f) : dy;
+                    float d = (rdx * rdx) / Mathf.Max(1f, rx * rx) + (rdy * rdy) / Mathf.Max(1f, ry * ry);
+                    if (d <= 1.15f)
+                    {
+                        float a = (1f - Mathf.SmoothStep(0.65f, 1.15f, d)) * 0.85f;
+                        BlendTrailPx(buf, w, h, cx + dx, cy + dy, dy > 0 ? hi : col, a);
+                    }
+                }
+            }
+        }
+
+        private static void PaintCozyForestTrailOntoStrip(Color[] px, int w, int stripH, int fullBgHeight)
+        {
+            float yScale = fullBgHeight / 768f;
+            Color dirtCenterSun = new Color(0.87f, 0.72f, 0.49f, 1f);
+            Color dirtWarmMid   = new Color(0.79f, 0.61f, 0.39f, 1f);
+            Color dirtTrack     = new Color(0.67f, 0.49f, 0.30f, 1f);
+            Color dirtEdgeShade = new Color(0.55f, 0.40f, 0.24f, 1f);
+            Color sunPoolCol    = new Color(0.96f, 0.86f, 0.63f, 1f);
+            Color canopyShadow  = new Color(0.52f, 0.40f, 0.25f, 1f);
+            Color mossEdgeDark  = new Color(0.28f, 0.48f, 0.20f, 1f);
+            Color mossEdgeLight = new Color(0.54f, 0.74f, 0.26f, 1f);
+
+            int minY = Mathf.Clamp(Mathf.RoundToInt(40f * yScale), 0, stripH - 1);
+            int maxY = Mathf.Clamp(Mathf.RoundToInt(132f * yScale), minY + 1, stripH - 1);
+
+            // 1. Trilha de terra dourada/canela com bordas onduladas, rastros de bicicleta e luz filtrada das árvores
+            for (int x = 0; x < w; x++)
+            {
+                float topEdge = (117.5f + 3.2f * TrailMirrorWave(x, w, 4) + 1.8f * TrailMirrorWave(x, w, 10) + 0.9f * TrailMirrorWave(x, w, 22)) * yScale;
+                float botEdge = (50.5f  + 2.8f * TrailMirrorWave(x, w, 6) + 1.6f * TrailMirrorWave(x, w, 14) + 0.8f * TrailMirrorWave(x, w, 26)) * yScale;
+
+                float meander = (2.4f * TrailMirrorWave(x, w, 4) + 1.1f * TrailMirrorWave(x, w, 10)) * yScale;
+                float trackTopY = 98f * yScale + meander;
+                float trackBotY = 69f * yScale + meander * 0.85f;
+                float trackSigma = 6.5f * yScale;
+
+                float dapple = Mathf.Clamp01(
+                    0.5f + 0.32f * TrailMirrorWave(x, w, 6) * TrailMirrorWave(x, w, 4)
+                         + 0.22f * TrailMirrorWave(x, w, 14)
+                         + 0.14f * TrailMirrorWave(x, w, 24));
+
+                for (int y = minY; y <= maxY; y++)
+                {
+                    float inBot = Mathf.SmoothStep(botEdge - 5.5f * yScale, botEdge + 3.5f * yScale, y);
+                    float inTop = 1f - Mathf.SmoothStep(topEdge - 4.0f * yScale, topEdge + 5.5f * yScale, y);
+                    float trailMask = inBot * inTop;
+
+                    float nearBotBorder = (1f - Mathf.SmoothStep(botEdge - 3f * yScale, botEdge + 7f * yScale, y))
+                                        * Mathf.SmoothStep(botEdge - 8f * yScale, botEdge - 1f * yScale, y);
+                    float nearTopBorder = Mathf.SmoothStep(topEdge - 7f * yScale, topEdge + 2f * yScale, y)
+                                        * (1f - Mathf.SmoothStep(topEdge + 1f * yScale, topEdge + 8f * yScale, y));
+                    float borderBand = Mathf.Clamp01(nearBotBorder + nearTopBorder);
+
+                    if (trailMask > 0.001f)
+                    {
+                        float vNorm = Mathf.Clamp01((y - botEdge) / Mathf.Max(1f, topEdge - botEdge));
+                        float centerRidge = 1f - Mathf.Abs(vNorm - 0.52f) * 2f;
+                        Color c = Color.Lerp(dirtWarmMid, dirtCenterSun, Mathf.SmoothStep(0.15f, 0.90f, centerRidge));
+
+                        float edgeDarken = 1f - Mathf.SmoothStep(0f, 0.22f, Mathf.Min(vNorm, 1f - vNorm));
+                        c = Color.Lerp(c, dirtEdgeShade, edgeDarken * 0.65f);
+
+                        float dt1 = (y - trackTopY) / Mathf.Max(1f, trackSigma);
+                        float dt2 = (y - trackBotY) / Mathf.Max(1f, trackSigma);
+                        float trackWear = Mathf.Clamp01((Mathf.Exp(-dt1 * dt1) + Mathf.Exp(-dt2 * dt2)) * 0.56f);
+                        c = Color.Lerp(c, dirtTrack, trackWear);
+
+                        float sunFactor = Mathf.SmoothStep(0.56f, 0.88f, dapple) * (0.4f + 0.6f * centerRidge);
+                        float shadeFactor = Mathf.SmoothStep(0.42f, 0.14f, dapple);
+                        c = Color.Lerp(c, sunPoolCol, sunFactor * 0.42f);
+                        c = Color.Lerp(c, canopyShadow, shadeFactor * 0.26f);
+
+                        float grain = (TrailHash2(x / 2, y / 2) - 0.5f) * 0.08f + (TrailHash2(x, y) - 0.5f) * 0.04f;
+                        c = new Color(
+                            Mathf.Clamp01(c.r + grain),
+                            Mathf.Clamp01(c.g + grain * 0.92f),
+                            Mathf.Clamp01(c.b + grain * 0.78f), 1f);
+
+                        BlendTrailPx(px, w, stripH, x, y, c, trailMask);
+                    }
+
+                    if (borderBand > 0.05f && TrailHash2(x / 3, y / 2) > 0.32f)
+                    {
+                        Color mc = Color.Lerp(mossEdgeDark, mossEdgeLight, TrailHash2(x / 5 + 17, y / 3));
+                        BlendTrailPx(px, w, stripH, x, y, mc, borderBand * 0.58f);
+                    }
+                }
+            }
+
+            // 2. Pedras chatas artesanais de trilha de bosque em agrupamentos orgânicos (nunca cortadas nas bordas!)
+            Color stoneOutline = new Color(0.32f, 0.22f, 0.14f, 1f);
+            Color[] stoneFills =
+            {
+                new Color(0.84f, 0.77f, 0.66f, 1f),
+                new Color(0.76f, 0.67f, 0.56f, 1f),
+                new Color(0.83f, 0.69f, 0.56f, 1f),
+                new Color(0.73f, 0.72f, 0.62f, 1f)
+            };
+            Color[] stoneHis =
+            {
+                new Color(0.96f, 0.91f, 0.81f, 1f),
+                new Color(0.90f, 0.83f, 0.73f, 1f),
+                new Color(0.94f, 0.82f, 0.70f, 1f),
+                new Color(0.88f, 0.87f, 0.78f, 1f)
+            };
+            Color[] stoneShades =
+            {
+                new Color(0.62f, 0.53f, 0.42f, 1f),
+                new Color(0.55f, 0.47f, 0.37f, 1f),
+                new Color(0.60f, 0.46f, 0.35f, 1f),
+                new Color(0.50f, 0.51f, 0.41f, 1f)
+            };
+
+            float[] clusterFracs = { 0.06f, 0.15f, 0.25f, 0.36f, 0.46f, 0.57f, 0.68f, 0.79f, 0.89f, 0.95f };
+            for (int c = 0; c < clusterFracs.Length; c++)
+            {
+                int baseX = Mathf.Clamp(Mathf.RoundToInt(clusterFracs[c] * w), 40, w - 40);
+                int mainY = Mathf.RoundToInt((66f + TrailHash2(c * 13, 7) * 34f) * yScale);
+                int rx = Mathf.RoundToInt((14f + TrailHash2(c * 19, 3) * 11f) * yScale);
+                int ry = Mathf.RoundToInt((6f + TrailHash2(c * 23, 5) * 4f) * yScale);
+                int pal = c % stoneFills.Length;
+                DrawTrailSteppingStone(px, w, stripH, baseX, mainY, rx, ry, stoneFills[pal], stoneHis[pal], stoneShades[pal], stoneOutline);
+
+                for (int k = 0; k < 2; k++)
+                {
+                    int ox = (k == 0 ? -1 : 1) * (rx + Mathf.RoundToInt((10f + TrailHash2(c * 31 + k, 11) * 14f) * yScale));
+                    int oy = Mathf.RoundToInt((TrailHash2(c * 37 + k, 17) - 0.5f) * 24f * yScale);
+                    int sx = baseX + ox;
+                    int sy = Mathf.Clamp(mainY + oy, Mathf.RoundToInt(58f * yScale), Mathf.RoundToInt(108f * yScale));
+                    if (sx > 34 && sx < w - 34)
+                    {
+                        int srx = Mathf.RoundToInt((7f + TrailHash2(c * 41 + k, 19) * 7f) * yScale);
+                        int sry = Mathf.RoundToInt((4f + TrailHash2(c * 43 + k, 23) * 3f) * yScale);
+                        int spal = (pal + k + 1) % stoneFills.Length;
+                        DrawTrailSteppingStone(px, w, stripH, sx, sy, srx, sry, stoneFills[spal], stoneHis[spal], stoneShades[spal], stoneOutline);
+                    }
+                }
+            }
+
+            // 3. Seixos miúdos, pétalas delicadas, folhas caídas e tufinhos de grama nas bordas da trilha
+            Color pebbleMid = new Color(0.64f, 0.52f, 0.38f, 1f);
+            Color pebbleHi  = new Color(0.84f, 0.74f, 0.58f, 1f);
+            for (int i = 0; i < 65; i++)
+            {
+                int pxX = 24 + Mathf.RoundToInt(TrailHash2(i * 17, 91) * (w - 48));
+                int pxY = Mathf.RoundToInt((55f + TrailHash2(i * 29, 97) * 58f) * yScale);
+                DrawTrailPetalOrPebble(px, w, stripH, pxX, pxY, 2 + (i % 3), 1 + (i % 2), pebbleMid, pebbleHi, false);
+            }
+
+            Color[] petalCols =
+            {
+                new Color(0.98f, 0.58f, 0.70f, 1f),
+                new Color(0.99f, 0.86f, 0.34f, 1f),
+                new Color(0.98f, 0.96f, 0.88f, 1f),
+                new Color(0.46f, 0.72f, 0.24f, 1f),
+                new Color(0.90f, 0.62f, 0.24f, 1f)
+            };
+            for (int i = 0; i < 38; i++)
+            {
+                int lx = 26 + Mathf.RoundToInt(TrailHash2(i * 53, 101) * (w - 52));
+                int ly = Mathf.RoundToInt((55f + TrailHash2(i * 59, 107) * 58f) * yScale);
+                Color pc = petalCols[i % petalCols.Length];
+                Color hi = Color.Lerp(pc, Color.white, 0.35f);
+                DrawTrailPetalOrPebble(px, w, stripH, lx, ly, 3, 2, pc, hi, true);
+            }
+
+            for (int i = 0; i < 48; i++)
+            {
+                int tx = 20 + Mathf.RoundToInt(TrailHash2(i * 61, 131) * (w - 40));
+                float topEdge = (117.5f + 3.2f * TrailMirrorWave(tx, w, 4) + 1.8f * TrailMirrorWave(tx, w, 10)) * yScale;
+                float botEdge = (50.5f  + 2.8f * TrailMirrorWave(tx, w, 6) + 1.6f * TrailMirrorWave(tx, w, 14)) * yScale;
+                DrawTrailGrassTuft(px, w, stripH, tx, Mathf.RoundToInt(topEdge - 4f * yScale), Mathf.RoundToInt((7 + (i % 4)) * yScale), mossEdgeDark, mossEdgeLight);
+                DrawTrailGrassTuft(px, w, stripH, tx, Mathf.RoundToInt(botEdge - 5f * yScale), Mathf.RoundToInt((7 + ((i + 2) % 4)) * yScale), mossEdgeDark, mossEdgeLight);
+                if (i % 4 == 0)
+                {
+                    Color fc = (i % 8 == 0) ? new Color(1f, 0.92f, 0.34f, 1f) : new Color(1f, 0.62f, 0.74f, 1f);
+                    DrawTrailPetalOrPebble(px, w, stripH, tx + 2, Mathf.RoundToInt(topEdge + 2f * yScale), 3, 3, fc, Color.white, false);
+                }
+            }
         }
 
         public static Sprite LoadGirlBikeSprite()
@@ -554,20 +800,21 @@ namespace FlorestaBicicleta
             bool isCurious = (state == PuppyAnimState.Curioso);
             bool isHappy = (state == PuppyAnimState.Feliz || state == PuppyAnimState.NaCestinha);
 
-            // Quando fora da cestinha (a pé), desenhamos corpinho, rabinho abanando, patinhas animadas e coleirinha
+            // Quando fora da cestinha (a pé), desenhamos corpinho, rabinho conectado abanando, patinhas animadas, pescoço e coleirinha
             if (!isInBasket)
             {
-                // 1. Rabinho dourado abanando com movimento visível entre phase 0 e phase 1
-                int tailTipY = isResting ? 44 : (isPetted || isHappy || isRunning ? (phase == 0 ? 94 : 74) : (phase == 0 ? 84 : 76));
-                int tailTipX = isResting ? 44 : (phase == 0 ? 44 : 56);
-                DrawEllipse(outTex, tailTipX + 12, tailTipY - 6, 25, 12, ink);
-                DrawEllipse(outTex, tailTipX + 12, tailTipY - 6, 21, 8, furMid);
-                DrawEllipse(outTex, tailTipX + 10, tailTipY - 4, 15, 5, furHigh);
+                int bodyY = isResting ? 38 : (isSniffing ? 50 : (phase == 1 && isRunning ? 60 : 54));
+
+                // 1. Rabinho dourado conectado diretamente ao quadril, abanando com movimento alegre entre phase 0 e phase 1
+                int tailTipY = isResting ? (bodyY + 8) : (isPetted || isHappy || isRunning ? (phase == 0 ? bodyY + 28 : bodyY + 14) : (phase == 0 ? bodyY + 22 : bodyY + 14));
+                int tailTipX = isResting ? 64 : (phase == 0 ? 64 : 70);
+                DrawEllipse(outTex, tailTipX + 8, tailTipY - 4, 24, 11, ink);
+                DrawEllipse(outTex, tailTipX + 8, tailTipY - 4, 20, 7, furMid);
+                DrawEllipse(outTex, tailTipX + 6, tailTipY - 2, 14, 4, furHigh);
 
                 // 2. Patinhas animadas conforme o estado (Correndo, Parado/Feliz, Farejando, Descansando)
-                int bodyY = isResting ? 38 : (isSniffing ? 50 : (phase == 1 && isRunning ? 62 : 56));
                 int[] pawX = isRunning
-                    ? (phase == 0 ? new[] { 62, 92, 136, 166 } : new[] { 86, 108, 120, 144 })
+                    ? (phase == 0 ? new[] { 66, 94, 134, 160 } : new[] { 86, 108, 120, 142 })
                     : (isResting ? new[] { 72, 96, 136, 158 } : new[] { 76, 100, 128, 150 });
                 int pawBaseY = isResting ? 19 : 28;
 
@@ -581,17 +828,21 @@ namespace FlorestaBicicleta
                     DrawEllipse(outTex, px + 3, py - (isResting ? 3 : 9), 9, 5, furHigh);
                 }
 
-                // 3. Tronco e barriguinha macia do cachorrinho
+                // 3. Tronco, pescocinho conectado e barriguinha macia do cachorrinho
                 DrawEllipse(outTex, 114, bodyY, 48, isResting ? 22 : 29, ink);
                 DrawEllipse(outTex, 114, bodyY, 43, isResting ? 18 : 24, furMid);
                 DrawEllipse(outTex, 118, bodyY - 4, 30, 15, furHigh);
+                // Pescoço dourado ligando suavemente o tronco à cabeça (zero espaço vazio!)
+                DrawEllipse(outTex, 130, bodyY + 22, 24, 16, ink);
+                DrawEllipse(outTex, 130, bodyY + 22, 20, 13, furMid);
+                DrawEllipse(outTex, 132, bodyY + 20, 14, 9, furHigh);
 
-                // 4. Coleirinha vermelha charmosa com medalhinha dourada
-                int collarY = isSniffing ? bodyY + 6 : bodyY + 16;
-                DrawEllipse(outTex, 132, collarY, 27, 9, ink);
-                DrawEllipse(outTex, 132, collarY, 23, 6, collarRed);
-                DrawCircle(outTex, 146, collarY - 6, 7, ink);
-                DrawCircle(outTex, 146, collarY - 6, 5, medalGold);
+                // 4. Coleirinha vermelha charmosa com medalhinha dourada sobre o pescoço
+                int collarY = isSniffing ? bodyY + 8 : bodyY + 17;
+                DrawEllipse(outTex, 130, collarY, 27, 9, ink);
+                DrawEllipse(outTex, 130, collarY, 23, 6, collarRed);
+                DrawCircle(outTex, 144, collarY - 6, 7, ink);
+                DrawCircle(outTex, 144, collarY - 6, 5, medalGold);
             }
 
             // 5. Copia a cabeça original do cachorrinho de girl_bike.png (x=675..830, y=504..638)
@@ -603,7 +854,7 @@ namespace FlorestaBicicleta
             int destOffsetX = isInBasket ? 40 : (isSniffing ? 50 : (isCurious && phase == 1 ? 42 : 40));
             int destOffsetY = isInBasket
                 ? (isResting ? 24 : (phase == 1 ? 30 : 28))
-                : (isResting ? 40 : (isSniffing ? 36 : (phase == 1 ? 66 : 62)));
+                : (isResting ? 26 : (isSniffing ? 32 : (phase == 1 ? 52 : 48)));
             int earLift = (isCurious || isRunning || isPetted) ? (phase == 0 ? 5 : 1) : (isResting ? -2 : (phase == 0 ? 3 : 0));
 
             for (int sy = copyMinY; sy <= srcY1; sy++)

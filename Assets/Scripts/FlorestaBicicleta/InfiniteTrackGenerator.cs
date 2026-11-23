@@ -944,14 +944,17 @@ namespace FlorestaBicicleta
             float xPos,
             List<(float min, float max)> blocked)
         {
-            // Garante espaçamento orgânico mínimo de 4.2m de qualquer animal e 16m da MESMA espécie,
-            // impedindo duas raposas idênticas ou dois grupos de ursos lado a lado na mesma tela!
+            // Garante espaçamento orgânico mínimo de 4.2m de qualquer animal e 16m da MESMA espécie/aparência,
+            // impedindo duas raposas, dois quatis/guaxinins ou dois grupos de ursos lado a lado na mesma tela!
             for (int i = 0; i < ActiveAnimals.Count; i++)
             {
                 ForestAnimal existing = ActiveAnimals[i];
                 if (existing == null) continue;
                 float dist = Mathf.Abs(existing.transform.position.x - xPos);
-                if (existing.kind == kind && dist < 16.0f)
+                bool sameVisualSpecies = existing.kind == kind
+                    || ((existing.kind == ParkSpriteFactory.AnimalKind.Quati || existing.kind == ParkSpriteFactory.AnimalKind.Guaxinim)
+                        && (kind == ParkSpriteFactory.AnimalKind.Quati || kind == ParkSpriteFactory.AnimalKind.Guaxinim));
+                if (sameVisualSpecies && dist < 16.0f)
                 {
                     return;
                 }
