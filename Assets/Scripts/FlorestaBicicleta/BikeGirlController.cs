@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using FlorestaTopDown;
 
 namespace FlorestaBicicleta
@@ -48,7 +49,7 @@ namespace FlorestaBicicleta
         public float jumpGravity = -19.5f;
         public float jumpHeight { get; private set; } = 0f;
         private float verticalVelocity = 0f;
-        private float baseGroundY = -3.55f;
+        private float baseGroundY = WorldDepth.PlayableGroundY;
         private float stumbleTimer = 0f;
         public int starsCollected { get; private set; } = 0;
         public int gourmetBonusCharges { get; set; } = 0;
@@ -134,15 +135,26 @@ namespace FlorestaBicicleta
             foodBasket.Add(FoodType.Sementes);
             foodBasket.Add(FoodType.Suco);
 
+            // SortingGroup único na protagonista: impede intercalação indevida entre bike, cesta, cachorrinho e objetos do cenário!
+            SortingGroup sg = gameObject.GetComponent<SortingGroup>();
+            if (sg == null) sg = gameObject.AddComponent<SortingGroup>();
+            sg.sortingOrder = WorldDepth.PlayerSortingGroup;
+
             visualRoot = new GameObject("BikeVisual").transform;
             visualRoot.SetParent(transform);
             visualRoot.localPosition = Vector3.zero;
             visualRoot.localScale = Vector3.one;
-            baseGroundY = transform.position.y;
+            baseGroundY = WorldDepth.PlayableGroundY;
+            Vector3 initPos = transform.position;
+            initPos.y = baseGroundY;
+            transform.position = initPos;
+
+            // Sombra de contato da bicicleta presa à base dos pneus
+            BiomePropsFactory.AddContactShadow(visualRoot, new Vector3(0f, 0.02f, 0f), new Vector2(1.95f, 0.24f), WorldDepth.PlayerLocalShadow);
 
             bikeSR = visualRoot.gameObject.AddComponent<SpriteRenderer>();
             bikeSR.sprite = FlorestaSpriteFactory.LoadGirlBikeWithoutBasketPuppySprite() ?? FlorestaSpriteFactory.LoadGirlBikeSprite();
-            bikeSR.sortingOrder = 10;
+            bikeSR.sortingOrder = WorldDepth.PlayerLocalBikeOrGirl;
 
             // Decoração artesanal rica da cesta dianteira (guirlanda de flores silvestres + frutas e quitutes visíveis!)
             GameObject basketDecorObj = new GameObject("DecoracaoCestaBosque");
@@ -150,7 +162,7 @@ namespace FlorestaBicicleta
             basketDecorObj.transform.localPosition = new Vector3(0.52f, 1.05f, 0f);
             basketDecorSR = basketDecorObj.AddComponent<SpriteRenderer>();
             basketDecorSR.sprite = BuildBasketDecorationSprite();
-            basketDecorSR.sortingOrder = 11;
+            basketDecorSR.sortingOrder = WorldDepth.PlayerLocalBasket;
 
             // Cachorrinho expressivo na cestinha alinhado ao pixel exato (0.799, 1.357) de girl_bike.png (ZERO duplicação!)
             GameObject basketPuppyObj = new GameObject("CachorrinhoNaCestaExpressivo");
@@ -159,7 +171,7 @@ namespace FlorestaBicicleta
             basketPuppySR = basketPuppyObj.AddComponent<SpriteRenderer>();
             Sprite[] basketFrames = FlorestaSpriteFactory.GetBasketPuppyStateFrames(FlorestaSpriteFactory.PuppyAnimState.NaCestinha);
             if (basketFrames != null && basketFrames.Length > 0) basketPuppySR.sprite = basketFrames[0];
-            basketPuppySR.sortingOrder = 11;
+            basketPuppySR.sortingOrder = WorldDepth.PlayerLocalPuppy;
 
             // Adorno delicado para acessórios/enfeites equipados (Etapa 7)
             GameObject badgeObj = new GameObject("CustomAccent");
@@ -168,7 +180,7 @@ namespace FlorestaBicicleta
             badgeObj.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
             customAccentBadgeSR = badgeObj.AddComponent<SpriteRenderer>();
             customAccentBadgeSR.sprite = TrailCollectibleItem.GetOrCreateSprite(CollectibleKind.Flores);
-            customAccentBadgeSR.sortingOrder = 11;
+            customAccentBadgeSR.sortingOrder = WorldDepth.PlayerLocalPuppy;
             customAccentBadgeSR.enabled = false;
 
             ApplyCustomizationVisuals();
@@ -366,8 +378,8 @@ namespace FlorestaBicicleta
             parkedBikeSR = bike.AddComponent<SpriteRenderer>();
             parkedBikeSR.sprite = parkedBikeSprite;
             parkedBikeSR.flipX = facingDir < 0f;
-            parkedBikeSR.sortingOrder = 9;
-            BiomePropsFactory.AddContactShadow(bike.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.95f, 0.24f), 8);
+            parkedBikeSR.sortingOrder = WorldDepth.ParkedBike;
+            BiomePropsFactory.AddContactShadow(bike.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.95f, 0.24f), WorldDepth.ParkedBikeShadow - 1);
 
             GameObject girl = new GameObject("MeninaExplorandoAPe");
             girl.transform.SetParent(transform, false);
@@ -375,8 +387,8 @@ namespace FlorestaBicicleta
             walkingGirlSR = girl.AddComponent<SpriteRenderer>();
             walkingGirlSR.sprite = walkingGirlSprite;
             walkingGirlSR.flipX = facingDir < 0f;
-            walkingGirlSR.sortingOrder = 10;
-            BiomePropsFactory.AddContactShadow(girl.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.85f, 0.18f), 9);
+            walkingGirlSR.sortingOrder = WorldDepth.PlayerLocalBikeOrGirl;
+            BiomePropsFactory.AddContactShadow(girl.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.85f, 0.18f), WorldDepth.PlayerLocalShadow);
 
             if (walkingPuppySprite != null)
             {
@@ -386,8 +398,8 @@ namespace FlorestaBicicleta
                 walkingPuppySR = puppy.AddComponent<SpriteRenderer>();
                 walkingPuppySR.sprite = walkingPuppySprite;
                 walkingPuppySR.flipX = facingDir < 0f;
-                walkingPuppySR.sortingOrder = 11;
-                BiomePropsFactory.AddContactShadow(puppy.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.72f, 0.16f), 10);
+                walkingPuppySR.sortingOrder = WorldDepth.PlayerLocalPuppy;
+                BiomePropsFactory.AddContactShadow(puppy.transform, new Vector3(0f, 0.01f, 0f), new Vector2(0.72f, 0.16f), WorldDepth.PlayerLocalShadow);
                 nextPuppyFootHeartTime = Time.time + 0.6f;
             }
         }
@@ -720,6 +732,10 @@ namespace FlorestaBicicleta
             float walkRange = 7f + explorationLevel;
             pos.x = isOnFoot ? Mathf.Clamp(nextX, parkedBikeX - walkRange, parkedBikeX + walkRange)
                 : (infiniteRoad ? Mathf.Max(minX, nextX) : Mathf.Clamp(nextX, minX, maxX));
+
+            // Colisão física real contra obstáculos sólidos na trilha (Pedra, Tronco, Raiz):
+            // A bicicleta/menina NUNCA atravessa uma pedra sólida pelo chão — para/recua suavemente até saltar (W / Pular)!
+            ResolveSolidObstacleCollisions(ref pos, moveX);
 
             // Elevação física real ao atravessar a Ponte de Madeira arqueada ou a Subida/Descida das Montanhas
             currentTrackElevation = trackGeneratorRef != null
@@ -1193,6 +1209,65 @@ namespace FlorestaBicicleta
             }
         }
 
+        private void ResolveSolidObstacleCollisions(ref Vector3 pos, float moveX)
+        {
+            var obs = TrailObstacle.ActiveObstacles;
+            if (obs == null || obs.Count == 0) return;
+
+            float playerHalfWidth = isOnFoot ? 0.36f : 0.78f;
+            for (int i = 0; i < obs.Count; i++)
+            {
+                TrailObstacle ob = obs[i];
+                if (ob == null || !ob.gameObject.activeInHierarchy) continue;
+
+                float obX = ob.transform.position.x;
+                float minDist = ob.HalfBlockWidth + playerHalfWidth;
+                float dx = pos.x - obX;
+                if (Mathf.Abs(dx) >= minDist) continue;
+
+                if (jumpHeight >= ob.JumpClearanceHeight)
+                {
+                    if (ob.TryRewardJumpOver())
+                    {
+                        score += 15;
+                        PlayerProgressManager.Instance?.RecordSkillProgress(PlayerSkillKind.Equilibrio);
+                        FlorestaSoundFX.Instance?.PlayStar();
+                        onInfoMessage?.Invoke($"Belo salto sobre o(a) {ob.DisplayName}! +15 pts");
+                    }
+                    continue;
+                }
+
+                // Bloqueia penetração sólida mantendo a bicicleta/menina exatamente do lado de fora da pedra!
+                float side = (Mathf.Abs(transform.position.x - obX) > 0.01f)
+                    ? Mathf.Sign(transform.position.x - obX)
+                    : (moveX >= 0f ? -1f : 1f);
+
+                bool hitAtSpeed = !isOnFoot && Mathf.Abs(currentSpeed) > 1.2f;
+                pos.x = obX + side * (minDist + (hitAtSpeed ? 0.30f : 0.02f));
+                currentSpeed = 0f;
+
+                if (!isOnFoot && ob.TryHit())
+                {
+                    int balanceLevel = PlayerProgressManager.Instance != null
+                        ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Equilibrio) : 0;
+                    stumbleTimer = 0.75f - balanceLevel * 0.10f;
+                    // Pequeno solavanco físico ao encostar na pedra (sem atravessar!)
+                    verticalVelocity = 2.6f;
+                    FlorestaSoundFX.Instance?.PlayBump();
+                    if (hitAtSpeed && balanceLevel < 3 && foodBasket.Count > 1)
+                    {
+                        FoodType dropped = foodBasket[foodBasket.Count - 1];
+                        foodBasket.RemoveAt(foodBasket.Count - 1);
+                        onInfoMessage?.Invoke($"Pedra na trilha! Caiu {FoodInfo.GetDisplayName(dropped)} — aperte W ou PULAR para saltar por cima!");
+                    }
+                    else
+                    {
+                        onInfoMessage?.Invoke($"Obstáculo ({ob.DisplayName}) na frente! Aperte W ou PULAR para saltar por cima!");
+                    }
+                }
+            }
+        }
+
         private void OnTriggerEnter2D(Collider2D other)
         {
             SlopeZone slope = other.GetComponent<SlopeZone>();
@@ -1259,38 +1334,9 @@ namespace FlorestaBicicleta
                 return;
             }
 
-            // Obstáculo na trilha (Pedra, Tronco, Raiz)
-            TrailObstacle obstacle = other.GetComponent<TrailObstacle>();
-            if (obstacle != null)
+            // Obstáculo na trilha (Pedra, Tronco, Raiz) — já resolvido de forma contínua e sólida em ResolveSolidObstacleCollisions!
+            if (other.GetComponent<TrailObstacle>() != null)
             {
-                if (jumpHeight >= 0.55f)
-                {
-                    if (obstacle.TryRewardJumpOver())
-                    {
-                        score += 15;
-                        PlayerProgressManager.Instance?.RecordSkillProgress(PlayerSkillKind.Equilibrio);
-                        FlorestaSoundFX.Instance?.PlayStar();
-                        onInfoMessage?.Invoke($"Belo salto sobre o(a) {obstacle.DisplayName}! +15 pts");
-                    }
-                }
-                else if (obstacle.TryHit())
-                {
-                    int balanceLevel = PlayerProgressManager.Instance != null
-                        ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Equilibrio) : 0;
-                    stumbleTimer = 0.85f - balanceLevel * 0.12f;
-                    currentSpeed *= 0.25f;
-                    FlorestaSoundFX.Instance?.PlayBump();
-                    if (balanceLevel < 3 && Mathf.Abs(currentSpeed) > 1.2f && foodBasket.Count > 1)
-                    {
-                        FoodType dropped = foodBasket[foodBasket.Count - 1];
-                        foodBasket.RemoveAt(foodBasket.Count - 1);
-                        onInfoMessage?.Invoke($"Ops! Tropeçou na(o) {obstacle.DisplayName} e caiu {FoodInfo.GetDisplayName(dropped)}! Aperte W / PULAR!");
-                    }
-                    else
-                    {
-                        onInfoMessage?.Invoke($"Ops! Tropeçou na(o) {obstacle.DisplayName}! Use W ou PULAR para saltar!");
-                    }
-                }
                 return;
             }
 

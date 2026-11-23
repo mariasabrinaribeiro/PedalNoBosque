@@ -152,6 +152,19 @@ namespace FlorestaBicicleta
             valePilot.SetBiome(currentBiome);
             valePilot.OnToggleFeedback += msg => ShowMessage(msg, 3.8f, new Color(1f, 0.94f, 0.64f, 1f));
 
+            // Auditoria Automatizada de Profundidade/Física/Geração (F9) e Circuito Controlado de Diagnóstico (F8)
+            WorldIntegrityValidator validator = gameObject.AddComponent<WorldIntegrityValidator>();
+            validator.Initialize(player, trackGenerator);
+            validator.OnValidationBanner += (msg, col) => ShowMessage(msg, 4.8f, col);
+
+            DiagnosticTrackScene diagScene = gameObject.AddComponent<DiagnosticTrackScene>();
+            diagScene.Initialize(player, validator);
+            diagScene.OnDiagnosticMessage += (msg, col) => ShowMessage(msg, 5.2f, col);
+            if (SceneManager.GetActiveScene().name.Contains("Diagnostico"))
+            {
+                diagScene.SpawnControlledDiagnosticZoneNearPlayer();
+            }
+
             // Cachorrinho Companheiro Inteligente na cestinha (Feliz, Curioso, Dormindo, Sede)
             puppyCompanion = gameObject.AddComponent<PuppyCompanionController>();
             puppyCompanion.Initialize(player);

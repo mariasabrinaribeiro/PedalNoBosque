@@ -14,7 +14,7 @@ namespace FlorestaBicicleta
         {
             SpriteRenderer sr = gameObject.AddComponent<SpriteRenderer>();
             sr.sprite = CreateRampSprite();
-            sr.sortingOrder = 4;
+            sr.sortingOrder = WorldDepth.JumpRamp;
 
             BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
             col.isTrigger = true;

@@ -122,7 +122,7 @@ namespace FlorestaBicicleta
                 SpriteRenderer sr = cObj.AddComponent<SpriteRenderer>();
                 sr.sprite = cloudSprite;
                 sr.color = new Color(1f, 0.99f, 0.97f, Random.Range(0.65f, 0.85f));
-                sr.sortingOrder = -16;
+                sr.sortingOrder = WorldDepth.SkyClouds;
 
                 clouds.Add(new CloudItem
                 {
@@ -148,7 +148,7 @@ namespace FlorestaBicicleta
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = BiomePropsFactory.CreateMidgroundTreeClusterSprite(i);
                 sr.flipX = (i % 2 == 1);
-                sr.sortingOrder = -13; // Entre montanhas distantes (-20) e árvores intermediárias (-10)
+                sr.sortingOrder = WorldDepth.DistantForest; // Entre montanhas distantes (-20) e árvores intermediárias (-10)
                 // Névoa atmosférica azul-esverdeada suave para profundidade natural sem competir com as montanhas
                 sr.color = new Color(0.58f, 0.76f, 0.74f, 0.56f);
                 float y = -2.15f + (i % 3) * 0.22f;
@@ -160,7 +160,7 @@ namespace FlorestaBicicleta
                     sr = sr,
                     screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
                     y = y,
-                    parallax = 0.30f,
+                    parallax = WorldDepth.ParallaxDistantForest,
                     screenSpan = totalScreenSpan,
                     variantIndex = i,
                     isTreeLayer = false,
@@ -183,7 +183,7 @@ namespace FlorestaBicicleta
                 sr.sprite = (i % 2 == 1)
                     ? BiomePropsFactory.CreateMidgroundTreeClusterSprite(i)
                     : BiomePropsFactory.CreateOrganicTreeSprite(i + 1);
-                sr.sortingOrder = -10;
+                sr.sortingOrder = WorldDepth.MidgroundTrees;
                 sr.color = new Color(0.78f, 0.87f, 0.83f, 0.76f);
                 float y = -2.42f + 0.18f * (i % 3);
                 float scale = (i % 2 == 1) ? 0.38f + (i % 3) * 0.05f : 0.34f + (i % 4) * 0.055f;
@@ -194,7 +194,7 @@ namespace FlorestaBicicleta
                     sr = sr,
                     screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
                     y = y,
-                    parallax = 0.55f,
+                    parallax = WorldDepth.ParallaxMidgroundTrees,
                     screenSpan = totalScreenSpan,
                     variantIndex = i + 1,
                     isTreeLayer = true,
@@ -216,14 +216,14 @@ namespace FlorestaBicicleta
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = BiomePropsFactory.LoadOakTreeSprite();
                 sr.flipX = (i % 2 == 1);
-                sr.sortingOrder = -4;
+                sr.sortingOrder = WorldDepth.NearParallaxTrees;
                 sr.color = (i % 2 == 0) ? Color.white : new Color(0.96f, 0.99f, 0.95f, 1f);
 
                 float sc = 0.64f + (i % 3) * 0.07f;
                 go.transform.localScale = new Vector3(sc, sc * (0.95f + (i % 2) * 0.06f), 1f);
 
                 // Sombra de contato suave na grama atrás do meio-fio (nunca invade a estrada)
-                BiomePropsFactory.AddContactShadow(go.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.85f, 0.32f), -5);
+                BiomePropsFactory.AddContactShadow(go.transform, new Vector3(0f, 0.02f, 0f), new Vector2(1.85f, 0.32f), WorldDepth.NearParallaxShadow);
 
                 GentleSway sway = go.AddComponent<GentleSway>();
                 sway.maxAngleDeg = 1.2f;
@@ -235,7 +235,7 @@ namespace FlorestaBicicleta
                     sr = sr,
                     screenBaseX = screenOffsets[i],
                     y = -2.30f + (i % 2) * 0.06f,
-                    parallax = 0.85f,
+                    parallax = WorldDepth.ParallaxNearTrees,
                     screenSpan = totalScreenSpan,
                     variantIndex = i,
                     isTreeLayer = true,
@@ -258,7 +258,7 @@ namespace FlorestaBicicleta
                 GameObject go = new GameObject($"PrimeiroPlano_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-                sr.sortingOrder = 16;
+                sr.sortingOrder = WorldDepth.ForegroundBase;
 
                 if (i % 3 == 0)
                     sr.sprite = BiomePropsFactory.CreateForegroundFernSprite();
@@ -278,8 +278,8 @@ namespace FlorestaBicicleta
                     tr = go.transform,
                     sr = sr,
                     screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
-                    y = -4.34f + (i % 2) * 0.04f,
-                    parallax = 1.18f,
+                    y = WorldDepth.ForegroundEdgeY + (i % 2) * 0.04f,
+                    parallax = WorldDepth.ParallaxForeground,
                     screenSpan = totalScreenSpan,
                     variantIndex = i,
                     isTreeLayer = false,
