@@ -74,7 +74,7 @@ namespace FlorestaBicicleta
         {
             if (bike == null || moodBubbleSR == null) return;
 
-            bool isStopped = Mathf.Abs(bike.currentSpeed) < 0.12f;
+            bool isStopped = !bike.IsMoving;
             if (isStopped)
                 idleTime += Time.deltaTime;
             else
@@ -86,14 +86,17 @@ namespace FlorestaBicicleta
                 if (timedMoodRemaining <= 0f) CurrentMood = PuppyMood.Neutro;
             }
 
-            // Prioridade de estados emocionais do cachorrinho
+            // Prioridade de estados emocionais do cachorrinho (100% sincronizado com o estado animado real!)
             PuppyMood displayMood = CurrentMood;
-            if (isFaroMode)
+            if (bike.CurrentPuppyAnimState == FlorestaSpriteFactory.PuppyAnimState.RecebendoCarinho)
+                displayMood = PuppyMood.Feliz;
+            else if (isFaroMode)
                 displayMood = PuppyMood.Curioso;
             else if (displayMood == PuppyMood.Neutro)
             {
                 if (bike.waterLevel < 25f) displayMood = PuppyMood.Sede;
-                else if (idleTime > 7.5f) displayMood = PuppyMood.Dormindo;
+                else if (idleTime > 8.0f && bike.CurrentPuppyAnimState == FlorestaSpriteFactory.PuppyAnimState.Descansando)
+                    displayMood = PuppyMood.Dormindo;
             }
 
             if (displayMood == PuppyMood.Neutro)
@@ -111,14 +114,14 @@ namespace FlorestaBicicleta
                 case PuppyMood.Sede:     moodBubbleSR.sprite = iconWater; break;
             }
 
-            float bob = Mathf.Sin(Time.time * (displayMood == PuppyMood.Dormindo ? 1.8f : 5.2f)) * 0.10f;
+            float bob = Mathf.Sin(Time.time * (displayMood == PuppyMood.Dormindo ? 1.8f : 5.2f)) * 0.08f;
             if (bike.isOnFoot && bike.ActivePuppyTransform != null)
             {
-                moodBubbleTr.position = bike.ActivePuppyTransform.position + new Vector3(0f, 1.35f + bob, 0f);
+                moodBubbleTr.position = bike.ActivePuppyTransform.position + new Vector3(0f, 1.32f + bob, 0f);
             }
             else
             {
-                moodBubbleTr.localPosition = new Vector3(0.95f, 2.55f + bob, 0f);
+                moodBubbleTr.localPosition = new Vector3(0.95f * bike.FacingDirection, 2.38f + bob, 0f);
             }
         }
 

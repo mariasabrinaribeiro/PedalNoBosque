@@ -77,6 +77,7 @@ namespace FlorestaBicicleta
         private TextMeshProUGUI adventureEventButtonLabel;
         private GameObject exploreModeButtonObj;
         private TextMeshProUGUI exploreModeButtonLabel;
+        private GameObject petPuppyButtonObj;
         private TrailAdventureEvent nearbyAdventureEvent;
 
         // Tela de Vitória
@@ -905,11 +906,22 @@ namespace FlorestaBicicleta
 
             exploreModeButtonObj = CreateIconClickButton(canvasObj.transform, "BtnExplorarAPe", "Descer da bicicleta (Q)",
                 StorybookUISpriteFactory.UIIconKind.Stroll,
-                new Vector2(0.5f, 0f), new Vector2(0f, 126f), new Vector2(260f, 38f),
+                new Vector2(0.5f, 0f), new Vector2(-88f, 126f), new Vector2(246f, 38f),
                 new Color(0.42f, 0.50f, 0.34f, 0.94f), 15,
                 () => player.ToggleExploreMode());
             exploreModeButtonLabel = exploreModeButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             exploreModeButtonObj.SetActive(false);
+
+            petPuppyButtonObj = CreateIconClickButton(canvasObj.transform, "BtnCarinhoCachorro", "Carinho (C)",
+                StorybookUISpriteFactory.UIIconKind.Star,
+                new Vector2(0.5f, 0f), new Vector2(124f, 126f), new Vector2(158f, 38f),
+                new Color(0.84f, 0.44f, 0.56f, 0.94f), 15,
+                () =>
+                {
+                    player.PetPuppy();
+                    puppyCompanion?.TriggerHappy(3.2f);
+                });
+            petPuppyButtonObj.SetActive(false);
 
             // Controles inferiores arredondados com ícones ilustrados reais (zero caracteres quadrados!)
             CreateIconHoldButton(canvasObj.transform, "BtnVoltar", "Voltar",
@@ -1300,10 +1312,15 @@ namespace FlorestaBicicleta
                 player.canDismountAtNearbyEvent = true;
                 if (exploreModeButtonObj != null)
                 {
-                    bool showExplore = player.isOnFoot || isExplorationEvent;
+                    bool showExplore = player.isOnFoot || isExplorationEvent || Mathf.Abs(player.currentSpeed) < 0.8f;
                     exploreModeButtonObj.SetActive(showExplore);
                     if (showExplore && exploreModeButtonLabel != null)
                         exploreModeButtonLabel.text = player.isOnFoot ? "Voltar à bicicleta (Q)" : "Descer e explorar (Q)";
+                }
+                if (petPuppyButtonObj != null)
+                {
+                    bool showPet = player.isOnFoot || Mathf.Abs(player.currentSpeed) < 0.8f;
+                    petPuppyButtonObj.SetActive(showPet);
                 }
             }
 

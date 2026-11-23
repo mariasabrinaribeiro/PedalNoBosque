@@ -31,10 +31,13 @@ namespace FlorestaBicicleta
 
         private static Sprite cachedSeamlessBgSprite;
         private static Sprite cachedSeamlessRoadStripSprite;
+        private static Sprite cachedGirlBikeNoPuppySprite;
         private static Sprite cachedRealWalkingGirlSprite;
         private static Sprite[] cachedWalkingGirlFrames;
         private static Sprite cachedRealRunningPuppySprite;
         private static readonly System.Collections.Generic.Dictionary<int, Sprite[]> cachedPuppyStateFrames =
+            new System.Collections.Generic.Dictionary<int, Sprite[]>();
+        private static readonly System.Collections.Generic.Dictionary<int, Sprite[]> cachedBasketPuppyStateFrames =
             new System.Collections.Generic.Dictionary<int, Sprite[]>();
         private static Sprite cachedRealParkedBikeSprite;
         private static Texture2D cachedReadableGirlBikeTex;
@@ -87,21 +90,53 @@ namespace FlorestaBicicleta
         }
 
         /// <summary>
-        /// Carrega bg_floresta.png preservando 100% da pintura original para a camada de montanhas e floresta distante.
-        /// Quando combinada com espelhamento alternado (flipX = i % 2 != 0), as bordas esquerda/direita casam
-        /// pixel a pixel sem nenhuma linha ou emenda vertical!
+        /// Carrega bg_floresta.png preservando 100% da pintura original para a camada de montanhas e floresta distante,
+        /// aplicando suavização sutil apenas nos 5px extremos das bordas para emenda espelhada (flipX) 100% invisível.
         /// </summary>
         public static Sprite LoadForestBackgroundSprite(float cameraWorldHeight)
         {
             if (cachedSeamlessBgSprite != null) return cachedSeamlessBgSprite;
-            cachedSeamlessBgSprite = LoadResourceSprite("Floresta/bg_floresta", cameraWorldHeight, 0.5f);
+            Texture2D src = GetReadableBgTexture();
+            if (src == null)
+            {
+                cachedSeamlessBgSprite = LoadResourceSprite("Floresta/bg_floresta", cameraWorldHeight, 0.5f);
+                return cachedSeamlessBgSprite;
+            }
+
+            int w = src.width;
+            int h = src.height;
+            Texture2D seamlessTex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            seamlessTex.filterMode = FilterMode.Bilinear;
+            seamlessTex.wrapMode = TextureWrapMode.Clamp;
+
+            Color[] pixels = src.GetPixels();
+            // Suavização espelhada nos 5px mais externos para eliminar qualquer variação brusca na emenda flipX
+            const int edgeSmooth = 5;
+            for (int y = 0; y < h; y++)
+            {
+                int row = y * w;
+                Color leftAnchor = pixels[row + edgeSmooth];
+                Color rightAnchor = pixels[row + (w - 1 - edgeSmooth)];
+                for (int dx = 0; dx < edgeSmooth; dx++)
+                {
+                    float t = dx / (float)edgeSmooth;
+                    pixels[row + dx] = Color.Lerp(leftAnchor, pixels[row + dx], t * 0.5f + 0.5f);
+                    pixels[row + (w - 1 - dx)] = Color.Lerp(rightAnchor, pixels[row + (w - 1 - dx)], t * 0.5f + 0.5f);
+                }
+            }
+
+            seamlessTex.SetPixels(pixels);
+            seamlessTex.Apply();
+
+            float ppu = h / Mathf.Max(0.1f, cameraWorldHeight);
+            cachedSeamlessBgSprite = Sprite.Create(seamlessTex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), ppu);
             return cachedSeamlessBgSprite;
         }
 
         /// <summary>
-        /// Extrai a faixa inferior da estrada e suas margens floridas de bg_floresta.png (linhas 0..310 de 1024)
-        /// com transição de alfa suave no topo da grama superior, para que a ESTRADA se mova a 100% (1.0x)
-        /// presa ao mundo físico da bicicleta, enquanto as montanhas e a floresta ao fundo se movem em parallax!
+        /// Extrai APENAS a faixa da estrada e suas margens imediatas de grama de bg_floresta.png (linhas 0..164 de 768)
+        /// com equalização suave da luminosidade da estrada nas bordas e transição alfa suave no topo,
+        /// para que a ESTRADA + meio-fio se movam a 100% (1.0x) presos ao mundo físico sem nenhuma emenda vertical!
         /// </summary>
         public static Sprite LoadForestRoadStripSprite(float cameraWorldHeight)
         {
@@ -110,13 +145,55 @@ namespace FlorestaBicicleta
             if (src == null) return null;
 
             int w = src.width;
-            int stripH = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.305f), 260, src.height);
-            int featherRows = 28;
+            // ~21.4% de 768px = 164px: cobre a grama inferior (0..48), a estrada inteira (48..124)
+            // e a borda imediata do meio-fio superior (124..164), mantendo a campina superior no parallax distante!
+            int stripH = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.214f), 148, src.height);
+            int featherRows = 26;
             Texture2D stripTex = new Texture2D(w, stripH, TextureFormat.RGBA32, false);
             stripTex.filterMode = FilterMode.Bilinear;
             stripTex.wrapMode = TextureWrapMode.Clamp;
 
             Color[] srcPixels = src.GetPixels(0, 0, w, stripH);
+
+            // Equaliza o gradiente de iluminação esquerda/direita na faixa de terra batida da estrada (44..128)
+            // para eliminar qualquer degrau de tonalidade (claro/escuro) entre segmentos consecutivos da estrada!
+            int roadY0 = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.058f), 0, stripH - 1);
+            int roadY1 = Mathf.Clamp(Mathf.RoundToInt(src.height * 0.166f), roadY0 + 1, stripH - 1);
+            int blendSpan = Mathf.Min(180, w / 4);
+            for (int y = roadY0; y <= roadY1; y++)
+            {
+                int rowOffset = y * w;
+                Color midRef = srcPixels[rowOffset + w / 2];
+                for (int dx = 0; dx < blendSpan; dx++)
+                {
+                    float u = 1f - (dx / (float)blendSpan);
+                    float wBlend = u * u * (3f - 2f * u) * 0.65f;
+
+                    Color cL = srcPixels[rowOffset + dx];
+                    float lumL = Mathf.Max(0.05f, cL.r * 0.299f + cL.g * 0.587f + cL.b * 0.114f);
+                    float lumMid = Mathf.Max(0.05f, midRef.r * 0.299f + midRef.g * 0.587f + midRef.b * 0.114f);
+                    float ratioL = Mathf.Clamp(lumMid / lumL, 0.85f, 1.20f);
+                    Color normL = new Color(
+                        Mathf.Clamp01(cL.r * Mathf.Lerp(1f, ratioL, wBlend)),
+                        Mathf.Clamp01(cL.g * Mathf.Lerp(1f, ratioL, wBlend)),
+                        Mathf.Clamp01(cL.b * Mathf.Lerp(1f, ratioL, wBlend)),
+                        cL.a);
+                    srcPixels[rowOffset + dx] = Color.Lerp(normL, midRef, wBlend * 0.25f);
+
+                    int rx = w - 1 - dx;
+                    Color cR = srcPixels[rowOffset + rx];
+                    float lumR = Mathf.Max(0.05f, cR.r * 0.299f + cR.g * 0.587f + cR.b * 0.114f);
+                    float ratioR = Mathf.Clamp(lumMid / lumR, 0.85f, 1.20f);
+                    Color normR = new Color(
+                        Mathf.Clamp01(cR.r * Mathf.Lerp(1f, ratioR, wBlend)),
+                        Mathf.Clamp01(cR.g * Mathf.Lerp(1f, ratioR, wBlend)),
+                        Mathf.Clamp01(cR.b * Mathf.Lerp(1f, ratioR, wBlend)),
+                        cR.a);
+                    srcPixels[rowOffset + rx] = Color.Lerp(normR, midRef, wBlend * 0.25f);
+                }
+            }
+
+            // Transição alfa suave no topo da borda gramada superior (sem corte duro)
             for (int y = stripH - featherRows; y < stripH; y++)
             {
                 float alpha = 1f - (y - (stripH - featherRows)) / (float)featherRows;
@@ -146,6 +223,40 @@ namespace FlorestaBicicleta
         {
             // Pivô Y = 83/1024 (0.08105f) corresponde exatamente à base inferior dos pneus em girl_bike.png
             return LoadResourceSprite("Floresta/girl_bike", 3.3f, 83f / 1024f);
+        }
+
+        /// <summary>
+        /// Cópia em memória de girl_bike.png removendo apenas a cabecinha estática do cachorrinho acima da borda
+        /// da cestinha de vime (x=682..832, y=510..645) para que o cachorrinho expressivo animado (basketPuppySR)
+        /// se encaixe perfeitamente na cestinha sem nenhuma duplicação! O arquivo original em disco permanece intacto.
+        /// </summary>
+        public static Sprite LoadGirlBikeWithoutBasketPuppySprite()
+        {
+            if (cachedGirlBikeNoPuppySprite != null) return cachedGirlBikeNoPuppySprite;
+            Texture2D src = GetReadableGirlBikeTexture();
+            if (src == null) return LoadGirlBikeSprite();
+
+            int w = src.width, h = src.height;
+            Texture2D copy = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            copy.filterMode = FilterMode.Bilinear;
+            copy.wrapMode = TextureWrapMode.Clamp;
+            Color[] pixels = src.GetPixels();
+
+            for (int y = 510; y <= 645 && y < h; y++)
+            {
+                int row = y * w;
+                int minX = (y >= 542) ? 674 : 684;
+                for (int x = minX; x <= 834 && x < w; x++)
+                {
+                    pixels[row + x] = Color.clear;
+                }
+            }
+
+            copy.SetPixels(pixels);
+            copy.Apply();
+            float ppu = h / 3.3f;
+            cachedGirlBikeNoPuppySprite = Sprite.Create(copy, new Rect(0, 0, w, h), new Vector2(0.5f, 83f / 1024f), ppu);
+            return cachedGirlBikeNoPuppySprite;
         }
 
         /// <summary>
@@ -186,17 +297,22 @@ namespace FlorestaBicicleta
             int outH = cropY1 - cropY0 + 1;
             Texture2D outTex = NewTex(outW, outH);
 
-            // 1. Copia a cabeça, capacete azul, cabelo ao vento e torso de blusa listrada da menina (sy = 468..915)
-            // removendo o antebraço esticado para o guidão (sx > 528 e sy < 610) para que ela não pareça segurar um guidão invisível!
-            for (int sy = 468; sy <= cropY1; sy++)
+            // 1. Copia a cabeça, capacete azul, cabelo ao vento e torso de blusa listrada da menina (sy = 496..915)
+            // removendo completamente o braço esticado de pedalar (sx > 488 e sy < 602) e a calça dobrada sentada,
+            // preservando 100% da identidade original sem deixar nenhum resto de guidão ou cotovelo esticado!
+            for (int sy = 496; sy <= cropY1; sy++)
             {
                 for (int sx = cropX0; sx <= cropX1; sx++)
                 {
-                    if (sx > 528 && sy < 612) continue;
-                    if (sx < 395 && sy < 495) continue;
+                    if (sx > 488 && sy < 602) continue;
+                    if (sx > 504 && sy < 626) continue;
 
                     Color c = src.GetPixel(sx, sy);
                     if (c.a < 0.08f) continue;
+
+                    // Remove restos azuis da calça dobrada na base do recorte (abaixo da barra da camisa)
+                    if (sy < 516 && c.b > c.r + 0.06f) continue;
+
                     outTex.SetPixel(sx - cropX0, sy - cropY0, c);
                 }
             }
@@ -214,65 +330,75 @@ namespace FlorestaBicicleta
 
             // Deslocamento das duas pernas e do braço conforme o quadro:
             // frame 0 = Parada em pé ao lado da bicicleta
-            // frame 1 = Caminhando (passo 1)
-            // frame 2 = Caminhando (passo 2)
-            int backFootOffset = (frameIndex == 1) ? -24 : (frameIndex == 2 ? 22 : -12);
-            int frontFootOffset = (frameIndex == 1) ? 24 : (frameIndex == 2 ? -20 : 12);
-            int armSwingX = (frameIndex == 1) ? -10 : (frameIndex == 2 ? 12 : 2);
+            // frame 1 = Caminhando (passo direito à frente)
+            // frame 2 = Caminhando (passo esquerdo à frente)
+            int backFootOffset = (frameIndex == 1) ? -36 : (frameIndex == 2 ? 32 : -14);
+            int frontFootOffset = (frameIndex == 1) ? 36 : (frameIndex == 2 ? -30 : 14);
+            int armSwingX = (frameIndex == 1) ? -22 : (frameIndex == 2 ? 26 : 4);
 
-            int hipCenterX = 456 - cropX0; // 256
-            int hipY = 472 - cropY0;       // 332
-            int ankleY = 186 - cropY0;     // 46
+            // Proporção Cozy Storybook fiel a girl_bike.png (pernas proporcionais, não alongadas!)
+            int hipCenterX = 428 - cropX0; // 228
+            int hipY = 494 - cropY0;       // 354
+            int ankleY = 268 - cropY0;     // 128
 
-            // 2. Perna de trás (calça jeans sombreada + tênis rosa apoiado no chão)
-            DrawStandingLeg(outTex, hipCenterX - 8, hipY, hipCenterX + backFootOffset, ankleY,
+            // 2. Perna de trás (dois passes: contorno liso primeiro, preenchimento jeans depois — ZERO listras!)
+            DrawStandingLeg(outTex, hipCenterX - 10, hipY, hipCenterX + backFootOffset, ankleY,
                 ink, jeansDark, jeansMid, shoePink, shoeSole);
 
             // 3. Cintura / quadril da calça jeans unindo suavemente à blusa listrada
-            DrawEllipse(outTex, hipCenterX, hipY + 4, 34, 24, ink);
-            DrawEllipse(outTex, hipCenterX, hipY + 4, 30, 20, jeansMid);
-            DrawEllipse(outTex, hipCenterX + 4, hipY + 6, 18, 12, jeansLight);
+            DrawEllipse(outTex, hipCenterX, hipY + 4, 42, 24, ink);
+            DrawEllipse(outTex, hipCenterX, hipY + 4, 38, 20, jeansMid);
+            DrawEllipse(outTex, hipCenterX + 4, hipY + 6, 22, 12, jeansLight);
 
-            // Barra inferior da blusa listrada sobre o cós da calça
-            DrawEllipse(outTex, hipCenterX + 2, hipY + 22, 34, 12, ink);
-            DrawEllipse(outTex, hipCenterX + 2, hipY + 22, 30, 9, shirtCoral);
-            DrawEllipse(outTex, hipCenterX + 2, hipY + 25, 28, 5, shirtCream);
+            // Barra inferior da blusa listrada sobre o cós da calça (cobre suavemente o corte inferior)
+            DrawEllipse(outTex, hipCenterX + 2, hipY + 20, 44, 14, ink);
+            DrawEllipse(outTex, hipCenterX + 2, hipY + 20, 40, 11, shirtCoral);
+            DrawEllipse(outTex, hipCenterX + 2, hipY + 23, 36, 5, shirtCream);
 
-            // 4. Perna da frente (calça jeans iluminada + tênis rosa e branco original)
-            DrawStandingLeg(outTex, hipCenterX + 6, hipY, hipCenterX + frontFootOffset, ankleY,
+            // 4. Perna da frente (dois passes lisos + tênis rosa e branco)
+            DrawStandingLeg(outTex, hipCenterX + 9, hipY, hipCenterX + frontFootOffset, ankleY,
                 ink, jeansMid, jeansLight, shoePink, shoeSole);
 
-            // 5. Braço natural relaxado ao lado do corpo (balançando suavemente ao caminhar, nunca esticado como no guidão!)
-            int shoulderX = 468 - cropX0;
-            int shoulderY = 594 - cropY0;
-            int handX = shoulderX + 12 + armSwingX;
-            int handY = 464 - cropY0;
+            // 5. Braço natural relaxado ao lado do corpo em DOIS PASSES (contorno liso + pele lisa, ZERO anéis!)
+            int shoulderX = 462 - cropX0;
+            int shoulderY = 588 - cropY0;
+            int handX = shoulderX + 6 + armSwingX;
+            int handY = 470 - cropY0;
 
-            // Manga listrada no ombro
-            DrawEllipse(outTex, shoulderX, shoulderY - 8, 18, 22, ink);
-            DrawEllipse(outTex, shoulderX, shoulderY - 8, 14, 18, shirtCoral);
-            DrawEllipse(outTex, shoulderX, shoulderY - 5, 13, 7, shirtCream);
-
-            // Antebraço e mãozinha
-            int steps = 24;
+            // Passe 1: contorno ink contínuo do braço e mão
+            int steps = 28;
             for (int i = 0; i <= steps; i++)
             {
                 float t = i / (float)steps;
                 int ax = Mathf.RoundToInt(Mathf.Lerp(shoulderX + 2, handX, t));
-                int ay = Mathf.RoundToInt(Mathf.Lerp(shoulderY - 18, handY, t));
-                DrawCircle(outTex, ax, ay, 11, ink);
-                DrawCircle(outTex, ax, ay, 8, skin);
-                DrawCircle(outTex, ax - 2, ay, 4, skinShadow);
+                int ay = Mathf.RoundToInt(Mathf.Lerp(shoulderY - 16, handY, t));
+                DrawCircle(outTex, ax, ay, 13, ink);
             }
-            DrawCircle(outTex, handX + 2, handY - 2, 11, ink);
-            DrawCircle(outTex, handX + 2, handY - 2, 8, skin);
+            DrawCircle(outTex, handX + 1, handY - 2, 13, ink);
+
+            // Passe 2: preenchimento suave de pele e sombra do braço e mão
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                int ax = Mathf.RoundToInt(Mathf.Lerp(shoulderX + 2, handX, t));
+                int ay = Mathf.RoundToInt(Mathf.Lerp(shoulderY - 16, handY, t));
+                DrawCircle(outTex, ax, ay, 9, skin);
+                DrawCircle(outTex, ax - 3, ay, 4, skinShadow);
+            }
+            DrawCircle(outTex, handX + 1, handY - 2, 9, skin);
+
+            // Manga listrada no ombro por cima da junção do braço (cobre suavemente o corte do ombro)
+            DrawEllipse(outTex, shoulderX, shoulderY - 6, 22, 24, ink);
+            DrawEllipse(outTex, shoulderX, shoulderY - 6, 18, 20, shirtCoral);
+            DrawEllipse(outTex, shoulderX, shoulderY - 2, 17, 7, shirtCream);
+            DrawEllipse(outTex, shoulderX, shoulderY - 14, 15, 5, shirtCream);
 
             outTex.Apply();
             float ppu = 1024f / 3.3f;
             return Sprite.Create(
                 outTex,
                 new Rect(0, 0, outW, outH),
-                new Vector2(hipCenterX / (float)outW, 30f / outH),
+                new Vector2(hipCenterX / (float)outW, (ankleY - 16f) / outH),
                 ppu);
         }
 
@@ -280,43 +406,73 @@ namespace FlorestaBicicleta
             Texture2D tex, int hipX, int hipY, int footX, int ankleY,
             Color ink, Color jeansMain, Color jeansHigh, Color shoePink, Color shoeSole)
         {
-            int kneeX = (hipX + footX) / 2 + 4;
-            int kneeY = (hipY + ankleY) / 2 + 6;
+            int kneeX = (hipX + footX) / 2 + 5;
+            int kneeY = (hipY + ankleY) / 2 + 4;
+            int steps = 28;
 
-            // Coxa (quadril -> joelho)
-            int steps = 26;
+            // Passe 1: contorno ink contínuo da coxa + canela (zero anéis internos!)
             for (int i = 0; i <= steps; i++)
             {
                 float t = i / (float)steps;
                 int lx = Mathf.RoundToInt(Mathf.Lerp(hipX, kneeX, t));
                 int ly = Mathf.RoundToInt(Mathf.Lerp(hipY, kneeY, t));
-                int rad = Mathf.RoundToInt(Mathf.Lerp(21f, 17f, t));
-                DrawCircle(tex, lx, ly, rad + 3, ink);
-                DrawCircle(tex, lx, ly, rad, jeansMain);
-                DrawCircle(tex, lx + 3, ly, Mathf.Max(4, rad - 6), jeansHigh);
+                int rad = Mathf.RoundToInt(Mathf.Lerp(26f, 21f, t));
+                DrawCircle(tex, lx, ly, rad + 4, ink);
             }
-
-            // Canela (joelho -> tornozelo)
             for (int i = 0; i <= steps; i++)
             {
                 float t = i / (float)steps;
                 int lx = Mathf.RoundToInt(Mathf.Lerp(kneeX, footX, t));
                 int ly = Mathf.RoundToInt(Mathf.Lerp(kneeY, ankleY, t));
-                int rad = Mathf.RoundToInt(Mathf.Lerp(17f, 13f, t));
-                DrawCircle(tex, lx, ly, rad + 3, ink);
+                int rad = Mathf.RoundToInt(Mathf.Lerp(21f, 16f, t));
+                DrawCircle(tex, lx, ly, rad + 4, ink);
+            }
+
+            // Passe 2: preenchimento jeans contínuo e liso
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                int lx = Mathf.RoundToInt(Mathf.Lerp(hipX, kneeX, t));
+                int ly = Mathf.RoundToInt(Mathf.Lerp(hipY, kneeY, t));
+                int rad = Mathf.RoundToInt(Mathf.Lerp(26f, 21f, t));
                 DrawCircle(tex, lx, ly, rad, jeansMain);
-                DrawCircle(tex, lx + 2, ly, Mathf.Max(3, rad - 5), jeansHigh);
+            }
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                int lx = Mathf.RoundToInt(Mathf.Lerp(kneeX, footX, t));
+                int ly = Mathf.RoundToInt(Mathf.Lerp(kneeY, ankleY, t));
+                int rad = Mathf.RoundToInt(Mathf.Lerp(21f, 16f, t));
+                DrawCircle(tex, lx, ly, rad, jeansMain);
+            }
+
+            // Passe 3: brilho suave na frente da calça jeans
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                int lx = Mathf.RoundToInt(Mathf.Lerp(hipX, kneeX, t));
+                int ly = Mathf.RoundToInt(Mathf.Lerp(hipY, kneeY, t));
+                int rad = Mathf.RoundToInt(Mathf.Lerp(14f, 10f, t));
+                DrawCircle(tex, lx + 5, ly, rad, jeansHigh);
+            }
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                int lx = Mathf.RoundToInt(Mathf.Lerp(kneeX, footX, t));
+                int ly = Mathf.RoundToInt(Mathf.Lerp(kneeY, ankleY, t));
+                int rad = Mathf.RoundToInt(Mathf.Lerp(10f, 7f, t));
+                DrawCircle(tex, lx + 4, ly, rad, jeansHigh);
             }
 
             // Barra dobrada da calça jeans
-            DrawEllipse(tex, footX, ankleY + 12, 17, 7, ink);
-            DrawEllipse(tex, footX, ankleY + 12, 14, 5, jeansHigh);
+            DrawEllipse(tex, footX, ankleY + 12, 20, 8, ink);
+            DrawEllipse(tex, footX, ankleY + 12, 16, 5, jeansHigh);
 
-            // Meia branca e tênis rosa/branco apoiado horizontalmente no chão (base em y = 30)
-            DrawEllipse(tex, footX + 10, ankleY - 2, 26, 15, ink);
-            DrawEllipse(tex, footX + 10, ankleY - 1, 22, 12, shoePink);
-            DrawEllipse(tex, footX + 10, ankleY - 10, 24, 6, ink);
-            DrawEllipse(tex, footX + 10, ankleY - 9, 21, 4, shoeSole);
+            // Meia branca e tênis rosa/branco apoiado horizontalmente no chão
+            DrawEllipse(tex, footX + 10, ankleY - 3, 29, 16, ink);
+            DrawEllipse(tex, footX + 10, ankleY - 2, 25, 13, shoePink);
+            DrawEllipse(tex, footX + 10, ankleY - 12, 27, 6, ink);
+            DrawEllipse(tex, footX + 10, ankleY - 11, 24, 4, shoeSole);
             DrawCircle(tex, footX + 14, ankleY + 3, 4, Color.white);
         }
 
@@ -342,16 +498,39 @@ namespace FlorestaBicicleta
             Texture2D src = GetReadableGirlBikeTexture();
             if (src == null) return null;
 
+            bool inBasket = (state == PuppyAnimState.NaCestinha);
             frames = new Sprite[2]
             {
-                BuildExpressivePuppyFrame(src, state, 0),
-                BuildExpressivePuppyFrame(src, state, 1)
+                BuildExpressivePuppyFrame(src, state, 0, inBasket),
+                BuildExpressivePuppyFrame(src, state, 1, inBasket)
             };
             cachedPuppyStateFrames[key] = frames;
             return frames;
         }
 
-        private static Sprite BuildExpressivePuppyFrame(Texture2D src, PuppyAnimState state, int phase)
+        /// <summary>
+        /// Gera quadros animados do cachorrinho NA CESTINHA para qualquer expressão (Feliz, Curioso,
+        /// Farejando, RecebendoCarinho, Descansando), alinhados ao pixel exato da cestinha de girl_bike.png!
+        /// </summary>
+        public static Sprite[] GetBasketPuppyStateFrames(PuppyAnimState state)
+        {
+            int key = (int)state;
+            if (cachedBasketPuppyStateFrames.TryGetValue(key, out Sprite[] frames) && frames != null && frames.Length > 0 && frames[0] != null)
+                return frames;
+
+            Texture2D src = GetReadableGirlBikeTexture();
+            if (src == null) return null;
+
+            frames = new Sprite[2]
+            {
+                BuildExpressivePuppyFrame(src, state, 0, true),
+                BuildExpressivePuppyFrame(src, state, 1, true)
+            };
+            cachedBasketPuppyStateFrames[key] = frames;
+            return frames;
+        }
+
+        private static Sprite BuildExpressivePuppyFrame(Texture2D src, PuppyAnimState state, int phase, bool isInBasket)
         {
             int outW = 240, outH = 225;
             Texture2D outTex = NewTex(outW, outH);
@@ -360,75 +539,88 @@ namespace FlorestaBicicleta
             Color ink = new Color(0.14f, 0.07f, 0.05f, 1f);
             Color furDark = new Color(0.776f, 0.545f, 0.325f, 1f);
             Color furMid = new Color(0.906f, 0.706f, 0.482f, 1f);
-            Color furHigh = new Color(1.000f, 0.855f, 0.651f, 1f);
+            Color furHigh = new Color(0.955f, 0.805f, 0.565f, 1f);
             Color collarRed = new Color(0.92f, 0.32f, 0.34f, 1f);
             Color medalGold = new Color(1f, 0.86f, 0.24f, 1f);
             Color mouthDark = new Color(0.38f, 0.12f, 0.14f, 1f);
             Color tonguePink = new Color(1.00f, 0.46f, 0.58f, 1f);
-            Color tongueLight = new Color(1.00f, 0.68f, 0.76f, 1f);
-            Color blushPink = new Color(0.98f, 0.55f, 0.58f, 0.85f);
+            Color tongueLight = new Color(1.00f, 0.72f, 0.80f, 1f);
+            Color blushPink = new Color(0.98f, 0.55f, 0.58f, 0.82f);
 
             bool isResting = (state == PuppyAnimState.Descansando);
             bool isSniffing = (state == PuppyAnimState.Farejando);
             bool isRunning = (state == PuppyAnimState.Correndo);
             bool isPetted = (state == PuppyAnimState.RecebendoCarinho);
             bool isCurious = (state == PuppyAnimState.Curioso);
-            bool isInBasket = (state == PuppyAnimState.NaCestinha);
+            bool isHappy = (state == PuppyAnimState.Feliz || state == PuppyAnimState.NaCestinha);
 
-            // No estado NaCestinha, desenhamos apenas a cabeça expressiva, orelhinhas e patinhas apoiadas na borda
+            // Quando fora da cestinha (a pé), desenhamos corpinho, rabinho abanando, patinhas animadas e coleirinha
             if (!isInBasket)
             {
-                // 1. Rabinho dourado abanando com movimento suave entre phase 0 e phase 1
-                int tailTipY = isResting ? 48 : (phase == 0 ? 88 : 74);
-                int tailTipX = isResting ? 46 : (phase == 0 ? 48 : 54);
-                DrawEllipse(outTex, tailTipX + 10, tailTipY - 6, 24, 12, ink);
-                DrawEllipse(outTex, tailTipX + 10, tailTipY - 6, 20, 8, furMid);
-                DrawEllipse(outTex, tailTipX + 8, tailTipY - 4, 14, 5, furHigh);
+                // 1. Rabinho dourado abanando com movimento visível entre phase 0 e phase 1
+                int tailTipY = isResting ? 44 : (isPetted || isHappy || isRunning ? (phase == 0 ? 94 : 74) : (phase == 0 ? 84 : 76));
+                int tailTipX = isResting ? 44 : (phase == 0 ? 44 : 56);
+                DrawEllipse(outTex, tailTipX + 12, tailTipY - 6, 25, 12, ink);
+                DrawEllipse(outTex, tailTipX + 12, tailTipY - 6, 21, 8, furMid);
+                DrawEllipse(outTex, tailTipX + 10, tailTipY - 4, 15, 5, furHigh);
 
                 // 2. Patinhas animadas conforme o estado (Correndo, Parado/Feliz, Farejando, Descansando)
-                int bodyY = isResting ? 40 : (isSniffing ? 54 : (phase == 1 && isRunning ? 62 : 56));
+                int bodyY = isResting ? 38 : (isSniffing ? 50 : (phase == 1 && isRunning ? 62 : 56));
                 int[] pawX = isRunning
-                    ? (phase == 0 ? new[] { 66, 94, 134, 162 } : new[] { 84, 106, 120, 144 })
-                    : (isResting ? new[] { 74, 96, 134, 154 } : new[] { 76, 100, 128, 150 });
-                int pawBaseY = isResting ? 20 : 28;
+                    ? (phase == 0 ? new[] { 62, 92, 136, 166 } : new[] { 86, 108, 120, 144 })
+                    : (isResting ? new[] { 72, 96, 136, 158 } : new[] { 76, 100, 128, 150 });
+                int pawBaseY = isResting ? 19 : 28;
 
                 for (int i = 0; i < pawX.Length; i++)
                 {
                     int px = pawX[i];
-                    int py = pawBaseY + ((isRunning && ((i + phase) % 2 == 0)) ? 6 : 0);
-                    DrawEllipse(outTex, px, py, 14, isResting ? 10 : 17, ink);
-                    DrawEllipse(outTex, px, py + 1, 10, isResting ? 7 : 13, (i % 2 == 0) ? furDark : furMid);
+                    int py = pawBaseY + ((isRunning && ((i + phase) % 2 == 0)) ? 7 : 0);
+                    DrawEllipse(outTex, px, py, 14, isResting ? 9 : 17, ink);
+                    DrawEllipse(outTex, px, py + 1, 10, isResting ? 6 : 13, (i % 2 == 0) ? furDark : furMid);
                     DrawEllipse(outTex, px + 3, py - (isResting ? 4 : 10), 13, 8, ink);
                     DrawEllipse(outTex, px + 3, py - (isResting ? 3 : 9), 9, 5, furHigh);
                 }
 
                 // 3. Tronco e barriguinha macia do cachorrinho
-                DrawEllipse(outTex, 114, bodyY, 48, isResting ? 23 : 29, ink);
-                DrawEllipse(outTex, 114, bodyY, 43, isResting ? 19 : 24, furMid);
+                DrawEllipse(outTex, 114, bodyY, 48, isResting ? 22 : 29, ink);
+                DrawEllipse(outTex, 114, bodyY, 43, isResting ? 18 : 24, furMid);
                 DrawEllipse(outTex, 118, bodyY - 4, 30, 15, furHigh);
 
                 // 4. Coleirinha vermelha charmosa com medalhinha dourada
-                int collarY = isSniffing ? bodyY + 8 : bodyY + 16;
+                int collarY = isSniffing ? bodyY + 6 : bodyY + 16;
                 DrawEllipse(outTex, 132, collarY, 27, 9, ink);
                 DrawEllipse(outTex, 132, collarY, 23, 6, collarRed);
                 DrawCircle(outTex, 146, collarY - 6, 7, ink);
                 DrawCircle(outTex, 146, collarY - 6, 5, medalGold);
             }
 
-            // 5. Copia a cabeça original do cachorrinho de girl_bike.png (x=675..829, y=504..633)
-            int srcX0 = 675, srcX1 = 829;
-            int srcY0 = 504, srcY1 = 633;
-            int destOffsetX = isSniffing ? 48 : (isCurious && phase == 1 ? 42 : 40);
-            int destOffsetY = isInBasket ? 28 : (isResting ? 48 : (isSniffing ? 46 : (phase == 1 ? 72 : 68)));
+            // 5. Copia a cabeça original do cachorrinho de girl_bike.png (x=675..830, y=504..638)
+            // Quando fora da cestinha (!isInBasket), recorta apenas a cabeça/pescoço (sy >= 532)
+            // removendo as patinhas apoiadas na cesta e a borda de vime para um corpo 100% limpo!
+            int srcX0 = 675, srcX1 = 830;
+            int srcY0 = 504, srcY1 = 638;
+            int copyMinY = isInBasket ? 504 : 532;
+            int destOffsetX = isInBasket ? 40 : (isSniffing ? 50 : (isCurious && phase == 1 ? 42 : 40));
+            int destOffsetY = isInBasket
+                ? (isResting ? 24 : (phase == 1 ? 30 : 28))
+                : (isResting ? 40 : (isSniffing ? 36 : (phase == 1 ? 66 : 62)));
+            int earLift = (isCurious || isRunning || isPetted) ? (phase == 0 ? 5 : 1) : (isResting ? -2 : (phase == 0 ? 3 : 0));
 
-            for (int sy = srcY0; sy <= srcY1; sy++)
+            for (int sy = copyMinY; sy <= srcY1; sy++)
             {
                 for (int sx = srcX0; sx <= srcX1; sx++)
                 {
+                    // Remove pontinha do guidão/rabo da cesta no canto inferior esquerdo
+                    if (sx < 698 && sy < 544) continue;
+                    // Quando a pé, remove a patinha direita apoiada na borda da cesta (sx > 792 && sy < 546)
+                    if (!isInBasket && sx > 790 && sy < 548) continue;
+
                     Color c = src.GetPixel(sx, sy);
                     if (c.a < 0.12f) continue;
+
+                    bool isLeftEar = (sx <= 722 && sy >= 542 && sy <= 616);
                     int dx = (sx - srcX0) + destOffsetX;
-                    int dy = (sy - srcY0) + destOffsetY;
+                    int dy = (sy - srcY0) + destOffsetY + (isLeftEar ? earLift : 0);
                     if (dx >= 0 && dx < outW && dy >= 0 && dy < outH)
                     {
                         outTex.SetPixel(dx, dy, c);
@@ -436,82 +628,77 @@ namespace FlorestaBicicleta
                 }
             }
 
-            // Coordenadas faciais relativas à cabeça copiada (centro do rostinho do cachorrinho)
-            int faceCenterX = destOffsetX + 86;
-            int faceCenterY = destOffsetY + 66;
+            // Coordenadas faciais EXATAS medidas em girl_bike.png (1024x1024):
+            // Olho esquerdo: (752, 580) | Olho direito: (793, 586)
+            // Focinho: (783, 569)       | Boca + linguinha: (781, 547)
+            int leftEyeX = destOffsetX + (752 - srcX0);   // +77
+            int leftEyeY = destOffsetY + (580 - srcY0);   // +76
+            int rightEyeX = destOffsetX + (793 - srcX0);  // +118
+            int rightEyeY = destOffsetY + (586 - srcY0);  // +82
+            int mouthX = destOffsetX + (781 - srcX0);     // +106
+            int mouthY = destOffsetY + (547 - srcY0);     // +43
 
-            // 6. Orelhinhas expressivas com movimento suave entre os quadros
-            int earLift = (isCurious || isRunning) ? (phase == 0 ? 6 : 2) : (phase == 0 ? 3 : 0);
-            DrawEllipse(outTex, faceCenterX - 36, faceCenterY + 6 + earLift, 16, 24, ink);
-            DrawEllipse(outTex, faceCenterX - 36, faceCenterY + 6 + earLift, 12, 20, furDark);
-            DrawEllipse(outTex, faceCenterX - 34, faceCenterY + 8 + earLift, 7, 13, furMid);
-
-            // 7. Olhos vivos e expressivos (ou semicerrados de alegria ao receber carinho / descansar)
-            int leftEyeX = faceCenterX - 10;
-            int rightEyeX = faceCenterX + 18;
-            int eyeY = faceCenterY + 8;
-
-            // Limpa a região dos olhos com o pelo dourado claro antes de desenhar a expressão viva
-            DrawEllipse(outTex, leftEyeX, eyeY, 8, 8, furHigh);
-            DrawEllipse(outTex, rightEyeX, eyeY, 8, 8, furHigh);
-
+            // 6. Olhos expressivos no local exato dos olhinhos originais (ZERO olhos duplicados!)
             if (isPetted || isResting)
             {
-                // Olhinhos semicerrados em arco feliz (^ ^)
-                for (int ex = -6; ex <= 6; ex++)
+                // Cobre exatamente os olhos originais com o pelo dourado claro antes de desenhar o arco feliz/sereno
+                DrawEllipse(outTex, leftEyeX, leftEyeY, 9, 10, furHigh);
+                DrawEllipse(outTex, rightEyeX, rightEyeY, 9, 10, furHigh);
+
+                // Olhinhos semicerrados em arco contente (^ ^) ou tranquilos descansando
+                for (int ex = -7; ex <= 7; ex++)
                 {
-                    int archY = isResting ? -Mathf.Abs(ex) / 2 : (3 - Mathf.Abs(ex) / 2);
-                    DrawCircle(outTex, leftEyeX + ex, eyeY + archY, 2, ink);
-                    DrawCircle(outTex, rightEyeX + ex, eyeY + archY, 2, ink);
+                    int archY = isResting ? -Mathf.Abs(ex) / 2 : (4 - Mathf.Abs(ex) / 2);
+                    DrawCircle(outTex, leftEyeX + ex, leftEyeY + archY, 2, ink);
+                    DrawCircle(outTex, rightEyeX + ex, rightEyeY + archY, 2, ink);
                 }
             }
             else
             {
-                // Olhos vivos, grandes e brilhantes com duplo ponto de luz
-                DrawCircle(outTex, leftEyeX, eyeY, 6, ink);
-                DrawCircle(outTex, leftEyeX - 2, eyeY + 2, 2, Color.white);
-                outTex.SetPixel(leftEyeX + 2, eyeY - 1, Color.white);
-
-                DrawCircle(outTex, rightEyeX, eyeY, 6, ink);
-                DrawCircle(outTex, rightEyeX - 2, eyeY + 2, 2, Color.white);
-                outTex.SetPixel(rightEyeX + 2, eyeY - 1, Color.white);
+                // Mantém os olhos originais nítidos e reforça o brilho vivo de alegria com duplo ponto de luz
+                DrawCircle(outTex, leftEyeX - 2, leftEyeY + 3, 2, Color.white);
+                DrawCircle(outTex, rightEyeX - 2, rightEyeY + 3, 2, Color.white);
+                if (phase == 0 && (isHappy || isRunning || isCurious))
+                {
+                    outTex.SetPixel(leftEyeX + 2, leftEyeY - 2, Color.white);
+                    outTex.SetPixel(rightEyeX + 2, rightEyeY - 2, Color.white);
+                }
             }
 
-            // Bochechas rosadas alegres e focinho escuro brilhante
-            DrawEllipse(outTex, leftEyeX - 7, eyeY - 10, 6, 4, blushPink);
-            DrawEllipse(outTex, rightEyeX + 6, eyeY - 10, 6, 4, blushPink);
-            int noseX = faceCenterX + 6;
-            int noseY = faceCenterY - 4;
-            DrawEllipse(outTex, noseX, noseY, 7, 5, ink);
-            DrawCircle(outTex, noseX - 2, noseY + 1, 2, Color.white);
+            // Bochechinhas rosadas alegres sob os olhos (no ponto exato!)
+            DrawEllipse(outTex, leftEyeX - 8, leftEyeY - 14, 6, 4, blushPink);
+            DrawEllipse(outTex, rightEyeX + 5, rightEyeY - 14, 5, 3, blushPink);
 
-            // 8. Boca aberta em um sorriso carismático + linguinha rosada para fora!
-            int mouthX = faceCenterX + 5;
-            int mouthY = faceCenterY - 15;
+            // 7. Sorriso alegre + linguinha rosada bem visível e animada no local EXATO da boca (781, 547)!
             if (!isResting)
             {
-                // Sorriso aberto alegre
-                DrawEllipse(outTex, mouthX, mouthY, 12, 8, ink);
-                DrawEllipse(outTex, mouthX, mouthY + 1, 9, 6, mouthDark);
+                // Abertura alegre da boca
+                DrawEllipse(outTex, mouthX, mouthY + 2, 11, 7, ink);
+                DrawEllipse(outTex, mouthX, mouthY + 2, 8, 5, mouthDark);
 
-                // Linguinha rosada para fora (com leve movimento alegre entre phase 0 e phase 1)
-                int tongueOffsetX = (phase == 0) ? 2 : 4;
-                int tongueOffsetY = (phase == 0) ? -5 : -7;
+                // Linguinha rosada vibrante para fora (balançando suavemente entre phase 0 e phase 1!)
+                int tongueOffsetX = (phase == 0) ? 1 : 3;
+                int tongueOffsetY = (phase == 0) ? -4 : -7;
                 DrawEllipse(outTex, mouthX + tongueOffsetX, mouthY + tongueOffsetY, 8, 9, ink);
                 DrawEllipse(outTex, mouthX + tongueOffsetX, mouthY + tongueOffsetY, 6, 7, tonguePink);
-                DrawEllipse(outTex, mouthX + tongueOffsetX - 1, mouthY + tongueOffsetY + 1, 3, 4, tongueLight);
+                DrawEllipse(outTex, mouthX + tongueOffsetX - 1, mouthY + tongueOffsetY + 2, 3, 4, tongueLight);
             }
             else
             {
-                // Sorriso sereno descansando com pontinha da linguinha
-                DrawEllipse(outTex, mouthX, mouthY + 2, 9, 4, ink);
-                DrawEllipse(outTex, mouthX + 3, mouthY - 1, 5, 4, ink);
-                DrawEllipse(outTex, mouthX + 3, mouthY - 1, 3, 3, tonguePink);
+                // Sorriso calmo e tranquilo descansando (cobre a boca aberta original e desenha sorriso sereno)
+                DrawEllipse(outTex, mouthX, mouthY, 13, 10, furHigh);
+                for (int mx = -8; mx <= 8; mx++)
+                {
+                    int sy = -Mathf.Abs(mx) / 3;
+                    DrawCircle(outTex, mouthX + mx, mouthY + 2 + sy, 2, ink);
+                }
+                DrawEllipse(outTex, mouthX + 3, mouthY - 2, 4, 4, ink);
+                DrawEllipse(outTex, mouthX + 3, mouthY - 2, 2, 3, tonguePink);
             }
 
             outTex.Apply();
-            // Escala ligeiramente ampliada (265 PPU em vez de 310 PPU) para que o sorriso e a linguinha
-            // rosada fiquem perfeitamente visíveis mesmo em telas pequenas, mantendo proporção natural com a menina!
+            // Na cestinha: PPU idêntico ao de girl_bike.png (1024 / 3.3 = 310.303) para encaixe perfeito!
+            // A pé: 265 PPU (~17% maior) para o rosto, sorriso e linguinha rosada brilharem mesmo em telas pequenas!
             float ppu = isInBasket ? (1024f / 3.3f) : 265f;
             float pivotY = isInBasket ? (28f / outH) : (12f / outH);
             return Sprite.Create(

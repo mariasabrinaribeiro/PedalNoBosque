@@ -17,17 +17,20 @@ namespace FlorestaBicicleta
         {
             public Transform tr;
             public SpriteRenderer sr;
-            public float baseWorldX;
+            public float screenBaseX; // Posição base em espaço de tela (uniformemente espaçada dentro de screenSpan)
             public float y;
-            public float parallax; // < 1 = mais lento (fundo), > 1 = mais rápido (primeiro plano)
-            public float spanWidth;
+            public float parallax;    // Deslocamento aparente relativo à câmera (0.06 céu .. 0.52 árvores .. 1.18 primeiro plano)
+            public float screenSpan;  // Largura total da janela de reciclagem em espaço de tela (sem lacunas e sem acúmulo!)
             public int variantIndex;
             public bool isTreeLayer;
+            public int lastCycle;
         }
 
         private class CloudItem
         {
             public Transform tr;
+            public float baseScreenX;
+            public float windOffset;
             public float speed;
             public float y;
         }
@@ -103,12 +106,13 @@ namespace FlorestaBicicleta
 
         private void BuildSkyClouds()
         {
+            const float cloudSpan = 42f;
             for (int i = 0; i < 6; i++)
             {
                 GameObject cObj = new GameObject($"NuvemDistante_{i}");
                 cObj.transform.SetParent(transform, false);
-                float startX = -14f + i * 7.5f;
-                float y = Random.Range(3.3f, 5.1f);
+                float startX = -cloudSpan * 0.5f + i * (cloudSpan / 6f) + Random.Range(-1.0f, 1.0f);
+                float y = Random.Range(3.4f, 5.1f);
                 cObj.transform.position = new Vector3(startX, y, 2f);
                 float sc = Random.Range(0.85f, 1.45f);
                 cObj.transform.localScale = new Vector3(sc, sc * 0.88f, 1f);
@@ -118,24 +122,28 @@ namespace FlorestaBicicleta
                 sr.color = new Color(1f, 0.99f, 0.97f, Random.Range(0.65f, 0.85f));
                 sr.sortingOrder = -16;
 
-                clouds.Add(new CloudItem { tr = cObj.transform, speed = Random.Range(0.18f, 0.40f), y = y });
+                clouds.Add(new CloudItem
+                {
+                    tr = cObj.transform,
+                    baseScreenX = startX,
+                    windOffset = 0f,
+                    speed = Random.Range(0.08f, 0.16f),
+                    y = y
+                });
             }
         }
 
-        /// <summary>Plano 2 — Fundo Intermediário (paralaxe 0.48x): árvores variadas, colinas e cachoeira espaçada.</summary>
+        /// <summary>Plano 2 — Árvores Intermediárias (paralaxe 0.52x): bosques e árvores variadas atrás da estrada.</summary>
         private void BuildMidgroundLayer()
         {
-            // A linha do horizonte usa grupos em ritmos diferentes para não repetir
-            // a mesma árvore a cada poucos metros nem competir com a arte do fundo.
             const int count = 7;
-            const float spacing = 13.4f;
-            float totalSpan = count * spacing;
+            const float screenSpacing = 9.0f;
+            float totalScreenSpan = count * screenSpacing; // 63.0f
             for (int i = 0; i < count; i++)
             {
                 GameObject go = new GameObject($"FundoIntermediario_{i}");
                 go.transform.SetParent(transform, false);
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-                // Alterna entre bosques/grupos de árvores e árvores individuais para horizonte rico e profundo
                 sr.sprite = (i % 2 == 1)
                     ? BiomePropsFactory.CreateMidgroundTreeClusterSprite(i)
                     : BiomePropsFactory.CreateOrganicTreeSprite(i + 1);
@@ -148,23 +156,24 @@ namespace FlorestaBicicleta
                 {
                     tr = go.transform,
                     sr = sr,
-                    baseWorldX = -25f + i * spacing,
+                    screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
                     y = y,
-                    parallax = 0.48f,
-                    spanWidth = totalSpan,
+                    parallax = 0.52f,
+                    screenSpan = totalScreenSpan,
                     variantIndex = i + 1,
-                    isTreeLayer = true
+                    isTreeLayer = true,
+                    lastCycle = 0
                 });
             }
         }
 
-        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.78x): carvalhos ilustrados ancorados na grama atrás do meio-fio da estrada.</summary>
+        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.80x): carvalhos ilustrados ancorados na grama atrás do meio-fio da estrada.</summary>
         private void BuildNearTreesLayer()
         {
-            float[] offsets = { -20f, -5f, 16f, 32f, 48f };
-            float totalSpan = 80f;
+            float[] screenOffsets = { -27f, -15f, -2f, 11f, 23f };
+            const float totalScreenSpan = 60f;
 
-            for (int i = 0; i < offsets.Length; i++)
+            for (int i = 0; i < screenOffsets.Length; i++)
             {
                 GameObject go = new GameObject($"ArvoreOrganica_{i}");
                 go.transform.SetParent(transform, false);
@@ -188,25 +197,27 @@ namespace FlorestaBicicleta
                 {
                     tr = go.transform,
                     sr = sr,
-                    baseWorldX = offsets[i],
+                    screenBaseX = screenOffsets[i],
                     y = -2.30f + (i % 2) * 0.06f,
-                    parallax = 0.78f,
-                    spanWidth = totalSpan,
+                    parallax = 0.80f,
+                    screenSpan = totalScreenSpan,
                     variantIndex = i,
-                    isTreeLayer = true
+                    isTreeLayer = true,
+                    lastCycle = 0
                 });
             }
         }
 
-        /// <summary>Plano 4 — Primeiro Plano (paralaxe 1.28x): grama florida, samambaias e flores passando mais rápido que a bicicleta na borda inferior.</summary>
+        /// <summary>Plano 4 — Vegetação de Primeiro Plano (paralaxe 1.18x): grama florida e samambaias na borda inferior mais próxima da câmera.</summary>
         private void BuildForegroundLayer()
         {
-            // A vegetação baixa na margem inferior (Y = -4.25f) desloca-se a 1.28x da câmera,
-            // produzindo sensação nítida de velocidade durante a pedalada sem cobrir a pista nem escorregar na estrada!
-            float[] offsets = { -24f, -18f, -12f, -6f, 0f, 6f, 12f, 18f, 24f, 30f, 36f, 42f };
-            float totalSpan = 72f;
+            // Vegetação decorativa rente à borda inferior da lente (Y = -4.34f, abaixo do meio-fio inferior da estrada),
+            // deslocando-se a 118% da câmera: sensação nítida e natural de velocidade sem escorregar sobre o terreno!
+            const int count = 12;
+            const float screenSpacing = 5.0f;
+            float totalScreenSpan = count * screenSpacing; // 60.0f
 
-            for (int i = 0; i < offsets.Length; i++)
+            for (int i = 0; i < count; i++)
             {
                 GameObject go = new GameObject($"PrimeiroPlano_{i}");
                 go.transform.SetParent(transform, false);
@@ -218,22 +229,25 @@ namespace FlorestaBicicleta
                 else
                     sr.sprite = BiomePropsFactory.CreateFlowerPatchSprite(i);
 
-                float sc = (i % 3 == 0) ? (0.48f + (i % 2) * 0.08f) : (0.92f + (i % 3) * 0.10f);
+                float sc = (i % 3 == 0) ? (0.48f + (i % 2) * 0.08f) : (0.90f + (i % 3) * 0.09f);
                 go.transform.localScale = new Vector3(sc, sc, 1f);
                 sr.color = new Color(0.94f, 0.98f, 0.90f, 0.96f);
 
                 GentleSway sway = go.AddComponent<GentleSway>();
-                sway.maxAngleDeg = 2.6f;
+                sway.maxAngleDeg = 2.4f;
                 sway.speed = 1.25f + (i % 3) * 0.22f;
 
                 foregroundProps.Add(new ParallaxProp
                 {
                     tr = go.transform,
                     sr = sr,
-                    baseWorldX = offsets[i],
-                    y = -4.24f + (i % 2) * 0.04f,
-                    parallax = 1.28f,
-                    spanWidth = totalSpan
+                    screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
+                    y = -4.34f + (i % 2) * 0.04f,
+                    parallax = 1.18f,
+                    screenSpan = totalScreenSpan,
+                    variantIndex = i,
+                    isTreeLayer = false,
+                    lastCycle = 0
                 });
             }
         }
@@ -337,24 +351,24 @@ namespace FlorestaBicicleta
             currentMoteColor = Color.Lerp(currentMoteColor, targetTint, 2.5f * Time.deltaTime);
 
             // Plano 1: Nuvens suaves
+            // Céu / Nuvens distantes: paralaxe mínima de 6% (0.06x) + brisa suave contínua (nunca dispara na frente das montanhas!)
+            const float cloudSpan = 42f;
+            const float cloudHalf = cloudSpan * 0.5f;
             for (int i = 0; i < clouds.Count; i++)
             {
                 CloudItem c = clouds[i];
-                Vector3 p = c.tr.position;
-                p.x -= c.speed * Time.deltaTime;
-                if (p.x < camX - 18f) p.x = camX + 18f + Random.Range(0f, 4f);
-                if (p.x > camX + 22f) p.x = camX - 16f;
-                p.y = c.y + Mathf.Sin(Time.time * 0.4f + i) * 0.12f;
-                c.tr.position = p;
+                c.windOffset += c.speed * Time.deltaTime;
+                float rawCloud = c.baseScreenX - camX * 0.06f - c.windOffset;
+                float screenOffset = Mathf.Repeat(rawCloud + cloudHalf, cloudSpan) - cloudHalf;
+                float y = c.y + Mathf.Sin(Time.time * 0.4f + i) * 0.12f;
+                c.tr.position = new Vector3(camX + screenOffset, y, 2f);
             }
 
-            // Planos de Parallax com reciclagem perfeitamente simétrica (wrapHalfRange = 0.5 * spanWidth):
-            // - Plano 2 (Árvores Intermediárias — 0.55x): spanWidth = 7 * 13.4 = 93.8f -> wrapHalfRange = 46.9f
-            // - Plano 2.5 (Árvores Próximas — 0.78x): spanWidth = 80f -> wrapHalfRange = 40f
-            // - Plano 4 (Vegetação de Primeiro Plano — 1.28x): spanWidth = 72f -> wrapHalfRange = 36f
-            UpdateParallaxList(midgroundProps, camX, 46.9f);
-            UpdateParallaxList(nearTreeProps, camX, 40f);
-            UpdateParallaxList(foregroundProps, camX, 36f);
+            // Planos de Parallax unificados em espaço de tela (Mathf.Repeat O(1): zero lacunas, zero deriva acumulada,
+            // zero deslizamento com a bicicleta parada, resposta imediata ao pedalar para frente ou para trás!)
+            UpdateParallaxList(midgroundProps, camX);
+            UpdateParallaxList(nearTreeProps, camX);
+            UpdateParallaxList(foregroundProps, camX);
 
             // Pássaros voando no céu com batida de asas suave
             for (int i = 0; i < birds.Count; i++)
@@ -406,40 +420,34 @@ namespace FlorestaBicicleta
             }
         }
 
-        private void UpdateParallaxList(List<ParallaxProp> list, float camX, float wrapHalfRange)
+        private void UpdateParallaxList(List<ParallaxProp> list, float camX)
         {
-            // Posição aparente de tela para objetos com parallax p:
-            // screenX = (baseWorldX - camX) * p => worldX = camX + (baseWorldX - camX) * p
-            // - Se p = 0.22 (montanhas): move-se a 22% da câmera (lento ao fundo)
-            // - Se p = 0.55 (árvores intermediárias): move-se a 55% da câmera
-            // - Se p = 0.78 (árvores próximas): move-se a 78% da câmera
-            // - Se p = 1.00 (estrada e objetos físicos): move-se a 100% da câmera (fixo no mundo)
-            // - Se p = 1.28 (vegetação de primeiro plano): move-se a 128% da câmera (28% mais rápido que a menina!)
+            // Sistema único de paralaxe relativa à câmera (sem deriva acumulada e 100% reversível):
+            // - Céu/Nuvens: 6% (0.06x)
+            // - Montanhas e floresta distante (InfiniteTrackGenerator): 16% (0.16x)
+            // - Árvores intermediárias: 52% (0.52x)
+            // - Árvores próximas: 80% (0.80x)
+            // - Estrada, pontes e objetos físicos (InfiniteTrackGenerator): 100% (1.00x fixos no mundo)
+            // - Vegetação na borda inferior de primeiro plano: 118% (1.18x)
             for (int i = 0; i < list.Count; i++)
             {
                 ParallaxProp item = list[i];
-                float screenOffset = (item.baseWorldX - camX) * item.parallax;
-                float worldStep = item.spanWidth / Mathf.Max(0.1f, item.parallax);
-                while (screenOffset < -wrapHalfRange)
+                float span = Mathf.Max(20f, item.screenSpan);
+                float half = span * 0.5f;
+                float raw = item.screenBaseX - camX * item.parallax;
+                int cycle = Mathf.FloorToInt((raw + half) / span);
+                float screenOffset = Mathf.Repeat(raw + half, span) - half;
+
+                if (cycle != item.lastCycle)
                 {
-                    item.baseWorldX += worldStep;
-                    screenOffset = (item.baseWorldX - camX) * item.parallax;
+                    item.lastCycle = cycle;
                     if (item.isTreeLayer && item.sr != null)
                     {
                         item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
                         item.sr.color = GetTreeColorForBiome(activeBiome, item.parallax);
                     }
                 }
-                while (screenOffset > wrapHalfRange)
-                {
-                    item.baseWorldX -= worldStep;
-                    screenOffset = (item.baseWorldX - camX) * item.parallax;
-                    if (item.isTreeLayer && item.sr != null)
-                    {
-                        item.sr.sprite = BiomePropsFactory.GetTreeForBiome(activeBiome, item.variantIndex);
-                        item.sr.color = GetTreeColorForBiome(activeBiome, item.parallax);
-                    }
-                }
+
                 item.tr.position = new Vector3(camX + screenOffset, item.y, 0f);
             }
         }

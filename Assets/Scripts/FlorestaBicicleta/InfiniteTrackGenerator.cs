@@ -50,6 +50,7 @@ namespace FlorestaBicicleta
 
         private readonly List<TrackSegment> activeSegments = new List<TrackSegment>();
         private readonly Dictionary<int, GameObject> bgTiles = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, GameObject> roadTiles = new Dictionary<int, GameObject>();
         private readonly List<BiomeType> biomeBag = new List<BiomeType>();
         private readonly Queue<TrailAdventureEvent.EventKind> recentAdventureEvents = new Queue<TrailAdventureEvent.EventKind>();
 
@@ -59,7 +60,9 @@ namespace FlorestaBicicleta
         private Sprite tearSp;
         private Sprite[] heartParticles;
         private Sprite bgSprite;
+        private Sprite roadStripSprite;
         private float bgTileWidth = 20f;
+        private float bgBottomWorldY = -4.22f;
 
         private int nextSegmentIndex = 0;
         private float nextSegmentStartX = 0f;
@@ -85,9 +88,15 @@ namespace FlorestaBicicleta
             heartParticles = heartParticleSprites;
 
             bgSprite = FlorestaSpriteFactory.LoadForestBackgroundSprite(cameraWorldHeight);
-            if (bgSprite != null) bgTileWidth = Mathf.Max(8f, bgSprite.bounds.size.x);
+            roadStripSprite = FlorestaSpriteFactory.LoadForestRoadStripSprite(cameraWorldHeight);
+            if (bgSprite != null)
+            {
+                // Subtrai apenas 0.008f (~0.5px) para eliminar fresta subpixel sem desalinhar a emenda espelhada (flipX) nem duplicar alfa!
+                bgTileWidth = Mathf.Max(8f, bgSprite.bounds.size.x - 0.008f);
+                bgBottomWorldY = 1.5f - cameraWorldHeight * 0.5f;
+            }
 
-            // Gera o fundo inicial e os primeiros 3 segmentos à frente
+            // Gera o fundo inicial, a pista física 1.0x e os primeiros 3 segmentos à frente
             UpdateWorld(0f, 2f);
         }
 
@@ -199,12 +208,13 @@ namespace FlorestaBicicleta
 
         // ─── Fundo Infinito ──────────────────────────────────────────
 
-        private const float BgParallaxFactor = 0.25f; // Plano 1 (Fundo Distante): montanhas se movem a 25% da pista!
+        private const float BgParallaxFactor = 0.16f; // Plano 1 (Paisagem e Montanhas Distantes): move-se a 16% da câmera!
 
         private void UpdateBackgroundTiles(float cameraX)
         {
             if (bgSprite == null) return;
 
+            // 1. Camada de Paisagem e Montanhas Distantes (Parallax 0.22x)
             float parallaxShiftX = cameraX * (1f - BgParallaxFactor);
             float effectiveX = cameraX - parallaxShiftX;
             int centerIdx = Mathf.FloorToInt(effectiveX / bgTileWidth);
@@ -243,6 +253,48 @@ namespace FlorestaBicicleta
                     int idx = toRemove[i];
                     if (bgTiles[idx] != null) Destroy(bgTiles[idx]);
                     bgTiles.Remove(idx);
+                }
+            }
+
+            // 2. Camada da Estrada e Margens Físicas (1.00x fixas no mundo! Nunca desliza sob os pneus da bicicleta!)
+            Sprite stripSp = roadStripSprite != null ? roadStripSprite : bgSprite;
+            int roadCenterIdx = Mathf.FloorToInt(cameraX / bgTileWidth);
+            int roadMinKeep = roadCenterIdx - 2;
+            int roadMaxKeep = roadCenterIdx + 3;
+
+            for (int i = roadMinKeep; i <= roadMaxKeep; i++)
+            {
+                if (!roadTiles.TryGetValue(i, out GameObject roadObj) || roadObj == null)
+                {
+                    roadObj = new GameObject($"EstradaFisica_{i}");
+                    roadObj.transform.SetParent(transform, false);
+                    SpriteRenderer rsr = roadObj.AddComponent<SpriteRenderer>();
+                    rsr.sprite = stripSp;
+                    rsr.flipX = (Mathf.Abs(i) % 2 == 1);
+                    rsr.sortingOrder = -6; // Acima das montanhas (-20) e árvores intermediárias (-10), alinhada com a pista física!
+                    roadTiles[i] = roadObj;
+                }
+                float roadY = (roadStripSprite != null) ? bgBottomWorldY : 1.5f;
+                roadObj.transform.position = new Vector3(i * bgTileWidth, roadY, 0f);
+            }
+
+            List<int> roadRemove = null;
+            foreach (var kv in roadTiles)
+            {
+                if (kv.Key < roadMinKeep - 1 || kv.Key > roadMaxKeep + 1)
+                {
+                    if (roadRemove == null) roadRemove = new List<int>();
+                    roadRemove.Add(kv.Key);
+                }
+            }
+
+            if (roadRemove != null)
+            {
+                for (int i = 0; i < roadRemove.Count; i++)
+                {
+                    int idx = roadRemove[i];
+                    if (roadTiles[idx] != null) Destroy(roadTiles[idx]);
+                    roadTiles.Remove(idx);
                 }
             }
         }
@@ -476,14 +528,12 @@ namespace FlorestaBicicleta
 
             SpawnKitchenStation(p, s + 8f, blocked);
             SpawnBench(p, s + 13f);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho do Bosque", 2, s + 21.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18.0f, blocked);
             SpawnWaterColumn(p, s + 25f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Trilha", 2, s + 28.5f, blocked);
-            SpawnRampWithStars(p, s + 32.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 38.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 43.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 46.8f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Trilha", 2, s + 29.2f, blocked);
+            SpawnRampWithStars(p, s + 33.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 39.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 44.5f, blocked);
 
             hasWater = true;
             hasKitchen = true;
@@ -755,11 +805,10 @@ namespace FlorestaBicicleta
             SpawnResident(seg, r1, s + 20.2f, blocked);
             SpawnResident(seg, r2, s + 35.0f, blocked);
 
-            // Vários Gatos, Cachorrinhos e Esquilo passeando pela vila!
+            // Animais variados e bem distribuídos na vila (sem duplicações agrupadas!)
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Vila", 2, s + 11.2f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato da Praça", 2, s + 28.4f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 44.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 46.8f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo da Praça", 2, s + 28.4f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato da Praça", 2, s + 44.5f, blocked);
         }
 
         private void BuildBosqueDaLua(
@@ -895,12 +944,29 @@ namespace FlorestaBicicleta
             float xPos,
             List<(float min, float max)> blocked)
         {
+            // Garante espaçamento orgânico mínimo de 4.2m de qualquer animal e 16m da MESMA espécie,
+            // impedindo duas raposas idênticas ou dois grupos de ursos lado a lado na mesma tela!
+            for (int i = 0; i < ActiveAnimals.Count; i++)
+            {
+                ForestAnimal existing = ActiveAnimals[i];
+                if (existing == null) continue;
+                float dist = Mathf.Abs(existing.transform.position.x - xPos);
+                if (existing.kind == kind && dist < 16.0f)
+                {
+                    return;
+                }
+                if (dist < 4.2f)
+                {
+                    xPos += (xPos >= existing.transform.position.x ? 1f : -1f) * (4.3f - dist);
+                }
+            }
+
             GameObject obj = new GameObject($"Animal_{displayName}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
             obj.transform.position = new Vector3(xPos, -2.42f, 0f);
 
-            // Variação sutil de tamanho para diferenciar os animais ambientais
-            float scaleVar = 0.92f + ((Mathf.Abs(Mathf.RoundToInt(xPos * 10f)) + seg.index) % 4) * 0.05f;
+            // Variação natural de tamanho para diferenciar os animais ambientais
+            float scaleVar = 0.90f + ((Mathf.Abs(Mathf.RoundToInt(xPos * 10f)) + seg.index) % 4) * 0.055f;
             obj.transform.localScale = new Vector3(scaleVar, scaleVar, 1f);
 
             ForestAnimal a = obj.AddComponent<ForestAnimal>();

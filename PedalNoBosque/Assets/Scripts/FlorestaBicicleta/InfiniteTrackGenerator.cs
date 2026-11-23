@@ -91,8 +91,8 @@ namespace FlorestaBicicleta
             roadStripSprite = FlorestaSpriteFactory.LoadForestRoadStripSprite(cameraWorldHeight);
             if (bgSprite != null)
             {
-                // Subtrai 0.12f para 6px de sobreposição entre tiles adjacentes — elimina costuras verticais visíveis!
-                bgTileWidth = Mathf.Max(8f, bgSprite.bounds.size.x - 0.12f);
+                // Subtrai apenas 0.008f (~0.5px) para eliminar fresta subpixel sem desalinhar a emenda espelhada (flipX) nem duplicar alfa!
+                bgTileWidth = Mathf.Max(8f, bgSprite.bounds.size.x - 0.008f);
                 bgBottomWorldY = 1.5f - cameraWorldHeight * 0.5f;
             }
 
@@ -208,7 +208,7 @@ namespace FlorestaBicicleta
 
         // ─── Fundo Infinito ──────────────────────────────────────────
 
-        private const float BgParallaxFactor = 0.22f; // Plano 1 (Paisagem e Montanhas Distantes): move-se a 22% da câmera!
+        private const float BgParallaxFactor = 0.16f; // Plano 1 (Paisagem e Montanhas Distantes): move-se a 16% da câmera!
 
         private void UpdateBackgroundTiles(float cameraX)
         {
@@ -528,14 +528,12 @@ namespace FlorestaBicicleta
 
             SpawnKitchenStation(p, s + 8f, blocked);
             SpawnBench(p, s + 13f);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gatinho do Bosque", 2, s + 21.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo", 6, s + 18.0f, blocked);
             SpawnWaterColumn(p, s + 25f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Trilha", 2, s + 28.5f, blocked);
-            SpawnRampWithStars(p, s + 32.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 38.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 43.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Raposa, "Raposa", 3, s + 46.8f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Trilha", 2, s + 29.2f, blocked);
+            SpawnRampWithStars(p, s + 33.5f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.FilhoteUrso, "Família de Ursos", 3, s + 39.2f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Coelho, "Coelho", 2, s + 44.5f, blocked);
 
             hasWater = true;
             hasKitchen = true;
@@ -807,11 +805,10 @@ namespace FlorestaBicicleta
             SpawnResident(seg, r1, s + 20.2f, blocked);
             SpawnResident(seg, r2, s + 35.0f, blocked);
 
-            // Vários Gatos, Cachorrinhos e Esquilo passeando pela vila!
+            // Animais variados e bem distribuídos na vila (sem duplicações agrupadas!)
             SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho da Vila", 2, s + 11.2f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato da Praça", 2, s + 28.4f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato", 2, s + 44.5f, blocked);
-            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Cachorrinho", 2, s + 46.8f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Esquilo, "Esquilo da Praça", 2, s + 28.4f, blocked);
+            SpawnAnimal(seg, ParkSpriteFactory.AnimalKind.Gato, "Gato da Praça", 2, s + 44.5f, blocked);
         }
 
         private void BuildBosqueDaLua(
@@ -947,16 +944,20 @@ namespace FlorestaBicicleta
             float xPos,
             List<(float min, float max)> blocked)
         {
-            // Garante espaçamento orgânico mínimo de 4.2m em relação a qualquer outro animal já posicionado,
-            // evitando agrupamentos ou duplicações próximas na mesma tela!
+            // Garante espaçamento orgânico mínimo de 4.2m de qualquer animal e 16m da MESMA espécie,
+            // impedindo duas raposas idênticas ou dois grupos de ursos lado a lado na mesma tela!
             for (int i = 0; i < ActiveAnimals.Count; i++)
             {
                 ForestAnimal existing = ActiveAnimals[i];
                 if (existing == null) continue;
                 float dist = Mathf.Abs(existing.transform.position.x - xPos);
-                if (dist < 4.0f)
+                if (existing.kind == kind && dist < 16.0f)
                 {
-                    xPos += (xPos >= existing.transform.position.x ? 1f : -1f) * (4.1f - dist);
+                    return;
+                }
+                if (dist < 4.2f)
+                {
+                    xPos += (xPos >= existing.transform.position.x ? 1f : -1f) * (4.3f - dist);
                 }
             }
 
