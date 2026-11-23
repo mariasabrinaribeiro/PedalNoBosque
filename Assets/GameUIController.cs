@@ -47,7 +47,10 @@ public class GameUIController : MonoBehaviour
     private Slider healthSlider;
     private TextMeshProUGUI cargoText;
     private TextMeshProUGUI scoreText;
+    private TextMeshProUGUI speedText;
+    private GameObject speedPillObj;
     private TextMeshProUGUI hpLabelText;
+    private bool hasActiveMission = false;
 
     private RawImage vignetteImage;
     private float nextHeartbeatTime = 0f;
@@ -118,6 +121,10 @@ public class GameUIController : MonoBehaviour
             controllerObj = new GameObject("GameUIController");
             controllerObj.AddComponent<GameUIController>();
             controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
+            if (FindObjectOfType<MissionManager>() == null)
+            {
+                controllerObj.AddComponent<MissionManager>();
+            }
         }
 
         // Garante que a Main Camera tenha GameCameraController e comece alinhada ao carro em Z = -10
@@ -199,17 +206,21 @@ public class GameUIController : MonoBehaviour
         }
         
         int currentSpeedInt = Mathf.RoundToInt(carDriver.displaySpeed * 10f);
-        if (scoreText != null && (carDriver.score != lastScoreValue || currentSpeedInt != lastSpeedValue))
+        if (scoreText != null && carDriver.score != lastScoreValue)
         {
             lastScoreValue = carDriver.score;
-            lastSpeedValue = currentSpeedInt;
-            scoreText.text = "PONTOS: " + lastScoreValue.ToString("N0") + "   VEL: " + lastSpeedValue + " km/h";
+            scoreText.text = "PONTOS: " + lastScoreValue.ToString("N0");
 
             // Vitória ao atingir 10.000.000 (10 Milhões) ou mais pontos!
             if (lastScoreValue >= 10000000)
             {
                 ShowVictory();
             }
+        }
+        if (speedText != null && currentSpeedInt != lastSpeedValue)
+        {
+            lastSpeedValue = currentSpeedInt;
+            speedText.text = lastSpeedValue + " km/h";
         }
 
         // 2. Handle Vignette low-health pulse and heartbeat audio
@@ -218,7 +229,7 @@ public class GameUIController : MonoBehaviour
             if (carDriver.health < 20)
             {
                 float pulse = Mathf.PingPong(Time.time * 3f, 1f);
-                vignetteImage.color = Color.Lerp(new Color(0f, 0f, 0f, 0.55f), new Color(0.65f, 0f, 0f, 0.45f), pulse);
+                vignetteImage.color = Color.Lerp(new Color(0.22f, 0.10f, 0.28f, 0.16f), new Color(0.75f, 0.08f, 0.20f, 0.42f), pulse);
 
                 if (Time.time > nextHeartbeatTime)
                 {
@@ -231,7 +242,7 @@ public class GameUIController : MonoBehaviour
             }
             else
             {
-                vignetteImage.color = new Color(0f, 0f, 0f, 0.55f);
+                vignetteImage.color = new Color(0.22f, 0.10f, 0.28f, 0.12f);
             }
         }
 
@@ -344,10 +355,10 @@ public class GameUIController : MonoBehaviour
             exitButton = exitObj.transform;
         }
 
-        // Style buttons
-        StyleButton(playButton, "JOGAR", candyPink);
-        StyleButton(pauseButton, "||", candyPink);
-        StyleButton(exitButton, "SAIR", candyPink);
+        // Style buttons with vibrant glossy candy palette
+        StyleButton(playButton, "JOGAR", new Color(1f, 0.36f, 0.66f, 1f));
+        StyleButton(pauseButton, "||", new Color(0.55f, 0.34f, 0.72f, 0.92f));
+        StyleButton(exitButton, "SAIR", new Color(0.50f, 0.33f, 0.68f, 0.96f));
 
         // Remove the buggy "Game over" button parented to tree in the scene if it exists!
         // This stops it from showing in world space. We find it by name.
@@ -434,39 +445,42 @@ public class GameUIController : MonoBehaviour
             panelImage.type = Image.Type.Sliced;
         }
 
-        // Reparent Play and Exit to this panel
+        // Reparent Play and Exit cleanly side-by-side at bottom when illustrated cover art is shown
         if (playButton != null)
         {
             playButton.SetParent(menuPanel.transform, false);
             RectTransform playRect = playButton.GetComponent<RectTransform>();
-            playRect.anchoredPosition = new Vector2(0, 120);
-            playRect.sizeDelta = new Vector2(350, 95);
+            playRect.anchoredPosition = coverSprite != null ? new Vector2(-175, -315) : new Vector2(0, 120);
+            playRect.sizeDelta = coverSprite != null ? new Vector2(290, 82) : new Vector2(350, 95);
         }
 
         if (exitButton != null)
         {
             exitButton.SetParent(menuPanel.transform, false);
             RectTransform exitRect = exitButton.GetComponent<RectTransform>();
-            exitRect.anchoredPosition = new Vector2(0, -60);
-            exitRect.sizeDelta = new Vector2(350, 95);
+            exitRect.anchoredPosition = coverSprite != null ? new Vector2(175, -315) : new Vector2(0, -60);
+            exitRect.sizeDelta = coverSprite != null ? new Vector2(290, 82) : new Vector2(350, 95);
         }
 
-        // Add Title Text
-        GameObject titleObj = new GameObject("MenuTitle");
-        titleObj.transform.SetParent(menuPanel.transform, false);
-        RectTransform titleRect = titleObj.AddComponent<RectTransform>();
-        titleRect.anchoredPosition = new Vector2(0, 260);
-        titleRect.sizeDelta = new Vector2(500, 100);
+        // Only draw plain text title if no illustrated cover art exists (avoids overlapping logo!)
+        if (coverSprite == null)
+        {
+            GameObject titleObj = new GameObject("MenuTitle");
+            titleObj.transform.SetParent(menuPanel.transform, false);
+            RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+            titleRect.anchoredPosition = new Vector2(0, 260);
+            titleRect.sizeDelta = new Vector2(500, 100);
 
-        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        titleText.text = "GIRL POWER";
-        titleText.font = GetTMProFont();
-        titleText.fontSize = 36;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.color = Color.white;
-        titleText.outlineColor = candyPurple;
-        titleText.outlineWidth = 0.25f;
+            TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+            titleText.text = "GIRL POWER";
+            titleText.font = GetTMProFont();
+            titleText.fontSize = 36;
+            titleText.fontStyle = FontStyles.Bold;
+            titleText.alignment = TextAlignmentOptions.Center;
+            titleText.color = Color.white;
+            titleText.outlineColor = candyPurple;
+            titleText.outlineWidth = 0.25f;
+        }
     }
 
     private void CreateHUDPanel()
@@ -478,33 +492,33 @@ public class GameUIController : MonoBehaviour
         rect.anchorMin = new Vector2(0.5f, 1f);
         rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 1f);
-        rect.anchoredPosition = new Vector2(0, -16);
-        rect.sizeDelta = new Vector2(1040, 150);
+        rect.anchoredPosition = new Vector2(-20, -14);
+        rect.sizeDelta = new Vector2(880, 92);
 
         Image img = hudPanel.AddComponent<Image>();
-        img.sprite = CreateRoundedRectSprite(1040, 150, 24, new Color(0.368f, 0.235f, 0.502f, 0.85f), candyPink, 3, shadowColor);
-        img.type = Image.Type.Sliced;
+        img.sprite = CreateRoundedRectSprite(880, 92, 28, new Color(0.32f, 0.20f, 0.48f, 0.88f), new Color(1f, 0.72f, 0.88f, 1f), 4, shadowColor);
+        img.type = Image.Type.Simple;
 
-        // 1. Health slider (Slider de Vida)
+        // 1. Compact glossy Health slider
         GameObject sliderObj = new GameObject("HealthSlider");
         sliderObj.transform.SetParent(hudPanel.transform, false);
         RectTransform sliderRect = sliderObj.AddComponent<RectTransform>();
         sliderRect.anchorMin = new Vector2(0f, 0.5f);
         sliderRect.anchorMax = new Vector2(0f, 0.5f);
         sliderRect.pivot = new Vector2(0f, 0.5f);
-        sliderRect.anchoredPosition = new Vector2(50, 0);
-        sliderRect.sizeDelta = new Vector2(250, 30);
+        sliderRect.anchoredPosition = new Vector2(28, -14);
+        sliderRect.sizeDelta = new Vector2(205, 22);
 
         healthSlider = sliderObj.AddComponent<Slider>();
 
         GameObject bgObj = new GameObject("Background");
         bgObj.transform.SetParent(sliderObj.transform, false);
         RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-        bgRect.sizeDelta = Vector2.zero; // Stretch
+        bgRect.sizeDelta = Vector2.zero;
         bgRect.anchorMin = Vector2.zero;
         bgRect.anchorMax = Vector2.one;
         Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.sprite = CreateRoundedRectSprite(250, 30, 8, candyPurple, candyPurple, 0, new Color(0,0,0,0));
+        bgImg.sprite = CreateRoundedRectSprite(205, 22, 10, new Color(0.20f, 0.12f, 0.32f, 0.95f), new Color(0.60f, 0.42f, 0.76f, 1f), 2, new Color(0,0,0,0));
 
         GameObject fillArea = new GameObject("Fill Area");
         fillArea.transform.SetParent(sliderObj.transform, false);
@@ -520,7 +534,7 @@ public class GameUIController : MonoBehaviour
         fillRect.anchorMin = Vector2.zero;
         fillRect.anchorMax = Vector2.one;
         Image fillImg = fillObj.AddComponent<Image>();
-        fillImg.sprite = CreateRoundedRectSprite(250, 30, 8, candyPink, candyPink, 0, new Color(0,0,0,0));
+        fillImg.sprite = CreateRoundedRectSprite(205, 22, 10, new Color(1f, 0.42f, 0.72f, 1f), new Color(1f, 0.80f, 0.90f, 1f), 1, new Color(0,0,0,0));
 
         healthSlider.fillRect = fillRect;
         healthSlider.minValue = 0;
@@ -531,57 +545,89 @@ public class GameUIController : MonoBehaviour
         GameObject hpLabelObj = new GameObject("Label");
         hpLabelObj.transform.SetParent(sliderObj.transform, false);
         RectTransform hpLabelRect = hpLabelObj.AddComponent<RectTransform>();
-        hpLabelRect.anchoredPosition = new Vector2(0, 32);
-        hpLabelRect.sizeDelta = new Vector2(280, 40);
+        hpLabelRect.anchoredPosition = new Vector2(0, 24);
+        hpLabelRect.sizeDelta = new Vector2(210, 30);
         hpLabelText = hpLabelObj.AddComponent<TextMeshProUGUI>();
         hpLabelText.text = "VIDA: 100%";
         hpLabelText.font = GetTMProFont();
-        hpLabelText.fontSize = 28;
+        hpLabelText.fontSize = 22;
         hpLabelText.fontStyle = FontStyles.Bold;
         hpLabelText.alignment = TextAlignmentOptions.Left;
-        hpLabelText.color = Color.white;
+        hpLabelText.color = new Color(1f, 0.95f, 0.98f, 1f);
         hpLabelText.outlineColor = candyPurple;
         hpLabelText.outlineWidth = 0.2f;
 
-        // 2. Cargo Text
+        // 2. Cargo Text (clean single line)
         GameObject cargoObj = new GameObject("TxtCargo");
         cargoObj.transform.SetParent(hudPanel.transform, false);
         RectTransform cargoRect = cargoObj.AddComponent<RectTransform>();
         cargoRect.anchorMin = new Vector2(0.5f, 0.5f);
         cargoRect.anchorMax = new Vector2(0.5f, 0.5f);
         cargoRect.pivot = new Vector2(0.5f, 0.5f);
-        cargoRect.anchoredPosition = new Vector2(-45, 0);
-        cargoRect.sizeDelta = new Vector2(330, 90);
+        cargoRect.anchoredPosition = new Vector2(-58, 0);
+        cargoRect.sizeDelta = new Vector2(265, 56);
 
         cargoText = cargoObj.AddComponent<TextMeshProUGUI>();
         cargoText.text = "SORVETES: 0 / 3";
         cargoText.font = GetTMProFont();
-        cargoText.fontSize = 32;
+        cargoText.fontSize = 24;
         cargoText.fontStyle = FontStyles.Bold;
         cargoText.alignment = TextAlignmentOptions.Center;
-        cargoText.color = Color.white;
+        cargoText.color = new Color(1f, 0.92f, 0.62f, 1f);
         cargoText.outlineColor = candyPurple;
         cargoText.outlineWidth = 0.2f;
 
-        // 3. Score Text
+        // 3. Score + Speed Text (clean single line, no awkward wrapping!)
         GameObject scoreObj = new GameObject("TxtScore");
         scoreObj.transform.SetParent(hudPanel.transform, false);
         RectTransform scoreRect = scoreObj.AddComponent<RectTransform>();
         scoreRect.anchorMin = new Vector2(1f, 0.5f);
         scoreRect.anchorMax = new Vector2(1f, 0.5f);
         scoreRect.pivot = new Vector2(1f, 0.5f);
-        scoreRect.anchoredPosition = new Vector2(-35, 0);
-        scoreRect.sizeDelta = new Vector2(360, 90);
+        scoreRect.anchoredPosition = new Vector2(-24, 0);
+        scoreRect.sizeDelta = new Vector2(340, 56);
 
         scoreText = scoreObj.AddComponent<TextMeshProUGUI>();
         scoreText.text = "PONTOS: 0";
         scoreText.font = GetTMProFont();
-        scoreText.fontSize = 30;
+        scoreText.fontSize = 23;
         scoreText.fontStyle = FontStyles.Bold;
         scoreText.alignment = TextAlignmentOptions.Right;
+        scoreText.enableWordWrapping = false;
         scoreText.color = Color.white;
         scoreText.outlineColor = candyPurple;
         scoreText.outlineWidth = 0.2f;
+
+        // 3b. Dedicated single-line Speed Pill tucked cleanly in bottom-left safe area (never wraps!)
+        speedPillObj = new GameObject("SpeedPill");
+        speedPillObj.transform.SetParent(mainCanvas.transform, false);
+        RectTransform spRect = speedPillObj.AddComponent<RectTransform>();
+        spRect.anchorMin = new Vector2(0f, 0f);
+        spRect.anchorMax = new Vector2(0f, 0f);
+        spRect.pivot = new Vector2(0f, 0f);
+        spRect.anchoredPosition = new Vector2(22, 22);
+        spRect.sizeDelta = new Vector2(154, 52);
+        Image spBg = speedPillObj.AddComponent<Image>();
+        spBg.sprite = CreateRoundedRectSprite(154, 52, 20, new Color(0.32f, 0.20f, 0.48f, 0.84f), new Color(1f, 0.78f, 0.92f, 1f), 3, shadowColor);
+        spBg.raycastTarget = false;
+
+        GameObject spTxtObj = new GameObject("TxtSpeed");
+        spTxtObj.transform.SetParent(speedPillObj.transform, false);
+        RectTransform spTxtRect = spTxtObj.AddComponent<RectTransform>();
+        spTxtRect.anchorMin = Vector2.zero;
+        spTxtRect.anchorMax = Vector2.one;
+        spTxtRect.sizeDelta = Vector2.zero;
+        speedText = spTxtObj.AddComponent<TextMeshProUGUI>();
+        speedText.text = "0 km/h";
+        speedText.font = GetTMProFont();
+        speedText.fontSize = 22;
+        speedText.fontStyle = FontStyles.Bold;
+        speedText.alignment = TextAlignmentOptions.Center;
+        speedText.enableWordWrapping = false;
+        speedText.color = new Color(1f, 0.94f, 0.72f, 1f);
+        speedText.outlineColor = candyPurple;
+        speedText.outlineWidth = 0.2f;
+        speedText.raycastTarget = false;
 
         // 4. Center Screen Warning Text
         GameObject warnObj = new GameObject("TxtWarning");
@@ -827,6 +873,8 @@ public class GameUIController : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
         if (hudPanel != null) hudPanel.SetActive(!isPaused);
+        if (speedPillObj != null) speedPillObj.SetActive(!isPaused);
+        if (missionPanel != null) missionPanel.SetActive(!isPaused && hasActiveMission);
         if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(!isPaused);
 
         if (pauseButton != null)
@@ -836,8 +884,8 @@ public class GameUIController : MonoBehaviour
             pauseRect.anchorMin = new Vector2(1, 1);
             pauseRect.anchorMax = new Vector2(1, 1);
             pauseRect.pivot = new Vector2(1, 1);
-            pauseRect.anchoredPosition = new Vector2(-40, -40);
-            pauseRect.sizeDelta = new Vector2(80, 80);
+            pauseRect.anchoredPosition = new Vector2(-18, -18);
+            pauseRect.sizeDelta = new Vector2(68, 68);
         }
 
         // Handle mobile HUD visibility
@@ -852,7 +900,7 @@ public class GameUIController : MonoBehaviour
             }
             else if (hudBtn.name == "BtnDebugToggle")
             {
-                hudBtn.SetActive(!isPaused);
+                hudBtn.SetActive(false); // Hidden from polished gameplay HUD
             }
             else
             {
@@ -875,6 +923,8 @@ public class GameUIController : MonoBehaviour
         Time.timeScale = 0f;
 
         if (hudPanel != null) hudPanel.SetActive(false);
+        if (speedPillObj != null) speedPillObj.SetActive(false);
+        if (missionPanel != null) missionPanel.SetActive(false);
         if (menuPanel != null) menuPanel.SetActive(false);
         if (pauseButton != null) pauseButton.gameObject.SetActive(false);
         if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(false);
@@ -1027,6 +1077,8 @@ public class GameUIController : MonoBehaviour
         Time.timeScale = 0f;
 
         if (hudPanel != null) hudPanel.SetActive(false);
+        if (speedPillObj != null) speedPillObj.SetActive(false);
+        if (missionPanel != null) missionPanel.SetActive(false);
         if (menuPanel != null) menuPanel.SetActive(false);
         if (pauseButton != null) pauseButton.gameObject.SetActive(false);
         if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(false);
@@ -1103,8 +1155,17 @@ public class GameUIController : MonoBehaviour
         AddHUDEvent(revBtn, (pressed) => isReversePressed = pressed);
         mobileHUDButtons.Add(revBtn);
 
-        // ATIRAR (Shoot) button placed on the right side above drive buttons
-        GameObject shootBtn = CreateHUDButton("BtnShoot", "ATIRAR", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-165, 270), 170, 170);
+        // Circular glossy ATIRAR bubble button on the right (clean & modern, not a giant tall rectangle!)
+        GameObject shootBtn = CreateHUDButton("BtnShoot", "ATIRAR", new Vector2(1, 0), new Vector2(1, 0), new Vector2(1, 0), new Vector2(-115, 220), 132, 132);
+        Transform shootVis = shootBtn.transform.Find("Visuals");
+        if (shootVis != null)
+        {
+            Image sImg = shootVis.GetComponent<Image>();
+            if (sImg != null)
+                sImg.sprite = CreateRoundedRectSprite(132, 132, 66, new Color(1f, 0.38f, 0.68f, 0.90f), new Color(1f, 0.92f, 0.96f, 1f), 5, shadowColor);
+            TextMeshProUGUI sTxt = shootVis.GetComponentInChildren<TextMeshProUGUI>();
+            if (sTxt != null) sTxt.fontSize = 24;
+        }
         AddHUDShootEvent(shootBtn);
         mobileHUDButtons.Add(shootBtn);
     }
@@ -1467,6 +1528,10 @@ public class GameUIController : MonoBehaviour
 
         foreach (GameObject cust in cachedDeliveryPoints)
         {
+            SpriteRenderer existingSr = cust.GetComponent<SpriteRenderer>();
+            if (existingSr != null && existingSr.sprite != null && existingSr.sprite.name.Contains("CandyDeliveryPlaza"))
+                continue;
+
             // Do NOT change the customer sprite/scale to avoid blocking roads.
             // Just spawn a flat, glowing pink candy circle centered on the delivery spot!
             GameObject matObj = new GameObject("CandyDeliveryZoneMat");
@@ -1679,7 +1744,27 @@ public class GameUIController : MonoBehaviour
                             if (!insideInner) isBorder = true;
                         }
                     }
-                    tex.SetPixel(targetX, targetY, isBorder ? borderColor : fillColor);
+                    if (isBorder)
+                    {
+                        tex.SetPixel(targetX, targetY, borderColor);
+                    }
+                    else
+                    {
+                        // Glossy candy top glaze & gentle bottom shading (replaces flat boxy UI!)
+                        float yNorm = y / (float)Mathf.Max(1, h - 1);
+                        Color glossy = fillColor;
+                        if (yNorm > 0.56f)
+                        {
+                            float hi = (yNorm - 0.56f) / 0.44f;
+                            glossy = Color.Lerp(fillColor, new Color(1f, 0.98f, 1f, fillColor.a), hi * 0.24f);
+                        }
+                        else if (yNorm < 0.28f)
+                        {
+                            float sh = (0.28f - yNorm) / 0.28f;
+                            glossy = Color.Lerp(fillColor, new Color(fillColor.r * 0.72f, fillColor.g * 0.68f, fillColor.b * 0.80f, fillColor.a), sh * 0.35f);
+                        }
+                        tex.SetPixel(targetX, targetY, glossy);
+                    }
                 }
             }
         }
@@ -2026,24 +2111,23 @@ public class GameUIController : MonoBehaviour
         toggleRect.anchorMin = new Vector2(1, 1);
         toggleRect.anchorMax = new Vector2(1, 1);
         toggleRect.pivot = new Vector2(1, 1);
-        toggleRect.anchoredPosition = new Vector2(-145, -24);
-        toggleRect.sizeDelta = new Vector2(210, 74);
+        toggleRect.anchoredPosition = new Vector2(-98, -22);
+        toggleRect.sizeDelta = new Vector2(154, 58);
 
         Image img = gameplayToggleBtnObj.AddComponent<Image>();
-        // Subtle dark color with bubblegum pink border
-        img.sprite = CreateRoundedRectSprite(210, 74, 16, new Color(0.2f, 0.15f, 0.25f, 0.85f), candyPink, 3, shadowColor);
+        img.sprite = CreateRoundedRectSprite(154, 58, 22, new Color(0.46f, 0.30f, 0.66f, 0.90f), new Color(1f, 0.78f, 0.92f, 1f), 3, shadowColor);
         img.type = Image.Type.Simple;
 
         GameObject txtObj = new GameObject("Text");
         txtObj.transform.SetParent(gameplayToggleBtnObj.transform, false);
         RectTransform txtRect = txtObj.AddComponent<RectTransform>();
         txtRect.anchoredPosition = Vector2.zero;
-        txtRect.sizeDelta = new Vector2(210, 74);
+        txtRect.sizeDelta = new Vector2(154, 58);
 
         gameplayToggleTxt = txtObj.AddComponent<TextMeshProUGUI>();
         gameplayToggleTxt.text = useSwipeMode ? "ARRASTAR" : "BOTÕES";
         gameplayToggleTxt.font = GetTMProFont();
-        gameplayToggleTxt.fontSize = 26;
+        gameplayToggleTxt.fontSize = 20;
         gameplayToggleTxt.fontStyle = FontStyles.Bold;
         gameplayToggleTxt.alignment = TextAlignmentOptions.Center;
         gameplayToggleTxt.color = Color.white;
@@ -2073,7 +2157,7 @@ public class GameUIController : MonoBehaviour
 
         vignetteImage = vigObj.AddComponent<RawImage>();
         vignetteImage.texture = CreateVignetteTexture(256, 256);
-        vignetteImage.color = new Color(0f, 0f, 0f, 0.55f);
+        vignetteImage.color = new Color(0.22f, 0.10f, 0.28f, 0.12f);
         vignetteImage.raycastTarget = false;
     }
 
@@ -2107,34 +2191,34 @@ public class GameUIController : MonoBehaviour
         rect.anchorMin = new Vector2(0f, 1f);
         rect.anchorMax = new Vector2(0f, 1f);
         rect.pivot = new Vector2(0f, 1f);
-        rect.anchoredPosition = new Vector2(20, -180);
-        rect.sizeDelta = new Vector2(390, 132);
+        rect.anchoredPosition = new Vector2(18, -116);
+        rect.sizeDelta = new Vector2(310, 92);
 
         Image bg = missionPanel.AddComponent<Image>();
-        bg.sprite = CreateRoundedRectSprite(390, 132, 16, new Color(0.368f, 0.235f, 0.502f, 0.82f), candyPink, 2, new Color(0,0,0,0));
+        bg.sprite = CreateRoundedRectSprite(310, 92, 20, new Color(0.32f, 0.20f, 0.48f, 0.84f), new Color(1f, 0.72f, 0.88f, 1f), 3, shadowColor);
 
         GameObject titleObj = new GameObject("Title");
         titleObj.transform.SetParent(missionPanel.transform, false);
         RectTransform tRect = titleObj.AddComponent<RectTransform>();
-        tRect.anchoredPosition = new Vector2(0, 34);
-        tRect.sizeDelta = new Vector2(360, 36);
+        tRect.anchoredPosition = new Vector2(0, 26);
+        tRect.sizeDelta = new Vector2(286, 26);
         TextMeshProUGUI title = titleObj.AddComponent<TextMeshProUGUI>();
         title.text = "MISSÃO ATIVA";
         title.font = GetTMProFont();
-        title.fontSize = 24;
+        title.fontSize = 18;
         title.fontStyle = FontStyles.Bold;
         title.alignment = TextAlignmentOptions.Center;
-        title.color = candyPink;
+        title.color = new Color(1f, 0.68f, 0.86f, 1f);
 
         GameObject descObj = new GameObject("Desc");
         descObj.transform.SetParent(missionPanel.transform, false);
         RectTransform dRect = descObj.AddComponent<RectTransform>();
-        dRect.anchoredPosition = new Vector2(0, -2);
-        dRect.sizeDelta = new Vector2(360, 34);
+        dRect.anchoredPosition = new Vector2(0, 0);
+        dRect.sizeDelta = new Vector2(286, 26);
         missionDescText = descObj.AddComponent<TextMeshProUGUI>();
-        missionDescText.text = "Aguardando Missão...";
+        missionDescText.text = "Entregue 3 Sorvetes!";
         missionDescText.font = GetTMProFont();
-        missionDescText.fontSize = 20;
+        missionDescText.fontSize = 17;
         missionDescText.fontStyle = FontStyles.Bold;
         missionDescText.alignment = TextAlignmentOptions.Center;
         missionDescText.color = Color.white;
@@ -2142,21 +2226,29 @@ public class GameUIController : MonoBehaviour
         GameObject progObj = new GameObject("Progress");
         progObj.transform.SetParent(missionPanel.transform, false);
         RectTransform pRect = progObj.AddComponent<RectTransform>();
-        pRect.anchoredPosition = new Vector2(0, -34);
-        pRect.sizeDelta = new Vector2(360, 34);
+        pRect.anchoredPosition = new Vector2(0, -24);
+        pRect.sizeDelta = new Vector2(286, 24);
         missionProgressText = progObj.AddComponent<TextMeshProUGUI>();
-        missionProgressText.text = "0 / 0";
+        missionProgressText.text = "0 / 3";
         missionProgressText.font = GetTMProFont();
-        missionProgressText.fontSize = 22;
+        missionProgressText.fontSize = 19;
         missionProgressText.fontStyle = FontStyles.Bold;
         missionProgressText.alignment = TextAlignmentOptions.Center;
-        missionProgressText.color = Color.yellow;
+        missionProgressText.color = new Color(1f, 0.90f, 0.36f, 1f);
+        missionPanel.SetActive(false); // Hidden until an actual active mission is assigned!
     }
 
     public void UpdateMissionPanel(string desc, string progress)
     {
+        bool valid = !string.IsNullOrEmpty(desc) && !desc.Contains("Aguardando");
+        hasActiveMission = valid;
         if (missionDescText != null) missionDescText.text = desc;
         if (missionProgressText != null) missionProgressText.text = progress;
+        if (missionPanel != null)
+        {
+            bool playing = menuPanel == null || !menuPanel.activeSelf;
+            missionPanel.SetActive(playing && hasActiveMission);
+        }
     }
 
     private void CreateBossHealthBarUI()
