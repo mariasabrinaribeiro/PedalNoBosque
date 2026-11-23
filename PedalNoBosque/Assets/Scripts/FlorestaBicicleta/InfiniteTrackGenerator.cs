@@ -137,36 +137,18 @@ namespace FlorestaBicicleta
         {
             pitchAngleDeg = 0f;
             if (seg == null) return 0f;
+            return TerrainHeightProfile.EvaluateSegment(seg.biome, seg.index, seg.startX, worldX, out pitchAngleDeg);
+        }
 
-            if (seg.biome == BiomeType.RegiaoDoRio)
+        public void GetActiveSegmentBoundaries(List<float> outBoundaryXs)
+        {
+            outBoundaryXs.Clear();
+            for (int i = 0; i < activeSegments.Count; i++)
             {
-                float bridgeCenterX = seg.startX + 22f;
-                const float halfSpan = 4.25f;
-                float dx = worldX - bridgeCenterX;
-                if (Mathf.Abs(dx) <= halfSpan)
-                {
-                    float t = (dx + halfSpan) / (2f * halfSpan);
-                    pitchAngleDeg = Mathf.Cos(t * Mathf.PI) * 7.5f;
-                    return Mathf.Sin(t * Mathf.PI) * 0.375f;
-                }
+                if (activeSegments[i] == null) continue;
+                outBoundaryXs.Add(activeSegments[i].startX);
+                if (i == activeSegments.Count - 1) outBoundaryXs.Add(activeSegments[i].endX);
             }
-            else if (seg.biome == BiomeType.Colinas)
-            {
-                float hillStart = seg.startX + 6f;
-                float hillEnd = seg.startX + 30f;
-                const float hillSpan = 24f;
-                const float peakHeight = 1.15f;
-                if (worldX >= hillStart && worldX <= hillEnd)
-                {
-                    float t = (worldX - hillStart) / hillSpan;
-                    // Curva suave tangente a zero nas entradas e saídas (sem degrau!)
-                    float h = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI)) * peakHeight;
-                    float dhdx = (Mathf.Sin(t * 2f * Mathf.PI) * Mathf.PI / hillSpan) * peakHeight;
-                    pitchAngleDeg = Mathf.Atan(dhdx) * Mathf.Rad2Deg;
-                    return h;
-                }
-            }
-            return 0f;
         }
 
         public static string GetBiomeDisplayName(BiomeType biome)
@@ -656,9 +638,16 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Colina de Montanha Cozy Storybook (24m exatos: s+6..s+30) com subida e descida física real (+1.15m)
-            // perfeitamente sincronizada com ComputeSegmentElevationAtX e fundida sem emenda na trilha plana!
-            SpawnProp(p, BiomePropsFactory.CreateMountainHillTrailSprite(), new Vector3(s + 18f, WorldDepth.PlayableGroundY, 0f), 1.0f, WorldDepth.HillAndFenceSurface);
+            // Colina de Montanha Cozy Storybook (24m exatos: s+6..s+30) gerada do MESMO perfil compartilhado
+            // TerrainHeightProfile (alterna subida suave 0.95m e acentuada 1.32m) + EdgeCollider2D 1:1 na superfície!
+            float hillPeak = TerrainHeightProfile.GetHillPeakForSegment(seg.index);
+            GameObject hillObj = new GameObject($"ColinaMontanha_{seg.index}");
+            hillObj.transform.SetParent(p, false);
+            hillObj.transform.position = new Vector3(s + 18f, WorldDepth.PlayableGroundY, 0f);
+            SpriteRenderer hillSR = hillObj.AddComponent<SpriteRenderer>();
+            hillSR.sprite = BiomePropsFactory.CreateMountainHillTrailSprite(hillPeak);
+            hillSR.sortingOrder = WorldDepth.HillAndFenceSurface;
+            TerrainHeightProfile.AttachHillSurfaceCollider(hillObj, hillPeak);
 
             // Carvalhos e decoração de trilha acompanhando a elevação exata da colina (sortOrder WorldTreesBehindTrail = 0 > encosta -2!)
             float e10 = ComputeSegmentElevationAtX(seg, s + 10f, out _);

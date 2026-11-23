@@ -152,10 +152,14 @@ namespace FlorestaBicicleta
             valePilot.SetBiome(currentBiome);
             valePilot.OnToggleFeedback += msg => ShowMessage(msg, 3.8f, new Color(1f, 0.94f, 0.64f, 1f));
 
-            // Auditoria Automatizada de Profundidade/Física/Geração (F9) e Circuito Controlado de Diagnóstico (F8)
+            // Auditoria Automatizada de Profundidade/Física/Geração (F9), Circuito Controlado (F8) e Overlay de Geometria (F7)
             WorldIntegrityValidator validator = gameObject.AddComponent<WorldIntegrityValidator>();
             validator.Initialize(player, trackGenerator);
             validator.OnValidationBanner += (msg, col) => ShowMessage(msg, 4.8f, col);
+
+            TerrainGeometryDiagnostics geoDiag = gameObject.AddComponent<TerrainGeometryDiagnostics>();
+            geoDiag.Initialize(mainCam, player, trackGenerator);
+            geoDiag.OnOverlayMessage += (msg, col) => ShowMessage(msg, 4.5f, col);
 
             DiagnosticTrackScene diagScene = gameObject.AddComponent<DiagnosticTrackScene>();
             diagScene.Initialize(player, validator);

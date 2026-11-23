@@ -238,15 +238,15 @@ namespace FlorestaBicicleta
 
                     if (d > 0.90f)
                     {
-                        float oa = (1f - Mathf.SmoothStep(0.94f, 1.12f, d)) * 0.54f;
+                        float oa = (1f - TerrainHeightProfile.SmoothRange(0.94f, 1.12f, d)) * 0.54f;
                         BlendTrailPx(buf, w, h, cx + dx, cy + dy, outline, oa);
                     }
                     else
                     {
-                        float topShade = Mathf.SmoothStep(-0.7f, 0.75f, ny);
+                        float topShade = TerrainHeightProfile.SmoothRange(-0.7f, 0.75f, ny);
                         Color baseC = Color.Lerp(shadow, fill, 0.35f + 0.65f * topShade);
                         if (ny > 0.15f && d < 0.72f)
-                            baseC = Color.Lerp(baseC, highlight, Mathf.SmoothStep(0.15f, 0.75f, ny) * 0.52f);
+                            baseC = Color.Lerp(baseC, highlight, TerrainHeightProfile.SmoothRange(0.15f, 0.75f, ny) * 0.52f);
                         float speckle = (TrailHash2(cx + dx, cy + dy) - 0.5f) * 0.075f;
                         baseC = new Color(
                             Mathf.Clamp01(baseC.r + speckle),
@@ -287,7 +287,7 @@ namespace FlorestaBicicleta
                     float d = (rdx * rdx) / Mathf.Max(1f, rx * rx) + (rdy * rdy) / Mathf.Max(1f, ry * ry);
                     if (d <= 1.15f)
                     {
-                        float a = (1f - Mathf.SmoothStep(0.65f, 1.15f, d)) * 0.85f;
+                        float a = (1f - TerrainHeightProfile.SmoothRange(0.65f, 1.15f, d)) * 0.85f;
                         BlendTrailPx(buf, w, h, cx + dx, cy + dy, dy > 0 ? hi : col, a);
                     }
                 }
@@ -327,23 +327,23 @@ namespace FlorestaBicicleta
 
                 for (int y = minY; y <= maxY; y++)
                 {
-                    float inBot = Mathf.SmoothStep(botEdge - 5.5f * yScale, botEdge + 3.5f * yScale, y);
-                    float inTop = 1f - Mathf.SmoothStep(topEdge - 4.0f * yScale, topEdge + 5.5f * yScale, y);
+                    float inBot = TerrainHeightProfile.SmoothRange(botEdge - 5.5f * yScale, botEdge + 3.5f * yScale, y);
+                    float inTop = 1f - TerrainHeightProfile.SmoothRange(topEdge - 4.0f * yScale, topEdge + 5.5f * yScale, y);
                     float trailMask = inBot * inTop;
 
-                    float nearBotBorder = (1f - Mathf.SmoothStep(botEdge - 3f * yScale, botEdge + 7f * yScale, y))
-                                        * Mathf.SmoothStep(botEdge - 8f * yScale, botEdge - 1f * yScale, y);
-                    float nearTopBorder = Mathf.SmoothStep(topEdge - 7f * yScale, topEdge + 2f * yScale, y)
-                                        * (1f - Mathf.SmoothStep(topEdge + 1f * yScale, topEdge + 8f * yScale, y));
+                    float nearBotBorder = (1f - TerrainHeightProfile.SmoothRange(botEdge - 3f * yScale, botEdge + 7f * yScale, y))
+                                        * TerrainHeightProfile.SmoothRange(botEdge - 8f * yScale, botEdge - 1f * yScale, y);
+                    float nearTopBorder = TerrainHeightProfile.SmoothRange(topEdge - 7f * yScale, topEdge + 2f * yScale, y)
+                                        * (1f - TerrainHeightProfile.SmoothRange(topEdge + 1f * yScale, topEdge + 8f * yScale, y));
                     float borderBand = Mathf.Clamp01(nearBotBorder + nearTopBorder);
 
                     if (trailMask > 0.001f)
                     {
                         float vNorm = Mathf.Clamp01((y - botEdge) / Mathf.Max(1f, topEdge - botEdge));
                         float centerRidge = 1f - Mathf.Abs(vNorm - 0.52f) * 2f;
-                        Color c = Color.Lerp(dirtWarmMid, dirtCenterSun, Mathf.SmoothStep(0.15f, 0.90f, centerRidge));
+                        Color c = Color.Lerp(dirtWarmMid, dirtCenterSun, TerrainHeightProfile.SmoothRange(0.15f, 0.90f, centerRidge));
 
-                        float edgeDarken = 1f - Mathf.SmoothStep(0f, 0.22f, Mathf.Min(vNorm, 1f - vNorm));
+                        float edgeDarken = 1f - TerrainHeightProfile.SmoothRange(0f, 0.22f, Mathf.Min(vNorm, 1f - vNorm));
                         c = Color.Lerp(c, dirtEdgeShade, edgeDarken * 0.65f);
 
                         float dt1 = (y - trackTopY) / Mathf.Max(1f, trackSigma);
@@ -351,8 +351,8 @@ namespace FlorestaBicicleta
                         float trackWear = Mathf.Clamp01((Mathf.Exp(-dt1 * dt1) + Mathf.Exp(-dt2 * dt2)) * 0.56f);
                         c = Color.Lerp(c, dirtTrack, trackWear);
 
-                        float sunFactor = Mathf.SmoothStep(0.56f, 0.88f, dapple) * (0.4f + 0.6f * centerRidge);
-                        float shadeFactor = Mathf.SmoothStep(0.42f, 0.14f, dapple);
+                        float sunFactor = TerrainHeightProfile.SmoothRange(0.56f, 0.88f, dapple) * (0.4f + 0.6f * centerRidge);
+                        float shadeFactor = TerrainHeightProfile.SmoothRange(0.42f, 0.14f, dapple);
                         c = Color.Lerp(c, sunPoolCol, sunFactor * 0.42f);
                         c = Color.Lerp(c, canopyShadow, shadeFactor * 0.26f);
 

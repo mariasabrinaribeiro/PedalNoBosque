@@ -390,22 +390,32 @@ namespace FlorestaBicicleta
             return CreateMountainHillTrailSprite();
         }
 
+        private static Sprite cachedHillGentle;
+        private static Sprite cachedHillSteep;
+
         /// <summary>
-        /// Colina de Montanha Cozy Storybook (960x240, 40 PPU = exatamente 24.0 unidades de largura)
-        /// sincronizada pixel a pixel com InfiniteTrackGenerator.GetTrackElevationAtX (h = 1.15m):
-        /// - Encosta gramada verde-musgo com flores silvestres e pedras sob a subida/descida (zero bloco marrom duro!);
-        /// - Trilha de terra dourada/canela com pedras chatas e rastros de bicicleta subindo e descendo suavemente;
-        /// - Cercado rústico de madeira acompanhando a curvatura da colina;
-        /// - Transição alfa suave nas duas extremidades para fundir 100% na estrada plana sem emendas!
+        /// Colina de Montanha Cozy Storybook (960x256, 40 PPU = exatamente 24.0 unidades de largura)
+        /// gerada DIRETAMENTE do perfil compartilhado TerrainHeightProfile.EvaluateHill:
+        /// - Encosta gramada verde 100% opaca cobrindo totalmente a faixa plana abaixo da subida/descida;
+        /// - Trilha curva de terra dourada/canela com rastros de bicicleta e pedras chatas seguindo exatamente o piso dos pneus;
+        /// - Cercado rústico de madeira acompanhando a curvatura da margem superior da trilha;
+        /// - Fusão suave nas duas extremidades (t < 0.055 e t > 0.945) sem degraus nem emendas!
         /// </summary>
         public static Sprite CreateMountainHillTrailSprite()
         {
-            if (cachedHill != null) return cachedHill;
+            return CreateMountainHillTrailSprite(TerrainHeightProfile.GentleHillPeakHeight);
+        }
+
+        public static Sprite CreateMountainHillTrailSprite(float peakHeight)
+        {
+            bool isSteep = peakHeight > 1.10f;
+            if (!isSteep && cachedHillGentle != null) return cachedHillGentle;
+            if (isSteep && cachedHillSteep != null) return cachedHillSteep;
+
             const int w = 960;
-            const int h = 240;
+            const int h = 256;
             const float ppu = 40f;
-            const int baseTireY = 44; // Y = -3.45f (base exata dos pneus da bicicleta!)
-            const float peakLiftPx = 1.15f * ppu; // 46px = +1.15 unidades de mundo no topo!
+            const int baseTireY = 48; // Y = WorldDepth.PlayableGroundY (-3.45f) — contato exato dos pneus!
 
             Texture2D tex = CreateBlankTex(w, h);
             Color[] buf = new Color[w * h];
@@ -425,30 +435,30 @@ namespace FlorestaBicicleta
             Color stoneFill   = new Color(0.81f, 0.74f, 0.63f, 1f);
             Color stoneHi     = new Color(0.94f, 0.89f, 0.79f, 1f);
 
-            // 1. Pinta a encosta verde da colina + a trilha curva de terra dourada acompanhando h(t) = 0.5*(1-cos(2πt))*1.15
+            // 1. Pinta a encosta gramada + trilha curva usando TerrainHeightProfile.EvaluateHill e SmoothRange!
             for (int x = 0; x < w; x++)
             {
                 float t = x / (float)(w - 1);
-                // Mesma curva exata de InfiniteTrackGenerator.GetTrackElevationAtX!
-                float hillCurve = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI));
-                float tireY = baseTireY + hillCurve * peakLiftPx;
-                float trailBotY = tireY - 14f + Mathf.Sin(t * 18f) * 1.4f;
-                float trailTopY = tireY + 34f + Mathf.Cos(t * 14f) * 1.6f;
+                float hWorld = TerrainHeightProfile.EvaluateHill(t, peakHeight, out _);
+                float tireY = baseTireY + hWorld * ppu;
+                // Alinha exatamente às bordas inferior (-3.65) e superior (-2.47) da trilha plana!
+                float trailBotY = tireY - 8f + Mathf.Sin(t * 18f) * 1.4f;
+                float trailTopY = tireY + 39f + Mathf.Cos(t * 14f) * 1.6f;
 
-                // Fade suave nas duas extremidades (t < 0.08 e t > 0.92) para encaixe 100% invisível com a trilha plana!
-                float endFade = Mathf.SmoothStep(0f, 0.085f, t) * Mathf.SmoothStep(0f, 0.085f, 1f - t);
+                // Fusão suave apenas nas pontas extremas (t < 0.055 e t > 0.945) — 100% opaco no corpo da colina!
+                float endFade = TerrainHeightProfile.SmoothRange(0f, 0.055f, t)
+                              * TerrainHeightProfile.SmoothRange(0f, 0.055f, 1f - t);
                 if (endFade <= 0.002f) continue;
 
-                // 1a. Encosta verde florida abaixo da trilha curva (cobre o chão plano abaixo da colina com grama viva!)
-                int slopeTop = Mathf.Min(h - 1, Mathf.CeilToInt(trailBotY + 3f));
-                for (int y = 4; y <= slopeTop; y++)
+                // 1a. Encosta verde gramada 100% opaca abaixo da trilha curva (cobre completamente a pista plana por baixo!)
+                int slopeTop = Mathf.Min(h - 1, Mathf.CeilToInt(trailBotY + 4f));
+                for (int y = 0; y <= slopeTop; y++)
                 {
-                    float bottomFade = Mathf.SmoothStep(4f, 20f, y);
-                    float vGrass = Mathf.Clamp01((y - 10f) / Mathf.Max(1f, trailBotY - 10f));
+                    float bottomFade = TerrainHeightProfile.SmoothRange(0f, 10f, y);
+                    float vGrass = Mathf.Clamp01((y - 6f) / Mathf.Max(1f, trailBotY - 6f));
                     Color gc = Color.Lerp(grassDeep, grassMid, vGrass);
                     if (vGrass > 0.55f) gc = Color.Lerp(gc, grassBright, (vGrass - 0.55f) * 1.3f);
 
-                    // Faixas sutis de relevo e textura de grama na encosta
                     float stripe = Mathf.Sin(x * 0.07f + y * 0.14f) * 0.045f + Mathf.Cos(x * 0.19f - y * 0.09f) * 0.03f;
                     gc = new Color(
                         Mathf.Clamp01(gc.r + stripe),
@@ -458,30 +468,29 @@ namespace FlorestaBicicleta
                     buf[y * w + x] = gc;
                 }
 
-                // 1b. Trilha curva de terra dourada/canela Cozy Storybook (mesma paleta da trilha principal!)
+                // 1b. Trilha curva de terra dourada/canela Cozy Storybook 100% opaca acompanhando a subida e descida!
                 int tMin = Mathf.Max(0, Mathf.FloorToInt(trailBotY - 4f));
                 int tMax = Mathf.Min(h - 1, Mathf.CeilToInt(trailTopY + 5f));
                 for (int y = tMin; y <= tMax; y++)
                 {
-                    float inBot = Mathf.SmoothStep(trailBotY - 3.5f, trailBotY + 2.5f, y);
-                    float inTop = 1f - Mathf.SmoothStep(trailTopY - 3.0f, trailTopY + 3.5f, y);
+                    float inBot = TerrainHeightProfile.SmoothRange(trailBotY - 3.5f, trailBotY + 2.5f, y);
+                    float inTop = 1f - TerrainHeightProfile.SmoothRange(trailTopY - 3.0f, trailTopY + 3.5f, y);
                     float mask = inBot * inTop;
                     if (mask <= 0.002f) continue;
 
                     float vNorm = Mathf.Clamp01((y - trailBotY) / Mathf.Max(1f, trailTopY - trailBotY));
                     float ridge = 1f - Mathf.Abs(vNorm - 0.50f) * 2f;
-                    Color tc = Color.Lerp(dirtWarm, dirtSun, Mathf.SmoothStep(0.15f, 0.90f, ridge));
+                    Color tc = Color.Lerp(dirtWarm, dirtSun, TerrainHeightProfile.SmoothRange(0.15f, 0.90f, ridge));
 
-                    float edgeDark = 1f - Mathf.SmoothStep(0f, 0.22f, Mathf.Min(vNorm, 1f - vNorm));
+                    float edgeDark = 1f - TerrainHeightProfile.SmoothRange(0f, 0.22f, Mathf.Min(vNorm, 1f - vNorm));
                     tc = Color.Lerp(tc, dirtEdge, edgeDark * 0.62f);
 
-                    // Dois rastros suaves de pneu acompanhando a curva da subida e descida
-                    float d1 = (y - (tireY + 12f)) / 5.2f;
-                    float d2 = (y - (tireY - 2f)) / 5.2f;
+                    // Dois rastros suaves de pneu acompanhando exatamente a curva da subida e descida
+                    float d1 = (y - (tireY + 22f)) / 5.2f;
+                    float d2 = (y - (tireY + 6f)) / 5.2f;
                     float trackW = Mathf.Clamp01((Mathf.Exp(-d1 * d1) + Mathf.Exp(-d2 * d2)) * 0.54f);
                     tc = Color.Lerp(tc, dirtTrack, trackW);
 
-                    // Grão orgânico suave
                     float gNoise = (Mathf.Sin(x * 0.37f + y * 0.53f) * Mathf.Cos(x * 0.21f - y * 0.41f)) * 0.04f;
                     tc = new Color(
                         Mathf.Clamp01(tc.r + gNoise),
@@ -499,26 +508,24 @@ namespace FlorestaBicicleta
 
             tex.SetPixels(buf);
 
-            // 2. Pedras chatas artesanais embutidas ao longo da trilha curva + flores e pedrinhas na encosta gramada
-            for (int i = 0; i < 14; i++)
+            // 2. Pedras chatas artesanais na trilha curva + flores e tufinhos na encosta gramada
+            for (int i = 0; i < 16; i++)
             {
-                float t = 0.11f + (i / 13f) * 0.78f;
+                float t = 0.09f + (i / 15f) * 0.82f;
                 int sx = Mathf.RoundToInt(t * (w - 1));
-                float hillCurve = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI));
-                int tireY = Mathf.RoundToInt(baseTireY + hillCurve * peakLiftPx);
+                float hWorld = TerrainHeightProfile.EvaluateHill(t, peakHeight, out _);
+                int tireY = Mathf.RoundToInt(baseTireY + hWorld * ppu);
 
-                // Pedra chata na trilha
-                int stY = tireY + ((i % 3) - 1) * 7 + 6;
+                int stY = tireY + ((i % 3) - 1) * 7 + 12;
                 FillEllipse(tex, sx, stY, 10 + (i % 4), 4 + (i % 2), new Color(0.32f, 0.22f, 0.14f, 0.55f));
                 FillEllipse(tex, sx, stY, 8 + (i % 4), 3 + (i % 2), stoneFill);
                 FillEllipse(tex, sx - 1, stY + 1, 5, 2, stoneHi);
 
-                // Tufinhos de grama e flores silvestres na encosta verde abaixo da trilha
-                if (hillCurve > 0.18f)
+                if (hWorld > 0.15f)
                 {
-                    int slopeY = Mathf.Max(14, tireY - 22 - (i % 3) * 8);
-                    FillEllipse(tex, sx, slopeY, 11, 5, grassDeep);
-                    FillEllipse(tex, sx, slopeY + 2, 8, 4, grassBright);
+                    int slopeY = Mathf.Max(14, tireY - 18 - (i % 3) * 8);
+                    FillEllipse(tex, sx, slopeY, 12, 5, grassDeep);
+                    FillEllipse(tex, sx, slopeY + 2, 9, 4, grassBright);
                     Color fCol = (i % 3 == 0) ? new Color(1f, 0.90f, 0.30f, 1f)
                         : (i % 3 == 1 ? new Color(1f, 0.54f, 0.70f, 1f) : new Color(0.98f, 0.98f, 0.92f, 1f));
                     FillCircle(tex, sx - 2, slopeY + 5, 3, fCol);
@@ -526,50 +533,52 @@ namespace FlorestaBicicleta
                 }
             }
 
-            // 3. Cercado rústico de madeira acompanhando a curvatura da margem superior da trilha da montanha
+            // 3. Cercado rústico de madeira acompanhando exatamente a margem superior da trilha curva
             int postCount = 12;
             int[] postXs = new int[postCount];
             int[] postBots = new int[postCount];
             for (int i = 0; i < postCount; i++)
             {
                 float t = 0.08f + (i / (float)(postCount - 1)) * 0.84f;
-                float hillCurve = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI));
+                float hWorld = TerrainHeightProfile.EvaluateHill(t, peakHeight, out _);
                 postXs[i] = Mathf.RoundToInt(t * (w - 1));
-                postBots[i] = Mathf.RoundToInt(baseTireY + hillCurve * peakLiftPx + 33f);
+                postBots[i] = Mathf.RoundToInt(baseTireY + hWorld * ppu + 38f);
             }
 
             for (int i = 0; i < postCount - 1; i++)
             {
-                Vector2 aTop = new Vector2(postXs[i], postBots[i] + 32f);
-                Vector2 bTop = new Vector2(postXs[i + 1], postBots[i + 1] + 32f);
+                Vector2 aTop = new Vector2(postXs[i], postBots[i] + 30f);
+                Vector2 bTop = new Vector2(postXs[i + 1], postBots[i + 1] + 30f);
                 Vector2 mTop = (aTop + bTop) * 0.5f + new Vector2(0f, -1.5f);
-                DrawCurvedBranch(tex, aTop, mTop, bTop, 3.4f, 3.4f, ink, woodMid);
+                DrawCurvedBranch(tex, aTop, mTop, bTop, 3.2f, 3.2f, ink, woodMid);
 
-                Vector2 aLow = new Vector2(postXs[i], postBots[i] + 17f);
-                Vector2 bLow = new Vector2(postXs[i + 1], postBots[i + 1] + 17f);
+                Vector2 aLow = new Vector2(postXs[i], postBots[i] + 15f);
+                Vector2 bLow = new Vector2(postXs[i + 1], postBots[i + 1] + 15f);
                 Vector2 mLow = (aLow + bLow) * 0.5f + new Vector2(0f, -1.5f);
-                DrawCurvedBranch(tex, aLow, mLow, bLow, 3.2f, 3.2f, ink, woodDark);
+                DrawCurvedBranch(tex, aLow, mLow, bLow, 3.0f, 3.0f, ink, woodDark);
             }
 
             for (int i = 0; i < postCount; i++)
             {
                 int px = postXs[i];
                 int pBot = postBots[i];
-                int pTop = pBot + 42;
+                int pTop = pBot + 40;
                 FillRect(tex, px - 5, pBot, px + 5, pTop, ink);
                 FillRect(tex, px - 3, pBot + 2, px + 3, pTop - 2, woodDark);
                 FillRect(tex, px - 2, pBot + 2, px + 1, pTop - 2, woodMid);
                 FillCircle(tex, px, pTop + 1, 5, ink);
                 FillCircle(tex, px, pTop + 1, 3, woodLight);
 
-                // Tufinho verde na base do poste
-                FillEllipse(tex, px, pBot + 1, 9, 4, grassDeep);
-                FillEllipse(tex, px, pBot + 3, 6, 3, grassBright);
+                FillEllipse(tex, px, pBot + 1, 10, 4, grassDeep);
+                FillEllipse(tex, px, pBot + 3, 7, 3, grassBright);
             }
 
             tex.Apply();
-            cachedHill = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, baseTireY / (float)h), ppu);
-            return cachedHill;
+            Sprite sp = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, baseTireY / (float)h), ppu);
+            if (isSteep) cachedHillSteep = sp;
+            else cachedHillGentle = sp;
+            cachedHill = sp;
+            return sp;
         }
 
         /// <summary>Faixa de rio cristalino estilo livro ilustrado, contida sob o tablado da ponte sem invadir o corrimão.</summary>

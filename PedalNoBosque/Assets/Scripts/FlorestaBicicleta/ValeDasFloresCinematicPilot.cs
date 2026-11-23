@@ -514,7 +514,7 @@ namespace FlorestaBicicleta
                     if (x < 0 || x >= w) continue;
                     float d = Mathf.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / Mathf.Max(1f, r);
                     if (d > 1f) continue;
-                    float edge = (softness > 0.01f) ? (1f - Mathf.SmoothStep(1f - softness, 1f, d)) : 1f;
+                    float edge = (softness > 0.01f) ? (1f - TerrainHeightProfile.SmoothRange(1f - softness, 1f, d)) : 1f;
                     float a = col.a * edge;
                     Color dst = tex.GetPixel(x, y);
                     float outA = a + dst.a * (1f - a);
@@ -590,7 +590,7 @@ namespace FlorestaBicicleta
             for (int y = 0; y < h; y++)
             {
                 float v = y / (float)(h - 1); // 0 = base (chão), 1 = topo (sol)
-                float vFade = Mathf.SmoothStep(0f, 0.35f, v) * Mathf.SmoothStep(1f, 0.78f, v);
+                float vFade = TerrainHeightProfile.SmoothRange(0f, 0.35f, v) * TerrainHeightProfile.SmoothRange(1f, 0.78f, v);
                 float widthHere = Mathf.Lerp(0.48f, 0.22f, v);
                 for (int x = 0; x < w; x++)
                 {
@@ -671,7 +671,7 @@ namespace FlorestaBicicleta
                             Color flower = (t < 0.55f)
                                 ? Color.Lerp(deepCol, midCol, t / 0.55f)
                                 : Color.Lerp(midCol, hiCol, (t - 0.55f) / 0.45f);
-                            float blend = Mathf.SmoothStep(0.08f, 0.22f, greenness) * Mathf.SmoothStep(0.30f, 0.42f, yFrac);
+                            float blend = TerrainHeightProfile.SmoothRange(0.08f, 0.22f, greenness) * TerrainHeightProfile.SmoothRange(0.30f, 0.42f, yFrac);
                             Color res = Color.Lerp(c, flower, blend * 0.92f);
                             res.a = c.a;
                             pixels[row + x] = res;
@@ -711,7 +711,7 @@ namespace FlorestaBicicleta
                     // Inverte verticalmente para que a silhueta orgânica das folhas pendam do topo da tela!
                     int srcRow = (cropH - 1 - y) * w;
                     int dstRow = y * w;
-                    float topAnchorFade = Mathf.SmoothStep(0f, 0.14f, y / (float)cropH);
+                    float topAnchorFade = TerrainHeightProfile.SmoothRange(0f, 0.14f, y / (float)cropH);
                     for (int x = 0; x < w; x++)
                     {
                         Color c = srcPx[srcRow + x];
@@ -720,7 +720,7 @@ namespace FlorestaBicicleta
                         float lum = c.r * 0.299f + c.g * 0.587f + c.b * 0.114f;
                         Color deep = new Color(c.r * 0.72f, c.g * 0.82f, c.b * 0.68f, c.a * topAnchorFade);
                         Color sunRim = new Color(Mathf.Clamp01(c.r * 1.12f), Mathf.Clamp01(c.g * 1.10f), c.b * 0.78f, c.a * topAnchorFade);
-                        outPx[dstRow + x] = Color.Lerp(deep, sunRim, Mathf.SmoothStep(0.38f, 0.68f, lum));
+                        outPx[dstRow + x] = Color.Lerp(deep, sunRim, TerrainHeightProfile.SmoothRange(0.38f, 0.68f, lum));
                     }
                 }
 
