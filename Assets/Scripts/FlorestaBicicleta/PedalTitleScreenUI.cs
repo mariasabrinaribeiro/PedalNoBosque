@@ -234,6 +234,7 @@ namespace FlorestaBicicleta
             // Bloqueia comandos da bicicleta sempre que não estiver no estado Playing
             bool lockGameplay = newState != GameFlowState.Playing;
             OnGameplayInputLockChanged?.Invoke(lockGameplay);
+            FlorestaSoundFX.Instance?.SetGameFlowState(newState);
 
             if (newState == GameFlowState.TitleScreen)
             {

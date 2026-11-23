@@ -138,6 +138,7 @@ namespace FlorestaBicicleta
             dayNightCycle.Initialize(mainCam, player.transform, sunsetOverlay);
             dayNightCycle.SetBiome(currentBiome);
             dayNightCycle.OnPeriodChanged += OnDayPeriodChanged;
+            FlorestaSoundFX.Instance?.SetContext(currentBiome, dayNightCycle.CurrentPeriod);
 
             // Fenômenos Naturais (Chuva leve, Arco-íris, Neblina e Estrela Cadente em pool)
             weatherController = gameObject.AddComponent<WeatherAndPhenomenaController>();
@@ -264,6 +265,7 @@ namespace FlorestaBicicleta
             }
             if (period == DayPeriod.Noite)
                 FlorestaSoundFX.Instance?.PlayAnimalVoice(ParkSpriteFactory.AnimalKind.CorujaNoturna);
+            FlorestaSoundFX.Instance?.SetDayPeriod(period);
 
             // Aplica a rotina natural por horário em todos os animais ativos (manhã, entardecer, noite)
             if (trackGenerator != null)
@@ -500,6 +502,7 @@ namespace FlorestaBicicleta
                     if (weatherController != null) weatherController.SetBiome(currentBiome);
                     if (valePilot != null) valePilot.SetBiome(currentBiome);
                     progressManager?.RecordBiomeVisited(currentBiome);
+                    FlorestaSoundFX.Instance?.SetBiome(currentBiome);
                     FlorestaSoundFX.Instance?.PlayBiomeCue(currentBiome);
                     ShowMessage(
                         InfiniteTrackGenerator.GetBiomeArrivalTip(currentBiome),
@@ -1303,6 +1306,7 @@ namespace FlorestaBicicleta
             bool showFullKitchen = !kitchenManuallyClosed;
             if (kitchenPanel != null) kitchenPanel.SetActive(showFullKitchen);
             if (openKitchenButtonObj != null) openKitchenButtonObj.SetActive(!showFullKitchen);
+            FlorestaSoundFX.Instance?.SetKitchenFocused(showFullKitchen);
             bool saladUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.SaladaFrutasBosque));
             bool moonBasketUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.CestaDaLua));
             bool tartUnlocked = !isValidator || (progressManager != null && progressManager.IsRecipeUnlocked(FoodType.TortinhaDeMaca));
