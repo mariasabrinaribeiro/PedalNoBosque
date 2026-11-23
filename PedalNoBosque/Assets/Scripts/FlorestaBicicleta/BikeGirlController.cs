@@ -699,7 +699,7 @@ namespace FlorestaBicicleta
 
             float comboBoost = happyCombo >= 3 ? 1.18f : 1f;
             float thirstPenalty = waterLevel <= 1f ? 0.55f : 1f;
-            float stumblePenalty = stumbleTimer > 0f ? 0.35f : 1f;
+            float stumblePenalty = stumbleTimer > 0f ? 0.72f : 1f;
             float targetSpeed = baseTargetSpeed * slopeMultiplier * comboBoost * thirstPenalty * stumblePenalty;
             int pedalingLevel = PlayerProgressManager.Instance != null
                 ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Pedalada) : 0;
@@ -975,7 +975,7 @@ namespace FlorestaBicicleta
 
         public void TriggerJump(float customVelocity = -1f)
         {
-            if (jumpHeight > 0.12f) return; // Só pula estando no chão (ou quase tocando)
+            if (jumpHeight > 0.28f) return; // Permite pular com resposta imediata no chão ou durante um solavanco baixo
             verticalVelocity = customVelocity > 0f ? customVelocity : manualJumpVelocity;
             FlorestaSoundFX.Instance?.PlayJump();
         }
@@ -1214,7 +1214,7 @@ namespace FlorestaBicicleta
             var obs = TrailObstacle.ActiveObstacles;
             if (obs == null || obs.Count == 0) return;
 
-            float playerHalfWidth = isOnFoot ? 0.36f : 0.78f;
+            float playerHalfWidth = isOnFoot ? 0.32f : 0.48f;
             for (int i = 0; i < obs.Count; i++)
             {
                 TrailObstacle ob = obs[i];
@@ -1225,7 +1225,8 @@ namespace FlorestaBicicleta
                 float dx = pos.x - obX;
                 if (Mathf.Abs(dx) >= minDist) continue;
 
-                if (jumpHeight >= ob.JumpClearanceHeight)
+                // Se já estiver pulando sobre o obstáculo, premia o salto limpo
+                if (jumpHeight >= 0.30f)
                 {
                     if (ob.TryRewardJumpOver())
                     {
@@ -1237,33 +1238,27 @@ namespace FlorestaBicicleta
                     continue;
                 }
 
-                // Bloqueia penetração sólida mantendo a bicicleta/menina exatamente do lado de fora da pedra!
-                float side = (Mathf.Abs(transform.position.x - obX) > 0.01f)
-                    ? Mathf.Sign(transform.position.x - obX)
-                    : (moveX >= 0f ? -1f : 1f);
+                // Ao encostar na pedra/tronco no chão: faz um pequeno salto físico automático por cima
+                // SEM nunca prender a bicicleta no lugar nem jogar o jogador para trás!
+                if (isOnFoot)
+                {
+                    if (verticalVelocity <= 0.1f) verticalVelocity = 3.2f;
+                    continue;
+                }
 
-                bool hitAtSpeed = !isOnFoot && Mathf.Abs(currentSpeed) > 1.2f;
-                pos.x = obX + side * (minDist + (hitAtSpeed ? 0.30f : 0.02f));
-                currentSpeed = 0f;
-
-                if (!isOnFoot && ob.TryHit())
+                if (ob.TryHit())
                 {
                     int balanceLevel = PlayerProgressManager.Instance != null
                         ? PlayerProgressManager.Instance.GetSkillLevel(PlayerSkillKind.Equilibrio) : 0;
-                    stumbleTimer = 0.75f - balanceLevel * 0.10f;
-                    // Pequeno solavanco físico ao encostar na pedra (sem atravessar!)
-                    verticalVelocity = 2.6f;
+                    stumbleTimer = Mathf.Max(0.15f, 0.32f - balanceLevel * 0.05f);
+
+                    // Solavanco vertical suficiente para a roda subir e passar por cima da pedra sem travar
+                    verticalVelocity = Mathf.Max(verticalVelocity, 6.2f);
+                    float dir = Mathf.Abs(moveX) > 0.05f ? Mathf.Sign(moveX) : facingDir;
+                    currentSpeed = dir * Mathf.Max(Mathf.Abs(currentSpeed) * 0.65f, 3.2f);
+
                     FlorestaSoundFX.Instance?.PlayBump();
-                    if (hitAtSpeed && balanceLevel < 3 && foodBasket.Count > 1)
-                    {
-                        FoodType dropped = foodBasket[foodBasket.Count - 1];
-                        foodBasket.RemoveAt(foodBasket.Count - 1);
-                        onInfoMessage?.Invoke($"Pedra na trilha! Caiu {FoodInfo.GetDisplayName(dropped)} — aperte W ou PULAR para saltar por cima!");
-                    }
-                    else
-                    {
-                        onInfoMessage?.Invoke($"Obstáculo ({ob.DisplayName}) na frente! Aperte W ou PULAR para saltar por cima!");
-                    }
+                    onInfoMessage?.Invoke($"Opa! {char.ToUpper(ob.DisplayName[0])}{ob.DisplayName.Substring(1)} na trilha — aperte PULAR para ganhar +15 pts!");
                 }
             }
         }

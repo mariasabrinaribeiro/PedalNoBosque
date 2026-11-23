@@ -108,9 +108,9 @@ namespace FlorestaBicicleta
         private bool hasStartedMovingOnRoad = false;
 
         private const float AnimalPassBehindThreshold = 6.5f;
-        private const int MaxConsecutiveMissedAnimals = 4;
-        private const int MinAnimalsPassedForMajorityRule = 5;
-        private const float MaxSecondsWithoutFeedingOnRoad = 45f;
+        private const int MaxConsecutiveMissedAnimals = 18;
+        private const int MinAnimalsPassedForMajorityRule = 25;
+        private const float MaxSecondsWithoutFeedingOnRoad = 3600f; // 1 hora (60 minutos) sem alimentar animais
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBootstrapOnForestScene()
@@ -583,14 +583,14 @@ namespace FlorestaBicicleta
                         roadAnimalsMissed++;
                         consecutiveMissedAnimals++;
 
-                        if (consecutiveMissedAnimals == 2)
+                        if (consecutiveMissedAnimals == 10)
                         {
-                            ShowMessage("Ei! Os animais da estrada estão com fome! Pare e alimente!", 3.8f, new Color(1f, 0.88f, 0.44f, 1f));
+                            ShowMessage("Ei! Os animais da estrada estão ficando com fome! Pare e alimente!", 3.8f, new Color(1f, 0.88f, 0.44f, 1f));
                         }
-                        else if (consecutiveMissedAnimals == MaxConsecutiveMissedAnimals - 1)
+                        else if (consecutiveMissedAnimals == MaxConsecutiveMissedAnimals - 3)
                         {
                             FlorestaSoundFX.Instance?.PlayCry();
-                            ShowMessage("CUIDADO! Mais 1 animal sem comida e será GAME OVER!", 4.2f, new Color(1f, 0.56f, 0.44f, 1f));
+                            ShowMessage("CUIDADO! Alimente os próximos animais ou será GAME OVER!", 4.2f, new Color(1f, 0.56f, 0.44f, 1f));
                         }
 
                         if (consecutiveMissedAnimals >= MaxConsecutiveMissedAnimals)
@@ -602,10 +602,10 @@ namespace FlorestaBicicleta
                             return;
                         }
 
-                        if (roadAnimalsPassed >= MinAnimalsPassedForMajorityRule && roadAnimalsMissed > roadAnimalsFed)
+                        if (roadAnimalsPassed >= MinAnimalsPassedForMajorityRule && roadAnimalsMissed >= Mathf.CeilToInt(roadAnimalsPassed * 0.75f))
                         {
                             TriggerHungerGameOver(
-                                $"Você deixou a maioria dos animais com fome ({roadAnimalsMissed} de {roadAnimalsPassed} sem comida)!\n" +
+                                $"Você deixou a grande maioria dos animais com fome ({roadAnimalsMissed} de {roadAnimalsPassed} sem comida)!\n" +
                                 "Diminua a velocidade na estrada e alimente os amigos do bosque!");
                             return;
                         }
@@ -613,29 +613,30 @@ namespace FlorestaBicicleta
                 }
             }
 
-            // 2. Avalia ficar muito tempo na estrada sem alimentar nenhum animal (pausa o relógio enquanto a Cozinha está aberta)
+            // 2. Avalia ficar ~1 hora (60 min) na estrada sem alimentar nenhum animal (pausa enquanto a Cozinha está aberta)
             bool kitchenOpen = kitchenPanel != null && kitchenPanel.activeSelf;
             if (!kitchenOpen)
             {
                 secondsSinceLastAnimalFed += Time.deltaTime;
                 float remaining = Mathf.Max(0f, MaxSecondsWithoutFeedingOnRoad - secondsSinceLastAnimalFed);
+                int minsRemaining = Mathf.Max(1, Mathf.CeilToInt(remaining / 60f));
 
-                if (secondsSinceLastAnimalFed >= 25f && lastTimeHungerWarningLevel < 1)
+                if (secondsSinceLastAnimalFed >= 2700f && lastTimeHungerWarningLevel < 1)
                 {
                     lastTimeHungerWarningLevel = 1;
-                    ShowMessage($"Os animais estão com fome! Alimente alguém em {Mathf.CeilToInt(remaining)}s!", 3.8f, new Color(1f, 0.86f, 0.44f, 1f));
+                    ShowMessage($"Os animais estão com fome! Alimente alguém nos próximos {minsRemaining} min!", 4.2f, new Color(1f, 0.86f, 0.44f, 1f));
                 }
-                else if (secondsSinceLastAnimalFed >= 35f && lastTimeHungerWarningLevel < 2)
+                else if (secondsSinceLastAnimalFed >= 3300f && lastTimeHungerWarningLevel < 2)
                 {
                     lastTimeHungerWarningLevel = 2;
                     FlorestaSoundFX.Instance?.PlayCry();
-                    ShowMessage($"ATENÇÃO! Faltam {Mathf.CeilToInt(remaining)}s para alimentar um animal ou será GAME OVER!", 4.2f, new Color(1f, 0.54f, 0.42f, 1f));
+                    ShowMessage($"ATENÇÃO! Faltam {minsRemaining} min para alimentar um animal ou será GAME OVER!", 4.5f, new Color(1f, 0.54f, 0.42f, 1f));
                 }
 
                 if (secondsSinceLastAnimalFed >= MaxSecondsWithoutFeedingOnRoad)
                 {
                     TriggerHungerGameOver(
-                        "Você ficou muito tempo correndo na estrada sem alimentar nenhum animal!\n" +
+                        "Você ficou 1 hora correndo na estrada sem alimentar nenhum animal!\n" +
                         $"Alimentados: {roadAnimalsFed}  |  Sem comida: {roadAnimalsMissed}\n" +
                         "Passe na Cozinha para encher a cesta e alimente os amigos do bosque!");
                 }
@@ -1013,7 +1014,7 @@ namespace FlorestaBicicleta
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280, 720);
-            scaler.matchWidthOrHeight = 0.5f;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             canvasObj.AddComponent<GraphicRaycaster>();
 
             // Filtro de pôr do sol suave (tela cheia, inclusive sob o notch do iPhone)
@@ -1036,45 +1037,45 @@ namespace FlorestaBicicleta
             safeRootObj.AddComponent<MobileSafeAreaFitter>();
             Transform hudRoot = safeRootObj.transform;
 
-            // Barra Superior Orgânica Arredondada (letras grandes e nítidas para celular, tablet e iPhone)
+            // Barra Superior Orgânica Arredondada (letras grandes e margens seguras em qualquer proporção de tela)
             GameObject topBar = CreateRoundedPanel(hudRoot, "TopBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -31f), new Vector2(1210f, 54f),
+                new Vector2(0f, -28f), new Vector2(1180f, 48f),
                 new Color(0.14f, 0.28f, 0.22f, 0.88f));
 
             // Ícone real de Estrela + contador de estrelas e pontuação
             CreateUIIcon(topBar.transform, "StarIcon", StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(-564f, 0f), new Vector2(32f, 32f));
+                new Vector2(-548f, 0f), new Vector2(30f, 30f));
             scoreText = CreateTMP(topBar.transform, "ScoreText", "0  (0 pts)",
-                22, new Vector2(-446f, 0f), new Vector2(194f, 42f), TextAlignmentOptions.Left);
+                21, new Vector2(-436f, 0f), new Vector2(186f, 38f), TextAlignmentOptions.Left);
             scoreText.color = new Color(1f, 0.96f, 0.80f, 1f);
 
             // Esquilo / Progresso discreto
             squirrelText = CreateTMP(topBar.transform, "SquirrelText", "Esquilo 0/6",
-                20, new Vector2(-276f, 0f), new Vector2(148f, 40f), TextAlignmentOptions.Center);
+                19, new Vector2(-274f, 0f), new Vector2(140f, 36f), TextAlignmentOptions.Center);
             squirrelText.color = new Color(1f, 0.90f, 0.58f, 0.98f);
 
             // Região Atual + Período do Dia (Centro)
             biomeSlopeText = CreateTMP(topBar.transform, "BiomeSlopeText", "Vale das Flores - Manha",
-                22, new Vector2(0f, 0f), new Vector2(382f, 42f), TextAlignmentOptions.Center);
+                21, new Vector2(0f, 0f), new Vector2(368f, 38f), TextAlignmentOptions.Center);
             biomeSlopeText.color = InfiniteTrackGenerator.GetBiomeAccentColor(BiomeType.CampoFlorido);
 
             // Distância (km)
             distanceKmText = CreateTMP(topBar.transform, "DistanceKmText", "0.00 km",
-                22, new Vector2(276f, 0f), new Vector2(138f, 42f), TextAlignmentOptions.Center);
+                21, new Vector2(270f, 0f), new Vector2(130f, 38f), TextAlignmentOptions.Center);
             distanceKmText.color = new Color(1f, 0.96f, 0.72f, 1f);
 
             // Ícone real de Gota d'Água + Barra visual
             CreateUIIcon(topBar.transform, "WaterDropIcon", StorybookUISpriteFactory.UIIconKind.WaterDrop,
-                new Vector2(378f, 0f), new Vector2(30f, 30f));
+                new Vector2(368f, 0f), new Vector2(28f, 28f));
 
             waterLabel = CreateTMP(topBar.transform, "WaterLabel", "100%",
-                20, new Vector2(558f, 0f), new Vector2(72f, 36f), TextAlignmentOptions.Left);
+                19, new Vector2(544f, 0f), new Vector2(68f, 34f), TextAlignmentOptions.Left);
             waterLabel.color = new Color(0.76f, 0.96f, 1f, 1f);
 
             GameObject sliderObj = CreateRoundedPanel(topBar.transform, "WaterSlider",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(458f, 0f), new Vector2(118f, 18f),
+                new Vector2(448f, 0f), new Vector2(114f, 16f),
                 new Color(0.12f, 0.22f, 0.28f, 0.92f));
             waterSlider = sliderObj.AddComponent<Slider>();
             waterSlider.minValue = 0f; waterSlider.maxValue = 100f; waterSlider.value = 100f;
@@ -1094,45 +1095,45 @@ namespace FlorestaBicicleta
             fillImg.color = new Color(0.32f, 0.84f, 0.98f, 0.98f);
             waterSlider.fillRect = fRT;
 
-            // Sub-barra secundária arredondada (Cesta + Pedido próximo com leitura confortável no celular)
+            // Sub-barra secundária arredondada (Cesta + Pedido próximo com margens seguras)
             GameObject subBar = CreateRoundedPanel(hudRoot, "SubBar",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -80f), new Vector2(1210f, 38f),
+                new Vector2(0f, -72f), new Vector2(1180f, 34f),
                 new Color(0.12f, 0.18f, 0.16f, 0.76f));
 
             basketText = CreateTMP(subBar.transform, "BasketText", "Cesta: ...",
-                19, new Vector2(-300f, 0f), new Vector2(560f, 34f), TextAlignmentOptions.Left);
+                18, new Vector2(-292f, 0f), new Vector2(548f, 30f), TextAlignmentOptions.Left);
             basketText.color = new Color(1f, 0.96f, 0.84f, 0.98f);
 
             nearbyOrderText = CreateTMP(subBar.transform, "NearbyOrder", "",
-                19, new Vector2(300f, 0f), new Vector2(560f, 34f), TextAlignmentOptions.Right);
+                18, new Vector2(292f, 0f), new Vector2(548f, 30f), TextAlignmentOptions.Right);
             nearbyOrderText.color = new Color(0.84f, 1f, 0.88f, 0.98f);
 
             CreateRoundedClickButton(hudRoot, "BtnPausa", "Pausa",
-                new Vector2(1f, 1f), new Vector2(-240f, -126f), new Vector2(120f, 44f),
-                new Color(0.32f, 0.46f, 0.56f, 0.96f), 19,
+                new Vector2(1f, 1f), new Vector2(-216f, -114f), new Vector2(110f, 40f),
+                new Color(0.32f, 0.46f, 0.56f, 0.96f), 18,
                 () => titleScreenUI?.OpenPauseMenu());
 
             CreateRoundedClickButton(hudRoot, "BtnHabilidades", "Habilidades",
-                new Vector2(1f, 1f), new Vector2(-94f, -126f), new Vector2(156f, 44f),
-                new Color(0.27f, 0.43f, 0.34f, 0.96f), 19, ToggleSkillsPanel);
+                new Vector2(1f, 1f), new Vector2(-84f, -114f), new Vector2(142f, 40f),
+                new Color(0.27f, 0.43f, 0.34f, 0.96f), 18, ToggleSkillsPanel);
             BuildSkillsPanel(hudRoot);
 
             // Mensagem de feedback com moldura acolhedora arredondada (alta legibilidade mobile)
             messagePlate = CreateRoundedPanel(hudRoot, "MessagePlate",
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -128f), new Vector2(650f, 50f),
+                new Vector2(0f, -116f), new Vector2(640f, 44f),
                 new Color(0.10f, 0.20f, 0.15f, 0.93f));
             messageText = CreateTMP(messagePlate.transform, "MessageText", "",
-                21, Vector2.zero, new Vector2(624f, 44f), TextAlignmentOptions.Center);
+                19, Vector2.zero, new Vector2(616f, 38f), TextAlignmentOptions.Center);
             messageText.outlineColor = new Color32(28, 49, 40, 255);
             messageText.outlineWidth = 0.25f;
             messagePlate.SetActive(false);
 
-            // Botão para abrir a Cozinha do Bosque (alvo de toque grande para celular/iPhone)
+            // Botão para abrir a Cozinha do Bosque (alvo de toque confortável sem vazar na lateral)
             openKitchenButtonObj = CreateRoundedClickButton(hudRoot, "BtnAbrirCozinha", "Cozinha do Bosque",
-                new Vector2(0f, 1f), new Vector2(124f, -126f), new Vector2(216f, 44f),
-                new Color(0.27f, 0.43f, 0.34f, 0.96f), 19,
+                new Vector2(0f, 1f), new Vector2(108f, -114f), new Vector2(192f, 40f),
+                new Color(0.27f, 0.43f, 0.34f, 0.96f), 18,
                 () =>
                 {
                     kitchenManuallyClosed = false;
@@ -1146,8 +1147,8 @@ namespace FlorestaBicicleta
             // Botão especial de Cavar com o Esquilo (linha superior contextual: nunca sobrepõe Descer/Carinho)
             digButtonObj = CreateIconClickButton(hudRoot, "BtnCavar", "Cavar Junto",
                 StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(0.5f, 0f), new Vector2(0f, 146f), new Vector2(264f, 48f),
-                new Color(0.24f, 0.62f, 0.78f, 0.95f), 20,
+                new Vector2(0.5f, 0f), new Vector2(0f, 134f), new Vector2(256f, 44f),
+                new Color(0.24f, 0.62f, 0.78f, 0.95f), 19,
                 () => digSite.HelpDig());
             digButtonLabel = digButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             digButtonObj.SetActive(false);
@@ -1155,24 +1156,24 @@ namespace FlorestaBicicleta
             // Botão contextual de Evento de Aventura (linha superior contextual: sem sobreposição)
             adventureEventButtonObj = CreateIconClickButton(hudRoot, "BtnEventoAventura", "Interagir",
                 StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(0.5f, 0f), new Vector2(0f, 146f), new Vector2(304f, 48f),
-                new Color(0.28f, 0.62f, 0.44f, 0.95f), 20,
+                new Vector2(0.5f, 0f), new Vector2(0f, 134f), new Vector2(292f, 44f),
+                new Color(0.28f, 0.62f, 0.44f, 0.95f), 19,
                 () => player.TryInteractNearbyEvent());
             adventureEventButtonLabel = adventureEventButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             adventureEventButtonObj.SetActive(false);
 
             exploreModeButtonObj = CreateIconClickButton(hudRoot, "BtnExplorarAPe", "Descer e explorar",
                 StorybookUISpriteFactory.UIIconKind.Stroll,
-                new Vector2(0.5f, 0f), new Vector2(-108f, 92f), new Vector2(266f, 44f),
-                new Color(0.42f, 0.50f, 0.34f, 0.95f), 19,
+                new Vector2(0.5f, 0f), new Vector2(-104f, 84f), new Vector2(252f, 40f),
+                new Color(0.42f, 0.50f, 0.34f, 0.95f), 18,
                 () => player.ToggleExploreMode());
             exploreModeButtonLabel = exploreModeButtonObj.GetComponentInChildren<TextMeshProUGUI>();
             exploreModeButtonObj.SetActive(false);
 
             petPuppyButtonObj = CreateIconClickButton(hudRoot, "BtnCarinhoCachorro", "Carinho",
                 StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(0.5f, 0f), new Vector2(124f, 92f), new Vector2(168f, 44f),
-                new Color(0.84f, 0.44f, 0.56f, 0.95f), 19,
+                new Vector2(0.5f, 0f), new Vector2(118f, 84f), new Vector2(160f, 40f),
+                new Color(0.84f, 0.44f, 0.56f, 0.95f), 18,
                 () =>
                 {
                     player.PetPuppy();
@@ -1180,55 +1181,55 @@ namespace FlorestaBicicleta
                 });
             petPuppyButtonObj.SetActive(false);
 
-            // Controles inferiores grandes para polegar em celular, tablet e iPhone (sem sobreposição!)
+            // Controles inferiores grandes para polegar em celular, tablet e iPhone (margens seguras, sem cortar!)
             CreateIconHoldButton(hudRoot, "BtnVoltar", "Voltar",
                 StorybookUISpriteFactory.UIIconKind.BackArrow,
-                Vector2.zero, new Vector2(72f, 34f), new Vector2(124f, 54f),
-                new Color(0.50f, 0.35f, 0.25f, 0.88f), 20,
+                Vector2.zero, new Vector2(72f, 30f), new Vector2(120f, 48f),
+                new Color(0.50f, 0.35f, 0.25f, 0.88f), 19,
                 () => player.SetUIReverse(true), () => player.SetUIReverse(false));
 
             CreateIconHoldButton(hudRoot, "BtnDevagar", "Passear",
                 StorybookUISpriteFactory.UIIconKind.Stroll,
-                Vector2.zero, new Vector2(206f, 34f), new Vector2(132f, 54f),
-                new Color(0.24f, 0.52f, 0.36f, 0.90f), 20,
+                Vector2.zero, new Vector2(202f, 30f), new Vector2(128f, 48f),
+                new Color(0.24f, 0.52f, 0.36f, 0.90f), 19,
                 () => player.SetUISlow(true), () => player.SetUISlow(false));
 
             CreateIconHoldButton(hudRoot, "BtnRapido", "Pedalar",
                 StorybookUISpriteFactory.UIIconKind.Pedal,
-                Vector2.zero, new Vector2(348f, 34f), new Vector2(140f, 54f),
-                new Color(0.78f, 0.54f, 0.22f, 0.92f), 20,
+                Vector2.zero, new Vector2(340f, 30f), new Vector2(136f, 48f),
+                new Color(0.78f, 0.54f, 0.22f, 0.92f), 19,
                 () => player.SetUIFast(true), () => player.SetUIFast(false));
 
             CreateIconClickButton(hudRoot, "BtnPular", "Pular",
                 StorybookUISpriteFactory.UIIconKind.Jump,
-                new Vector2(1f, 0f), new Vector2(-268f, 34f), new Vector2(126f, 54f),
-                new Color(0.26f, 0.56f, 0.68f, 0.92f), 20,
+                new Vector2(1f, 0f), new Vector2(-262f, 30f), new Vector2(122f, 48f),
+                new Color(0.26f, 0.56f, 0.68f, 0.92f), 19,
                 () => player.TriggerJump());
 
             GameObject comidaBtnObj = CreateIconClickButton(hudRoot, "BtnComida", "Entregar",
                 StorybookUISpriteFactory.UIIconKind.Basket,
-                new Vector2(1f, 0f), new Vector2(-104f, 34f), new Vector2(184f, 54f),
-                new Color(0.80f, 0.40f, 0.48f, 0.94f), 22,
+                new Vector2(1f, 0f), new Vector2(-100f, 30f), new Vector2(176f, 48f),
+                new Color(0.80f, 0.40f, 0.48f, 0.94f), 21,
                 () => player.ThrowFood());
             comidaButtonImage = comidaBtnObj.GetComponent<Image>();
 
             // Botões centrais maiores para Diário de Descobertas, Oficina e Campainha
             CreateIconClickButton(hudRoot, "BtnDiario", "Livro",
                 StorybookUISpriteFactory.UIIconKind.Book,
-                new Vector2(0.5f, 0f), new Vector2(-124f, 34f), new Vector2(114f, 48f),
-                new Color(0.30f, 0.56f, 0.44f, 0.90f), 19,
+                new Vector2(0.5f, 0f), new Vector2(-120f, 30f), new Vector2(110f, 44f),
+                new Color(0.30f, 0.56f, 0.44f, 0.90f), 18,
                 () => discoveryUI?.Open(0));
 
             CreateIconClickButton(hudRoot, "BtnOficina", "Oficina",
                 StorybookUISpriteFactory.UIIconKind.Workshop,
-                new Vector2(0.5f, 0f), new Vector2(0f, 34f), new Vector2(122f, 48f),
-                new Color(0.58f, 0.44f, 0.74f, 0.90f), 19,
+                new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(118f, 44f),
+                new Color(0.58f, 0.44f, 0.74f, 0.90f), 18,
                 () => discoveryUI?.Open(2));
 
             CreateIconClickButton(hudRoot, "BtnSino", "Sino",
                 StorybookUISpriteFactory.UIIconKind.Star,
-                new Vector2(0.5f, 0f), new Vector2(118f, 34f), new Vector2(104f, 48f),
-                new Color(0.82f, 0.62f, 0.24f, 0.90f), 19,
+                new Vector2(0.5f, 0f), new Vector2(114f, 30f), new Vector2(100f, 44f),
+                new Color(0.82f, 0.62f, 0.24f, 0.90f), 18,
                 () => player.RingBell());
 
             discoveryUI = gameObject.AddComponent<DiscoveryBookAndWorkshopUI>();
@@ -1525,10 +1526,10 @@ namespace FlorestaBicicleta
                 }
                 else
                 {
-                    if (hasStartedMovingOnRoad && (consecutiveMissedAnimals >= 2 || secondsSinceLastAnimalFed >= 22f))
+                    if (hasStartedMovingOnRoad && (consecutiveMissedAnimals >= 10 || secondsSinceLastAnimalFed >= 2700f))
                     {
-                        int secsLeft = Mathf.CeilToInt(Mathf.Max(0f, MaxSecondsWithoutFeedingOnRoad - secondsSinceLastAnimalFed));
-                        nearbyOrderText.text = $"FOME NA ESTRADA! Alimente em {secsLeft}s ({roadAnimalsFed}/{roadAnimalsPassed} alimentados)";
+                        int minsLeft = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(0f, MaxSecondsWithoutFeedingOnRoad - secondsSinceLastAnimalFed) / 60f));
+                        nearbyOrderText.text = $"FOME NA ESTRADA! Alimente ({minsLeft} min | {roadAnimalsFed}/{roadAnimalsPassed} alimentados)";
                         nearbyOrderText.color = new Color(1f, 0.72f, 0.44f, 1f);
                     }
                     else
@@ -1798,12 +1799,25 @@ namespace FlorestaBicicleta
             lastSafeArea = safe;
             lastScreenSize = new Vector2Int(Screen.width, Screen.height);
 
+            // Só aplica recuo se o dispositivo realmente tiver Safe Area menor que a tela (iPhone notch/Dynamic Island/Android)
+            bool hasInset = safe.width > 100f && safe.height > 100f
+                && (safe.x > 1f || safe.y > 1f || safe.width < Screen.width - 1f || safe.height < Screen.height - 1f);
+
+            if (!hasInset)
+            {
+                panelRect.anchorMin = Vector2.zero;
+                panelRect.anchorMax = Vector2.one;
+                panelRect.offsetMin = Vector2.zero;
+                panelRect.offsetMax = Vector2.zero;
+                return;
+            }
+
             Vector2 anchorMin = safe.position;
             Vector2 anchorMax = safe.position + safe.size;
-            anchorMin.x = Mathf.Clamp01(anchorMin.x / Screen.width);
-            anchorMin.y = Mathf.Clamp01(anchorMin.y / Screen.height);
-            anchorMax.x = Mathf.Clamp01(anchorMax.x / Screen.width);
-            anchorMax.y = Mathf.Clamp01(anchorMax.y / Screen.height);
+            anchorMin.x = Mathf.Clamp(anchorMin.x / Screen.width, 0f, 0.15f);
+            anchorMin.y = Mathf.Clamp(anchorMin.y / Screen.height, 0f, 0.15f);
+            anchorMax.x = Mathf.Clamp(anchorMax.x / Screen.width, 0.85f, 1f);
+            anchorMax.y = Mathf.Clamp(anchorMax.y / Screen.height, 0.85f, 1f);
 
             panelRect.anchorMin = anchorMin;
             panelRect.anchorMax = anchorMax;
