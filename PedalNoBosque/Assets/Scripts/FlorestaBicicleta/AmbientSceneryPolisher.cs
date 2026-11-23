@@ -65,6 +65,7 @@ namespace FlorestaBicicleta
 
         private Camera cam;
         private readonly List<CloudItem> clouds = new List<CloudItem>();
+        private readonly List<ParallaxProp> distantForestProps = new List<ParallaxProp>();
         private readonly List<ParallaxProp> midgroundProps = new List<ParallaxProp>();
         private readonly List<ParallaxProp> nearTreeProps = new List<ParallaxProp>();
         private readonly List<ParallaxProp> foregroundProps = new List<ParallaxProp>();
@@ -91,6 +92,7 @@ namespace FlorestaBicicleta
             petalSprite = CreatePetalSprite();
 
             BuildSkyClouds();
+            BuildDistantForestLayer();
             BuildMidgroundLayer();
             BuildNearTreesLayer();
             BuildForegroundLayer();
@@ -133,7 +135,41 @@ namespace FlorestaBicicleta
             }
         }
 
-        /// <summary>Plano 2 — Árvores Intermediárias (paralaxe 0.52x): bosques e árvores variadas atrás da estrada.</summary>
+        /// <summary>Plano 1.5 — Floresta de Fundo (paralaxe 0.30x): silhuetas de bosques distantes com névoa atmosférica à frente das montanhas (12%).</summary>
+        private void BuildDistantForestLayer()
+        {
+            const int count = 8;
+            const float screenSpacing = 7.8f;
+            float totalScreenSpan = count * screenSpacing; // 62.4f
+            for (int i = 0; i < count; i++)
+            {
+                GameObject go = new GameObject($"FlorestaDistante_{i}");
+                go.transform.SetParent(transform, false);
+                SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = BiomePropsFactory.CreateMidgroundTreeClusterSprite(i);
+                sr.flipX = (i % 2 == 1);
+                sr.sortingOrder = -13; // Entre montanhas distantes (-20) e árvores intermediárias (-10)
+                // Névoa atmosférica azul-esverdeada suave para profundidade natural sem competir com as montanhas
+                sr.color = new Color(0.58f, 0.76f, 0.74f, 0.56f);
+                float y = -2.15f + (i % 3) * 0.22f;
+                float scale = 0.28f + (i % 3) * 0.04f;
+                go.transform.localScale = new Vector3(scale * 1.15f, scale, 1f);
+                distantForestProps.Add(new ParallaxProp
+                {
+                    tr = go.transform,
+                    sr = sr,
+                    screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
+                    y = y,
+                    parallax = 0.30f,
+                    screenSpan = totalScreenSpan,
+                    variantIndex = i,
+                    isTreeLayer = false,
+                    lastCycle = 0
+                });
+            }
+        }
+
+        /// <summary>Plano 2 — Árvores Intermediárias (paralaxe 0.55x): bosques e árvores variadas atrás da estrada.</summary>
         private void BuildMidgroundLayer()
         {
             const int count = 7;
@@ -158,7 +194,7 @@ namespace FlorestaBicicleta
                     sr = sr,
                     screenBaseX = -totalScreenSpan * 0.5f + i * screenSpacing,
                     y = y,
-                    parallax = 0.52f,
+                    parallax = 0.55f,
                     screenSpan = totalScreenSpan,
                     variantIndex = i + 1,
                     isTreeLayer = true,
@@ -167,7 +203,7 @@ namespace FlorestaBicicleta
             }
         }
 
-        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.80x): carvalhos ilustrados ancorados na grama atrás do meio-fio da estrada.</summary>
+        /// <summary>Plano 2.5 — Árvores Próximas (paralaxe 0.85x): carvalhos ilustrados ancorados na grama atrás do meio-fio da estrada.</summary>
         private void BuildNearTreesLayer()
         {
             float[] screenOffsets = { -27f, -15f, -2f, 11f, 23f };
@@ -199,7 +235,7 @@ namespace FlorestaBicicleta
                     sr = sr,
                     screenBaseX = screenOffsets[i],
                     y = -2.30f + (i % 2) * 0.06f,
-                    parallax = 0.80f,
+                    parallax = 0.85f,
                     screenSpan = totalScreenSpan,
                     variantIndex = i,
                     isTreeLayer = true,
@@ -366,6 +402,7 @@ namespace FlorestaBicicleta
 
             // Planos de Parallax unificados em espaço de tela (Mathf.Repeat O(1): zero lacunas, zero deriva acumulada,
             // zero deslizamento com a bicicleta parada, resposta imediata ao pedalar para frente ou para trás!)
+            UpdateParallaxList(distantForestProps, camX);
             UpdateParallaxList(midgroundProps, camX);
             UpdateParallaxList(nearTreeProps, camX);
             UpdateParallaxList(foregroundProps, camX);

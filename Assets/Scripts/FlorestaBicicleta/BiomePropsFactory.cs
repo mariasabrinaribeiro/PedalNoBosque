@@ -391,69 +391,184 @@ namespace FlorestaBicicleta
         }
 
         /// <summary>
-        /// Cercado rústico de madeira de montanha com pedras musgosas, samambaias e flores silvestres
-        /// ancorado na margem superior da estrada (Y = -2.38f), preservando 100% do piso original sem cortar a pista!
+        /// Colina de Montanha Cozy Storybook (960x240, 40 PPU = exatamente 24.0 unidades de largura)
+        /// sincronizada pixel a pixel com InfiniteTrackGenerator.GetTrackElevationAtX (h = 1.15m):
+        /// - Encosta gramada verde-musgo com flores silvestres e pedras sob a subida/descida (zero bloco marrom duro!);
+        /// - Trilha de terra dourada/canela com pedras chatas e rastros de bicicleta subindo e descendo suavemente;
+        /// - Cercado rústico de madeira acompanhando a curvatura da colina;
+        /// - Transição alfa suave nas duas extremidades para fundir 100% na estrada plana sem emendas!
         /// </summary>
         public static Sprite CreateMountainHillTrailSprite()
         {
             if (cachedHill != null) return cachedHill;
-            int w = 640, h = 120;
+            const int w = 960;
+            const int h = 240;
+            const float ppu = 40f;
+            const int baseTireY = 44; // Y = -3.45f (base exata dos pneus da bicicleta!)
+            const float peakLiftPx = 1.15f * ppu; // 46px = +1.15 unidades de mundo no topo!
+
             Texture2D tex = CreateBlankTex(w, h);
+            Color[] buf = new Color[w * h];
+            for (int i = 0; i < buf.Length; i++) buf[i] = Color.clear;
 
             Color ink = new Color(0.23f, 0.11f, 0.08f, 1f);
-            Color grassTop = new Color(0.50f, 0.74f, 0.25f, 1f);
-            Color grassMid = new Color(0.34f, 0.58f, 0.19f, 1f);
-            Color grassDark = new Color(0.22f, 0.44f, 0.14f, 1f);
-            Color stoneDark = new Color(0.52f, 0.48f, 0.44f, 1f);
-            Color stoneLight = new Color(0.76f, 0.72f, 0.65f, 1f);
-            Color woodDark = new Color(0.48f, 0.26f, 0.12f, 1f);
-            Color woodMid = new Color(0.72f, 0.44f, 0.21f, 1f);
-            Color woodLight = new Color(0.88f, 0.61f, 0.34f, 1f);
+            Color grassBright = new Color(0.54f, 0.77f, 0.26f, 1f);
+            Color grassMid    = new Color(0.37f, 0.62f, 0.21f, 1f);
+            Color grassDeep   = new Color(0.22f, 0.45f, 0.16f, 1f);
+            Color dirtSun     = new Color(0.87f, 0.72f, 0.49f, 1f);
+            Color dirtWarm    = new Color(0.79f, 0.61f, 0.39f, 1f);
+            Color dirtTrack   = new Color(0.67f, 0.49f, 0.30f, 1f);
+            Color dirtEdge    = new Color(0.55f, 0.40f, 0.24f, 1f);
+            Color woodDark    = new Color(0.46f, 0.25f, 0.12f, 1f);
+            Color woodMid     = new Color(0.70f, 0.43f, 0.20f, 1f);
+            Color woodLight   = new Color(0.88f, 0.61f, 0.34f, 1f);
+            Color stoneFill   = new Color(0.81f, 0.74f, 0.63f, 1f);
+            Color stoneHi     = new Color(0.94f, 0.89f, 0.79f, 1f);
 
-            const int baseY = 14;
-
-            // 1. Postes e travessas de madeira rústica ao longo da margem superior da trilha
-            for (int px = 36; px <= w - 36; px += 68)
+            // 1. Pinta a encosta verde da colina + a trilha curva de terra dourada acompanhando h(t) = 0.5*(1-cos(2πt))*1.15
+            for (int x = 0; x < w; x++)
             {
-                int pBot = baseY;
-                int pTop = baseY + 58;
+                float t = x / (float)(w - 1);
+                // Mesma curva exata de InfiniteTrackGenerator.GetTrackElevationAtX!
+                float hillCurve = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI));
+                float tireY = baseTireY + hillCurve * peakLiftPx;
+                float trailBotY = tireY - 14f + Mathf.Sin(t * 18f) * 1.4f;
+                float trailTopY = tireY + 34f + Mathf.Cos(t * 14f) * 1.6f;
 
-                if (px + 68 <= w - 36)
+                // Fade suave nas duas extremidades (t < 0.08 e t > 0.92) para encaixe 100% invisível com a trilha plana!
+                float endFade = Mathf.SmoothStep(0f, 0.085f, t) * Mathf.SmoothStep(0f, 0.085f, 1f - t);
+                if (endFade <= 0.002f) continue;
+
+                // 1a. Encosta verde florida abaixo da trilha curva (cobre o chão plano abaixo da colina com grama viva!)
+                int slopeTop = Mathf.Min(h - 1, Mathf.CeilToInt(trailBotY + 3f));
+                for (int y = 4; y <= slopeTop; y++)
                 {
-                    // Duas travessas horizontais rústicas entre os postes
-                    DrawCurvedBranch(tex, new Vector2(px, pBot + 42), new Vector2(px + 34, pBot + 40), new Vector2(px + 68, pBot + 42), 4.2f, 4.2f, ink, woodMid);
-                    DrawCurvedBranch(tex, new Vector2(px, pBot + 24), new Vector2(px + 34, pBot + 22), new Vector2(px + 68, pBot + 24), 4.0f, 4.0f, ink, woodDark);
+                    float bottomFade = Mathf.SmoothStep(4f, 20f, y);
+                    float vGrass = Mathf.Clamp01((y - 10f) / Mathf.Max(1f, trailBotY - 10f));
+                    Color gc = Color.Lerp(grassDeep, grassMid, vGrass);
+                    if (vGrass > 0.55f) gc = Color.Lerp(gc, grassBright, (vGrass - 0.55f) * 1.3f);
+
+                    // Faixas sutis de relevo e textura de grama na encosta
+                    float stripe = Mathf.Sin(x * 0.07f + y * 0.14f) * 0.045f + Mathf.Cos(x * 0.19f - y * 0.09f) * 0.03f;
+                    gc = new Color(
+                        Mathf.Clamp01(gc.r + stripe),
+                        Mathf.Clamp01(gc.g + stripe * 1.1f),
+                        Mathf.Clamp01(gc.b + stripe * 0.6f),
+                        endFade * bottomFade);
+                    buf[y * w + x] = gc;
                 }
 
-                FillRect(tex, px - 7, pBot, px + 7, pTop, ink);
-                FillRect(tex, px - 5, pBot + 2, px + 5, pTop - 2, woodDark);
-                FillRect(tex, px - 3, pBot + 2, px + 2, pTop - 2, woodMid);
-                FillRect(tex, px - 2, pBot + 3, px, pTop - 3, woodLight);
-                FillCircle(tex, px, pTop + 2, 7, ink);
-                FillCircle(tex, px, pTop + 2, 5, woodLight);
+                // 1b. Trilha curva de terra dourada/canela Cozy Storybook (mesma paleta da trilha principal!)
+                int tMin = Mathf.Max(0, Mathf.FloorToInt(trailBotY - 4f));
+                int tMax = Mathf.Min(h - 1, Mathf.CeilToInt(trailTopY + 5f));
+                for (int y = tMin; y <= tMax; y++)
+                {
+                    float inBot = Mathf.SmoothStep(trailBotY - 3.5f, trailBotY + 2.5f, y);
+                    float inTop = 1f - Mathf.SmoothStep(trailTopY - 3.0f, trailTopY + 3.5f, y);
+                    float mask = inBot * inTop;
+                    if (mask <= 0.002f) continue;
+
+                    float vNorm = Mathf.Clamp01((y - trailBotY) / Mathf.Max(1f, trailTopY - trailBotY));
+                    float ridge = 1f - Mathf.Abs(vNorm - 0.50f) * 2f;
+                    Color tc = Color.Lerp(dirtWarm, dirtSun, Mathf.SmoothStep(0.15f, 0.90f, ridge));
+
+                    float edgeDark = 1f - Mathf.SmoothStep(0f, 0.22f, Mathf.Min(vNorm, 1f - vNorm));
+                    tc = Color.Lerp(tc, dirtEdge, edgeDark * 0.62f);
+
+                    // Dois rastros suaves de pneu acompanhando a curva da subida e descida
+                    float d1 = (y - (tireY + 12f)) / 5.2f;
+                    float d2 = (y - (tireY - 2f)) / 5.2f;
+                    float trackW = Mathf.Clamp01((Mathf.Exp(-d1 * d1) + Mathf.Exp(-d2 * d2)) * 0.54f);
+                    tc = Color.Lerp(tc, dirtTrack, trackW);
+
+                    // Grão orgânico suave
+                    float gNoise = (Mathf.Sin(x * 0.37f + y * 0.53f) * Mathf.Cos(x * 0.21f - y * 0.41f)) * 0.04f;
+                    tc = new Color(
+                        Mathf.Clamp01(tc.r + gNoise),
+                        Mathf.Clamp01(tc.g + gNoise * 0.9f),
+                        Mathf.Clamp01(tc.b + gNoise * 0.8f),
+                        endFade);
+
+                    Color prev = buf[y * w + x];
+                    float outA = Mathf.Clamp01(prev.a * (1f - mask) + tc.a * mask);
+                    Color blended = (prev.a > 0.01f) ? Color.Lerp(prev, tc, mask) : tc;
+                    blended.a = outA;
+                    buf[y * w + x] = blended;
+                }
             }
 
-            // 2. Tufos de grama, pedras cobertas de musgo e flores silvestres na base da cerca
-            for (int x = 32; x <= w - 32; x += 34)
+            tex.SetPixels(buf);
+
+            // 2. Pedras chatas artesanais embutidas ao longo da trilha curva + flores e pedrinhas na encosta gramada
+            for (int i = 0; i < 14; i++)
             {
-                FillEllipse(tex, x, baseY + 4, 18, 9, ink);
-                FillEllipse(tex, x, baseY + 4, 15, 6, (x % 68 == 0) ? grassDark : grassMid);
-                FillEllipse(tex, x - 2, baseY + 6, 10, 4, grassTop);
+                float t = 0.11f + (i / 13f) * 0.78f;
+                int sx = Mathf.RoundToInt(t * (w - 1));
+                float hillCurve = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI));
+                int tireY = Mathf.RoundToInt(baseTireY + hillCurve * peakLiftPx);
 
-                if ((x / 34) % 3 == 1)
+                // Pedra chata na trilha
+                int stY = tireY + ((i % 3) - 1) * 7 + 6;
+                FillEllipse(tex, sx, stY, 10 + (i % 4), 4 + (i % 2), new Color(0.32f, 0.22f, 0.14f, 0.55f));
+                FillEllipse(tex, sx, stY, 8 + (i % 4), 3 + (i % 2), stoneFill);
+                FillEllipse(tex, sx - 1, stY + 1, 5, 2, stoneHi);
+
+                // Tufinhos de grama e flores silvestres na encosta verde abaixo da trilha
+                if (hillCurve > 0.18f)
                 {
-                    FillEllipse(tex, x + 10, baseY + 6, 14, 9, ink);
-                    FillEllipse(tex, x + 10, baseY + 6, 11, 6, stoneDark);
-                    FillEllipse(tex, x + 8, baseY + 8, 7, 3, stoneLight);
+                    int slopeY = Mathf.Max(14, tireY - 22 - (i % 3) * 8);
+                    FillEllipse(tex, sx, slopeY, 11, 5, grassDeep);
+                    FillEllipse(tex, sx, slopeY + 2, 8, 4, grassBright);
+                    Color fCol = (i % 3 == 0) ? new Color(1f, 0.90f, 0.30f, 1f)
+                        : (i % 3 == 1 ? new Color(1f, 0.54f, 0.70f, 1f) : new Color(0.98f, 0.98f, 0.92f, 1f));
+                    FillCircle(tex, sx - 2, slopeY + 5, 3, fCol);
+                    FillCircle(tex, sx + 4, slopeY + 4, 2, fCol);
                 }
+            }
 
-                Color flowerCol = ((x / 34) % 2 == 0) ? new Color(1f, 0.88f, 0.26f, 1f) : new Color(1f, 0.50f, 0.68f, 1f);
-                FillCircle(tex, x - 4, baseY + 12, 5, ink);
-                FillCircle(tex, x - 4, baseY + 12, 3, flowerCol);
+            // 3. Cercado rústico de madeira acompanhando a curvatura da margem superior da trilha da montanha
+            int postCount = 12;
+            int[] postXs = new int[postCount];
+            int[] postBots = new int[postCount];
+            for (int i = 0; i < postCount; i++)
+            {
+                float t = 0.08f + (i / (float)(postCount - 1)) * 0.84f;
+                float hillCurve = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI));
+                postXs[i] = Mathf.RoundToInt(t * (w - 1));
+                postBots[i] = Mathf.RoundToInt(baseTireY + hillCurve * peakLiftPx + 33f);
+            }
+
+            for (int i = 0; i < postCount - 1; i++)
+            {
+                Vector2 aTop = new Vector2(postXs[i], postBots[i] + 32f);
+                Vector2 bTop = new Vector2(postXs[i + 1], postBots[i + 1] + 32f);
+                Vector2 mTop = (aTop + bTop) * 0.5f + new Vector2(0f, -1.5f);
+                DrawCurvedBranch(tex, aTop, mTop, bTop, 3.4f, 3.4f, ink, woodMid);
+
+                Vector2 aLow = new Vector2(postXs[i], postBots[i] + 17f);
+                Vector2 bLow = new Vector2(postXs[i + 1], postBots[i + 1] + 17f);
+                Vector2 mLow = (aLow + bLow) * 0.5f + new Vector2(0f, -1.5f);
+                DrawCurvedBranch(tex, aLow, mLow, bLow, 3.2f, 3.2f, ink, woodDark);
+            }
+
+            for (int i = 0; i < postCount; i++)
+            {
+                int px = postXs[i];
+                int pBot = postBots[i];
+                int pTop = pBot + 42;
+                FillRect(tex, px - 5, pBot, px + 5, pTop, ink);
+                FillRect(tex, px - 3, pBot + 2, px + 3, pTop - 2, woodDark);
+                FillRect(tex, px - 2, pBot + 2, px + 1, pTop - 2, woodMid);
+                FillCircle(tex, px, pTop + 1, 5, ink);
+                FillCircle(tex, px, pTop + 1, 3, woodLight);
+
+                // Tufinho verde na base do poste
+                FillEllipse(tex, px, pBot + 1, 9, 4, grassDeep);
+                FillEllipse(tex, px, pBot + 3, 6, 3, grassBright);
             }
 
             tex.Apply();
-            cachedHill = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, baseY / (float)h), 72f);
+            cachedHill = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, baseTireY / (float)h), ppu);
             return cachedHill;
         }
 

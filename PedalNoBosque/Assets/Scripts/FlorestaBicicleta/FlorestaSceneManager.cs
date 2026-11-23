@@ -452,7 +452,10 @@ namespace FlorestaBicicleta
             {
                 Vector3 camPos = mainCam.transform.position;
                 float targetX = Mathf.Max(2f, player.transform.position.x + 2.8f);
+                float hillLift = Mathf.Clamp(player.transform.position.y - (-3.45f), 0f, 1.5f) * 0.22f;
+                float targetY = 0.65f + hillLift;
                 camPos.x = Mathf.Lerp(camPos.x, targetX, 5.5f * Time.deltaTime);
+                camPos.y = Mathf.Lerp(camPos.y, targetY, 4.5f * Time.deltaTime);
                 mainCam.transform.position = camPos;
             }
 

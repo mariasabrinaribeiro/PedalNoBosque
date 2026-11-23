@@ -128,31 +128,43 @@ namespace FlorestaBicicleta
             {
                 TrackSegment seg = activeSegments[i];
                 if (worldX < seg.startX || worldX >= seg.endX) continue;
+                return ComputeSegmentElevationAtX(seg, worldX, out pitchAngleDeg);
+            }
+            return 0f;
+        }
 
-                if (seg.biome == BiomeType.RegiaoDoRio)
+        private static float ComputeSegmentElevationAtX(TrackSegment seg, float worldX, out float pitchAngleDeg)
+        {
+            pitchAngleDeg = 0f;
+            if (seg == null) return 0f;
+
+            if (seg.biome == BiomeType.RegiaoDoRio)
+            {
+                float bridgeCenterX = seg.startX + 22f;
+                const float halfSpan = 4.25f;
+                float dx = worldX - bridgeCenterX;
+                if (Mathf.Abs(dx) <= halfSpan)
                 {
-                    float bridgeCenterX = seg.startX + 22f;
-                    const float halfSpan = 4.25f;
-                    float dx = worldX - bridgeCenterX;
-                    if (Mathf.Abs(dx) <= halfSpan)
-                    {
-                        float t = (dx + halfSpan) / (2f * halfSpan);
-                        pitchAngleDeg = Mathf.Cos(t * Mathf.PI) * 7.5f;
-                        return Mathf.Sin(t * Mathf.PI) * 0.375f;
-                    }
+                    float t = (dx + halfSpan) / (2f * halfSpan);
+                    pitchAngleDeg = Mathf.Cos(t * Mathf.PI) * 7.5f;
+                    return Mathf.Sin(t * Mathf.PI) * 0.375f;
                 }
-                else if (seg.biome == BiomeType.Colinas)
+            }
+            else if (seg.biome == BiomeType.Colinas)
+            {
+                float hillStart = seg.startX + 6f;
+                float hillEnd = seg.startX + 30f;
+                const float hillSpan = 24f;
+                const float peakHeight = 1.15f;
+                if (worldX >= hillStart && worldX <= hillEnd)
                 {
-                    float hillStart = seg.startX + 6f;
-                    float hillEnd = seg.startX + 30f;
-                    if (worldX >= hillStart && worldX <= hillEnd)
-                    {
-                        float t = (worldX - hillStart) / (hillEnd - hillStart);
-                        pitchAngleDeg = Mathf.Sin(t * 2f * Mathf.PI) * 4.5f;
-                        return 0f;
-                    }
+                    float t = (worldX - hillStart) / hillSpan;
+                    // Curva suave tangente a zero nas entradas e saídas (sem degrau!)
+                    float h = 0.5f * (1f - Mathf.Cos(t * 2f * Mathf.PI)) * peakHeight;
+                    float dhdx = (Mathf.Sin(t * 2f * Mathf.PI) * Mathf.PI / hillSpan) * peakHeight;
+                    pitchAngleDeg = Mathf.Atan(dhdx) * Mathf.Rad2Deg;
+                    return h;
                 }
-                break;
             }
             return 0f;
         }
@@ -208,7 +220,7 @@ namespace FlorestaBicicleta
 
         // ─── Fundo Infinito ──────────────────────────────────────────
 
-        private const float BgParallaxFactor = 0.16f; // Plano 1 (Paisagem e Montanhas Distantes): move-se a 16% da câmera!
+        private const float BgParallaxFactor = 0.12f; // Plano 1 (Montanhas Distantes): move-se a 12% da câmera!
 
         private void UpdateBackgroundTiles(float cameraX)
         {
@@ -370,9 +382,15 @@ namespace FlorestaBicicleta
             }
             if (nextSegmentIndex == 1)
             {
-                // Região demonstrativa de referência (Vale das Águas) logo após o início!
+                // Região demonstrativa de referência (Vale das Águas com Ponte) logo após o início!
                 lastBiome = BiomeType.RegiaoDoRio;
                 return BiomeType.RegiaoDoRio;
+            }
+            if (nextSegmentIndex == 2)
+            {
+                // Montanhas do Vento (Subida e Descida real!) logo após atravessar a ponte!
+                lastBiome = BiomeType.Colinas;
+                return BiomeType.Colinas;
             }
 
             if (biomeBag.Count == 0)
@@ -603,15 +621,20 @@ namespace FlorestaBicicleta
             Transform p = seg.root.transform;
             float s = seg.startX;
 
-            // Cerca rústica de madeira com pedras musgosas e flores na margem superior da estrada (-2.38f, sem cortar o chão!)
-            SpawnProp(p, BiomePropsFactory.CreateMountainHillTrailSprite(), new Vector3(s + 18f, -2.38f, 0f), 1.0f, -2);
+            // Colina de Montanha Cozy Storybook (24m exatos: s+6..s+30) com subida e descida física real (+1.15m)
+            // perfeitamente sincronizada com ComputeSegmentElevationAtX e fundida sem emenda na trilha plana!
+            SpawnProp(p, BiomePropsFactory.CreateMountainHillTrailSprite(), new Vector3(s + 18f, -3.45f, 0f), 1.0f, -2);
 
-            // Carvalhos e decoração de trilha acompanhando a margem da estrada (sortOrder -4..-1)
-            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 10f, -2.28f, 0f), 0.70f, -4, 1.1f);
-            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 26f, -2.28f, 0f), 0.68f, -4, 1.0f);
+            // Carvalhos e decoração de trilha acompanhando a elevação exata da colina!
+            float e10 = ComputeSegmentElevationAtX(seg, s + 10f, out _);
+            float e26 = ComputeSegmentElevationAtX(seg, s + 26f, out _);
+            float e75 = ComputeSegmentElevationAtX(seg, s + 7.5f, out _);
+            float e218 = ComputeSegmentElevationAtX(seg, s + 21.8f, out _);
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 10f, -2.28f + e10, 0f), 0.70f, -4, 1.1f);
+            SpawnSwayingProp(p, BiomePropsFactory.LoadOakTreeSprite(), new Vector3(s + 26f, -2.28f + e26, 0f), 0.68f, -4, 1.0f);
             SpawnProp(p, BiomePropsFactory.CreateDirectionalTrailSignSprite(2), new Vector3(s + 2.4f, -2.38f, 0f), 0.95f, 1);
-            SpawnProp(p, BiomePropsFactory.CreateMossyStonesClusterSprite(), new Vector3(s + 7.5f, -2.39f, 0f), 0.94f, 1);
-            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 21.8f, -2.39f, 0f), 0.92f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyStonesClusterSprite(), new Vector3(s + 7.5f, -2.39f + e75, 0f), 0.94f, 1);
+            SpawnProp(p, BiomePropsFactory.CreateMossyLogAndFernsSprite(), new Vector3(s + 21.8f, -2.39f + e218, 0f), 0.92f, 1);
             SpawnProp(p, BiomePropsFactory.CreateBirdhousePostSprite(), new Vector3(s + 31.2f, -2.38f, 0f), 0.92f, 1);
             SpawnSwayingProp(p, BiomePropsFactory.CreateForestBushSprite(), new Vector3(s + 42.2f, -2.38f, 0f), 0.90f, -1, 1.2f);
             SpawnMeadowFlowers(p, s, seg.index + 1);
@@ -964,9 +987,10 @@ namespace FlorestaBicicleta
                 }
             }
 
+            float hillElev = (seg.biome == BiomeType.Colinas) ? ComputeSegmentElevationAtX(seg, xPos, out _) : 0f;
             GameObject obj = new GameObject($"Animal_{displayName}_{seg.index}");
             obj.transform.SetParent(seg.root.transform, false);
-            obj.transform.position = new Vector3(xPos, -2.42f, 0f);
+            obj.transform.position = new Vector3(xPos, -2.42f + hillElev, 0f);
 
             // Variação natural de tamanho para diferenciar os animais ambientais
             float scaleVar = 0.90f + ((Mathf.Abs(Mathf.RoundToInt(xPos * 10f)) + seg.index) % 4) * 0.055f;
