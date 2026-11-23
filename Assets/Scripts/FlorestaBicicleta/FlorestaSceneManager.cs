@@ -29,6 +29,7 @@ namespace FlorestaBicicleta
         private AmbientSceneryPolisher sceneryPolisher;
         private DayNightCycleController dayNightCycle;
         private WeatherAndPhenomenaController weatherController;
+        private ValeDasFloresCinematicPilot valePilot;
         private PuppyCompanionController puppyCompanion;
         private PlayerProgressManager progressManager;
         private DiscoveryBookAndWorkshopUI discoveryUI;
@@ -143,6 +144,13 @@ namespace FlorestaBicicleta
             weatherController.Initialize(mainCam, dayNightCycle);
             weatherController.SetBiome(currentBiome);
             weatherController.OnWeatherMessage += (msg, col) => ShowMessage(msg, 4.0f, col);
+
+            // Cenário-Piloto Cinematográfico do Vale das Flores (reversível ao vivo com tecla V; não altera os outros 5 biomas!)
+            GameObject pilotObj = new GameObject("ValeDasFloresCinematicPilot");
+            valePilot = pilotObj.AddComponent<ValeDasFloresCinematicPilot>();
+            valePilot.Initialize(mainCam, dayNightCycle);
+            valePilot.SetBiome(currentBiome);
+            valePilot.OnToggleFeedback += msg => ShowMessage(msg, 3.8f, new Color(1f, 0.94f, 0.64f, 1f));
 
             // Cachorrinho Companheiro Inteligente na cestinha (Feliz, Curioso, Dormindo, Sede)
             puppyCompanion = gameObject.AddComponent<PuppyCompanionController>();
@@ -473,6 +481,7 @@ namespace FlorestaBicicleta
                     if (sceneryPolisher != null) sceneryPolisher.SetBiome(currentBiome);
                     if (dayNightCycle != null) dayNightCycle.SetBiome(currentBiome);
                     if (weatherController != null) weatherController.SetBiome(currentBiome);
+                    if (valePilot != null) valePilot.SetBiome(currentBiome);
                     progressManager?.RecordBiomeVisited(currentBiome);
                     FlorestaSoundFX.Instance?.PlayBiomeCue(currentBiome);
                     ShowMessage(

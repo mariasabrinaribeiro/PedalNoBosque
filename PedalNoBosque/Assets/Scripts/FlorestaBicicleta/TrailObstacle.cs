@@ -1,31 +1,52 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FlorestaBicicleta
 {
     /// <summary>
-    /// Obstáculo natural na trilha (Pedra, Raiz ou Tronco).
-    /// Se a menina saltar por cima, passa limpa; se bater no chão, perde velocidade e pode derrubar 1 lanche.
+    /// Obstáculo físico natural na trilha (Pedra, Raiz ou Tronco) em Y = WorldDepth.PlayableGroundY.
+    /// Possui colisão física real contra penetração: a bicicleta NÃO atravessa o obstáculo pelo chão —
+    /// é bloqueada/recuada suavemente até que a menina salte por cima (W / Pular)!
     /// </summary>
     public class TrailObstacle : MonoBehaviour
     {
+        public static readonly List<TrailObstacle> ActiveObstacles = new List<TrailObstacle>();
+
         public enum ObstacleKind { Pedra, Tronco, Raiz }
         public ObstacleKind kind;
         public string DisplayName => kind == ObstacleKind.Pedra ? "pedra" : (kind == ObstacleKind.Tronco ? "tronco" : "raiz");
+        public float HalfBlockWidth => kind == ObstacleKind.Tronco ? 0.68f : 0.56f;
+        public float JumpClearanceHeight => 0.48f;
 
         private float lastHitTime = -3f;
         private bool rewardedJumpOver = false;
+
+        private void OnEnable()
+        {
+            if (!ActiveObstacles.Contains(this)) ActiveObstacles.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            ActiveObstacles.Remove(this);
+        }
+
+        private void OnDestroy()
+        {
+            ActiveObstacles.Remove(this);
+        }
 
         public void Setup(ObstacleKind obstacleKind)
         {
             kind = obstacleKind;
             SpriteRenderer sr = gameObject.AddComponent<SpriteRenderer>();
             sr.sprite = CreateObstacleSprite(kind);
-            sr.sortingOrder = 5;
+            sr.sortingOrder = WorldDepth.PlayableObstacle;
 
             BoxCollider2D col = gameObject.AddComponent<BoxCollider2D>();
             col.isTrigger = true;
-            col.size = new Vector2(1.45f, 1.0f);
-            col.offset = new Vector2(0f, 0.35f);
+            col.size = new Vector2(HalfBlockWidth * 2f, 0.72f);
+            col.offset = new Vector2(0f, 0.36f);
         }
 
         public bool TryHit()

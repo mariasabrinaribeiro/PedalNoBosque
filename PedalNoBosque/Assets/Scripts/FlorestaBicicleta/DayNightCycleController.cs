@@ -152,7 +152,7 @@ namespace FlorestaBicicleta
             bikeHeadlightObj.transform.localPosition = new Vector3(3.2f, 1.35f, 0f);
             headlightSR = bikeHeadlightObj.AddComponent<SpriteRenderer>();
             headlightSR.sprite = CreateHeadlightBeamSprite();
-            headlightSR.sortingOrder = 11;
+            headlightSR.sortingOrder = WorldDepth.PlayerLocalHeadlight;
             headlightSR.color = new Color(1f, 0.95f, 0.68f, 0f);
         }
 
