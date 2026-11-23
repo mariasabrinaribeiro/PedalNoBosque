@@ -118,6 +118,10 @@ public class GameUIController : MonoBehaviour
             controllerObj = new GameObject("GameUIController");
             controllerObj.AddComponent<GameUIController>();
             controllerObj.AddComponent<EnemySpawner>(); // Auto-attach spawner to manage enemies
+            if (FindObjectOfType<MissionManager>() == null)
+            {
+                controllerObj.AddComponent<MissionManager>();
+            }
         }
 
         // Garante que a Main Camera tenha GameCameraController e comece alinhada ao carro em Z = -10
@@ -434,39 +438,42 @@ public class GameUIController : MonoBehaviour
             panelImage.type = Image.Type.Sliced;
         }
 
-        // Reparent Play and Exit to this panel
+        // Reparent Play and Exit to this panel (side-by-side near bottom when cover art is active so logo & girl shine!)
         if (playButton != null)
         {
             playButton.SetParent(menuPanel.transform, false);
             RectTransform playRect = playButton.GetComponent<RectTransform>();
-            playRect.anchoredPosition = new Vector2(0, 120);
-            playRect.sizeDelta = new Vector2(350, 95);
+            playRect.anchoredPosition = coverSprite != null ? new Vector2(-175, -310) : new Vector2(0, 120);
+            playRect.sizeDelta = coverSprite != null ? new Vector2(290, 82) : new Vector2(350, 95);
         }
 
         if (exitButton != null)
         {
             exitButton.SetParent(menuPanel.transform, false);
             RectTransform exitRect = exitButton.GetComponent<RectTransform>();
-            exitRect.anchoredPosition = new Vector2(0, -60);
-            exitRect.sizeDelta = new Vector2(350, 95);
+            exitRect.anchoredPosition = coverSprite != null ? new Vector2(175, -310) : new Vector2(0, -60);
+            exitRect.sizeDelta = coverSprite != null ? new Vector2(290, 82) : new Vector2(350, 95);
         }
 
-        // Add Title Text
-        GameObject titleObj = new GameObject("MenuTitle");
-        titleObj.transform.SetParent(menuPanel.transform, false);
-        RectTransform titleRect = titleObj.AddComponent<RectTransform>();
-        titleRect.anchoredPosition = new Vector2(0, 260);
-        titleRect.sizeDelta = new Vector2(500, 100);
+        // Only add fallback Title Text if no illustrated cover art is present
+        if (coverSprite == null)
+        {
+            GameObject titleObj = new GameObject("MenuTitle");
+            titleObj.transform.SetParent(menuPanel.transform, false);
+            RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+            titleRect.anchoredPosition = new Vector2(0, 260);
+            titleRect.sizeDelta = new Vector2(500, 100);
 
-        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        titleText.text = "GIRL POWER";
-        titleText.font = GetTMProFont();
-        titleText.fontSize = 36;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.color = Color.white;
-        titleText.outlineColor = candyPurple;
-        titleText.outlineWidth = 0.25f;
+            TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+            titleText.text = "GIRL POWER";
+            titleText.font = GetTMProFont();
+            titleText.fontSize = 36;
+            titleText.fontStyle = FontStyles.Bold;
+            titleText.alignment = TextAlignmentOptions.Center;
+            titleText.color = Color.white;
+            titleText.outlineColor = candyPurple;
+            titleText.outlineWidth = 0.25f;
+        }
     }
 
     private void CreateHUDPanel()
@@ -827,6 +834,7 @@ public class GameUIController : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
         if (hudPanel != null) hudPanel.SetActive(!isPaused);
+        if (missionPanel != null) missionPanel.SetActive(!isPaused);
         if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(!isPaused);
 
         if (pauseButton != null)
@@ -852,7 +860,7 @@ public class GameUIController : MonoBehaviour
             }
             else if (hudBtn.name == "BtnDebugToggle")
             {
-                hudBtn.SetActive(!isPaused);
+                hudBtn.SetActive(false); // Hidden during clean gameplay
             }
             else
             {
@@ -875,6 +883,7 @@ public class GameUIController : MonoBehaviour
         Time.timeScale = 0f;
 
         if (hudPanel != null) hudPanel.SetActive(false);
+        if (missionPanel != null) missionPanel.SetActive(false);
         if (menuPanel != null) menuPanel.SetActive(false);
         if (pauseButton != null) pauseButton.gameObject.SetActive(false);
         if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(false);
@@ -1027,6 +1036,7 @@ public class GameUIController : MonoBehaviour
         Time.timeScale = 0f;
 
         if (hudPanel != null) hudPanel.SetActive(false);
+        if (missionPanel != null) missionPanel.SetActive(false);
         if (menuPanel != null) menuPanel.SetActive(false);
         if (pauseButton != null) pauseButton.gameObject.SetActive(false);
         if (gameplayToggleBtnObj != null) gameplayToggleBtnObj.SetActive(false);
@@ -1467,6 +1477,11 @@ public class GameUIController : MonoBehaviour
 
         foreach (GameObject cust in cachedDeliveryPoints)
         {
+            // If this delivery plaza already has our illustrated CandyDeliveryPlaza sprite & trigger, keep it crisp!
+            SpriteRenderer existingSr = cust.GetComponent<SpriteRenderer>();
+            if (existingSr != null && existingSr.sprite != null && existingSr.sprite.name.Contains("CandyDeliveryPlaza"))
+                continue;
+
             // Do NOT change the customer sprite/scale to avoid blocking roads.
             // Just spawn a flat, glowing pink candy circle centered on the delivery spot!
             GameObject matObj = new GameObject("CandyDeliveryZoneMat");
@@ -2073,7 +2088,7 @@ public class GameUIController : MonoBehaviour
 
         vignetteImage = vigObj.AddComponent<RawImage>();
         vignetteImage.texture = CreateVignetteTexture(256, 256);
-        vignetteImage.color = new Color(0f, 0f, 0f, 0.55f);
+        vignetteImage.color = new Color(0.18f, 0.08f, 0.24f, 0.16f);
         vignetteImage.raycastTarget = false;
     }
 

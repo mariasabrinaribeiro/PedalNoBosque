@@ -305,6 +305,10 @@ public static class GirlPowerArtGenerator
         imp.mipmapEnabled = false;
         imp.textureCompression = TextureImporterCompression.Uncompressed;
         imp.maxTextureSize = maxSize;
+        TextureImporterSettings settings = new TextureImporterSettings();
+        imp.ReadTextureSettings(settings);
+        settings.spriteMeshType = SpriteMeshType.FullRect;
+        imp.SetTextureSettings(settings);
         imp.SaveAndReimport();
     }
 #endif
@@ -478,15 +482,21 @@ public static class GirlPowerArtGenerator
         for (int x = 0; x < BackdropWidth; x += 18)
             c.Rect(x, 159, 1, 5, new Rgba(156, 142, 124));
 
-        // Lush restinga bushes & wildflowers along the beach edge above the wall
-        for (int x = 0; x < BackdropWidth; x += 14)
+        // Lush organic restinga clusters & sea-oats along the beach edge above the wall
+        for (int x = 0; x < BackdropWidth; x += 22)
         {
-            int r = 4 + (Math.Abs(Hash(x, 23)) % 4);
-            c.Circle(x + 6, 167, r, LeafDark);
-            c.Circle(x + 5, 168, Math.Max(2, r - 1), LeafMid);
-            c.Circle(x + 4, 169, Math.Max(1, r - 2), LeafLight);
-            if ((Math.Abs(Hash(x, 29)) % 3) == 0)
-                c.Set(x + 5, 169, (x % 2 == 0) ? CoralLight : Gold);
+            int h = Math.Abs(Hash(x, 23));
+            if ((h % 5) == 0) continue; // natural openings showing the sunlit stone wall & beach
+            int clusterW = 8 + (h % 10);
+            int cx = x + (h % 6);
+            c.Ellipse(cx, 166, clusterW * 0.55f, 3.8f, LeafDark);
+            c.Ellipse(cx - 2, 167, clusterW * 0.42f, 3.0f, LeafMid);
+            c.Ellipse(cx + 3, 167, clusterW * 0.36f, 2.8f, LeafMid);
+            c.Ellipse(cx - 1, 168.5f, clusterW * 0.25f, 1.8f, LeafLight);
+            if ((h % 3) == 0)
+                c.Set(cx - 1, 169, (h % 2 == 0) ? CoralLight : Gold);
+            if ((h % 4) == 0)
+                c.Set(cx + 3, 168, Gold);
         }
 
         // --- COASTAL PARKWAY GARDEN STRIP (py 104..158) ---
@@ -503,13 +513,20 @@ public static class GirlPowerArtGenerator
         }
 
         // --- ORLA PROMENADE & LOWER CURB BASE (py 40..104) ---
-        c.DitheredGradientY(52, 104, new Rgba(208, 198, 176), new Rgba(224, 214, 190));
-        c.DitheredGradientY(42, 52, new Rgba(186, 176, 156), new Rgba(206, 196, 174));
+        c.DitheredGradientY(54, 104, new Rgba(210, 200, 178), new Rgba(224, 214, 190));
+        c.DitheredGradientY(42, 54, new Rgba(192, 182, 162), new Rgba(212, 202, 180));
+        // Stone slab paving joints along the lower bench terrace (py 43..58)
+        c.Rect(0, 52, BackdropWidth, 1, new Rgba(172, 162, 144));
+        for (int x = 0; x < BackdropWidth; x += 22)
+        {
+            c.Rect(x, 43, 1, 15, new Rgba(174, 164, 146, 170));
+            c.Rect(x + 1, 43, 1, 15, new Rgba(234, 224, 202, 90));
+        }
         // Sunlit curb edge separating promenade from Avenida Atlantica
         c.Rect(0, 40, BackdropWidth, 3, new Rgba(238, 224, 198));
         c.Rect(0, 39, BackdropWidth, 1, new Rgba(112, 104, 98));
-        for (int x = 0; x < BackdropWidth; x += 24)
-            c.Rect(x, 40, 1, 3, new Rgba(186, 172, 148));
+        for (int x = 0; x < BackdropWidth; x += 22)
+            c.Rect(x, 40, 1, 3, new Rgba(176, 164, 142));
 
         // --- AVENIDA ATLANTICA COASTAL ASPHALT ROAD (py 0..39) ---
         c.DitheredGradientY(0, 39, new Rgba(58, 64, 78), new Rgba(78, 84, 98));
