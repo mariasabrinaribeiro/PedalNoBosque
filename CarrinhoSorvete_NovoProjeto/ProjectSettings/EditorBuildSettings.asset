@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Girl Power - Cenario Refinado.unity
     guid: bc161fe3d3c50044688fa075cb9316bf
+  - enabled: 1
+    path: Assets/Scenes/Girl Power - Orla 3D (Animal Crossing).unity
+    guid: d1fcc0cadef6d1c4aa957e9514f38420
   m_configObjects: {}
