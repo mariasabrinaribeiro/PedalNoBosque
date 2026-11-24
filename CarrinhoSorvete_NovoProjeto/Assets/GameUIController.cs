@@ -11,8 +11,8 @@ public class GameUIController : MonoBehaviour
     public static GameUIController Instance { get; private set; }
 
     [Header("Settings")]
-    [SerializeField] private bool forceMobileUI = true; // Enabled by default in Editor for testing
-    private bool useSwipeMode = true; // Toggle between swipe/drag and on-screen buttons
+    [SerializeField] private bool forceMobileUI = false; // Enable only when testing the mobile layout in the Editor
+    private bool useSwipeMode = false; // Desktop starts with keyboard controls; mobile buttons remain available
 
     [Header("Candy Palette Colors")]
     public Color candyPink = new Color(1f, 0.482f, 0.773f, 1f); // #ff7bc5 (Bubblegum Pink)
@@ -149,6 +149,9 @@ public class GameUIController : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
+        // Desktop uses keyboard input; touch devices keep the dynamic on-screen joystick.
+        useSwipeMode = Application.isMobilePlatform;
 
         // Copy sprites to Resources dynamically in editor
 #if UNITY_EDITOR
@@ -931,6 +934,9 @@ public class GameUIController : MonoBehaviour
 
     private void SetGameState(bool isPaused)
     {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = isPaused;
+
         if (menuPanel != null) menuPanel.SetActive(isPaused);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (victoryPanel != null) victoryPanel.SetActive(false);
@@ -984,6 +990,8 @@ public class GameUIController : MonoBehaviour
     public void ShowGameOver()
     {
         Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         if (hudPanel != null) hudPanel.SetActive(false);
         if (speedPillObj != null) speedPillObj.SetActive(false);
@@ -1139,6 +1147,8 @@ public class GameUIController : MonoBehaviour
     public void ShowVictory()
     {
         Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         if (hudPanel != null) hudPanel.SetActive(false);
         if (speedPillObj != null) speedPillObj.SetActive(false);
@@ -1639,6 +1649,7 @@ public class GameUIController : MonoBehaviour
             
             // Create a perfect 128x128 circle by setting cornerRadius to 64
             matSR.sprite = CreateRoundedRectSprite(128, 128, 64, semiPink, candyPurple, 4, new Color(0, 0, 0, 0));
+            matSR.sortingLayerName = "GroundDetails";
             matSR.sortingOrder = 5; // Render on top of road/grass layer
 
             // Name and collider: give the mat a delivery-friendly name and trigger collider
@@ -1661,7 +1672,8 @@ public class GameUIController : MonoBehaviour
         navArrowSR = navArrow.AddComponent<SpriteRenderer>();
         // Draw pixel-art arrow pointing UP
         navArrowSR.sprite = CreateArrowSprite(48, 48, candyPink, candyPurple, 4);
-        navArrowSR.sortingOrder = 25;
+        navArrowSR.sortingLayerName = "VFX";
+        navArrowSR.sortingOrder = 15;
         navArrow.SetActive(false);
     }
 

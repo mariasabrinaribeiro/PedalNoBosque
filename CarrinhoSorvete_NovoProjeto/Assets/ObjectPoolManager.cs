@@ -77,6 +77,7 @@ public class ObjectPoolManager : MonoBehaviour
         bullet.transform.SetParent(transform);
 
         SpriteRenderer sr = bullet.AddComponent<SpriteRenderer>();
+        sr.sortingLayerName = "VFX";
         sr.sortingOrder = 5;
 
         CircleCollider2D col = bullet.AddComponent<CircleCollider2D>();
@@ -97,7 +98,8 @@ public class ObjectPoolManager : MonoBehaviour
         monster.tag = "Enemy";
 
         SpriteRenderer sr = monster.AddComponent<SpriteRenderer>();
-        sr.sortingOrder = 3;
+        sr.sortingLayerName = "EntitiesAndPlayer";
+        sr.sortingOrder = 5;
 
         Rigidbody2D rb = monster.AddComponent<Rigidbody2D>();
         rb.gravityScale = 0f;

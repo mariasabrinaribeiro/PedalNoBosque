@@ -51,3 +51,24 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Ground
+    uniqueID: 1000
+    locked: 0
+  - name: Track
+    uniqueID: 1017
+    locked: 0
+  - name: GroundDetails
+    uniqueID: 1034
+    locked: 0
+  - name: PropsAndBuildings
+    uniqueID: 1051
+    locked: 0
+  - name: EntitiesAndPlayer
+    uniqueID: 1068
+    locked: 0
+  - name: VFX
+    uniqueID: 1085
+    locked: 0
+  - name: UI
+    uniqueID: 1102
+    locked: 0

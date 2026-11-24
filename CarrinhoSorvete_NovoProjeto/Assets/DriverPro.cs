@@ -80,18 +80,23 @@ public class DriverPro : MonoBehaviour
         speedTrail.sortingLayerName = "VFX";
         speedTrail.sortingOrder = 2;
 
-        // ETAPA 4: Reduz em 40% a emissão e limita a 35% a opacidade de partículas acopladas ao carrinho
+        // ETAPA 4: Reduz a nuvem magenta (tamanho, emissão -40% e opacidade <= 30%) na camada VFX
         ParticleSystem ps = GetComponent<ParticleSystem>();
         if (ps != null)
         {
             var emission = ps.emission;
-            emission.rateOverTimeMultiplier *= 0.60f;
+            emission.rateOverTimeMultiplier = Mathf.Min(emission.rateOverTimeMultiplier * 0.60f, 8f);
             var main = ps.main;
-            Color sc = main.startColor.color;
-            sc.a = Mathf.Min(sc.a, 0.35f);
-            main.startColor = sc;
+            main.startSizeMultiplier = Mathf.Min(main.startSizeMultiplier, 0.42f);
+            main.startColor = new ParticleSystem.MinMaxGradient(
+                new Color(1f, 0.52f, 0.82f, 0.28f),
+                new Color(1f, 0.88f, 0.55f, 0.26f));
             ParticleSystemRenderer psr = ps.GetComponent<ParticleSystemRenderer>();
-            if (psr != null) psr.sortingLayerName = "VFX";
+            if (psr != null)
+            {
+                psr.sortingLayerName = "VFX";
+                psr.sortingOrder = 1;
+            }
         }
 
         cachedShieldSprite = CreateShieldVisualSprite();
@@ -154,6 +159,11 @@ public class DriverPro : MonoBehaviour
         {
             Shoot();
         }
+
+        // Report observed rigidbody motion instead of the requested drag/input magnitude.
+        // A short smoothing step avoids the HUD snapping between zero and peak speed.
+        float measuredSpeed = rb != null ? rb.velocity.magnitude : 0f;
+        displaySpeed = Mathf.MoveTowards(displaySpeed, measuredSpeed, 18f * Time.deltaTime);
     }
 
     void FixedUpdate()
@@ -176,7 +186,6 @@ public class DriverPro : MonoBehaviour
             float rotationAmount = -steerInput * steerSpeed * Time.fixedDeltaTime;
             rb.MoveRotation(rb.rotation + rotationAmount);
 
-            displaySpeed = Mathf.Abs(moveInput) * speedToUse;
         }
     }
 
@@ -189,8 +198,6 @@ public class DriverPro : MonoBehaviour
         {
             Vector2 moveDirection = dragDisplacement.normalized;
             float speed = Mathf.Clamp(dragMagnitude * speedToUse * swipeSpeedMultiplier, 0f, boostSpeed * 1.5f);
-            displaySpeed = speed;
-
             rb.velocity = moveDirection * speed;
 
             float targetAngle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg - 90f;
@@ -199,7 +206,6 @@ public class DriverPro : MonoBehaviour
         }
         else
         {
-            displaySpeed = 0f;
             rb.velocity = Vector2.zero;
         }
     }

@@ -38,7 +38,8 @@ public class PowerUpItem : MonoBehaviour
     {
         sr = GetComponent<SpriteRenderer>();
         if (sr == null) sr = gameObject.AddComponent<SpriteRenderer>();
-        sr.sortingOrder = 4;
+        sr.sortingLayerName = "EntitiesAndPlayer";
+        sr.sortingOrder = 6;
 
         basePosition = transform.position;
 
@@ -210,19 +211,22 @@ public class PowerUpItem : MonoBehaviour
         else if (type == PowerUpType.TripleShot) particleColor = Color.magenta;
         else if (type == PowerUpType.Bomb) particleColor = Color.red;
 
+        // ETAPA 4: Opacidade máxima 35%, -40% emissão (8 -> 5), camada VFX
+        particleColor.a = 0.35f;
         Sprite whiteSprite = GetWhiteSprite();
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 5; i++)
         {
             GameObject p = new GameObject("PowerUpParticle");
             p.transform.position = transform.position;
 
-            float angle = i * (360f / 8f) * Mathf.Deg2Rad;
+            float angle = i * (360f / 5f) * Mathf.Deg2Rad;
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
             particleSr.sprite = whiteSprite;
             particleSr.color = particleColor;
+            particleSr.sortingLayerName = "VFX";
             particleSr.sortingOrder = 6;
 
             ExplosionParticle script = p.AddComponent<ExplosionParticle>();

@@ -194,15 +194,16 @@ public class EnemySpawner : MonoBehaviour
 
     private void SpawnGateAhead()
     {
-        if (ObjectPoolManager.Instance == null) return;
-
-        Vector3 spawnPos = CalculateSpawnPosition(false); // No side offset (center on road)
-        if (spawnPos == Vector3.zero) return;
-
-        GameObject gateObj = ObjectPoolManager.Instance.GetGate();
-        gateObj.transform.position = spawnPos;
-        gateObj.transform.rotation = player.transform.rotation;
-        gateObj.SetActive(true);
+        // Reativa portões de velocidade alinhados à pista (nunca cria blocos rosas soltos fora da via!)
+        SpeedDeliveryGate[] existingGates = Resources.FindObjectsOfTypeAll<SpeedDeliveryGate>();
+        foreach (var g in existingGates)
+        {
+            if (g != null && g.gameObject.scene.isLoaded && !g.gameObject.activeInHierarchy)
+            {
+                g.gameObject.SetActive(true);
+                return;
+            }
+        }
     }
 
     private void SpawnBossFight()

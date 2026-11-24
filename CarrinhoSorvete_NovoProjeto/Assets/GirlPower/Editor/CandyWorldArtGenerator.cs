@@ -7,13 +7,20 @@ using UnityEngine;
 #endif
 
 /// <summary>
-/// High-resolution illustrated cartoon Candy World art generator & house background
-/// remover for "Girl Power - Sorvete". Generates seamless candy meadows, biscuit roads
-/// with bubblegum-pink curbs, delivery star plaza, berry pond, giant lollipops, candy canes,
-/// streetlamps, and cleanly cuts out the user's cupcake houses into transparent PNGs.
+/// Crisp pixel-art Candy World asset generator (FilterMode = Point, PPU = 32)
+/// for "CarrinhoSorvete_NovoProjeto".
+/// - 192x192 seamless pixel-art tiles (6.0 x 6.0 world units at PPU = 32):
+///   * Clean, low-noise pastel mint pixel-art meadow (ZERO blurry blobs!)
+///   * Crisp golden-biscuit/wafer road with bubblegum-pink & lavender candy curbs,
+///     sprinkles on edges, and soft cream center dashes (ZERO grey asphalt!)
+/// - Clean transparent cutouts of ALL 8 cupcake houses from "a casa de mosntros"
+///   (ZERO beige/brown rectangles behind houses!)
+/// - Thematic pixel-art SlowZone puddle & SpeedDeliveryGate striped candy arch/mat!
 /// </summary>
 public static class CandyWorldArtGenerator
 {
+    public const int TilePx = 192; // 192 / 32 PPU = 6.0 world units per Tilemap cell!
+
     public struct Rgba
     {
         public byte r, g, b, a;
@@ -44,19 +51,13 @@ public static class CandyWorldArtGenerator
             for (int i = 0; i < Px.Length; i++) Px[i] = c;
         }
 
-        public void Blend(int x, int y, Rgba c)
+        public void Set(int x, int y, Rgba c)
         {
             if (x < 0 || x >= W || y < 0 || y >= H || c.a == 0) return;
             int idx = y * W + x;
-            if (c.a == 255)
-            {
-                Px[idx] = c;
-                return;
-            }
+            if (c.a == 255) { Px[idx] = c; return; }
             Rgba d = Px[idx];
-            float sa = c.a / 255f;
-            float da = d.a / 255f;
-            float oa = sa + da * (1f - sa);
+            float sa = c.a / 255f, da = d.a / 255f, oa = sa + da * (1f - sa);
             if (oa <= 0.0001f) return;
             Px[idx] = new Rgba(
                 (int)((c.r * sa + d.r * da * (1f - sa)) / oa),
@@ -65,183 +66,111 @@ public static class CandyWorldArtGenerator
                 (int)(oa * 255f));
         }
 
-        public void BlendWrap(int x, int y, Rgba c)
-        {
-            int wx = ((x % W) + W) % W;
-            int wy = ((y % H) + H) % H;
-            Blend(wx, wy, c);
-        }
-
         public void Rect(int x, int y, int w, int h, Rgba c)
         {
             int x0 = Clamp(x, 0, W), y0 = Clamp(y, 0, H);
             int x1 = Clamp(x + w, 0, W), y1 = Clamp(y + h, 0, H);
             for (int py = y0; py < y1; py++)
                 for (int px = x0; px < x1; px++)
-                    Blend(px, py, c);
+                    Set(px, py, c);
         }
 
-        public void CircleAA(float cx, float cy, float r, Rgba c, bool wrap = false)
+        public void BlockRect(int bx, int by, int bw, int bh, int blockSize, Rgba c)
         {
-            int x0 = (int)Math.Floor(cx - r - 2);
-            int x1 = (int)Math.Ceiling(cx + r + 2);
-            int y0 = (int)Math.Floor(cy - r - 2);
-            int y1 = (int)Math.Ceiling(cy + r + 2);
-            if (!wrap)
-            {
-                x0 = Clamp(x0, 0, W - 1); x1 = Clamp(x1, 0, W - 1);
-                y0 = Clamp(y0, 0, H - 1); y1 = Clamp(y1, 0, H - 1);
-            }
+            Rect(bx * blockSize, by * blockSize, bw * blockSize, bh * blockSize, c);
+        }
+
+        public void CircleHard(float cx, float cy, float r, Rgba c)
+        {
+            int x0 = Clamp((int)Math.Floor(cx - r), 0, W - 1);
+            int x1 = Clamp((int)Math.Ceiling(cx + r), 0, W - 1);
+            int y0 = Clamp((int)Math.Floor(cy - r), 0, H - 1);
+            int y1 = Clamp((int)Math.Ceiling(cy + r), 0, H - 1);
+            float r2 = r * r;
             for (int y = y0; y <= y1; y++)
-            {
-                float dy = y + 0.5f - cy;
                 for (int x = x0; x <= x1; x++)
-                {
-                    float dx = x + 0.5f - cx;
-                    float dist = (float)Math.Sqrt(dx * dx + dy * dy);
-                    float cov = Clamp01(r + 0.6f - dist);
-                    if (cov <= 0f) continue;
-                    Rgba sc = new Rgba(c.r, c.g, c.b, (int)(c.a * cov));
-                    if (wrap) BlendWrap(x, y, sc); else Blend(x, y, sc);
-                }
-            }
+                    if ((x + 0.5f - cx) * (x + 0.5f - cx) + (y + 0.5f - cy) * (y + 0.5f - cy) <= r2)
+                        Set(x, y, c);
         }
 
-        public void EllipseAA(float cx, float cy, float rx, float ry, Rgba c, bool wrap = false)
+        public void EllipseHard(float cx, float cy, float rx, float ry, Rgba c)
         {
-            int x0 = (int)Math.Floor(cx - rx - 2);
-            int x1 = (int)Math.Ceiling(cx + rx + 2);
-            int y0 = (int)Math.Floor(cy - ry - 2);
-            int y1 = (int)Math.Ceiling(cy + ry + 2);
-            if (!wrap)
-            {
-                x0 = Clamp(x0, 0, W - 1); x1 = Clamp(x1, 0, W - 1);
-                y0 = Clamp(y0, 0, H - 1); y1 = Clamp(y1, 0, H - 1);
-            }
-            float minR = Math.Min(rx, ry);
+            int x0 = Clamp((int)Math.Floor(cx - rx), 0, W - 1);
+            int x1 = Clamp((int)Math.Ceiling(cx + rx), 0, W - 1);
+            int y0 = Clamp((int)Math.Floor(cy - ry), 0, H - 1);
+            int y1 = Clamp((int)Math.Ceiling(cy + ry), 0, H - 1);
             for (int y = y0; y <= y1; y++)
             {
                 float dy = (y + 0.5f - cy) / ry;
                 for (int x = x0; x <= x1; x++)
                 {
                     float dx = (x + 0.5f - cx) / rx;
-                    float d = (float)Math.Sqrt(dx * dx + dy * dy);
-                    float cov = Clamp01((1f - d) * minR + 0.6f);
-                    if (cov <= 0f) continue;
-                    Rgba sc = new Rgba(c.r, c.g, c.b, (int)(c.a * cov));
-                    if (wrap) BlendWrap(x, y, sc); else Blend(x, y, sc);
+                    if (dx * dx + dy * dy <= 1f) Set(x, y, c);
                 }
             }
         }
 
-        public void CapsuleAA(float x0, float y0, float x1, float y1, float r, Rgba c, bool wrap = false)
+        public void LineHard(int x0, int y0, int x1, int y1, int thick, Rgba c)
         {
-            int bx0 = (int)Math.Floor(Math.Min(x0, x1) - r - 2);
-            int bx1 = (int)Math.Ceiling(Math.Max(x0, x1) + r + 2);
-            int by0 = (int)Math.Floor(Math.Min(y0, y1) - r - 2);
-            int by1 = (int)Math.Ceiling(Math.Max(y0, y1) + r + 2);
-            if (!wrap)
+            int dx = Math.Abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+            int dy = -Math.Abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+            int err = dx + dy;
+            int r = thick / 2;
+            while (true)
             {
-                bx0 = Clamp(bx0, 0, W - 1); bx1 = Clamp(bx1, 0, W - 1);
-                by0 = Clamp(by0, 0, H - 1); by1 = Clamp(by1, 0, H - 1);
-            }
-            float vx = x1 - x0, vy = y1 - y0;
-            float lenSq = Math.Max(0.0001f, vx * vx + vy * vy);
-            for (int y = by0; y <= by1; y++)
-            {
-                for (int x = bx0; x <= bx1; x++)
-                {
-                    float t = Clamp01(((x + 0.5f - x0) * vx + (y + 0.5f - y0) * vy) / lenSq);
-                    float px = x0 + vx * t, py = y0 + vy * t;
-                    float d = (float)Math.Sqrt((x + 0.5f - px) * (x + 0.5f - px) + (y + 0.5f - py) * (y + 0.5f - py));
-                    float cov = Clamp01(r + 0.6f - d);
-                    if (cov <= 0f) continue;
-                    Rgba sc = new Rgba(c.r, c.g, c.b, (int)(c.a * cov));
-                    if (wrap) BlendWrap(x, y, sc); else Blend(x, y, sc);
-                }
-            }
-        }
-
-        public void RoundedRectAA(float cx, float cy, float halfW, float halfH, float radius, Rgba fill, Rgba border, float borderW)
-        {
-            int x0 = Clamp((int)Math.Floor(cx - halfW - 2), 0, W - 1);
-            int x1 = Clamp((int)Math.Ceiling(cx + halfW + 2), 0, W - 1);
-            int y0 = Clamp((int)Math.Floor(cy - halfH - 2), 0, H - 1);
-            int y1 = Clamp((int)Math.Ceiling(cy + halfH + 2), 0, H - 1);
-            float r = Math.Min(radius, Math.Min(halfW, halfH));
-            for (int y = y0; y <= y1; y++)
-            {
-                float dy = Math.Abs(y + 0.5f - cy) - (halfH - r);
-                for (int x = x0; x <= x1; x++)
-                {
-                    float dx = Math.Abs(x + 0.5f - cx) - (halfW - r);
-                    float outDist = (float)Math.Sqrt(Math.Max(dx, 0f) * Math.Max(dx, 0f) + Math.Max(dy, 0f) * Math.Max(dy, 0f)) + Math.Min(Math.Max(dx, dy), 0f) - r;
-                    float cov = Clamp01(0.6f - outDist);
-                    if (cov <= 0f) continue;
-                    Rgba col = (borderW > 0f && outDist > -borderW) ? border : fill;
-                    Blend(x, y, new Rgba(col.r, col.g, col.b, (int)(col.a * cov)));
-                }
+                Rect(x0 - r, y0 - r, thick, thick, c);
+                if (x0 == x1 && y0 == y1) break;
+                int e2 = 2 * err;
+                if (e2 >= dy) { err += dy; x0 += sx; }
+                if (e2 <= dx) { err += dx; y0 += sy; }
             }
         }
     }
 
-    // Vibrant Pastel Candy World Palette (harmonized with Girl Power Title Screen!)
+    // Unified Crisp Pixel-Art Candy Palette
     private static readonly Rgba Ink = new Rgba(64, 34, 68);
-    private static readonly Rgba MintBase = new Rgba(158, 226, 178);
-    private static readonly Rgba MintLight = new Rgba(184, 240, 194);
-    private static readonly Rgba MintDeep = new Rgba(124, 202, 152);
-    private static readonly Rgba BiscuitBase = new Rgba(252, 224, 176);
-    private static readonly Rgba BiscuitLight = new Rgba(255, 238, 202);
-    private static readonly Rgba BiscuitShade = new Rgba(234, 194, 140);
-    private static readonly Rgba PinkCandy = new Rgba(255, 128, 192);
-    private static readonly Rgba PinkLight = new Rgba(255, 178, 218);
-    private static readonly Rgba PinkDeep = new Rgba(218, 78, 154);
-    private static readonly Rgba Lavender = new Rgba(196, 154, 246);
-    private static readonly Rgba AquaCandy = new Rgba(118, 226, 236);
-    private static readonly Rgba LemonCandy = new Rgba(255, 232, 118);
-    private static readonly Rgba Cream = new Rgba(255, 250, 238);
-    private static readonly Rgba Choco = new Rgba(122, 74, 58);
+    private static readonly Rgba MintBase = new Rgba(166, 224, 186);
+    private static readonly Rgba MintLight = new Rgba(184, 236, 198);
+    private static readonly Rgba MintShade = new Rgba(146, 208, 168);
+    private static readonly Rgba BiscuitBase = new Rgba(246, 218, 170);
+    private static readonly Rgba BiscuitLight = new Rgba(252, 230, 188);
+    private static readonly Rgba BiscuitShade = new Rgba(226, 190, 140);
+    private static readonly Rgba Cream = new Rgba(255, 248, 232);
+    private static readonly Rgba PinkCandy = new Rgba(252, 126, 188);
+    private static readonly Rgba PinkLight = new Rgba(255, 182, 220);
+    private static readonly Rgba Lavender = new Rgba(196, 156, 246);
+    private static readonly Rgba AquaCandy = new Rgba(116, 224, 236);
+    private static readonly Rgba LemonCandy = new Rgba(255, 228, 114);
 
-    private static readonly Rgba[] SprinkleColors =
+    private static readonly Rgba[] Sprinkles =
     {
-        new Rgba(255, 112, 176),
-        new Rgba(112, 214, 248),
-        new Rgba(255, 218, 86),
+        new Rgba(255, 114, 178),
+        new Rgba(106, 212, 246),
+        new Rgba(255, 216, 86),
         new Rgba(186, 134, 250),
-        new Rgba(126, 234, 168),
-        new Rgba(255, 154, 96)
+        new Rgba(124, 230, 166)
     };
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
     private static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
-
     private static Rgba Lerp(Rgba a, Rgba b, float t)
     {
         t = Clamp01(t);
-        return new Rgba(
-            (int)(a.r + (b.r - a.r) * t),
-            (int)(a.g + (b.g - a.g) * t),
-            (int)(a.b + (b.b - a.b) * t),
-            (int)(a.a + (b.a - a.a) * t));
+        return new Rgba((int)(a.r + (b.r - a.r) * t), (int)(a.g + (b.g - a.g) * t), (int)(a.b + (b.b - a.b) * t), (int)(a.a + (b.a - a.a) * t));
     }
-
     private static int Hash(int x, int y)
     {
-        unchecked
-        {
-            int h = x * 374761393 + y * 668265263;
-            h = (h ^ (h >> 13)) * 1274126177;
-            return h ^ (h >> 16);
-        }
+        unchecked { int h = x * 374761393 + y * 668265263; h = (h ^ (h >> 13)) * 1274126177; return h ^ (h >> 16); }
     }
 
     public static void GenerateAllProcedural(Action<string, Canvas> writer)
     {
-        writer("CandyMeadowTile.png", BuildCandyMeadowTile());
-        writer("CandyRoadH.png", BuildCandyRoad(false));
-        writer("CandyRoadV.png", BuildCandyRoad(true));
-        writer("CandyRoadCross.png", BuildCandyRoadCross());
-        writer("CandyRoadCorner.png", BuildCandyRoadCorner());
+        writer("CandyMeadowTile.png", BuildCrispPixelMeadowTile());
+        writer("CandyRoadH.png", BuildCrispPixelRoad(false));
+        writer("CandyRoadV.png", BuildCrispPixelRoad(true));
+        writer("CandyRoadCross.png", BuildCrispPixelCross());
+        writer("CandyRoadTee.png", BuildCrispPixelTee());
+        writer("CandyRoadCorner.png", BuildCrispPixelCorner());
         writer("CandyDeliveryPlaza.png", BuildDeliveryPlaza());
         writer("CandyBerryPond.png", BuildBerryPond());
         writer("GiantLollipopA.png", BuildGiantLollipop(true));
@@ -253,799 +182,667 @@ public static class CandyWorldArtGenerator
         writer("CandySparkle.png", BuildCandySparkle());
         writer("CandyGlow.png", BuildCandyGlow());
         writer("CandyShadow.png", BuildCandyShadow());
+        writer("ParallaxCloudWisp.png", BuildParallaxCloudWisp());
+        writer("CandyIceCreamSign.png", BuildIceCreamSign());
+        writer("CandyStripedAwning.png", BuildStripedAwning());
+        writer("CandyCritterGummy.png", BuildCandyCritter(true));
+        writer("CandyCritterMarshmallow.png", BuildCandyCritter(false));
+        writer("CandyDeliveryConeBeacon.png", BuildDeliveryConeBeacon());
+        writer("CandyBuntingFence.png", BuildBuntingFence());
+        writer("CandyCottonBush.png", BuildCottonBush());
+        writer("CandyConfettiStar.png", BuildConfettiStar());
     }
 
     // =========================================================================
-    // CLEAN HOUSE CUTOUT ALGORITHM (removes peach/tan JPEG bg + stray doodles!)
+    // 1. CRISP PIXEL-ART PASTEL MEADOW (192x192, 3px pixel grid, LOW NOISE!)
+    //    Replaces blurry green floor with clean, calm, sharp pixel art!
     // =========================================================================
-    public static Canvas CutoutCupcakeHouse(Rgba[] srcPixels, int srcW, int srcH, int cropX, int cropY, int cropW, int cropH)
+    public static Canvas BuildCrispPixelMeadowTile()
     {
-        cropX = Clamp(cropX, 0, srcW - 1);
-        cropY = Clamp(cropY, 0, srcH - 1);
-        cropW = Clamp(cropW, 1, srcW - cropX);
-        cropH = Clamp(cropH, 1, srcH - cropY);
+        Canvas c = new Canvas(TilePx, TilePx);
+        const int P = 3; // crisp 3x3 pixel-art texel grid (64x64 logical pixels)
+        int grid = TilePx / P;
+        c.Clear(MintBase);
 
-        int n = cropW * cropH;
-        Rgba[] sub = new Rgba[n];
-        for (int y = 0; y < cropH; y++)
-            for (int x = 0; x < cropW; x++)
-                sub[y * cropW + x] = srcPixels[(cropY + y) * srcW + (cropX + x)];
-
-        // Estimate background peach/tan color from corners of the crop
-        Rgba bg = EstimateCornerBg(sub, cropW, cropH);
-
-        bool[] isBg = new bool[n];
-        Queue<int> q = new Queue<int>();
-
-        bool MatchesBg(Rgba p)
+        // Very calm subtle checkered pixel-art meadow weave (low noise!)
+        for (int gy = 0; gy < grid; gy++)
         {
-            // Dark cartoon outline ALWAYS stops the flood fill!
-            int lum = (p.r * 299 + p.g * 587 + p.b * 114) / 1000;
-            if (lum < 120) return false;
-            int dr = p.r - bg.r;
-            int dg = p.g - bg.g;
-            int db = p.b - bg.b;
-            int distSq = dr * dr + dg * dg + db * db;
-            // Warm peach/tan hues close to background
-            bool warmTan = (p.r >= p.g - 6) && (p.g >= p.b - 6) && (p.r - p.b >= 18);
-            return distSq <= 48 * 48 || (warmTan && distSq <= 70 * 70);
-        }
-
-        // Seed border pixels
-        for (int x = 0; x < cropW; x++)
-        {
-            int top = x;
-            int bot = (cropH - 1) * cropW + x;
-            if (!isBg[top] && MatchesBg(sub[top])) { isBg[top] = true; q.Enqueue(top); }
-            if (!isBg[bot] && MatchesBg(sub[bot])) { isBg[bot] = true; q.Enqueue(bot); }
-        }
-        for (int y = 0; y < cropH; y++)
-        {
-            int left = y * cropW;
-            int right = y * cropW + (cropW - 1);
-            if (!isBg[left] && MatchesBg(sub[left])) { isBg[left] = true; q.Enqueue(left); }
-            if (!isBg[right] && MatchesBg(sub[right])) { isBg[right] = true; q.Enqueue(right); }
-        }
-
-        int[] dxs = { -1, 1, 0, 0 };
-        int[] dys = { 0, 0, -1, 1 };
-        while (q.Count > 0)
-        {
-            int cur = q.Dequeue();
-            int cx = cur % cropW, cy = cur / cropW;
-            for (int k = 0; k < 4; k++)
+            for (int gx = 0; gx < grid; gx++)
             {
-                int nx = cx + dxs[k], ny = cy + dys[k];
-                if (nx < 0 || nx >= cropW || ny < 0 || ny >= cropH) continue;
-                int ni = ny * cropW + nx;
-                if (isBg[ni]) continue;
-                if (MatchesBg(sub[ni]))
-                {
-                    isBg[ni] = true;
-                    q.Enqueue(ni);
-                }
+                bool patch = ((gx / 8 + gy / 8) % 2) == 0;
+                if (patch && ((gx + gy) % 4 == 0))
+                    c.BlockRect(gx, gy, 1, 1, P, MintLight);
             }
         }
 
-        // Keep ONLY the largest connected foreground component (erases all stray floating sprinkles & doodles!)
-        int[] labels = new int[n];
-        int bestLabel = 0, bestCount = 0, nextLabel = 1;
-        for (int i = 0; i < n; i++)
+        // Clean crisp 3-pixel grass tufts (sparse so background stays super readable!)
+        int[,] tufts = { { 6, 10 }, { 26, 18 }, { 48, 8 }, { 14, 38 }, { 38, 44 }, { 56, 34 }, { 20, 56 }, { 50, 58 } };
+        for (int i = 0; i < tufts.GetLength(0); i++)
         {
-            if (isBg[i] || labels[i] != 0) continue;
-            int count = 0;
-            q.Clear();
-            labels[i] = nextLabel;
-            q.Enqueue(i);
-            while (q.Count > 0)
-            {
-                int cur = q.Dequeue();
-                count++;
-                int cx = cur % cropW, cy = cur / cropW;
-                for (int k = 0; k < 4; k++)
-                {
-                    int nx = cx + dxs[k], ny = cy + dys[k];
-                    if (nx < 0 || nx >= cropW || ny < 0 || ny >= cropH) continue;
-                    int ni = ny * cropW + nx;
-                    if (isBg[ni] || labels[ni] != 0) continue;
-                    labels[ni] = nextLabel;
-                    q.Enqueue(ni);
-                }
-            }
-            if (count > bestCount)
-            {
-                bestCount = count;
-                bestLabel = nextLabel;
-            }
-            nextLabel++;
+            int tx = tufts[i, 0], ty = tufts[i, 1];
+            c.BlockRect(tx, ty, 1, 2, P, MintShade);
+            c.BlockRect(tx + 2, ty, 1, 2, P, MintShade);
+            c.BlockRect(tx + 1, ty + 1, 1, 2, P, MintLight);
         }
 
-        // Compute tight bounding box of the house + remove fringe tan halos
-        int minX = cropW, minY = cropH, maxX = 0, maxY = 0;
-        bool[] keep = new bool[n];
-        for (int y = 0; y < cropH; y++)
+        // Tiny crisp 4-petal pastel sugar flowers (only 4 per tile!)
+        int[,] fl = { { 16, 22 }, { 44, 26 }, { 28, 50 }, { 54, 14 } };
+        Rgba[] cols = { PinkLight, Cream, LemonCandy, Lavender };
+        for (int i = 0; i < fl.GetLength(0); i++)
         {
-            for (int x = 0; x < cropW; x++)
-            {
-                int i = y * cropW + x;
-                if (labels[i] == bestLabel)
-                {
-                    keep[i] = true;
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                }
-            }
+            int fx = fl[i, 0], fy = fl[i, 1];
+            Rgba col = cols[i % cols.Length];
+            c.BlockRect(fx - 1, fy, 1, 1, P, col);
+            c.BlockRect(fx + 1, fy, 1, 1, P, col);
+            c.BlockRect(fx, fy - 1, 1, 1, P, col);
+            c.BlockRect(fx, fy + 1, 1, 1, P, col);
+            c.BlockRect(fx, fy, 1, 1, P, LemonCandy);
         }
-
-        if (maxX <= minX || maxY <= minY) return new Canvas(64, 64);
-
-        // Trim into padded square-ish canvas with a subtle bottom shadow
-        int pad = 16;
-        int outW = (maxX - minX + 1) + pad * 2;
-        int outH = (maxY - minY + 1) + pad * 2;
-        Canvas outCanvas = new Canvas(outW, outH);
-
-        // Soft purple-plum shadow beneath house base
-        outCanvas.EllipseAA(outW * 0.5f, pad + 6f, (maxX - minX) * 0.42f, 14f, new Rgba(62, 34, 72, 72));
-
-        for (int y = minY; y <= maxY; y++)
-        {
-            for (int x = minX; x <= maxX; x++)
-            {
-                int i = y * cropW + x;
-                if (!keep[i]) continue;
-                Rgba p = sub[i];
-                // Soften 1px outer fringe if it leans tan
-                int bgNeighbors = 0;
-                for (int k = 0; k < 4; k++)
-                {
-                    int nx = x + dxs[k], ny = y + dys[k];
-                    if (nx < 0 || nx >= cropW || ny < 0 || ny >= cropH || !keep[ny * cropW + nx])
-                        bgNeighbors++;
-                }
-                int alpha = 255;
-                if (bgNeighbors > 0)
-                {
-                    int lum = (p.r * 299 + p.g * 587 + p.b * 114) / 1000;
-                    if (lum > 150) alpha = bgNeighbors >= 2 ? 90 : 175;
-                }
-                outCanvas.Blend((x - minX) + pad, (y - minY) + pad, new Rgba(p.r, p.g, p.b, alpha));
-            }
-        }
-
-        // Downscale neatly to max 512px so Unity memory stays fast & crisp!
-        if (outW > 512 || outH > 512)
-        {
-            float scale = 512f / Math.Max(outW, outH);
-            int nw = Math.Max(32, (int)(outW * scale));
-            int nh = Math.Max(32, (int)(outH * scale));
-            return DownscaleBilinear(outCanvas, nw, nh);
-        }
-        return outCanvas;
-    }
-
-    private static Rgba EstimateCornerBg(Rgba[] sub, int w, int h)
-    {
-        int r = 0, g = 0, b = 0, cnt = 0;
-        int[,] pts = { { 4, 4 }, { w - 5, 4 }, { 4, h - 5 }, { w - 5, h - 5 }, { w / 2, 4 }, { 4, h / 2 }, { w - 5, h / 2 } };
-        for (int i = 0; i < pts.GetLength(0); i++)
-        {
-            int x = Clamp(pts[i, 0], 0, w - 1);
-            int y = Clamp(pts[i, 1], 0, h - 1);
-            Rgba p = sub[y * w + x];
-            r += p.r; g += p.g; b += p.b; cnt++;
-        }
-        return new Rgba(r / cnt, g / cnt, b / cnt, 255);
-    }
-
-    private static Canvas DownscaleBilinear(Canvas src, int nw, int nh)
-    {
-        Canvas dst = new Canvas(nw, nh);
-        for (int y = 0; y < nh; y++)
-        {
-            float sy = (y + 0.5f) * src.H / nh - 0.5f;
-            int y0 = Clamp((int)Math.Floor(sy), 0, src.H - 1);
-            int y1 = Clamp(y0 + 1, 0, src.H - 1);
-            float fy = Clamp01(sy - y0);
-            for (int x = 0; x < nw; x++)
-            {
-                float sx = (x + 0.5f) * src.W / nw - 0.5f;
-                int x0 = Clamp((int)Math.Floor(sx), 0, src.W - 1);
-                int x1 = Clamp(x0 + 1, 0, src.W - 1);
-                float fx = Clamp01(sx - x0);
-                Rgba c00 = src.Px[y0 * src.W + x0];
-                Rgba c10 = src.Px[y0 * src.W + x1];
-                Rgba c01 = src.Px[y1 * src.W + x0];
-                Rgba c11 = src.Px[y1 * src.W + x1];
-                Rgba top = Lerp(c00, c10, fx);
-                Rgba bot = Lerp(c01, c11, fx);
-                dst.Px[y * nw + x] = Lerp(top, bot, fy);
-            }
-        }
-        return dst;
-    }
-
-    // =========================================================================
-    // 1. SEAMLESS CANDY MEADOW TILE (512 x 512)
-    // =========================================================================
-    public static Canvas BuildCandyMeadowTile()
-    {
-        const int S = 512;
-        Canvas c = new Canvas(S, S);
-
-        // Soft seamless undulating mint-pistachio meadow base
-        for (int y = 0; y < S; y++)
-        {
-            double ay = y * (2.0 * Math.PI / S);
-            for (int x = 0; x < S; x++)
-            {
-                double ax = x * (2.0 * Math.PI / S);
-                float n = (float)(
-                    0.50 +
-                    0.22 * Math.Sin(ax * 2.0 + Math.Cos(ay * 2.0)) +
-                    0.16 * Math.Cos(ay * 3.0 - Math.Sin(ax * 2.0)) +
-                    0.12 * Math.Sin((ax + ay) * 4.0));
-                Rgba col = n > 0.55f ? Lerp(MintBase, MintLight, (n - 0.55f) * 2.2f) : Lerp(MintDeep, MintBase, n / 0.55f);
-                c.Px[y * S + x] = col;
-            }
-        }
-
-        // Soft sunlit pastel grass patches (wrapped seamlessly)
-        for (int i = 0; i < 18; i++)
-        {
-            float cx = Math.Abs(Hash(i, 11)) % S;
-            float cy = Math.Abs(Hash(i, 23)) % S;
-            float rx = 28 + (Math.Abs(Hash(i, 31)) % 34);
-            float ry = 20 + (Math.Abs(Hash(i, 37)) % 24);
-            Rgba patch = (i % 2 == 0) ? new Rgba(196, 246, 206, 95) : new Rgba(136, 212, 162, 75);
-            c.EllipseAA(cx, cy, rx, ry, patch, true);
-        }
-
-        // Little cute cartoon grass blades
-        for (int i = 0; i < 65; i++)
-        {
-            float gx = Math.Abs(Hash(i, 53)) % S;
-            float gy = Math.Abs(Hash(i, 59)) % S;
-            Rgba blade = (i % 2 == 0) ? new Rgba(94, 174, 128, 170) : new Rgba(110, 190, 142, 165);
-            c.CapsuleAA(gx, gy, gx - 4, gy + 9, 1.5f, blade, true);
-            c.CapsuleAA(gx, gy, gx + 1, gy + 11, 1.5f, blade, true);
-            c.CapsuleAA(gx, gy, gx + 5, gy + 8, 1.4f, blade, true);
-        }
-
-        // Adorable tiny pastel sugar-blossom flowers
-        Rgba[] petalColors = { PinkLight, Cream, LemonCandy, Lavender };
-        for (int i = 0; i < 22; i++)
-        {
-            float fx = Math.Abs(Hash(i, 71)) % S;
-            float fy = Math.Abs(Hash(i, 79)) % S;
-            Rgba petal = petalColors[i % petalColors.Length];
-            for (int p = 0; p < 5; p++)
-            {
-                double ang = p * Math.PI * 2.0 / 5.0;
-                c.CircleAA(fx + (float)Math.Cos(ang) * 4.5f, fy + (float)Math.Sin(ang) * 4.5f, 3.2f, petal, true);
-            }
-            c.CircleAA(fx, fy, 2.5f, LemonCandy, true);
-        }
-
-        // Tiny scattered colorful candy sprinkles in the meadow
-        for (int i = 0; i < 34; i++)
-        {
-            float sx = Math.Abs(Hash(i, 97)) % S;
-            float sy = Math.Abs(Hash(i, 103)) % S;
-            double ang = (Math.Abs(Hash(i, 107)) % 314) / 100.0;
-            float dx = (float)Math.Cos(ang) * 4.5f;
-            float dy = (float)Math.Sin(ang) * 4.5f;
-            Rgba sp = SprinkleColors[i % SprinkleColors.Length];
-            c.CapsuleAA(sx - dx, sy - dy, sx + dx, sy + dy, 2.1f, new Rgba(sp.r, sp.g, sp.b, 200), true);
-        }
-
         return c;
     }
 
     // =========================================================================
-    // 2. CARTOON CANDY BISCUIT ROADS (256 x 256 seamless horizontal/vertical/cross/corner)
+    // 2. CRISP PIXEL-ART GOLDEN BISCUIT & CANDY-CURB TRACK (192x192, PPU=32 -> 6.0 units!)
+    //    Drivable center lane: y in [27..165] (138px = 4.31 units wide!)
+    //    Zero grey asphalt! Sharp pixel-art outlines, pink/lavender candy curbs,
+    //    sprinkles concentrated on the curbs, smooth low-contrast biscuit center!
     // =========================================================================
-    public static Canvas BuildCandyRoad(bool vertical)
+    public static Canvas BuildCrispPixelRoad(bool vertical)
     {
-        const int S = 256;
-        Canvas c = new Canvas(S, S);
+        Canvas c = new Canvas(TilePx, TilePx);
+        const int P = 3;
+        int G = TilePx / P; // 64 logical pixels
 
-        // Build horizontal first, then transpose if vertical
-        // Outer drop shadow on meadow (y 0..10 and 246..256)
-        for (int y = 0; y < S; y++)
+        for (int gy = 0; gy < G; gy++)
         {
-            for (int x = 0; x < S; x++)
+            int dy = Math.Min(gy, G - 1 - gy);
+            for (int gx = 0; gx < G; gx++)
             {
-                int dy = Math.Min(y, S - 1 - y);
-                if (dy < 6)
+                if (dy == 0)
                 {
-                    int a = (int)(75 * (dy / 6f));
-                    c.Blend(x, y, new Rgba(64, 34, 68, a));
+                    c.BlockRect(gx, gy, 1, 1, P, new Rgba(64, 34, 68, 70)); // crisp shadow edge
                 }
-                else if (dy < 10)
+                else if (dy == 1)
                 {
-                    c.Blend(x, y, Ink);
+                    c.BlockRect(gx, gy, 1, 1, P, Ink);
                 }
-                else if (dy < 30)
+                else if (dy <= 7)
                 {
-                    // Bubblegum-pink & lavender candy curb stones!
-                    int stone = (x / 32) % 2;
-                    Rgba baseCol = stone == 0 ? PinkCandy : Lavender;
-                    Rgba hiCol = stone == 0 ? PinkLight : new Rgba(224, 194, 255);
-                    bool seam = (x % 32) < 3;
-                    if (seam) c.Blend(x, y, Ink);
-                    else if (dy > 25) c.Blend(x, y, hiCol);
-                    else c.Blend(x, y, baseCol);
+                    // Bubblegum-pink & lavender pixel-art candy curb stones!
+                    bool seam = (gx % 8 == 0);
+                    int stone = (gx / 8) % 2;
+                    Rgba col = seam ? Ink : (stone == 0 ? (dy == 7 ? PinkLight : PinkCandy) : (dy == 7 ? Cream : Lavender));
+                    c.BlockRect(gx, gy, 1, 1, P, col);
                 }
-                else if (dy < 34)
+                else if (dy == 8)
                 {
-                    c.Blend(x, y, Ink);
+                    c.BlockRect(gx, gy, 1, 1, P, Ink);
                 }
                 else
                 {
-                    // Warm golden-vanilla biscuit road with subtle inner shade near curbs
-                    float edgeFactor = Clamp01((dy - 34) / 22f);
-                    Rgba roadCol = Lerp(BiscuitShade, BiscuitBase, edgeFactor);
-                    // Gentle glossy center sheen
-                    float centerFactor = 1f - Math.Abs(y - 128f) / 94f;
-                    roadCol = Lerp(roadCol, BiscuitLight, Clamp01(centerFactor * 0.45f));
-                    c.Blend(x, y, roadCol);
+                    // Smooth low-contrast golden biscuit center lane!
+                    Rgba roadCol = (dy <= 10) ? BiscuitShade : ((dy >= 24 && dy <= 40) ? BiscuitLight : BiscuitBase);
+                    c.BlockRect(gx, gy, 1, 1, P, roadCol);
                 }
             }
         }
 
-        // Cream marshmallow center lane dashes
-        c.RoundedRectAA(64, 128, 36, 7, 6, Cream, new Rgba(214, 174, 134), 2f);
-        c.RoundedRectAA(192, 128, 36, 7, 6, Cream, new Rgba(214, 174, 134), 2f);
+        // Crisp cream dashed lane markings in center (gy = 31..32)
+        c.BlockRect(8, 31, 16, 2, P, Cream);
+        c.BlockRect(40, 31, 16, 2, P, Cream);
 
-        // Cute colorful sugar sprinkles scattered along the biscuit road shoulders!
-        for (int i = 0; i < 22; i++)
+        // Crisp pixel sprinkles ONLY along the inner curb shoulder (never cluttering center!)
+        int[] sx = { 5, 18, 31, 46, 58 };
+        for (int i = 0; i < sx.Length; i++)
         {
-            float sx = 12 + (Math.Abs(Hash(i, 131)) % 232);
-            float sy = (i % 2 == 0) ? (44 + Math.Abs(Hash(i, 137)) % 36) : (176 + Math.Abs(Hash(i, 139)) % 36);
-            double ang = (Math.Abs(Hash(i, 149)) % 314) / 100.0;
-            float dx = (float)Math.Cos(ang) * 5.5f;
-            float dy = (float)Math.Sin(ang) * 5.5f;
-            Rgba sp = SprinkleColors[i % SprinkleColors.Length];
-            c.CapsuleAA(sx - dx, sy - dy, sx + dx, sy + dy, 3.0f, Ink);
-            c.CapsuleAA(sx - dx, sy - dy, sx + dx, sy + dy, 2.0f, sp);
+            Rgba sp = Sprinkles[i % Sprinkles.Length];
+            c.BlockRect(sx[i], 10 + (i % 2), 3, 1, P, sp);
+            c.BlockRect((sx[i] + 7) % 60, G - 12 - (i % 2), 3, 1, P, Sprinkles[(i + 2) % Sprinkles.Length]);
         }
 
         return vertical ? Transpose(c) : c;
     }
 
-    public static Canvas BuildCandyRoadCross()
+    public static Canvas BuildCrispPixelCross()
     {
-        const int S = 256;
-        Canvas c = new Canvas(S, S);
+        Canvas c = new Canvas(TilePx, TilePx);
+        const int P = 3;
+        int G = TilePx / P; // 64
+        c.Clear(BiscuitBase);
+        c.BlockRect(10, 10, G - 20, G - 20, P, BiscuitLight);
 
-        // Full warm biscuit intersection base
-        for (int y = 0; y < S; y++)
+        // Crisp rounded candy-stone corner curbs in all 4 corners (exact match to road curb dy<=8!)
+        int[,] corners = { { 0, 0 }, { G - 1, 0 }, { 0, G - 1 }, { G - 1, G - 1 } };
+        for (int k = 0; k < 4; k++)
         {
-            for (int x = 0; x < S; x++)
+            int cx = corners[k, 0], cy = corners[k, 1];
+            for (int gy = 0; gy < G; gy++)
             {
-                float d = (float)Math.Sqrt((x - 128f) * (x - 128f) + (y - 128f) * (y - 128f)) / 150f;
-                c.Px[y * S + x] = Lerp(BiscuitLight, BiscuitBase, Clamp01(d));
+                for (int gx = 0; gx < G; gx++)
+                {
+                    float d = (float)Math.Sqrt((gx - cx) * (gx - cx) + (gy - cy) * (gy - cy));
+                    if (d <= 1.2f) c.BlockRect(gx, gy, 1, 1, P, new Rgba(0, 0, 0, 0));
+                    else if (d <= 2.2f) c.BlockRect(gx, gy, 1, 1, P, Ink);
+                    else if (d <= 7.8f) c.BlockRect(gx, gy, 1, 1, P, PinkCandy);
+                    else if (d <= 8.8f) c.BlockRect(gx, gy, 1, 1, P, Ink);
+                }
             }
         }
 
-        // Rounded candy-stone corner curbs in all 4 corners
-        int[,] corners = { { 0, 0 }, { S, 0 }, { 0, S }, { S, S } };
-        for (int k = 0; k < 4; k++)
-        {
-            float cx = corners[k, 0], cy = corners[k, 1];
-            c.CircleAA(cx, cy, 34, Ink);
-            c.CircleAA(cx, cy, 30, PinkCandy);
-            c.CircleAA(cx, cy, 24, PinkLight);
-            c.CircleAA(cx, cy, 10, Ink);
-            c.CircleAA(cx, cy, 6, new Rgba(0, 0, 0, 0));
-        }
-
-        // Cute marshmallow crosswalk bars on all 4 entrances
+        // Cream pixel crosswalk dashes at all 4 entrances
         for (int i = 0; i < 4; i++)
         {
-            float off = 66 + i * 41;
-            c.RoundedRectAA(off, 18, 12, 10, 5, Cream, BiscuitShade, 2f);
-            c.RoundedRectAA(off, S - 18, 12, 10, 5, Cream, BiscuitShade, 2f);
-            c.RoundedRectAA(18, off, 10, 12, 5, Cream, BiscuitShade, 2f);
-            c.RoundedRectAA(S - 18, off, 10, 12, 5, Cream, BiscuitShade, 2f);
+            int off = 14 + i * 11;
+            c.BlockRect(off, 3, 5, 3, P, Cream);
+            c.BlockRect(off, G - 6, 5, 3, P, Cream);
+            c.BlockRect(3, off, 3, 5, P, Cream);
+            c.BlockRect(G - 6, off, 3, 5, P, Cream);
         }
-
-        // Center star medallion inlay in the intersection
-        c.CircleAA(128, 128, 32, new Rgba(255, 198, 224, 140));
-        c.CircleAA(128, 128, 22, new Rgba(255, 244, 212, 160));
-        DrawStar(c, 128, 128, 16, 7, PinkCandy, Ink);
-
         return c;
     }
 
-    public static Canvas BuildCandyRoadCorner()
+    public static Canvas BuildCrispPixelTee()
     {
-        // Connects East (+X) and North (+Y) cleanly; rotate 90/180/270 for the other 3 corners!
-        const int S = 256;
-        Canvas c = new Canvas(S, S);
-        for (int y = 0; y < S; y++)
+        // Closed continuous candy curb along North (+Y); open to West, East, and South (-Y).
+        // Rotations: 0 = North T (0,+3), 90 = West T (-3,0), 180 = South T (0,-3), 270 = East T (+3,0).
+        Canvas c = new Canvas(TilePx, TilePx);
+        const int P = 3;
+        int G = TilePx / P; // 64
+        c.Clear(BiscuitBase);
+        c.BlockRect(0, 10, G, G - 20, P, BiscuitLight);
+        c.BlockRect(10, 0, G - 20, G - 10, P, BiscuitLight);
+
+        // Continuous North curb (gy in [G-9 .. G-1]) matching BuildCrispPixelRoad!
+        for (int gy = G - 9; gy < G; gy++)
         {
-            for (int x = 0; x < S; x++)
+            int dy = G - 1 - gy;
+            for (int gx = 0; gx < G; gx++)
             {
-                // Distance from inner corner (S, S)
-                float d = (float)Math.Sqrt((x - S) * (x - S) + (y - S) * (y - S));
-                if (d < 30f || d > S - 6f)
+                if (dy == 0) c.BlockRect(gx, gy, 1, 1, P, new Rgba(64, 34, 68, 70));
+                else if (dy == 1) c.BlockRect(gx, gy, 1, 1, P, Ink);
+                else if (dy <= 7)
                 {
-                    if (d >= S - 6f && d <= S) c.Blend(x, y, new Rgba(64, 34, 68, (int)(75 * (1f - (d - (S - 6f)) / 6f))));
-                    continue;
+                    bool seam = (gx % 8 == 0);
+                    int stone = (gx / 8) % 2;
+                    Rgba col = seam ? Ink : (stone == 0 ? (dy == 7 ? PinkLight : PinkCandy) : (dy == 7 ? Cream : Lavender));
+                    c.BlockRect(gx, gy, 1, 1, P, col);
                 }
-                if (d < 34f || d > S - 10f) { c.Blend(x, y, Ink); continue; }
-                if (d > S - 30f || d < 54f)
-                {
-                    double ang = Math.Atan2(S - y, S - x);
-                    int seg = (int)(ang * 10.0);
-                    Rgba col = (seg % 2 == 0) ? PinkCandy : Lavender;
-                    c.Blend(x, y, col);
-                    continue;
-                }
-                if (d > S - 34f || d < 58f) { c.Blend(x, y, Ink); continue; }
-                c.Blend(x, y, BiscuitBase);
+                else if (dy == 8) c.BlockRect(gx, gy, 1, 1, P, Ink);
             }
         }
-        // Curved marshmallow dashes
+        // Subtle shade right inside North curb
+        c.BlockRect(0, G - 11, G, 2, P, BiscuitShade);
+
+        // Rounded South-West and South-East inner corner curbs matching road curb dy<=8
+        int[,] southCorners = { { 0, 0 }, { G - 1, 0 } };
+        for (int k = 0; k < 2; k++)
+        {
+            int cx = southCorners[k, 0], cy = southCorners[k, 1];
+            for (int gy = 0; gy < 12; gy++)
+            {
+                for (int gx = 0; gx < G; gx++)
+                {
+                    float d = (float)Math.Sqrt((gx - cx) * (gx - cx) + (gy - cy) * (gy - cy));
+                    if (d <= 1.2f) c.BlockRect(gx, gy, 1, 1, P, new Rgba(0, 0, 0, 0));
+                    else if (d <= 2.2f) c.BlockRect(gx, gy, 1, 1, P, Ink);
+                    else if (d <= 7.8f) c.BlockRect(gx, gy, 1, 1, P, ((gx + gy) / 4 % 2 == 0) ? PinkCandy : Lavender);
+                    else if (d <= 8.8f) c.BlockRect(gx, gy, 1, 1, P, Ink);
+                }
+            }
+        }
+
+        // Cream dashes on West, East, and South entrances
+        for (int i = 0; i < 4; i++)
+        {
+            int off = 14 + i * 11;
+            c.BlockRect(off, 3, 5, 3, P, Cream);
+            c.BlockRect(3, off, 3, 5, P, Cream);
+            c.BlockRect(G - 6, off, 3, 5, P, Cream);
+        }
+        return c;
+    }
+
+    public static Canvas BuildCrispPixelCorner()
+    {
+        // Connects East (+X) and North (+Y) cleanly at 0 deg; rotate 90/180/270 for other 3 corners!
+        Canvas c = new Canvas(TilePx, TilePx);
+        const int P = 3;
+        int G = TilePx / P; // 64
+        for (int gy = 0; gy < G; gy++)
+        {
+            for (int gx = 0; gx < G; gx++)
+            {
+                float d = (float)Math.Sqrt((gx - (G - 1)) * (gx - (G - 1)) + (gy - (G - 1)) * (gy - (G - 1)));
+                if (d < 1.2f || d > G - 1.0f) continue;
+                if (d < 2.2f || d > G - 2.0f) { c.BlockRect(gx, gy, 1, 1, P, Ink); continue; }
+                if (d < 7.8f || d > G - 8.0f)
+                {
+                    int seg = (int)(Math.Atan2(G - 1 - gy, G - 1 - gx) * 6.0);
+                    c.BlockRect(gx, gy, 1, 1, P, (seg % 2 == 0) ? PinkCandy : Lavender);
+                    continue;
+                }
+                if (d < 8.8f || d > G - 9.0f) { c.BlockRect(gx, gy, 1, 1, P, Ink); continue; }
+                bool center = Math.Abs(d - 32f) < 9f;
+                c.BlockRect(gx, gy, 1, 1, P, center ? BiscuitLight : BiscuitBase);
+            }
+        }
+        // Cream curved center dashes
         for (int i = 1; i <= 3; i++)
         {
             double ang = (i / 4.0) * (Math.PI * 0.5);
-            float mx = S - (float)Math.Cos(ang) * 128f;
-            float my = S - (float)Math.Sin(ang) * 128f;
-            c.CircleAA(mx, my, 7.5f, BiscuitShade);
-            c.CircleAA(mx, my, 5.5f, Cream);
+            int mx = (G - 1) - (int)Math.Round(Math.Cos(ang) * 32.0);
+            int my = (G - 1) - (int)Math.Round(Math.Sin(ang) * 32.0);
+            c.BlockRect(mx - 1, my - 1, 3, 3, P, Cream);
         }
         return c;
     }
 
     // =========================================================================
-    // 3. SHOW-STOPPING DELIVERY STAR PLAZA (512 x 512)
+    // 3. PIXEL-ART DELIVERY PLAZA, BERRY POND, PROPS & PARALLAX CLOUDS
     // =========================================================================
     public static Canvas BuildDeliveryPlaza()
     {
-        const int S = 512;
+        const int S = 192; // Exact match to 6.0x6.0 intersection!
         Canvas c = new Canvas(S, S);
         float mid = S * 0.5f;
-
-        // Soft outer shadow
-        c.CircleAA(mid, mid - 6, 242, new Rgba(64, 34, 68, 70));
-
-        // Scalloped marshmallow-stone outer wreath
-        for (int i = 0; i < 20; i++)
+        c.CircleHard(mid, mid - 2, 92, new Rgba(64, 34, 68, 70));
+        for (int i = 0; i < 16; i++)
         {
-            double ang = i * Math.PI * 2.0 / 20.0;
-            float sx = mid + (float)Math.Cos(ang) * 212f;
-            float sy = mid + (float)Math.Sin(ang) * 212f;
-            c.CircleAA(sx, sy, 30, Ink);
-            c.CircleAA(sx, sy, 26, i % 2 == 0 ? PinkLight : Cream);
-            c.CircleAA(sx - 4, sy + 5, 10, new Rgba(255, 255, 255, 120));
+            double a = i * Math.PI * 2.0 / 16.0;
+            float sx = mid + (float)Math.Cos(a) * 80f, sy = mid + (float)Math.Sin(a) * 80f;
+            c.CircleHard(sx, sy, 12, Ink);
+            c.CircleHard(sx, sy, 9.5f, i % 2 == 0 ? PinkLight : Cream);
         }
-
-        // Main frosting plaza floor
-        c.CircleAA(mid, mid, 206, Ink);
-        c.CircleAA(mid, mid, 200, new Rgba(255, 198, 226));
-        c.CircleAA(mid, mid, 178, Cream);
-        c.CircleAA(mid, mid, 152, PinkCandy);
-        c.CircleAA(mid, mid, 134, new Rgba(255, 168, 214));
-
-        // Sprinkles around the cream ring
-        for (int i = 0; i < 28; i++)
-        {
-            double ang = i * Math.PI * 2.0 / 28.0;
-            float r = 165f + ((i % 2) * 6f - 3f);
-            float sx = mid + (float)Math.Cos(ang) * r;
-            float sy = mid + (float)Math.Sin(ang) * r;
-            float dx = (float)Math.Cos(ang + 0.8) * 6f;
-            float dy = (float)Math.Sin(ang + 0.8) * 6f;
-            c.CapsuleAA(sx - dx, sy - dy, sx + dx, sy + dy, 3.8f, Ink);
-            c.CapsuleAA(sx - dx, sy - dy, sx + dx, sy + dy, 2.5f, SprinkleColors[i % SprinkleColors.Length]);
-        }
-
-        // Big golden glowing star in the center!
-        DrawStar(c, mid, mid, 92, 42, LemonCandy, Ink);
-        DrawStar(c, mid, mid, 68, 30, Cream, new Rgba(255, 210, 96));
-
+        c.CircleHard(mid, mid, 76, Ink);
+        c.CircleHard(mid, mid, 72, new Rgba(255, 198, 226));
+        c.CircleHard(mid, mid, 62, Cream);
+        c.CircleHard(mid, mid, 52, PinkCandy);
+        c.CircleHard(mid, mid, 44, PinkLight);
+        DrawStarHard(c, mid, mid, 32, 14, LemonCandy, Ink);
+        DrawStarHard(c, mid, mid, 22, 9, Cream, new Rgba(255, 206, 88));
         return c;
     }
 
-    // =========================================================================
-    // 4. SPARKLING BERRY-SODA POND (512 x 320)
-    // =========================================================================
     public static Canvas BuildBerryPond()
     {
-        const int W = 512, H = 320;
+        const int W = 192, H = 128;
         Canvas c = new Canvas(W, H);
-
-        // Creamy frosting shoreline bank
-        c.EllipseAA(256, 156, 236, 136, new Rgba(64, 34, 68, 65));
-        c.EllipseAA(256, 160, 232, 134, Ink);
-        c.EllipseAA(256, 160, 225, 128, Cream);
-        c.EllipseAA(170, 185, 126, 92, Cream);
-        c.EllipseAA(345, 145, 128, 94, Cream);
-
-        // Sparkling turquoise berry-soda water!
-        c.EllipseAA(256, 160, 206, 110, Ink);
-        c.EllipseAA(256, 160, 200, 105, new Rgba(88, 206, 238));
-        c.EllipseAA(256, 152, 184, 92, AquaCandy);
-        c.EllipseAA(240, 146, 140, 68, new Rgba(158, 242, 248));
-
-        // Glossy soda bubbles & water ripples
-        c.CapsuleAA(130, 185, 195, 185, 4f, new Rgba(255, 255, 255, 195));
-        c.CapsuleAA(290, 125, 368, 125, 4f, new Rgba(255, 255, 255, 195));
-        c.CapsuleAA(210, 158, 275, 158, 3.5f, new Rgba(255, 255, 255, 175));
-        c.CircleAA(162, 132, 10, new Rgba(255, 255, 255, 170));
-        c.CircleAA(338, 186, 8, new Rgba(255, 255, 255, 170));
-
-        // Cute floating sugar lily pads with pink candy lotus blooms!
-        DrawLilyPad(c, 155, 152, 24);
-        DrawLilyPad(c, 348, 166, 22);
-        DrawLilyPad(c, 265, 205, 18);
-
+        c.EllipseHard(96, 62, 90, 54, Ink);
+        c.EllipseHard(96, 62, 86, 50, Cream);
+        c.EllipseHard(96, 62, 76, 42, Ink);
+        c.EllipseHard(96, 62, 72, 38, AquaCandy);
+        c.EllipseHard(90, 58, 52, 26, new Rgba(162, 244, 248));
+        c.Rect(46, 72, 28, 3, Cream);
+        c.Rect(114, 48, 30, 3, Cream);
+        // Cute lily pads
+        c.CircleHard(62, 60, 11, Ink); c.CircleHard(62, 60, 9, MintBase); c.CircleHard(62, 60, 4, PinkCandy);
+        c.CircleHard(132, 66, 10, Ink); c.CircleHard(132, 66, 8, MintBase); c.CircleHard(132, 66, 4, LemonCandy);
         return c;
     }
 
-    private static void DrawLilyPad(Canvas c, float cx, float cy, float r)
-    {
-        c.CircleAA(cx, cy, r + 2.5f, Ink);
-        c.CircleAA(cx, cy, r, new Rgba(116, 214, 146));
-        c.CircleAA(cx - 3, cy + 3, r * 0.65f, MintLight);
-        // Cute pink lotus blossom on lily pad
-        for (int i = 0; i < 5; i++)
-        {
-            double a = i * Math.PI * 2.0 / 5.0;
-            c.CircleAA(cx + (float)Math.Cos(a) * 6f, cy + (float)Math.Sin(a) * 6f, 5.5f, PinkCandy);
-        }
-        c.CircleAA(cx, cy, 4.5f, LemonCandy);
-    }
-
-    // =========================================================================
-    // 5. ICONIC CANDY PROPS: GIANT LOLLIPOPS, CANDY CANES, LAMPS, FLOWERBEDS, MARSHMALLOWS
-    // =========================================================================
     public static Canvas BuildGiantLollipop(bool rainbowPink)
     {
-        const int W = 192, H = 256;
+        const int W = 64, H = 96;
         Canvas c = new Canvas(W, H);
-
-        // Ground shadow
-        c.EllipseAA(96, 22, 42, 14, new Rgba(64, 34, 68, 75));
-
-        // Glossy white lollipop stick
-        c.CapsuleAA(96, 24, 96, 134, 11f, Ink);
-        c.CapsuleAA(96, 24, 96, 134, 7.5f, Cream);
-        c.CapsuleAA(93, 28, 93, 130, 2.5f, new Rgba(255, 255, 255, 200));
-
-        // Giant swirled candy head
-        float cx = 96f, cy = 166f, R = 68f;
-        c.CircleAA(cx, cy, R + 5f, Ink);
-        for (int y = (int)(cy - R - 1); y <= (int)(cy + R + 1); y++)
-        {
-            for (int x = (int)(cx - R - 1); x <= (int)(cx + R + 1); x++)
+        c.EllipseHard(32, 8, 14, 5, new Rgba(64, 34, 68, 80));
+        c.Rect(28, 8, 8, 42, Ink);
+        c.Rect(30, 10, 4, 38, Cream);
+        float cx = 32f, cy = 62f, R = 24f;
+        c.CircleHard(cx, cy, R + 3f, Ink);
+        for (int y = (int)(cy - R); y <= (int)(cy + R); y++)
+            for (int x = (int)(cx - R); x <= (int)(cx + R); x++)
             {
-                float dx = x - cx, dy = y - cy;
-                float dist = (float)Math.Sqrt(dx * dx + dy * dy);
-                if (dist > R) continue;
-                float angle = (float)Math.Atan2(dy, dx);
-                float spiral = (angle + dist * 0.14f);
-                int band = ((int)Math.Floor(spiral / 1.05f) % 4 + 4) % 4;
-                Rgba col;
-                if (rainbowPink)
-                    col = band == 0 ? PinkCandy : (band == 1 ? Cream : (band == 2 ? LemonCandy : Lavender));
-                else
-                    col = band == 0 ? AquaCandy : (band == 1 ? Cream : (band == 2 ? PinkLight : MintLight));
-                c.Blend(x, y, col);
+                float dx = x - cx, dy = y - cy, d = (float)Math.Sqrt(dx * dx + dy * dy);
+                if (d > R) continue;
+                int band = ((int)Math.Floor(((float)Math.Atan2(dy, dx) + d * 0.34f) / 1.05f) % 4 + 4) % 4;
+                Rgba col = rainbowPink
+                    ? (band == 0 ? PinkCandy : (band == 1 ? Cream : (band == 2 ? LemonCandy : Lavender)))
+                    : (band == 0 ? AquaCandy : (band == 1 ? Cream : (band == 2 ? PinkLight : MintLight)));
+                c.Set(x, y, col);
             }
-        }
-        // Glossy cartoon specular arc
-        c.EllipseAA(cx - 22, cy + 24, 18, 10, new Rgba(255, 255, 255, 165));
-        c.CircleAA(cx - 34, cy + 12, 6, new Rgba(255, 255, 255, 185));
-
+        c.Rect(22, 68, 6, 4, new Rgba(255, 255, 255, 210));
         return c;
     }
 
     public static Canvas BuildCandyCane()
     {
-        const int W = 160, H = 256;
+        const int W = 64, H = 96;
         Canvas c = new Canvas(W, H);
-        c.EllipseAA(66, 20, 36, 12, new Rgba(64, 34, 68, 75));
-
-        // Draw curved candy cane centerline
-        List<float> xs = new List<float>();
-        List<float> ys = new List<float>();
-        for (int i = 0; i <= 40; i++)
+        c.EllipseHard(26, 8, 12, 4, new Rgba(64, 34, 68, 80));
+        List<float> xs = new List<float>(), ys = new List<float>();
+        for (int i = 0; i <= 26; i++) { xs.Add(24f); ys.Add(10f + i * 2.3f); }
+        for (int i = 1; i <= 20; i++)
         {
-            xs.Add(64f);
-            ys.Add(22f + i * 4.1f);
+            double a = Math.PI - (i / 20.0) * Math.PI;
+            xs.Add(37f + (float)Math.Cos(a) * 13f); ys.Add(70f + (float)Math.Sin(a) * 13f);
         }
-        for (int i = 1; i <= 36; i++)
-        {
-            double ang = Math.PI - (i / 36.0) * Math.PI;
-            xs.Add(96f + (float)Math.Cos(ang) * 32f);
-            ys.Add(186f + (float)Math.Sin(ang) * 32f);
-        }
-        for (int i = 1; i <= 8; i++)
-        {
-            xs.Add(128f);
-            ys.Add(186f - i * 3.5f);
-        }
-
-        // Outline pass
-        for (int i = 0; i < xs.Count; i++) c.CircleAA(xs[i], ys[i], 21f, Ink);
-        // Striped cream & berry-red pass
-        Rgba caneRed = new Rgba(244, 78, 124);
-        for (int i = 0; i < xs.Count; i++)
-        {
-            Rgba col = ((i / 6) % 2 == 0) ? caneRed : Cream;
-            c.CircleAA(xs[i], ys[i], 16f, col);
-            c.CircleAA(xs[i] - 4f, ys[i] + 3f, 5f, new Rgba(255, 255, 255, 110));
-        }
+        for (int i = 0; i < xs.Count; i++) c.CircleHard(xs[i], ys[i], 8f, Ink);
+        Rgba red = new Rgba(244, 78, 124);
+        for (int i = 0; i < xs.Count; i++) c.CircleHard(xs[i], ys[i], 5.8f, ((i / 4) % 2 == 0) ? red : Cream);
         return c;
     }
 
     public static Canvas BuildCandyLamp()
     {
-        const int W = 140, H = 256;
+        const int W = 48, H = 96;
         Canvas c = new Canvas(W, H);
-        c.EllipseAA(70, 18, 32, 11, new Rgba(64, 34, 68, 80));
-
-        // Base pedestal
-        c.RoundedRectAA(70, 26, 22, 12, 8, Lavender, Ink, 4f);
-        // Pink-and-cream striped pole
-        for (int y = 34; y < 186; y++)
+        c.EllipseHard(24, 7, 11, 4, new Rgba(64, 34, 68, 80));
+        c.Rect(16, 8, 16, 8, Ink); c.Rect(18, 10, 12, 4, Lavender);
+        for (int y = 16; y < 68; y++)
         {
-            Rgba col = ((y / 14) % 2 == 0) ? PinkCandy : Cream;
-            c.Rect(61, y, 18, 1, Ink);
-            c.Rect(65, y, 10, 1, col);
+            c.Rect(20, y, 8, 1, Ink);
+            c.Rect(22, y, 4, 1, ((y / 6) % 2 == 0) ? PinkCandy : Cream);
         }
-        // Decorative collar
-        c.RoundedRectAA(70, 184, 20, 8, 6, LemonCandy, Ink, 3.5f);
-        // Glowing sugar-orb lantern on top
-        c.CircleAA(70, 214, 30, Ink);
-        c.CircleAA(70, 214, 25, LemonCandy);
-        c.CircleAA(70, 214, 18, Cream);
-        c.CircleAA(62, 224, 7, new Rgba(255, 255, 255, 220));
+        c.CircleHard(24, 78, 12, Ink);
+        c.CircleHard(24, 78, 9, LemonCandy);
+        c.CircleHard(24, 78, 6, Cream);
         return c;
     }
 
     public static Canvas BuildSugarFlowerBed()
     {
-        const int W = 220, H = 140;
+        const int W = 96, H = 64;
         Canvas c = new Canvas(W, H);
-        c.EllipseAA(110, 24, 96, 22, new Rgba(64, 34, 68, 70));
-
-        // Fluffy layered mint & pastel-pink candy bush
-        int[,] puffs = { { 56, 54, 38 }, { 164, 54, 38 }, { 110, 68, 48 }, { 82, 74, 36 }, { 138, 74, 36 } };
-        for (int i = 0; i < puffs.GetLength(0); i++) c.CircleAA(puffs[i, 0], puffs[i, 1], puffs[i, 2] + 4, Ink);
-        for (int i = 0; i < puffs.GetLength(0); i++) c.CircleAA(puffs[i, 0], puffs[i, 1], puffs[i, 2], i < 2 ? MintDeep : MintBase);
-        c.CircleAA(110, 80, 32, MintLight);
-        c.CircleAA(82, 82, 22, MintLight);
-        c.CircleAA(138, 82, 22, MintLight);
-
-        // Big cheerful sugar flowers & gumdrops!
-        int[,] fl = { { 58, 62 }, { 108, 92 }, { 158, 64 }, { 86, 52 }, { 134, 54 } };
-        Rgba[] cols = { PinkCandy, LemonCandy, Lavender, AquaCandy, PinkLight };
-        for (int i = 0; i < fl.GetLength(0); i++)
-        {
-            float fx = fl[i, 0], fy = fl[i, 1];
-            for (int p = 0; p < 5; p++)
-            {
-                double a = p * Math.PI * 2.0 / 5.0;
-                c.CircleAA(fx + (float)Math.Cos(a) * 9f, fy + (float)Math.Sin(a) * 9f, 8.5f, Ink);
-            }
-            for (int p = 0; p < 5; p++)
-            {
-                double a = p * Math.PI * 2.0 / 5.0;
-                c.CircleAA(fx + (float)Math.Cos(a) * 9f, fy + (float)Math.Sin(a) * 9f, 6.2f, cols[i]);
-            }
-            c.CircleAA(fx, fy, 5.5f, Cream);
-        }
+        c.EllipseHard(48, 12, 40, 10, new Rgba(64, 34, 68, 70));
+        c.CircleHard(26, 26, 18, Ink); c.CircleHard(70, 26, 18, Ink); c.CircleHard(48, 34, 22, Ink);
+        c.CircleHard(26, 26, 15, MintShade); c.CircleHard(70, 26, 15, MintShade); c.CircleHard(48, 34, 19, MintBase);
+        c.CircleHard(48, 40, 12, MintLight);
+        c.CircleHard(28, 30, 5, PinkCandy); c.CircleHard(48, 42, 6, LemonCandy); c.CircleHard(68, 30, 5, Lavender);
+        c.CircleHard(28, 30, 2, Cream); c.CircleHard(48, 42, 2, Cream); c.CircleHard(68, 30, 2, Cream);
         return c;
     }
 
     public static Canvas BuildMarshmallowCluster()
     {
-        const int W = 180, H = 120;
+        const int W = 80, H = 56;
         Canvas c = new Canvas(W, H);
-        c.EllipseAA(90, 22, 74, 18, new Rgba(64, 34, 68, 70));
-
-        // 3 plump pastel marshmallows
-        DrawMarshmallow(c, 58, 48, 32, 24, PinkLight, PinkCandy);
-        DrawMarshmallow(c, 124, 48, 32, 24, AquaCandy, new Rgba(88, 198, 218));
-        DrawMarshmallow(c, 92, 72, 34, 26, Cream, new Rgba(242, 228, 214));
+        c.EllipseHard(40, 10, 32, 8, new Rgba(64, 34, 68, 70));
+        c.Rect(12, 12, 26, 20, Ink); c.Rect(15, 15, 20, 14, PinkLight);
+        c.Rect(42, 12, 26, 20, Ink); c.Rect(45, 15, 20, 14, AquaCandy);
+        c.Rect(27, 24, 26, 22, Ink); c.Rect(30, 27, 20, 16, Cream);
         return c;
-    }
-
-    private static void DrawMarshmallow(Canvas c, float cx, float cy, float rx, float ry, Rgba body, Rgba shade)
-    {
-        c.RoundedRectAA(cx, cy, rx, ry, 16f, body, Ink, 4f);
-        c.EllipseAA(cx, cy + ry - 8f, rx - 6f, 8f, new Rgba(255, 255, 255, 145));
-        c.EllipseAA(cx, cy - ry + 9f, rx - 8f, 6f, shade);
     }
 
     public static Canvas BuildCandySparkle()
     {
-        const int S = 64;
+        const int S = 32;
         Canvas c = new Canvas(S, S);
-        float mid = 31.5f;
-        for (int y = 0; y < S; y++)
-        {
-            for (int x = 0; x < S; x++)
-            {
-                float dx = Math.Abs(x - mid) / 28f;
-                float dy = Math.Abs(y - mid) / 28f;
-                float d = (float)Math.Pow(dx, 0.55) + (float)Math.Pow(dy, 0.55);
-                if (d < 1f)
-                {
-                    float a = Clamp01((1f - d) * 1.4f);
-                    Rgba col = Lerp(PinkLight, new Rgba(255, 255, 240), a);
-                    c.Blend(x, y, new Rgba(col.r, col.g, col.b, (int)(a * 255)));
-                }
-            }
-        }
+        c.Rect(14, 4, 4, 24, new Rgba(255, 244, 210, 230));
+        c.Rect(4, 14, 24, 4, new Rgba(255, 244, 210, 230));
+        c.Rect(12, 12, 8, 8, new Rgba(255, 255, 255, 255));
         return c;
     }
 
     public static Canvas BuildCandyGlow()
     {
-        const int S = 128;
+        const int S = 64;
         Canvas c = new Canvas(S, S);
-        float mid = 63.5f;
         for (int y = 0; y < S; y++)
-        {
             for (int x = 0; x < S; x++)
             {
-                float d = (float)Math.Sqrt((x - mid) * (x - mid) + (y - mid) * (y - mid)) / 62f;
-                if (d >= 1f) continue;
-                float f = (1f - d) * (1f - d);
-                c.Blend(x, y, new Rgba(255, 224, 184, (int)(f * 170)));
+                float d = (float)Math.Sqrt((x - 31.5f) * (x - 31.5f) + (y - 31.5f) * (y - 31.5f)) / 30f;
+                if (d < 1f) c.Set(x, y, new Rgba(255, 224, 180, (int)((1f - d) * (1f - d) * 140f)));
             }
-        }
         return c;
     }
 
     public static Canvas BuildCandyShadow()
     {
-        const int W = 128, H = 64;
+        const int W = 64, H = 32;
         Canvas c = new Canvas(W, H);
         for (int y = 0; y < H; y++)
-        {
             for (int x = 0; x < W; x++)
             {
-                float dx = (x - 63.5f) / 60f;
-                float dy = (y - 31.5f) / 28f;
+                float dx = (x - 31.5f) / 29f, dy = (y - 15.5f) / 13f;
                 float d = dx * dx + dy * dy;
-                if (d >= 1f) continue;
-                float f = 1f - d;
-                c.Blend(x, y, new Rgba(64, 34, 72, (int)(f * 125)));
+                if (d < 1f) c.Set(x, y, new Rgba(64, 34, 72, (int)((1f - d) * 130f)));
+            }
+        return c;
+    }
+
+    public static Canvas BuildParallaxCloudWisp()
+    {
+        // Soft pastel cotton-candy sky wisp for gentle top-down parallax depth!
+        const int W = 128, H = 64;
+        Canvas c = new Canvas(W, H);
+        Rgba wisp = new Rgba(255, 244, 252, 48);
+        Rgba wispCore = new Rgba(255, 250, 255, 68);
+        c.EllipseHard(64, 32, 46, 18, wisp);
+        c.EllipseHard(44, 34, 26, 16, wisp);
+        c.EllipseHard(84, 30, 28, 16, wisp);
+        c.EllipseHard(64, 34, 32, 12, wispCore);
+        return c;
+    }
+
+    // =========================================================================
+    // 4. EXPRESSIVE CANDY THEME-PARK PROPS (SIGNS, AWNINGS, CRITTERS, BEACON, PARK FENCE)
+    // =========================================================================
+    public static Canvas BuildIceCreamSign()
+    {
+        // Cute illustrated ice-cream cone sign on a wooden wafer stand (64x80)
+        const int W = 64, H = 80;
+        Canvas c = new Canvas(W, H);
+        c.EllipseHard(32, 8, 16, 5, new Rgba(64, 34, 68, 78));
+        // Stand post
+        c.Rect(27, 8, 10, 22, Ink);
+        c.Rect(29, 10, 6, 18, new Rgba(214, 162, 108));
+        // Scalloped biscuit signboard frame
+        c.Rect(8, 26, 48, 46, Ink);
+        c.Rect(11, 29, 42, 40, PinkCandy);
+        c.Rect(14, 32, 36, 34, Cream);
+        // Cute ice-cream cone inside sign!
+        for (int y = 35; y < 50; y++)
+        {
+            float t = (y - 35) / 15f;
+            int half = (int)(2 + t * 9);
+            c.Rect(32 - half - 1, y, (half + 1) * 2, 1, Ink);
+            c.Rect(32 - half, y, half * 2, 1, new Rgba(234, 178, 114));
+        }
+        // Strawberry + Vanilla double scoop!
+        c.CircleHard(26, 53, 8, Ink); c.CircleHard(26, 53, 6, PinkCandy);
+        c.CircleHard(38, 53, 8, Ink); c.CircleHard(38, 53, 6, MintBase);
+        c.CircleHard(32, 58, 9, Ink); c.CircleHard(32, 58, 7, PinkLight);
+        // Cherry on top + happy eyes!
+        c.CircleHard(32, 66, 4, Ink); c.CircleHard(32, 66, 2.5f, new Rgba(248, 76, 128));
+        c.Rect(29, 57, 2, 2, Ink); c.Rect(34, 57, 2, 2, Ink);
+        c.Rect(31, 55, 3, 1, Ink);
+        return c;
+    }
+
+    public static Canvas BuildStripedAwning()
+    {
+        // Festive strawberry-and-vanilla striped scalloped awning (96x48)
+        const int W = 96, H = 48;
+        Canvas c = new Canvas(W, H);
+        c.Rect(4, 12, 88, 28, Ink);
+        for (int i = 0; i < 8; i++)
+        {
+            int sx = 6 + i * 10;
+            Rgba col = (i % 2 == 0) ? PinkCandy : Cream;
+            Rgba shade = (i % 2 == 0) ? new Rgba(230, 96, 166) : BiscuitLight;
+            c.Rect(sx, 14, 10, 24, col);
+            c.Rect(sx, 14, 10, 5, shade);
+            // Scallop loops at bottom
+            c.CircleHard(sx + 5, 13, 6.5f, Ink);
+            c.CircleHard(sx + 5, 13, 4.5f, col);
+        }
+        // Top decorative rail
+        c.Rect(4, 37, 88, 5, Ink);
+        c.Rect(6, 38, 84, 3, LemonCandy);
+        return c;
+    }
+
+    public static Canvas BuildCandyCritter(bool gummyBear)
+    {
+        // Cute joyful candy critters cheering near sidewalks & delivery points (48x48)
+        const int S = 48;
+        Canvas c = new Canvas(S, S);
+        c.EllipseHard(24, 7, 13, 4.5f, new Rgba(64, 34, 68, 75));
+        if (gummyBear)
+        {
+            // Strawberry gummy bear with raised cheering paws!
+            Rgba body = new Rgba(255, 118, 178);
+            Rgba hi = new Rgba(255, 182, 218);
+            c.CircleHard(14, 38, 6, Ink); c.CircleHard(14, 38, 4, body); // Left ear
+            c.CircleHard(34, 38, 6, Ink); c.CircleHard(34, 38, 4, body); // Right ear
+            c.CircleHard(10, 24, 5, Ink); c.CircleHard(10, 24, 3, body); // Left raised paw
+            c.CircleHard(38, 24, 5, Ink); c.CircleHard(38, 24, 3, body); // Right raised paw
+            c.EllipseHard(24, 18, 12, 11, Ink); c.EllipseHard(24, 18, 10, 9, body); // Belly
+            c.CircleHard(24, 30, 12, Ink); c.CircleHard(24, 30, 10, body); // Head
+            c.EllipseHard(24, 17, 6, 5, hi); // Cute tummy highlight
+            c.CircleHard(19, 34, 2.5f, Cream); // Gloss
+            // Sparkling happy eyes, rosy cheeks & big smile!
+            c.Rect(18, 30, 3, 4, Ink); c.Rect(19, 32, 1, 1, Cream);
+            c.Rect(27, 30, 3, 4, Ink); c.Rect(28, 32, 1, 1, Cream);
+            c.Rect(14, 27, 4, 2, new Rgba(255, 86, 146));
+            c.Rect(30, 27, 4, 2, new Rgba(255, 86, 146));
+            c.Rect(21, 26, 6, 2, Ink);
+        }
+        else
+        {
+            // Cheerful vanilla marshmallow buddy with lavender bow!
+            c.Rect(11, 10, 26, 26, Ink);
+            c.Rect(13, 12, 22, 22, Cream);
+            c.EllipseHard(24, 35, 13, 5, Ink); c.EllipseHard(24, 35, 11, 3.5f, new Rgba(255, 255, 255));
+            c.EllipseHard(24, 11, 13, 5, Ink); c.EllipseHard(24, 11, 11, 3.5f, new Rgba(242, 232, 248));
+            // Cute lavender bow on top!
+            c.CircleHard(19, 40, 4, Ink); c.CircleHard(19, 40, 2.5f, Lavender);
+            c.CircleHard(29, 40, 4, Ink); c.CircleHard(29, 40, 2.5f, Lavender);
+            c.CircleHard(24, 40, 3, Ink); c.CircleHard(24, 40, 1.8f, PinkCandy);
+            // Happy eyes, blush & smile
+            c.Rect(17, 24, 3, 4, Ink); c.Rect(18, 26, 1, 1, Cream);
+            c.Rect(28, 24, 3, 4, Ink); c.Rect(29, 26, 1, 1, Cream);
+            c.Rect(14, 21, 3, 2, PinkCandy);
+            c.Rect(31, 21, 3, 2, PinkCandy);
+            c.Rect(21, 19, 6, 2, Ink);
+            c.Rect(20, 20, 2, 2, Ink); c.Rect(26, 20, 2, 2, Ink);
+        }
+        return c;
+    }
+
+    public static Canvas BuildDeliveryConeBeacon()
+    {
+        // Unmistakable giant ice-cream cone + downward golden arrow for kid-friendly delivery beacons (64x96)
+        const int W = 64, H = 96;
+        Canvas c = new Canvas(W, H);
+        // Bright golden downward arrow at bottom!
+        for (int y = 6; y < 28; y++)
+        {
+            int half = (y - 6) * 16 / 22;
+            c.Rect(32 - half - 2, y, (half + 2) * 2, 1, Ink);
+            if (half > 1) c.Rect(32 - half, y, half * 2, 1, LemonCandy);
+        }
+        c.Rect(25, 26, 14, 10, Ink);
+        c.Rect(27, 28, 10, 6, LemonCandy);
+        // Giant waffle cone above arrow
+        for (int y = 38; y < 64; y++)
+        {
+            float t = (y - 38) / 26f;
+            int half = (int)(3 + t * 14);
+            c.Rect(32 - half - 2, y, (half + 2) * 2, 1, Ink);
+            Rgba wCol = ((y / 4) % 2 == 0) ? new Rgba(240, 186, 118) : new Rgba(222, 162, 96);
+            c.Rect(32 - half, y, half * 2, 1, wCol);
+        }
+        // Triple pastel ice-cream scoops!
+        c.CircleHard(23, 66, 11, Ink); c.CircleHard(23, 66, 8.5f, MintBase);
+        c.CircleHard(41, 66, 11, Ink); c.CircleHard(41, 66, 8.5f, Lavender);
+        c.CircleHard(32, 74, 13, Ink); c.CircleHard(32, 74, 10.5f, PinkCandy);
+        c.CircleHard(28, 78, 3.5f, PinkLight);
+        // Cherry + sparkle on top!
+        c.CircleHard(32, 87, 5.5f, Ink); c.CircleHard(32, 87, 3.8f, new Rgba(248, 72, 124));
+        c.CircleHard(30, 89, 1.5f, Cream);
+        // Tiny colorful sprinkles on scoop
+        c.Rect(26, 72, 4, 2, LemonCandy);
+        c.Rect(35, 74, 4, 2, SkyCandy);
+        c.Rect(30, 67, 4, 2, Cream);
+        return c;
+    }
+
+    public static Canvas BuildBuntingFence()
+    {
+        // Festive candy theme-park fence with peppermint posts & colorful bunting flags (96x64)
+        const int W = 96, H = 64;
+        Canvas c = new Canvas(W, H);
+        c.EllipseHard(48, 8, 42, 6, new Rgba(64, 34, 68, 65));
+        // Horizontal cream rails
+        c.Rect(8, 16, 80, 9, Ink); c.Rect(10, 18, 76, 5, Cream);
+        c.Rect(8, 34, 80, 9, Ink); c.Rect(10, 36, 76, 5, PinkLight);
+        // Three peppermint-striped posts with candy ball tops
+        int[] px = { 12, 48, 84 };
+        for (int i = 0; i < px.Length; i++)
+        {
+            int x = px[i];
+            c.Rect(x - 6, 8, 12, 42, Ink);
+            for (int y = 10; y < 48; y++)
+                c.Rect(x - 4, y, 8, 1, ((y / 5) % 2 == 0) ? PinkCandy : Cream);
+            c.CircleHard(x, 52, 7, Ink);
+            c.CircleHard(x, 52, 5, (i == 1) ? LemonCandy : Lavender);
+            c.CircleHard(x - 2, 54, 1.8f, Cream);
+        }
+        // Festive bunting triangles hanging along top rail!
+        Rgba[] flags = { PinkCandy, LemonCandy, SkyCandy, Lavender, MintBase, PinkCandy };
+        for (int f = 0; f < 6; f++)
+        {
+            int fx = 19 + f * 11;
+            for (int dy = 0; dy < 10; dy++)
+            {
+                int half = (10 - dy) / 2;
+                c.Rect(fx - half - 1, 35 - dy, (half + 1) * 2, 1, Ink);
+                if (half > 0) c.Rect(fx - half, 35 - dy, half * 2, 1, flags[f]);
             }
         }
         return c;
     }
 
-    private static void DrawStar(Canvas c, float cx, float cy, float outerR, float innerR, Rgba fill, Rgba border)
+    public static Canvas BuildCottonBush()
     {
-        int x0 = Clamp((int)(cx - outerR - 4), 0, c.W - 1);
-        int x1 = Clamp((int)(cx + outerR + 4), 0, c.W - 1);
-        int y0 = Clamp((int)(cy - outerR - 4), 0, c.H - 1);
-        int y1 = Clamp((int)(cy + outerR + 4), 0, c.H - 1);
-        for (int y = y0; y <= y1; y++)
+        // Fluffy cotton-candy hedge bush with little sugar flowers (80x64)
+        const int W = 80, H = 64;
+        Canvas c = new Canvas(W, H);
+        c.EllipseHard(40, 11, 32, 8, new Rgba(64, 34, 68, 70));
+        Rgba puffA = new Rgba(255, 164, 212);
+        Rgba puffB = new Rgba(214, 174, 250);
+        Rgba puffHi = new Rgba(255, 224, 242);
+        c.CircleHard(22, 26, 17, Ink);
+        c.CircleHard(58, 26, 17, Ink);
+        c.CircleHard(40, 34, 21, Ink);
+        c.CircleHard(22, 26, 14, puffB);
+        c.CircleHard(58, 26, 14, puffB);
+        c.CircleHard(40, 34, 18, puffA);
+        c.CircleHard(34, 41, 9, puffHi);
+        c.CircleHard(52, 31, 6, puffHi);
+        // Cute sugar blossoms on bush
+        int[,] fl = { { 22, 28 }, { 44, 34 }, { 56, 26 }, { 34, 22 } };
+        for (int i = 0; i < 4; i++)
         {
+            c.CircleHard(fl[i, 0], fl[i, 1], 4, Ink);
+            c.CircleHard(fl[i, 0], fl[i, 1], 2.5f, (i % 2 == 0) ? LemonCandy : Cream);
+        }
+        return c;
+    }
+
+    public static Canvas BuildConfettiStar()
+    {
+        const int S = 24;
+        Canvas c = new Canvas(S, S);
+        DrawStarHard(c, 12, 12, 10, 4.5f, Cream, Ink);
+        return c;
+    }
+
+    private static void DrawStarHard(Canvas c, float cx, float cy, float outerR, float innerR, Rgba fill, Rgba border)
+    {
+        int x0 = Clamp((int)(cx - outerR - 3), 0, c.W - 1), x1 = Clamp((int)(cx + outerR + 3), 0, c.W - 1);
+        int y0 = Clamp((int)(cy - outerR - 3), 0, c.H - 1), y1 = Clamp((int)(cy + outerR + 3), 0, c.H - 1);
+        for (int y = y0; y <= y1; y++)
             for (int x = x0; x <= x1; x++)
             {
                 float dx = x + 0.5f - cx, dy = y + 0.5f - cy;
                 float dist = (float)Math.Sqrt(dx * dx + dy * dy);
                 double ang = Math.Atan2(dy, dx) + Math.PI * 0.5;
-                double sector = ((ang % (Math.PI * 2.0 / 5.0)) + Math.PI * 2.0 / 5.0) % (Math.PI * 2.0 / 5.0);
-                double halfSec = Math.PI / 5.0;
-                double t = Math.Abs(sector - halfSec) / halfSec;
-                float rAtAng = (float)(innerR + (outerR - innerR) * t);
-                if (dist <= rAtAng + 4f)
-                    c.Blend(x, y, dist <= rAtAng ? fill : border);
+                double sec = ((ang % (Math.PI * 2.0 / 5.0)) + Math.PI * 2.0 / 5.0) % (Math.PI * 2.0 / 5.0);
+                float rAt = (float)(innerR + (outerR - innerR) * (Math.Abs(sec - Math.PI / 5.0) / (Math.PI / 5.0)));
+                if (dist <= rAt + 2.5f) c.Set(x, y, dist <= rAt ? fill : border);
             }
-        }
     }
 
     private static Canvas Transpose(Canvas src)
@@ -1057,6 +854,140 @@ public static class CandyWorldArtGenerator
         return dst;
     }
 
+    // =========================================================================
+    // CLEAN TRANSPARENT CUTOUT OF ALL 8 CUPCAKE HOUSES (NO BEIGE RECTANGLES!)
+    // =========================================================================
+    public static Canvas CutoutCupcakeHouse(Rgba[] srcPixels, int srcW, int srcH, int cropX, int cropY, int cropW, int cropH)
+    {
+        cropX = Clamp(cropX, 0, srcW - 1); cropY = Clamp(cropY, 0, srcH - 1);
+        cropW = Clamp(cropW, 1, srcW - cropX); cropH = Clamp(cropH, 1, srcH - cropY);
+        int n = cropW * cropH;
+        Rgba[] sub = new Rgba[n];
+        for (int y = 0; y < cropH; y++)
+            for (int x = 0; x < cropW; x++)
+                sub[y * cropW + x] = srcPixels[(cropY + y) * srcW + (cropX + x)];
+
+        Rgba bg = EstimateCornerBg(sub, cropW, cropH);
+        bool[] isBg = new bool[n];
+        Queue<int> q = new Queue<int>();
+
+        bool MatchesBg(Rgba p)
+        {
+            int lum = (p.r * 299 + p.g * 587 + p.b * 114) / 1000;
+            if (lum < 118) return false;
+            int dr = p.r - bg.r, dg = p.g - bg.g, db = p.b - bg.b;
+            int distSq = dr * dr + dg * dg + db * db;
+            bool warmTan = (p.r >= p.g - 6) && (p.g >= p.b - 6) && (p.r - p.b >= 16);
+            return distSq <= 48 * 48 || (warmTan && distSq <= 72 * 72);
+        }
+
+        for (int x = 0; x < cropW; x++)
+        {
+            int t = x, b = (cropH - 1) * cropW + x;
+            if (!isBg[t] && MatchesBg(sub[t])) { isBg[t] = true; q.Enqueue(t); }
+            if (!isBg[b] && MatchesBg(sub[b])) { isBg[b] = true; q.Enqueue(b); }
+        }
+        for (int y = 0; y < cropH; y++)
+        {
+            int l = y * cropW, r = y * cropW + (cropW - 1);
+            if (!isBg[l] && MatchesBg(sub[l])) { isBg[l] = true; q.Enqueue(l); }
+            if (!isBg[r] && MatchesBg(sub[r])) { isBg[r] = true; q.Enqueue(r); }
+        }
+
+        int[] dxs = { -1, 1, 0, 0 }, dys = { 0, 0, -1, 1 };
+        while (q.Count > 0)
+        {
+            int cur = q.Dequeue(); int cx = cur % cropW, cy = cur / cropW;
+            for (int k = 0; k < 4; k++)
+            {
+                int nx = cx + dxs[k], ny = cy + dys[k];
+                if (nx < 0 || nx >= cropW || ny < 0 || ny >= cropH) continue;
+                int ni = ny * cropW + nx;
+                if (!isBg[ni] && MatchesBg(sub[ni])) { isBg[ni] = true; q.Enqueue(ni); }
+            }
+        }
+
+        int[] labels = new int[n];
+        int bestLabel = 0, bestCount = 0, nextLabel = 1;
+        for (int i = 0; i < n; i++)
+        {
+            if (isBg[i] || labels[i] != 0) continue;
+            int count = 0; q.Clear(); labels[i] = nextLabel; q.Enqueue(i);
+            while (q.Count > 0)
+            {
+                int cur = q.Dequeue(); count++; int cx = cur % cropW, cy = cur / cropW;
+                for (int k = 0; k < 4; k++)
+                {
+                    int nx = cx + dxs[k], ny = cy + dys[k];
+                    if (nx < 0 || nx >= cropW || ny < 0 || ny >= cropH) continue;
+                    int ni = ny * cropW + nx;
+                    if (!isBg[ni] && labels[ni] == 0) { labels[ni] = nextLabel; q.Enqueue(ni); }
+                }
+            }
+            if (count > bestCount) { bestCount = count; bestLabel = nextLabel; }
+            nextLabel++;
+        }
+
+        int minX = cropW, minY = cropH, maxX = 0, maxY = 0;
+        bool[] keep = new bool[n];
+        for (int y = 0; y < cropH; y++)
+            for (int x = 0; x < cropW; x++)
+            {
+                int i = y * cropW + x;
+                if (labels[i] == bestLabel)
+                {
+                    keep[i] = true;
+                    if (x < minX) minX = x; if (x > maxX) maxX = x;
+                    if (y < minY) minY = y; if (y > maxY) maxY = y;
+                }
+            }
+
+        if (maxX <= minX || maxY <= minY) return new Canvas(64, 64);
+
+        int pad = 12;
+        int outW = (maxX - minX + 1) + pad * 2, outH = (maxY - minY + 1) + pad * 2;
+        Canvas outC = new Canvas(outW, outH);
+        outC.EllipseHard(outW * 0.5f, pad + 5f, (maxX - minX) * 0.42f, 12f, new Rgba(64, 34, 72, 72));
+        for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+                if (keep[y * cropW + x]) outC.Set((x - minX) + pad, (y - minY) + pad, sub[y * cropW + x]);
+
+        // Downscale to crisp 192px pixel-art density matching our PPU=32 Tilemap!
+        if (outW > 192 || outH > 192)
+        {
+            float sc = 192f / Math.Max(outW, outH);
+            return DownscaleNearest(outC, Math.Max(32, (int)(outW * sc)), Math.Max(32, (int)(outH * sc)));
+        }
+        return outC;
+    }
+
+    private static Rgba EstimateCornerBg(Rgba[] sub, int w, int h)
+    {
+        int r = 0, g = 0, b = 0, cnt = 0;
+        int[,] pts = { { 4, 4 }, { w - 5, 4 }, { 4, h - 5 }, { w - 5, h - 5 }, { w / 2, 4 } };
+        for (int i = 0; i < pts.GetLength(0); i++)
+        {
+            Rgba p = sub[Clamp(pts[i, 1], 0, h - 1) * w + Clamp(pts[i, 0], 0, w - 1)];
+            r += p.r; g += p.g; b += p.b; cnt++;
+        }
+        return new Rgba(r / cnt, g / cnt, b / cnt, 255);
+    }
+
+    private static Canvas DownscaleNearest(Canvas src, int nw, int nh)
+    {
+        Canvas dst = new Canvas(nw, nh);
+        for (int y = 0; y < nh; y++)
+        {
+            int sy = Clamp((int)((y + 0.5f) * src.H / nh), 0, src.H - 1);
+            for (int x = 0; x < nw; x++)
+            {
+                int sx = Clamp((int)((x + 0.5f) * src.W / nw), 0, src.W - 1);
+                dst.Px[y * nw + x] = src.Px[sy * src.W + sx];
+            }
+        }
+        return dst;
+    }
+
 #if UNITY_EDITOR
     public static void GenerateAndImportAll(string outAssetFolder)
     {
@@ -1065,7 +996,6 @@ public static class CandyWorldArtGenerator
 
         GenerateAllProcedural((name, canvas) => SaveCanvasUnity(Path.Combine(absOut, name), canvas));
 
-        // Also cut out all 8 adorable cupcake houses from the user's "a casa de mosntros" folder!
         string housesSrcDir = Path.Combine(Application.dataPath, "a casa de mosntros");
         ExtractSixHousesUnity(Path.Combine(housesSrcDir, "casa diversas 22.jpeg"), absOut);
         ExtractSingleHouseUnity(Path.Combine(housesSrcDir, "House_in_nude_background_2K_202607221539.jpeg"), Path.Combine(absOut, "CandyHouse_RocketBlue.png"));
@@ -1078,13 +1008,11 @@ public static class CandyWorldArtGenerator
 
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
-        // ETAPA 3: Padroniza TODOS os sprites 2D da fase para FilterMode = Point e PPU = 32!
         foreach (string file in Directory.GetFiles(absOut, "*.png"))
         {
             string fileName = Path.GetFileName(file);
             TextureWrapMode wrap = (fileName == "CandyMeadowTile.png" || fileName == "CandyRoadH.png" || fileName == "CandyRoadV.png")
-                ? TextureWrapMode.Repeat
-                : TextureWrapMode.Clamp;
+                ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
             ConfigureImporter(outAssetFolder + "/" + fileName, 32f, wrap, 1024);
         }
 
@@ -1102,12 +1030,9 @@ public static class CandyWorldArtGenerator
         for (int i = 0; i < cols.Length; i++) px[i] = new Rgba(cols[i].r, cols[i].g, cols[i].b, cols[i].a);
         UnityEngine.Object.DestroyImmediate(tex);
 
-        // Unity Texture2D y=0 is bottom! Top row is y in [h*0.48..h*0.93], bottom row is [h*0.03..h*0.49]
         string[] topNames = { "CandyHouse_Strawberry.png", "CandyHouse_ChocoMint.png", "CandyHouse_Rainbow.png" };
         string[] botNames = { "CandyHouse_Nautical.png", "CandyHouse_Galaxy.png", "CandyHouse_Matcha.png" };
-        int cellW = w / 3;
-        int topY = (int)(h * 0.49f), topH = (int)(h * 0.44f);
-        int botY = (int)(h * 0.03f), botH = (int)(h * 0.46f);
+        int cellW = w / 3, topY = (int)(h * 0.49f), topH = (int)(h * 0.44f), botY = (int)(h * 0.03f), botH = (int)(h * 0.46f);
         for (int i = 0; i < 3; i++)
         {
             SaveCanvasUnity(Path.Combine(outDir, topNames[i]), CutoutCupcakeHouse(px, w, h, i * cellW, topY, cellW, topH));
@@ -1132,11 +1057,7 @@ public static class CandyWorldArtGenerator
     {
         Texture2D tex = new Texture2D(canvas.W, canvas.H, TextureFormat.RGBA32, false);
         Color32[] cols = new Color32[canvas.Px.Length];
-        for (int i = 0; i < cols.Length; i++)
-        {
-            Rgba p = canvas.Px[i];
-            cols[i] = new Color32(p.r, p.g, p.b, p.a);
-        }
+        for (int i = 0; i < cols.Length; i++) { Rgba p = canvas.Px[i]; cols[i] = new Color32(p.r, p.g, p.b, p.a); }
         tex.SetPixels32(cols);
         tex.Apply(false, false);
         File.WriteAllBytes(path, tex.EncodeToPNG());
@@ -1151,7 +1072,7 @@ public static class CandyWorldArtGenerator
         imp.textureType = TextureImporterType.Sprite;
         imp.spriteImportMode = SpriteImportMode.Single;
         imp.spritePixelsPerUnit = ppu;
-        imp.filterMode = FilterMode.Point; // ETAPA 3: Point (no filter) padronizado!
+        imp.filterMode = FilterMode.Point;
         imp.wrapMode = wrap;
         imp.alphaIsTransparency = true;
         imp.mipmapEnabled = false;

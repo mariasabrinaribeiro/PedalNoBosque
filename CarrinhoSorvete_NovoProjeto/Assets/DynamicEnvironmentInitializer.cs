@@ -11,6 +11,10 @@ public class DynamicEnvironmentInitializer : MonoBehaviour
         foreach (ParticleSystem ps in FindObjectsOfType<ParticleSystem>(true))
         {
             if (ps == null) continue;
+            var main = ps.main;
+            main.startSizeMultiplier = Mathf.Min(main.startSizeMultiplier, 0.45f);
+            var emission = ps.emission;
+            emission.rateOverTimeMultiplier = Mathf.Min(emission.rateOverTimeMultiplier, 10f);
             ParticleSystemRenderer psr = ps.GetComponent<ParticleSystemRenderer>();
             if (psr != null) psr.sortingLayerName = "VFX";
         }
