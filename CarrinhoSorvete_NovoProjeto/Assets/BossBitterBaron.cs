@@ -222,7 +222,8 @@ public class BossBitterBaron : MonoBehaviour
 
         if (playerDriver != null)
         {
-            playerDriver.score += 200;
+            if (ControladorJogo.Instance != null) ControladorJogo.Instance.AdicionarPontos(ControladorJogo.PontosPorChefe);
+            else playerDriver.score += ControladorJogo.PontosPorChefe;
             playerDriver.ActivateGirlPower(10f);
         }
 
@@ -230,7 +231,7 @@ public class BossBitterBaron : MonoBehaviour
         if (ui != null)
         {
             ui.HideBossHealthBar();
-            ui.ShowDeliveryMessage("BARÃO AMARGO DERROTADO! +200 PTS / GIRL POWER 10s!");
+            ui.ShowDeliveryMessage("BARÃO AMARGO DERROTADO! +" + ControladorJogo.PontosPorChefe + " PTS • GIRL POWER!");
             ui.ShowVictory();
         }
 
@@ -257,17 +258,17 @@ public class BossBitterBaron : MonoBehaviour
 
     private void SpawnDefeatExplosion()
     {
-        Color greyColor = new Color(0.2f, 0.2f, 0.2f, 1f);
-        Color orangeColor = new Color(1f, 0.5f, 0f, 1f);
+        Color greyColor = new Color(0.2f, 0.2f, 0.2f, 0.35f);
+        Color orangeColor = new Color(1f, 0.5f, 0f, 0.35f);
 
         Sprite whiteSprite = GetWhiteSprite();
 
-        for (int i = 0; i < 24; i++)
+        for (int i = 0; i < 14; i++)
         {
             GameObject p = new GameObject("BossExplosionParticle");
             p.transform.position = transform.position;
 
-            float angle = i * (360f / 24f) * Mathf.Deg2Rad;
+            float angle = i * (360f / 14f) * Mathf.Deg2Rad;
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();

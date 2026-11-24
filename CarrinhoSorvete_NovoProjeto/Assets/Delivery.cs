@@ -30,7 +30,9 @@ public class Delivery : MonoBehaviour
                 {
                     collision.enabled = false; // Evita coleta duplicada durante o delay de destruição
                     driver.cargo++;
-                    driver.score += 250000; // 250k pontos ao pegar o sorvete!
+                    // ETAPA 4: Pontuação balanceada e legível (+25 pts por coleta)
+                    if (ControladorJogo.Instance != null) ControladorJogo.Instance.AdicionarPontos(ControladorJogo.PontosPorColeta);
+                    else driver.score += ControladorJogo.PontosPorColeta;
                     Debug.Log("Picked up package. Cargo: " + driver.cargo);
 
                     ParticleSystem ps = GetComponent<ParticleSystem>();
@@ -59,7 +61,9 @@ public class Delivery : MonoBehaviour
             if (driver != null && driver.cargo > 0)
             {
                 int itemsDelivered = driver.cargo;
-                driver.score += itemsDelivered * 1000000; // 1 milhão de pontos por sorvete entregue!
+                int pontosEntrega = itemsDelivered * ControladorJogo.PontosPorEntrega; // ETAPA 4: 100 pts por entrega!
+                if (ControladorJogo.Instance != null) ControladorJogo.Instance.AdicionarPontos(pontosEntrega);
+                else driver.score += pontosEntrega;
                 driver.cargo = 0;
 
                 Debug.Log("Delivered " + itemsDelivered + " packages. Score: " + driver.score);
@@ -81,7 +85,7 @@ public class Delivery : MonoBehaviour
                 GameUIController ui = GameUIController.Instance;
                 if (ui != null)
                 {
-                    ui.ShowDeliveryMessage("ENTREGUE! GIRL POWER ATIVADO! +" + (itemsDelivered * 1000000).ToString("N0") + " PONTOS");
+                    ui.ShowDeliveryMessage("ENTREGUE! GIRL POWER ATIVADO! +" + pontosEntrega + " PTS");
                 }
             }
         }

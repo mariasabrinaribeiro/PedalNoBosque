@@ -48,6 +48,11 @@ public class Enemy : MonoBehaviour
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.sortingLayerName = "EntitiesAndPlayer";
+            sr.sortingOrder = 5;
+        }
         rb = GetComponent<Rigidbody2D>();
     }
 
@@ -350,10 +355,12 @@ public class Enemy : MonoBehaviour
 
     private void SpawnHitParticles(Vector3 pos, Vector2 hitDirection)
     {
-        Color candyColor = new Color(1f, 0.482f, 0.773f, 1f);
+        // ETAPA 4: Redução de 40% na emissão (6 -> 4) e opacidade máxima 35% nas partículas rosas
+        Color candyColor = new Color(1f, 0.482f, 0.773f, 0.35f);
+        Color softWhite = new Color(1f, 1f, 1f, 0.35f);
         Vector2 splashDir = -hitDirection.normalized;
 
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 4; i++)
         {
             GameObject p = new GameObject("HitParticle");
             p.transform.position = pos;
@@ -362,12 +369,13 @@ public class Enemy : MonoBehaviour
             Vector2 particleDir = RotateVector(splashDir, spreadAngle);
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
-            particleSr.sprite = CreateParticleSprite(6, 6, (i % 2 == 0) ? candyColor : Color.white);
+            particleSr.sprite = CreateParticleSprite(6, 6, (i % 2 == 0) ? candyColor : softWhite);
+            particleSr.sortingLayerName = "VFX";
             particleSr.sortingOrder = 6;
 
             ExplosionParticle particleScript = p.AddComponent<ExplosionParticle>();
             particleScript.direction = particleDir;
-            particleScript.speed = Random.Range(4f, 8f);
+            particleScript.speed = Random.Range(4f, 7f);
         }
     }
 
@@ -386,13 +394,15 @@ public class Enemy : MonoBehaviour
             DriverPro player = DriverPro.Instance;
             if (player != null)
             {
-                player.score += 100000; // 100k pontos por derrotar monstro!
+                // ETAPA 4: Pontuação balanceada (+50 pts por inimigo derrotado)
+                if (ControladorJogo.Instance != null) ControladorJogo.Instance.AdicionarPontos(ControladorJogo.PontosPorInimigo);
+                else player.score += ControladorJogo.PontosPorInimigo;
                 player.health = Mathf.Min(player.health + healthReward, player.maxHealth);
-                
+
                 GameUIController ui = GameUIController.Instance;
                 if (ui != null)
                 {
-                    ui.ShowDeliveryMessage("MONSTRO DESTRUÍDO! +100.000 PTS / +" + healthReward + " VIDA");
+                    ui.ShowDeliveryMessage("MONSTRO DESTRUÍDO! +" + ControladorJogo.PontosPorInimigo + " PTS • +" + healthReward + " VIDA");
                 }
 
                 // Notify mission manager of kill
@@ -426,9 +436,10 @@ public class Enemy : MonoBehaviour
 
     private void SpawnExplosionEffect(Vector3 pos, bool large)
     {
-        Color candyPink = new Color(1f, 0.482f, 0.773f, 1f);
-        Color candyPurple = new Color(0.368f, 0.235f, 0.502f, 1f);
-        int count = large ? 16 : 8;
+        // ETAPA 4: Redução de 40% na emissão (16->10 / 8->5) e opacidade máxima 35% nas partículas rosas/roxas
+        Color candyPink = new Color(1f, 0.482f, 0.773f, 0.35f);
+        Color candyPurple = new Color(0.368f, 0.235f, 0.502f, 0.35f);
+        int count = large ? 10 : 5;
 
         if (cachedPinkParticleSprite == null)
         {
@@ -443,17 +454,18 @@ public class Enemy : MonoBehaviour
         {
             GameObject p = new GameObject("ExplosionParticle");
             p.transform.position = pos;
-            
+
             float angle = i * (360f / count) * Mathf.Deg2Rad;
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
-            
+
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
             particleSr.sprite = (i % 2 == 0) ? cachedPinkParticleSprite : cachedPurpleParticleSprite;
+            particleSr.sortingLayerName = "VFX";
             particleSr.sortingOrder = 5;
-            
+
             ExplosionParticle particleScript = p.AddComponent<ExplosionParticle>();
             particleScript.direction = dir;
-            particleScript.speed = Random.Range(3f, large ? 8f : 6f);
+            particleScript.speed = Random.Range(3f, large ? 7f : 5.5f);
         }
     }
 

@@ -242,8 +242,10 @@ public class Bullet : MonoBehaviour
         if (sr == null) sr = GetComponent<SpriteRenderer>();
         if (sr != null)
         {
+            sr.sortingLayerName = "VFX";
+            sr.sortingOrder = 5;
             // Smaller light-blue bubble sprite
-            sr.sprite = CreateBulletSprite(10, 10, new Color(0.4f, 0.75f, 1f, 0.85f));
+            sr.sprite = CreateBulletSprite(10, 10, new Color(0.4f, 0.75f, 1f, 0.35f));
             transform.localScale = new Vector3(0.7f, 0.7f, 1f);
         }
     }
@@ -252,7 +254,8 @@ public class Bullet : MonoBehaviour
     {
         if (ObjectPoolManager.Instance == null) return;
 
-        int numFragments = 6;
+        // ETAPA 4: -40% emissão de fragmentos (6 -> 4)
+        int numFragments = 4;
         for (int i = 0; i < numFragments; i++)
         {
             GameObject bulletGo = ObjectPoolManager.Instance.GetBullet();

@@ -145,28 +145,41 @@ public class MissionManager : MonoBehaviour
         }
     }
 
+    public void ResetMissions()
+    {
+        speedTimer = 0f;
+        currentProgress = 0;
+        AssignNewMission();
+    }
+
     private void CompleteMission()
     {
-        // Reward player
+        // Rebalanced readable mission reward (+250 pts)
+        if (ControladorJogo.Instance != null)
+        {
+            ControladorJogo.Instance.AdicionarPontos(250);
+        }
+        else if (playerDriver != null)
+        {
+            playerDriver.score += 250;
+        }
+
         if (playerDriver != null)
         {
-            playerDriver.score += 2000000; // 2 milhões de pontos por concluir missão!
-            playerDriver.ActivateGirlPower(5f); // 5 seconds of Girl Power!
+            playerDriver.ActivateGirlPower(5f);
         }
 
         if (uiController == null) uiController = GameUIController.Instance;
         if (uiController != null)
         {
-            uiController.ShowDeliveryMessage("MISSÃO CONCLUÍDA! +2.000.000 PONTOS / GIRL POWER 5s!");
+            uiController.ShowDeliveryMessage("MISSÃO CONCLUÍDA! +250 PTS • GIRL POWER!");
         }
 
-        // Sound effect
         if (GameAudioController.Instance != null)
         {
             GameAudioController.Instance.PlayPowerup();
         }
 
-        // Assign a new mission
         AssignNewMission();
     }
 
@@ -184,11 +197,11 @@ public class MissionManager : MonoBehaviour
         switch (currentType)
         {
             case MissionType.DeliverIceCreams:
-                return "Entregue 3 Sorvetes";
+                return "Entregue 3 sorvetes";
             case MissionType.DefeatMonstersNoDamage:
-                return "Derrote 5 monstros sem sofrer dano";
+                return "Derrote 5 monstros sem dano";
             case MissionType.MaxSpeedDuration:
-                return "Corra em velocidade máxima por 8s";
+                return "Mantenha velocidade máxima (8s)";
             default:
                 return "";
         }

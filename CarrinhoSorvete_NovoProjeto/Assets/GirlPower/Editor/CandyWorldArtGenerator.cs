@@ -1078,26 +1078,14 @@ public static class CandyWorldArtGenerator
 
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
-        ConfigureImporter(outAssetFolder + "/CandyMeadowTile.png", 64f, TextureWrapMode.Repeat, 1024);
-        ConfigureImporter(outAssetFolder + "/CandyRoadH.png", 44f, TextureWrapMode.Repeat, 512);
-        ConfigureImporter(outAssetFolder + "/CandyRoadV.png", 44f, TextureWrapMode.Repeat, 512);
-        ConfigureImporter(outAssetFolder + "/CandyRoadCross.png", 44f, TextureWrapMode.Clamp, 512);
-        ConfigureImporter(outAssetFolder + "/CandyRoadCorner.png", 44f, TextureWrapMode.Clamp, 512);
-        ConfigureImporter(outAssetFolder + "/CandyDeliveryPlaza.png", 64f, TextureWrapMode.Clamp, 1024);
-        ConfigureImporter(outAssetFolder + "/CandyBerryPond.png", 48f, TextureWrapMode.Clamp, 1024);
-
-        string[] props =
+        // ETAPA 3: Padroniza TODOS os sprites 2D da fase para FilterMode = Point e PPU = 32!
+        foreach (string file in Directory.GetFiles(absOut, "*.png"))
         {
-            "GiantLollipopA.png", "GiantLollipopB.png", "CandyCanePost.png", "CandyLampPost.png",
-            "SugarFlowerBed.png", "MarshmallowCluster.png", "CandySparkle.png", "CandyGlow.png", "CandyShadow.png",
-            "CandyHouse_Strawberry.png", "CandyHouse_ChocoMint.png", "CandyHouse_Rainbow.png",
-            "CandyHouse_Nautical.png", "CandyHouse_Galaxy.png", "CandyHouse_Matcha.png",
-            "CandyHouse_RocketBlue.png", "CandyHouse_Botanical.png"
-        };
-        foreach (string p in props)
-        {
-            if (File.Exists(Path.Combine(absOut, p)))
-                ConfigureImporter(outAssetFolder + "/" + p, 64f, TextureWrapMode.Clamp, 1024);
+            string fileName = Path.GetFileName(file);
+            TextureWrapMode wrap = (fileName == "CandyMeadowTile.png" || fileName == "CandyRoadH.png" || fileName == "CandyRoadV.png")
+                ? TextureWrapMode.Repeat
+                : TextureWrapMode.Clamp;
+            ConfigureImporter(outAssetFolder + "/" + fileName, 32f, wrap, 1024);
         }
 
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -1163,7 +1151,7 @@ public static class CandyWorldArtGenerator
         imp.textureType = TextureImporterType.Sprite;
         imp.spriteImportMode = SpriteImportMode.Single;
         imp.spritePixelsPerUnit = ppu;
-        imp.filterMode = FilterMode.Bilinear;
+        imp.filterMode = FilterMode.Point; // ETAPA 3: Point (no filter) padronizado!
         imp.wrapMode = wrap;
         imp.alphaIsTransparency = true;
         imp.mipmapEnabled = false;

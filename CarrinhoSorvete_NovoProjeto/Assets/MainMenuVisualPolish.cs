@@ -162,6 +162,10 @@ public sealed class MainMenuVisualPolish : MonoBehaviour
         {
             rect.sizeDelta = labelText == "VOLTAR" ? new Vector2(270, 72) : new Vector2(430, 92);
         }
+        if (buttonTransform.GetComponent<ButtonJuice>() == null)
+        {
+            buttonTransform.gameObject.AddComponent<ButtonJuice>();
+        }
     }
 
     private static void AddCircle(Transform parent, string name, Vector2 position, float size, Color color)

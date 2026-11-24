@@ -67,16 +67,32 @@ public class DriverPro : MonoBehaviour
         }
 
         speedTrail = gameObject.AddComponent<TrailRenderer>();
-        speedTrail.time = 0f; 
-        speedTrail.startWidth = 0.35f;
+        speedTrail.time = 0f;
+        speedTrail.startWidth = 0.28f;
         speedTrail.endWidth = 0f;
-        
+
         Shader spriteShader = Shader.Find("Sprites/Default");
         if (spriteShader != null) speedTrail.material = new Material(spriteShader);
-        
-        speedTrail.startColor = new Color(1f, 0.482f, 0.773f, 0.55f);
+
+        // ETAPA 4: Opacidade máxima de partículas/rastro rosa limitada a 35% na camada VFX
+        speedTrail.startColor = new Color(1f, 0.482f, 0.773f, 0.35f);
         speedTrail.endColor = new Color(1f, 0.482f, 0.773f, 0f);
-        speedTrail.sortingOrder = 2; 
+        speedTrail.sortingLayerName = "VFX";
+        speedTrail.sortingOrder = 2;
+
+        // ETAPA 4: Reduz em 40% a emissão e limita a 35% a opacidade de partículas acopladas ao carrinho
+        ParticleSystem ps = GetComponent<ParticleSystem>();
+        if (ps != null)
+        {
+            var emission = ps.emission;
+            emission.rateOverTimeMultiplier *= 0.60f;
+            var main = ps.main;
+            Color sc = main.startColor.color;
+            sc.a = Mathf.Min(sc.a, 0.35f);
+            main.startColor = sc;
+            ParticleSystemRenderer psr = ps.GetComponent<ParticleSystemRenderer>();
+            if (psr != null) psr.sortingLayerName = "VFX";
+        }
 
         cachedShieldSprite = CreateShieldVisualSprite();
     }
@@ -106,7 +122,7 @@ public class DriverPro : MonoBehaviour
             Color rainbowColor = Color.HSVToRGB(hue, 1f, 1f);
             if (speedTrail != null)
             {
-                speedTrail.startColor = new Color(rainbowColor.r, rainbowColor.g, rainbowColor.b, 0.75f);
+                speedTrail.startColor = new Color(rainbowColor.r, rainbowColor.g, rainbowColor.b, 0.35f);
                 speedTrail.endColor = new Color(rainbowColor.r, rainbowColor.g, rainbowColor.b, 0f);
             }
         }
@@ -114,7 +130,7 @@ public class DriverPro : MonoBehaviour
         {
             if (speedTrail != null)
             {
-                speedTrail.startColor = new Color(1f, 0.482f, 0.773f, 0.55f);
+                speedTrail.startColor = new Color(1f, 0.482f, 0.773f, 0.35f);
                 speedTrail.endColor = new Color(1f, 0.482f, 0.773f, 0f);
             }
         }
@@ -289,6 +305,7 @@ public class DriverPro : MonoBehaviour
         shieldVisualInstance.transform.localScale = new Vector3(1.6f, 1.6f, 1f);
         SpriteRenderer sr = shieldVisualInstance.AddComponent<SpriteRenderer>();
         sr.sprite = cachedShieldSprite;
+        sr.sortingLayerName = "VFX";
         sr.sortingOrder = 4;
     }
 

@@ -2,15 +2,23 @@ using UnityEngine;
 
 public class ControladorJogo : MonoBehaviour
 {
-    // Singleton para acesso fácil de qualquer script
     public static ControladorJogo Instance { get; private set; }
 
     [Header("Canais de Áudio")]
-    [SerializeField] private AudioSource audioFundo;       // Arraste 'Musica_Menu' aqui
-    [SerializeField] private AudioSource audioCarro;       // Arraste 'Som do carro' aqui
-    [SerializeField] private AudioSource audioGameOver;    // Arraste 'som game over' aqui
+    [SerializeField] private AudioSource audioFundo;
+    [SerializeField] private AudioSource audioCarro;
+    [SerializeField] private AudioSource audioGameOver;
 
-    // ─── Inicialização ───────────────────────────────────────────
+    [Header("Balanceamento de Pontuação (Etapa 4)")]
+    public const int PontosPorColeta = 25;
+    public const int PontosPorEntrega = 100;
+    public const int PontosPorInimigo = 50;
+    public const int PontosPorPortaoVelocidade = 150;
+    public const int PontosPorMissao = 250;
+    public const int PontosPorChefe = 500;
+
+    public int PontuacaoAtual { get; private set; }
+
     private void Awake()
     {
         if (Instance == null)
@@ -24,13 +32,34 @@ public class ControladorJogo : MonoBehaviour
 
     private void Start()
     {
-        // Inicia a música de fundo automaticamente ao entrar na cena
         IniciarMusicaFundo();
     }
 
-    // ─── Música de Fundo ─────────────────────────────────────────
+    public void AdicionarPontos(int valor)
+    {
+        if (valor <= 0) return;
+        PontuacaoAtual += valor;
+        if (DriverPro.Instance != null)
+        {
+            DriverPro.Instance.score = PontuacaoAtual;
+        }
+    }
 
-    /// <summary>Toca a música de fundo em loop assim que a cena começa.</summary>
+    public void ResetarEstadoJogo()
+    {
+        PontuacaoAtual = 0;
+        if (DriverPro.Instance != null)
+        {
+            DriverPro.Instance.score = 0;
+            DriverPro.Instance.health = DriverPro.Instance.maxHealth;
+            DriverPro.Instance.cargo = 0;
+            DriverPro.Instance.magnetTimer = 0f;
+            DriverPro.Instance.tripleShotTimer = 0f;
+            DriverPro.Instance.girlPowerTimer = 0f;
+            DriverPro.Instance.hasShield = false;
+        }
+    }
+
     public void IniciarMusicaFundo()
     {
         if (audioFundo != null)
@@ -40,16 +69,12 @@ public class ControladorJogo : MonoBehaviour
         }
     }
 
-    /// <summary>Para a música de fundo (ex: ao pausar ou entrar em game over).</summary>
     public void PararMusicaFundo()
     {
         if (audioFundo != null && audioFundo.isPlaying)
             audioFundo.Stop();
     }
 
-    // ─── Som do Carro ────────────────────────────────────────────
-
-    /// <summary>Liga o som do carro (chame quando o carro começa a andar).</summary>
     public void TocarSomCarro()
     {
         if (audioCarro != null && !audioCarro.isPlaying)
@@ -59,40 +84,24 @@ public class ControladorJogo : MonoBehaviour
         }
     }
 
-    /// <summary>Desliga o som do carro (chame quando parar de andar).</summary>
     public void PararSomCarro()
     {
         if (audioCarro != null && audioCarro.isPlaying)
             audioCarro.Stop();
     }
 
-    // ─── Game Over ───────────────────────────────────────────────
-
-    /// <summary>
-    /// Chame este método quando o jogador perder/bater.
-    /// Para toda a música e toca o som de game over.
-    /// </summary>
     public void GameOver()
     {
-        // Para a música de fundo
         PararMusicaFundo();
-
-        // Para o som do carro
         PararSomCarro();
-
-        // Toca o game over uma única vez
         if (audioGameOver != null)
         {
             audioGameOver.loop = false;
             audioGameOver.Play();
         }
-
         Debug.Log("[ControladorJogo] Game Over! Sons controlados com sucesso.");
     }
 
-    // ─── Parar Tudo ──────────────────────────────────────────────
-
-    /// <summary>Para todos os sons (útil ao pausar o jogo).</summary>
     public void PararTudo()
     {
         PararMusicaFundo();

@@ -57,25 +57,28 @@ public class SpeedDeliveryGate : MonoBehaviour
         leftPost.transform.localScale = new Vector3(0.2f, 1f, 1f);
         rightPost.transform.localScale = new Vector3(0.2f, 1f, 1f);
         
-        srL.sortingOrder = 3;
-        srR.sortingOrder = 3;
+        srL.sortingLayerName = "PropsAndBuildings";
+        srR.sortingLayerName = "PropsAndBuildings";
+        srL.sortingOrder = 5;
+        srR.sortingOrder = 5;
 
         col = GetComponent<BoxCollider2D>();
         if (col == null) col = gameObject.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
-        col.size = new Vector2(4.0f, 0.4f);
+        col.size = new Vector2(4.0f, 0.6f);
         col.offset = new Vector2(0f, 0.2f);
 
         energyLine = GetComponent<LineRenderer>();
         if (energyLine == null) energyLine = gameObject.AddComponent<LineRenderer>();
-        
+
         energyLine.positionCount = 2;
-        energyLine.startWidth = 0.18f;
-        energyLine.endWidth = 0.18f;
+        energyLine.startWidth = 0.20f;
+        energyLine.endWidth = 0.20f;
         energyLine.useWorldSpace = false;
-        
+
         energyLine.SetPosition(0, new Vector3(-2.2f, 0.8f, 0f));
         energyLine.SetPosition(1, new Vector3(2.2f, 0.8f, 0f));
+        energyLine.sortingLayerName = "VFX";
         energyLine.sortingOrder = 4;
 
         Shader unlitShader = Shader.Find("Sprites/Default");
@@ -131,13 +134,15 @@ public class SpeedDeliveryGate : MonoBehaviour
                 
                 if (currentSpeed >= 4.8f)
                 {
-                    player.score += 500000; // 500k pontos por entrega de alta velocidade!
-                    player.ActivateGirlPower(5f); 
+                    // ETAPA 4: Pontuação legível e balanceada (+150 pts no Portão de Velocidade)
+                    if (ControladorJogo.Instance != null) ControladorJogo.Instance.AdicionarPontos(ControladorJogo.PontosPorPortaoVelocidade);
+                    else player.score += ControladorJogo.PontosPorPortaoVelocidade;
+                    player.ActivateGirlPower(5f);
 
                     GameUIController ui = GameUIController.Instance;
                     if (ui != null)
                     {
-                        ui.ShowDeliveryMessage("ENTREGA DE ALTA VELOCIDADE! +500.000 PONTOS / GIRL POWER!");
+                        ui.ShowDeliveryMessage("ENTREGA VELOZ! +" + ControladorJogo.PontosPorPortaoVelocidade + " PTS • GIRL POWER!");
                     }
 
                     if (GameAudioController.Instance != null)
@@ -167,28 +172,29 @@ public class SpeedDeliveryGate : MonoBehaviour
 
     private void SpawnSuccessParticles()
     {
-        Color pinkColor = new Color(1f, 0.2f, 0.8f, 1f);
-        Color goldColor = new Color(1f, 0.843f, 0f, 1f);
+        // ETAPA 4: -40% emissão (12 -> 7) e opacidade máxima 35% nas partículas rosas na camada VFX
+        Color pinkColor = new Color(1f, 0.2f, 0.8f, 0.35f);
+        Color goldColor = new Color(1f, 0.843f, 0f, 0.35f);
 
         Sprite whiteSprite = GetWhiteSprite();
 
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < 7; i++)
         {
             GameObject p = new GameObject("GateParticle");
             p.transform.position = transform.position;
 
-            float angle = i * (360f / 12f) * Mathf.Deg2Rad;
+            float angle = i * (360f / 7f) * Mathf.Deg2Rad;
             Vector3 dir = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
 
             SpriteRenderer particleSr = p.AddComponent<SpriteRenderer>();
             particleSr.sprite = whiteSprite;
-            // OTIMIZADO: Cor nativa direto no componente sem instanciar bitmaps na RAM
-            particleSr.color = (i % 2 == 0) ? pinkColor : goldColor; 
+            particleSr.color = (i % 2 == 0) ? pinkColor : goldColor;
+            particleSr.sortingLayerName = "VFX";
             particleSr.sortingOrder = 6;
 
             ExplosionParticle script = p.AddComponent<ExplosionParticle>();
             script.direction = dir;
-            script.speed = Random.Range(3f, 7f);
+            script.speed = Random.Range(3f, 6.5f);
         }
     }
 }
