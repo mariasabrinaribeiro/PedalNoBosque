@@ -31,6 +31,8 @@ Material:
     m_Colors:
     - _DeepColor: {r: 0.17999998, g: 0.68, b: 0.78, a: 1}
     - _FoamColor: {r: 0.97999996, g: 0.98999995, b: 1, a: 1}
+    - _MidColor: {r: 0.13999996, g: 0.58, b: 0.72, a: 1}
     - _ShallowColor: {r: 0.41999996, g: 0.88, b: 0.86, a: 1}
+    - _SkyReflectColor: {r: 0.6399999, g: 0.82, b: 0.95, a: 1}
     - _SunColor: {r: 1, g: 0.9, b: 0.68, a: 1}
   m_BuildTextureStacks: []

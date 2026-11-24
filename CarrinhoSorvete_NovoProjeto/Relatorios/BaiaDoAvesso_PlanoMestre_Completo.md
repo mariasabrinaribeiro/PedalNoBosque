@@ -69,3 +69,12 @@
 - [x] Compilar runtime + editor com **0 erros**.
 - [x] Atualizar este documento marcando todas as etapas concluídas.
 - [x] Fazer commit limpo e **push para o GitHub (`origin main`)**.
+
+---
+
+### Etapa 7 — Detetive Pipoca vs. Ladrões de Rua & Polícia Costeira (Derrota e Vitória Principal)
+- [x] **Modelagem Blender 5.3 (`build_baia_detective_assets.py`):** `Char_Thief.fbx` (ladrão com máscara e saco), `Char_PoliceOfficer.fbx` (policial com uniforme e estrela dourada), `PolicePatrolCar.fbx` (viatura costeira com giroflex) e `DetectiveHatPipoca.fbx` (chapéu de detetive do Pipoca).
+- [x] **Ladrões de Rua nas Feiras e Restaurantes (`GirlPowerOrla3DThiefDetective.cs`):** Ladrões infiltram-se no calçadão para furtar as barracas, o quiosque e o restaurante *Batata & Mar*.
+- [x] **5 Sinais Expressivos do Detetive Pipoca:** Pipoca veste o chapéu de detetive, corre até o suspeito e dá os sinais progressivos: **Latir**, **Rolar no chão**, **Morder o ladrão** (atrasando o furto em 45%), **Se Chacoalhar** e **Chorar/Ganir** quando o roubo está prestes a acontecer.
+- [x] **Ação dos Trabalhadores + Chamar a Polícia com Antecedência (`[L]` / `🚓 Chamar Polícia 190`):** Os trabalhadores alertam a orla, a Viatura e o Policial chegam com som de sirene, prendem o ladrão antes do furto, concedem **Pontos de Detetive + Moedas + Prestígio** e deixam o **Pipoca super feliz** dançando!
+- [x] **Vitória & Derrota:** Evitar **3 furtos com antecedência** consagra o jogador e o Pipoca como **Vencedores da Baía do Avesso** (tela de vitória com confetes e 3 estrelas); deixar **3 furtos** ocorrerem dispara **Game Over** com tentativa imediata.

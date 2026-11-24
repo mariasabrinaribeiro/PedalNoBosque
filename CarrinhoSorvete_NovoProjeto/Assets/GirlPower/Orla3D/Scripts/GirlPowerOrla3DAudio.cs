@@ -39,6 +39,10 @@ public sealed class GirlPowerOrla3DAudio : MonoBehaviour
     private AudioClip seagullClip;
     private AudioClip tennisClip;
     private AudioClip wheelClip;
+    private AudioClip sirenClip;
+    private AudioClip puppyWhineClip;
+    private AudioClip puppyBiteClip;
+    private AudioClip thiefAlertClip;
 
     private float oceanProximityFactor = 0.7f;
     private float targetMusicPitch = 1.0f;
@@ -76,6 +80,10 @@ public sealed class GirlPowerOrla3DAudio : MonoBehaviour
         seagullClip = GenerateSeagullClip();
         tennisClip = GeneratePopToneClip(320f, 180f, 0.09f);
         wheelClip = GenerateNoiseBurstClip(0.09f, 0.18f, 304);
+        sirenClip = GeneratePoliceSirenClip();
+        puppyWhineClip = GeneratePuppyWhineClip();
+        puppyBiteClip = GeneratePopToneClip(260f, 110f, 0.14f);
+        thiefAlertClip = GenerateChimeClip(new[] { 370.0f, 349.23f, 311.13f }, 0.10f);
     }
 
     private void Update()
@@ -239,6 +247,70 @@ public sealed class GirlPowerOrla3DAudio : MonoBehaviour
         if (clip == null) return;
         sfxSource.pitch = Random.Range(0.95f, 1.08f);
         sfxSource.PlayOneShot(clip, sfxVolume * 0.62f);
+    }
+
+    public void PlayPoliceSiren()
+    {
+        if (IsMuted || sfxSource == null || sirenClip == null) return;
+        sfxSource.pitch = 1f;
+        sfxSource.PlayOneShot(sirenClip, sfxVolume * 0.68f);
+    }
+
+    public void PlayPipocaWhine()
+    {
+        if (IsMuted || sfxSource == null || puppyWhineClip == null) return;
+        sfxSource.pitch = Random.Range(0.96f, 1.06f);
+        sfxSource.PlayOneShot(puppyWhineClip, sfxVolume * 0.56f);
+    }
+
+    public void PlayPipocaBite()
+    {
+        if (IsMuted || sfxSource == null || puppyBiteClip == null) return;
+        sfxSource.pitch = Random.Range(0.90f, 1.12f);
+        sfxSource.PlayOneShot(puppyBiteClip, sfxVolume * 0.64f);
+    }
+
+    public void PlayThiefAlert()
+    {
+        if (IsMuted || sfxSource == null || thiefAlertClip == null) return;
+        sfxSource.pitch = 1f;
+        sfxSource.PlayOneShot(thiefAlertClip, sfxVolume * 0.60f);
+    }
+
+    private static AudioClip GeneratePoliceSirenClip()
+    {
+        float dur = 1.25f;
+        int count = Mathf.RoundToInt(SampleRate * dur);
+        float[] data = new float[count];
+        for (int i = 0; i < count; i++)
+        {
+            float t = (float)i / SampleRate;
+            float env = Mathf.Sin((t / dur) * Mathf.PI);
+            float f = (Mathf.Sin(t * 10.5f) > 0f) ? 760f : 560f;
+            float wave = Mathf.Sin(2f * Mathf.PI * f * t) * 0.65f + Mathf.Sin(2f * Mathf.PI * f * 2f * t) * 0.18f;
+            data[i] = wave * env * 0.45f;
+        }
+        AudioClip c = AudioClip.Create("PoliceSiren", count, 1, SampleRate, false);
+        c.SetData(data, 0);
+        return c;
+    }
+
+    private static AudioClip GeneratePuppyWhineClip()
+    {
+        float dur = 0.42f;
+        int count = Mathf.RoundToInt(SampleRate * dur);
+        float[] data = new float[count];
+        for (int i = 0; i < count; i++)
+        {
+            float t = (float)i / SampleRate;
+            float u = t / dur;
+            float env = Mathf.Sin(u * Mathf.PI);
+            float f = Mathf.Lerp(820f, 520f, u) + Mathf.Sin(t * 36f) * 28f;
+            data[i] = Mathf.Sin(2f * Mathf.PI * f * t) * env * 0.48f;
+        }
+        AudioClip c = AudioClip.Create("PuppyWhine", count, 1, SampleRate, false);
+        c.SetData(data, 0);
+        return c;
     }
 
     private AudioSource CreateLoopSource(string name, AudioClip clip, float vol)

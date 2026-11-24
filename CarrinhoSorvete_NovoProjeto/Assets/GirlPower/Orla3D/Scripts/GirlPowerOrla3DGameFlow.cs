@@ -53,6 +53,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     public GirlPowerOrla3DLifeActivities lifeActivities;
     public GirlPowerOrla3DMegaSystems megaSystems;
     public GirlPowerOrla3DCardapioUI cardapioUI;
+    public GirlPowerOrla3DThiefDetective thiefDetective;
     public GirlPowerOrla3DAmbient ambientController;
     public GirlPowerOrla3DAudio audioController;
     public GirlPowerOrla3DDialogue dialogueController;
@@ -170,6 +171,8 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         Time.timeScale = 1f;
         if (storyController != null)
             storyController.JumpToChapter(chapterNumber);
+        if (thiefDetective != null)
+            thiefDetective.ResetSession();
         CurrentState = GameState.Playing;
         BeginChapterTimer(chapterNumber);
         if (audioController != null) audioController.PlayChime();
@@ -260,6 +263,28 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         }
 
         SaveChapterBestStars(completedChapter, summaryStars);
+        SpawnVictoryConfetti();
+        if (characterAnimator != null) characterAnimator.TriggerCelebration();
+        if (audioController != null) audioController.PlayVictoryFanfare();
+    }
+
+    public void TriggerDetectiveVictory(int detectivePoints, int arrestsPrevented, int coinsEarned)
+    {
+        if (CurrentState != GameState.Playing) return;
+
+        Time.timeScale = 1f;
+        CurrentState = GameState.ChapterVictory;
+        activeModal = SubModal.None;
+
+        summaryChapter = 4;
+        summaryTitle = "VENCEDOR DA BAÍA! Detetive Pipoca está Super Feliz! (" + detectivePoints + " pts)";
+        summaryDeliveries = arrestsPrevented;
+        summaryDecorBonus = detectivePoints;
+        summaryCoinsEarned = coinsEarned;
+        summaryTimeLeft = ChapterTimeRemaining;
+        summaryStars = 3;
+
+        SaveChapterBestStars(4, 3);
         SpawnVictoryConfetti();
         if (characterAnimator != null) characterAnimator.TriggerCelebration();
         if (audioController != null) audioController.PlayVictoryFanfare();
@@ -940,10 +965,10 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
                 ("W A S D / Setas", "Caminhar pela orla, feira, praia e surfar no mar"),
                 ("SHIFT", "Correr mais rápido pelo calçadão"),
                 ("E / Clique", "Interagir com carrinho, lojas, manjericão e vizinhos"),
-                ("P  /  C", "Pintar casas ou a rua  /  Trocar cor da tinta"),
-                ("B  /  G", "Chamar pets (Pipoca e Mingau)  /  Amizade e presente"),
-                ("T  /  R", "Alternar Horário do Dia  /  Alternar Maré Alta e Baixa"),
-                ("Scroll / ESC", "Zoom da Câmera  /  Abrir Menu de Pausa")
+                ("P  /  C", "Pintar casas (rolo manual)  /  Trocar cor da tinta"),
+                ("B  /  K  /  L", "Chamar/Farejar Pipoca  /  Truques  /  Chamar Polícia (190)"),
+                ("V  /  TAB", "Skate, Patinete, Patins, Canoa  /  Abrir Cardápio"),
+                ("T  /  R  /  ESC", "Horário  /  Maré Alta e Baixa  /  Pausa")
             };
 
         for (int i = 0; i < rows.Length; i++)

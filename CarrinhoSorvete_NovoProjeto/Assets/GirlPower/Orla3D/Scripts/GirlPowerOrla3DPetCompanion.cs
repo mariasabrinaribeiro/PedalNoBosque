@@ -9,11 +9,23 @@ using UnityEngine;
 /// </summary>
 public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
 {
+    public enum DetectiveSignal
+    {
+        None = 0,
+        Latir = 1,
+        Rolar = 2,
+        Morder = 3,
+        Chacalhar = 4,
+        Chorar = 5,
+        FelizComemorando = 6
+    }
+
     public string petName = "Pipoca";
     public bool isCat;
     public Transform followTarget;
     public Transform guardPoint;
     public Transform bandanaProp;
+    public Transform detectiveHatProp;
     public GirlPowerOrla3DAudio audioController;
     public Vector3 followOffset = new Vector3(-1.15f, 0f, -0.75f);
     public float followSpeed = 5.6f;
@@ -21,6 +33,7 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     public bool isFollowing;
 
     public bool HasBandanaEquipped { get; private set; }
+    public DetectiveSignal CurrentDetectiveSignal { get; private set; } = DetectiveSignal.None;
 
     private Vector3 homePos;
     private float hopClock;
@@ -30,6 +43,11 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private float guardCooldown;
     private Vector3 sniffTarget;
     private bool sniffingActive;
+
+    // Detective mode state
+    private Transform detectiveSuspect;
+    private float detectiveAnimClock;
+    private float detectiveHappyTimer;
 
     private static readonly Vector3[] HiddenSpots =
     {
@@ -51,6 +69,40 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
             bandanaProp.localScale = Vector3.one * 0.85f;
             bandanaProp.gameObject.SetActive(HasBandanaEquipped);
         }
+        if (detectiveHatProp != null)
+        {
+            detectiveHatProp.SetParent(transform, false);
+            detectiveHatProp.localPosition = new Vector3(0f, 0.72f, -0.18f);
+            detectiveHatProp.localScale = Vector3.one * 0.85f;
+            detectiveHatProp.gameObject.SetActive(false);
+        }
+    }
+
+    public void SetDetectiveAlert(Transform suspect, DetectiveSignal signal)
+    {
+        detectiveSuspect = suspect;
+        CurrentDetectiveSignal = signal;
+        if (detectiveHatProp != null)
+            detectiveHatProp.gameObject.SetActive(suspect != null || signal == DetectiveSignal.FelizComemorando);
+    }
+
+    public void ClearDetectiveAlert()
+    {
+        detectiveSuspect = null;
+        CurrentDetectiveSignal = DetectiveSignal.None;
+        if (detectiveHatProp != null)
+            detectiveHatProp.gameObject.SetActive(false);
+    }
+
+    public void TriggerDetectiveHappyVictory()
+    {
+        detectiveSuspect = null;
+        CurrentDetectiveSignal = DetectiveSignal.FelizComemorando;
+        detectiveHappyTimer = 4.0f;
+        if (detectiveHatProp != null) detectiveHatProp.gameObject.SetActive(true);
+        if (audioController != null) audioController.PlayPetSound(false);
+        GirlPowerOrla3DJuice.PopScale(transform, 1.28f, 0.42f);
+        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(transform.position, "♥ Detetive Pipoca está SUPER FELIZ!", new Color(1f, 0.84f, 0.36f), 2.4f);
     }
 
     public void SetBandanaVisible(bool visible)
@@ -110,6 +162,78 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     {
         float dt = Time.deltaTime;
         float t = Time.time;
+
+        // 0. Detective Pipoca Happy Victory Dance!
+        if (detectiveHappyTimer > 0f)
+        {
+            detectiveHappyTimer = Mathf.Max(0f, detectiveHappyTimer - dt);
+            Vector3 cp = transform.position;
+            float baseY = SampleCompanionGroundY(cp.x, cp.z);
+            float joyHop = Mathf.Abs(Mathf.Sin(t * 11f)) * 0.38f;
+            transform.position = new Vector3(cp.x, baseY + joyHop, cp.z);
+            transform.Rotate(0f, 340f * dt, 0f, Space.World);
+            if (detectiveHappyTimer <= 0f) ClearDetectiveAlert();
+            return;
+        }
+
+        // 1. Active Detective Mode: Pipoca rushes to the Street Thief & performs the 5 alert signals!
+        if (!isCat && detectiveSuspect != null && detectiveSuspect.gameObject.activeInHierarchy)
+        {
+            detectiveAnimClock += dt;
+            Vector3 goalPos = detectiveSuspect.position + new Vector3(-1.1f, 0f, -0.85f);
+            Vector3 curPos = transform.position;
+            Vector2 dXZ = new Vector2(goalPos.x - curPos.x, goalPos.z - curPos.z);
+            float distToSuspect = dXZ.magnitude;
+
+            if (distToSuspect > 0.75f)
+            {
+                Vector2 dir = dXZ / distToSuspect;
+                float step = Mathf.Min(distToSuspect, followSpeed * 1.45f * dt);
+                float nx = curPos.x + dir.x * step;
+                float nz = curPos.z + dir.y * step;
+                hopClock += dt * 16f;
+                float baseY = SampleCompanionGroundY(nx, nz);
+                transform.position = new Vector3(nx, baseY + Mathf.Abs(Mathf.Sin(hopClock)) * 0.20f, nz);
+                Quaternion lookRot = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y).normalized, Vector3.up);
+                transform.rotation = Quaternion.Slerp(transform.rotation, lookRot, dt * 12f);
+            }
+            else
+            {
+                Vector3 toThief = detectiveSuspect.position - curPos;
+                toThief.y = 0f;
+                Quaternion faceThief = toThief.sqrMagnitude > 0.01f
+                    ? Quaternion.LookRotation(-toThief.normalized, Vector3.up)
+                    : transform.rotation;
+                float baseY = SampleCompanionGroundY(curPos.x, curPos.z);
+
+                switch (CurrentDetectiveSignal)
+                {
+                    case DetectiveSignal.Latir:
+                        transform.position = new Vector3(curPos.x, baseY + Mathf.Abs(Mathf.Sin(t * 14f)) * 0.24f, curPos.z);
+                        transform.rotation = Quaternion.Slerp(transform.rotation, faceThief, dt * 10f);
+                        break;
+                    case DetectiveSignal.Rolar:
+                        transform.position = new Vector3(curPos.x, baseY + 0.14f, curPos.z);
+                        transform.rotation = faceThief * Quaternion.Euler(0f, 0f, t * 480f);
+                        break;
+                    case DetectiveSignal.Morder:
+                        float lunge = Mathf.Abs(Mathf.Sin(t * 10f)) * 0.42f;
+                        Vector3 fwd = toThief.sqrMagnitude > 0.01f ? toThief.normalized : Vector3.forward;
+                        transform.position = new Vector3(curPos.x, baseY + 0.08f, curPos.z) + fwd * (lunge * dt * 2.5f);
+                        transform.rotation = faceThief * Quaternion.Euler(-16f, Mathf.Sin(t * 28f) * 14f, 0f);
+                        break;
+                    case DetectiveSignal.Chacalhar:
+                        transform.position = new Vector3(curPos.x, baseY + 0.04f, curPos.z);
+                        transform.rotation = faceThief * Quaternion.Euler(0f, 0f, Mathf.Sin(t * 42f) * 28f);
+                        break;
+                    case DetectiveSignal.Chorar:
+                        transform.position = new Vector3(curPos.x, baseY - 0.04f + Mathf.Sin(t * 18f) * 0.02f, curPos.z);
+                        transform.rotation = faceThief * Quaternion.Euler(18f, 0f, Mathf.Sin(t * 14f) * 6f);
+                        break;
+                }
+            }
+            return;
+        }
 
         // Passive thief defense when near cart/garden!
         if (!isCat && guardPoint != null)

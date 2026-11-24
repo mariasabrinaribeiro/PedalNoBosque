@@ -20,7 +20,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string CozyShaderName = "GirlPower/OrlaACNHCozy";
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v7_MegaLifeAndCardapio";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v8_DetectivePipoca";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -353,9 +353,10 @@ public static class GirlPowerOrla3DSceneBuilder
         // Decorative beach surfboard standing near Lifeguard Tower 1
         PlaceModel(root.transform, "Surfboard", "Prancha na Areia", new Vector3(8.0f, 0.25f, 6.8f), 32f, 1.05f, cozyMats);
 
-        // Cute Pet Companions: Dog "Pipoca" (+ Bandana Prop!) & Cat "Mingau"!
+        // Cute Pet Companions: Dog "Pipoca" (+ Bandana + Detective Cap!) & Cat "Mingau"!
         GameObject dogObj = PlaceModel(root.transform, "PetDog", "Cachorro Pipoca", new Vector3(-3.0f, 0f, -1.55f), -35f, 1.05f, cozyMats);
         GameObject pipocaBandana = dogObj != null ? PlaceModel(dogObj.transform, "PetBandanaProp", "Bandana do Pipoca", Vector3.zero, 0f, 1f, cozyMats) : null;
+        GameObject pipocaDetHat = dogObj != null ? PlaceModel(dogObj.transform, "DetectiveHatPipoca", "Chapeu Detetive Pipoca", Vector3.zero, 0f, 1f, cozyMats) : null;
         GirlPowerOrla3DPetCompanion petDog = null;
         if (dogObj != null)
         {
@@ -365,8 +366,17 @@ public static class GirlPowerOrla3DSceneBuilder
             petDog.followTarget = playerRoot.transform;
             petDog.guardPoint = cart != null ? cart.transform : null;
             petDog.bandanaProp = pipocaBandana != null ? pipocaBandana.transform : null;
+            petDog.detectiveHatProp = pipocaDetHat != null ? pipocaDetHat.transform : null;
             petDog.followOffset = new Vector3(-1.15f, 0f, -0.75f);
         }
+
+        // Street Thief & Coastal Police Patrol (Blender 5.3 models!)
+        GameObject thiefObj = PlaceModel(root.transform, "Char_Thief", "Ladrao de Rua - Baia", new Vector3(-18f, 0f, -2.1f), 0f, 1f, cozyMats);
+        if (thiefObj != null) thiefObj.SetActive(false);
+        GameObject policeOfficerObj = PlaceModel(root.transform, "Char_PoliceOfficer", "Policial Costeiro", new Vector3(-20f, 0f, -2.4f), 0f, 1f, cozyMats);
+        if (policeOfficerObj != null) policeOfficerObj.SetActive(false);
+        GameObject policeCarObj = PlaceModel(root.transform, "PolicePatrolCar", "Viatura Policia Costeira", new Vector3(-22f, 0f, -4.4f), -90f, 0.92f, cozyMats);
+        if (policeCarObj != null) policeCarObj.SetActive(false);
 
         GameObject catObj = PlaceModel(root.transform, "PetCat", "Gato Mingau", new Vector3(3.6f, 0f, -1.45f), 25f, 1.05f, cozyMats);
         GirlPowerOrla3DPetCompanion petCat = null;
@@ -541,6 +551,8 @@ public static class GirlPowerOrla3DSceneBuilder
         if (pedCoral != null) AddShadow(shadowEntries, pedCoral.transform, new Vector2(1.0f, 1.0f), true);
         if (dogObj != null) AddShadow(shadowEntries, dogObj.transform, new Vector2(0.82f, 0.82f), true);
         if (catObj != null) AddShadow(shadowEntries, catObj.transform, new Vector2(0.75f, 0.75f), true);
+        if (thiefObj != null) AddShadow(shadowEntries, thiefObj.transform, new Vector2(1.05f, 1.05f), true);
+        if (policeOfficerObj != null) AddShadow(shadowEntries, policeOfficerObj.transform, new Vector2(1.05f, 1.05f), true);
 
         if (cart != null) AddShadow(shadowEntries, cart.transform, new Vector2(2.35f, 1.65f), false);
         if (basilPot != null) AddShadow(shadowEntries, basilPot.transform, new Vector2(0.75f, 0.75f), true);
@@ -828,8 +840,33 @@ public static class GirlPowerOrla3DSceneBuilder
         cardapio.petDog = petDog;
         cardapio.audioController = audioCtrl;
 
+        // Detective Pipoca vs. Street Thieves & Coastal Police Dispatch!
+        GameObject detObj = new GameObject("Sistema_Detetive_Pipoca_e_Policia");
+        detObj.transform.SetParent(root.transform, false);
+        GirlPowerOrla3DThiefDetective thiefDet = detObj.AddComponent<GirlPowerOrla3DThiefDetective>();
+        thiefDet.player = playerRoot.transform;
+        thiefDet.sceneCamera = mainCam;
+        thiefDet.thiefActor = thiefObj != null ? thiefObj.transform : null;
+        thiefDet.policeOfficer = policeOfficerObj != null ? policeOfficerObj.transform : null;
+        thiefDet.policeCar = policeCarObj != null ? policeCarObj.transform : null;
+        thiefDet.pipocaDog = petDog;
+        List<Transform> raidList = new List<Transform>();
+        foreach (GameObject rt in new[] { kiosk, floristStand, restKitchen, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
+            if (rt != null) raidList.Add(rt.transform);
+        thiefDet.raidTargets = raidList.ToArray();
+        List<Transform> workerList = new List<Transform>();
+        foreach (GameObject wk in new[] { friendNina, florist, friendBia, pedBlue, pedCoral })
+            if (wk != null) workerList.Add(wk.transform);
+        thiefDet.workerNpcs = workerList.ToArray();
+        thiefDet.gameFlow = gameFlow;
+        thiefDet.lifeActivities = lifeAct;
+        thiefDet.megaSystems = megaSys;
+        thiefDet.audioController = audioCtrl;
+        thiefDet.characterAnimator = charAnim;
+
         gameFlow.megaSystems = megaSys;
         gameFlow.cardapioUI = cardapio;
+        gameFlow.thiefDetective = thiefDet;
         mission.gameFlow = gameFlow;
         mission.megaSystems = megaSys;
         mission.cardapioUI = cardapio;

@@ -31,12 +31,16 @@ Material:
     m_Floats:
     - _CurveStrength: 0.0016
     - _Glossiness: 0.65
-    - _RimPower: 3.2
-    - _RimStrength: 0.26
-    - _WrapAmount: 0.48
+    - _GroundAO: 0.34
+    - _GroundAOHeight: 0.72
+    - _OccluderEnabled: 0
+    - _OccluderRadius: 2.1
+    - _RimPower: 4.2
+    - _RimStrength: 0.14
+    - _WrapAmount: 0.28
     m_Colors:
     - _Color: {r: 0.72156864, g: 0.9411765, b: 0.98039216, a: 1}
     - _EmissionColor: {r: 0.15490197, g: 0.2254902, b: 0.24019608, a: 0.25}
-    - _RimColor: {r: 1, g: 0.94, b: 0.8, a: 1}
-    - _ShadowColor: {r: 0.5, g: 0.46, b: 0.64, a: 1}
+    - _RimColor: {r: 1, g: 0.9, b: 0.72, a: 1}
+    - _ShadowColor: {r: 0.38, g: 0.34, b: 0.52, a: 1}
   m_BuildTextureStacks: []
