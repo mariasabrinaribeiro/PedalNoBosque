@@ -435,49 +435,99 @@ public class GameUIController : MonoBehaviour
         menuPanel.transform.SetParent(mainCanvas.transform, false);
 
         RectTransform panelRect = menuPanel.AddComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
         Image panelImage = menuPanel.AddComponent<Image>();
+        panelImage.color = new Color32(28, 16, 55, 255);
+        panelImage.raycastTarget = true;
 
         Sprite coverSprite = Resources.Load<Sprite>("art/title_screen_cover");
         if (coverSprite != null)
         {
-            panelRect.anchorMin = Vector2.zero;
-            panelRect.anchorMax = Vector2.one;
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = Vector2.zero;
-            panelRect.sizeDelta = Vector2.zero; // Fullscreen
+            GameObject artwork = new GameObject("CapaGirlPower", typeof(RectTransform), typeof(Image));
+            artwork.transform.SetParent(menuPanel.transform, false);
+            RectTransform artRect = artwork.GetComponent<RectTransform>();
+            artRect.anchorMin = new Vector2(0f, 0f);
+            artRect.anchorMax = new Vector2(0.57f, 1f);
+            artRect.offsetMin = Vector2.zero;
+            artRect.offsetMax = Vector2.zero;
+            Image artImage = artwork.GetComponent<Image>();
+            artImage.sprite = coverSprite;
+            artImage.preserveAspect = true;
+            artImage.raycastTarget = false;
 
-            panelImage.sprite = coverSprite;
-            panelImage.type = Image.Type.Simple;
+            // A soft plum edge separates the illustration from the menu without covering the logo.
+            GameObject artEdge = new GameObject("TransicaoDaCapa", typeof(RectTransform), typeof(Image));
+            artEdge.transform.SetParent(menuPanel.transform, false);
+            RectTransform edgeRect = artEdge.GetComponent<RectTransform>();
+            edgeRect.anchorMin = new Vector2(0.48f, 0f);
+            edgeRect.anchorMax = new Vector2(0.63f, 1f);
+            edgeRect.offsetMin = Vector2.zero;
+            edgeRect.offsetMax = Vector2.zero;
+            Image edgeImage = artEdge.GetComponent<Image>();
+            edgeImage.sprite = CreateMenuEdgeFade();
+            edgeImage.type = Image.Type.Simple;
+            edgeImage.raycastTarget = false;
         }
-        else
-        {
-            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.anchoredPosition = Vector2.zero;
-            panelRect.sizeDelta = new Vector2(600, 750);
 
-            panelImage.sprite = CreateRoundedRectSprite(400, 500, 32, new Color(0.368f, 0.235f, 0.502f, 0.85f), candyPink, 4, shadowColor);
-            panelImage.type = Image.Type.Sliced;
-        }
+        // Painel editorial: informação agrupada, hierarquia tipográfica e área de clique ampla.
+        GameObject card = new GameObject("MenuCard", typeof(RectTransform), typeof(Image));
+        card.transform.SetParent(menuPanel.transform, false);
+        RectTransform cardRect = card.GetComponent<RectTransform>();
+        cardRect.anchorMin = new Vector2(1f, 0.5f);
+        cardRect.anchorMax = new Vector2(1f, 0.5f);
+        cardRect.pivot = new Vector2(1f, 0.5f);
+        cardRect.anchoredPosition = new Vector2(-48f, 0f);
+        cardRect.sizeDelta = new Vector2(560f, 760f);
+        Image cardImage = card.GetComponent<Image>();
+        cardImage.sprite = CreateRoundedRectSprite(560, 760, 34,
+            new Color(0.105f, 0.062f, 0.19f, 0.96f), new Color(1f, 0.81f, 0.57f, 0.78f), 2,
+            new Color(0.035f, 0.018f, 0.075f, 0.45f));
+        cardImage.type = Image.Type.Sliced;
 
-        // ETAPA 1: Move JOGAR e SAIR para o canto inferior/lateral direito liberando personagem e carrinho!
+        CreateMenuLabel(card.transform, "Eyebrow", "GIRL POWER  •  MUNDO DOS DOCES", 16,
+            new Vector2(0f, 302f), new Vector2(480f, 32f), new Color32(255, 210, 145, 255), FontStyles.Bold);
+        CreateMenuLabel(card.transform, "Headline", "O BAIRRO ESTÁ\nESPERANDO POR VOCÊ", 38,
+            new Vector2(0f, 208f), new Vector2(478f, 138f), new Color32(255, 248, 226, 255), FontStyles.Bold);
+        CreateMenuLabel(card.transform, "Intro", "Prepare o carrinho, escolha seu caminho e leve cada pedido ao destino.", 21,
+            new Vector2(0f, 90f), new Vector2(438f, 76f), new Color32(224, 213, 239, 255), FontStyles.Normal);
+
+        CreateMenuChip(card.transform, "Pedidos", "PEDIDOS", new Vector2(-150f, -30f), new Color32(247, 142, 179, 255));
+        CreateMenuChip(card.transform, "Rotas", "ROTAS", new Vector2(0f, -30f), new Color32(255, 205, 119, 255));
+        CreateMenuChip(card.transform, "Surpresas", "SURPRESAS", new Vector2(150f, -30f), new Color32(148, 218, 186, 255));
+
+        CreateMenuLabel(card.transform, "ControlHint", "WASD  /  SETAS PARA DIRIGIR", 15,
+            new Vector2(0f, -330f), new Vector2(450f, 28f), new Color32(194, 181, 213, 255), FontStyles.Bold);
+
         if (playButton != null)
         {
             playButton.SetParent(menuPanel.transform, false);
             RectTransform playRect = playButton.GetComponent<RectTransform>();
-            if (coverSprite != null)
+            playRect.anchorMin = playRect.anchorMax = new Vector2(1f, 0.5f);
+            playRect.pivot = new Vector2(0.5f, 0.5f);
+            playRect.anchoredPosition = new Vector2(-328f, -174f);
+            playRect.sizeDelta = new Vector2(452f, 84f);
+            TextMeshProUGUI playText = playButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (playText != null)
             {
-                playRect.anchorMin = new Vector2(1f, 0f);
-                playRect.anchorMax = new Vector2(1f, 0f);
-                playRect.pivot = new Vector2(1f, 0f);
-                playRect.anchoredPosition = new Vector2(-64f, 168f);
-                playRect.sizeDelta = new Vector2(340f, 92f);
+                playText.text = "COMEÇAR A JOGAR";
+                playText.fontSize = 28f;
+                playText.color = new Color32(69, 35, 83, 255);
+                playText.outlineWidth = 0.08f;
+                playText.rectTransform.anchorMin = Vector2.zero;
+                playText.rectTransform.anchorMax = Vector2.one;
+                playText.rectTransform.offsetMin = Vector2.zero;
+                playText.rectTransform.offsetMax = Vector2.zero;
             }
-            else
+            Image playImage = playButton.GetComponent<Image>();
+            if (playImage != null)
             {
-                playRect.anchoredPosition = new Vector2(0f, 120f);
-                playRect.sizeDelta = new Vector2(350f, 95f);
+                playImage.sprite = CreateRoundedRectSprite(452, 84, 26, new Color32(255, 210, 121, 255),
+                    new Color32(255, 246, 219, 255), 3, new Color(0.02f, 0.01f, 0.05f, 0.26f));
+                playImage.type = Image.Type.Sliced;
             }
         }
 
@@ -485,40 +535,90 @@ public class GameUIController : MonoBehaviour
         {
             exitButton.SetParent(menuPanel.transform, false);
             RectTransform exitRect = exitButton.GetComponent<RectTransform>();
-            if (coverSprite != null)
+            exitRect.anchorMin = exitRect.anchorMax = new Vector2(1f, 0.5f);
+            exitRect.pivot = new Vector2(0.5f, 0.5f);
+            exitRect.anchoredPosition = new Vector2(-328f, -273f);
+            exitRect.sizeDelta = new Vector2(190f, 48f);
+            TextMeshProUGUI exitText = exitButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (exitText != null)
             {
-                exitRect.anchorMin = new Vector2(1f, 0f);
-                exitRect.anchorMax = new Vector2(1f, 0f);
-                exitRect.pivot = new Vector2(1f, 0f);
-                exitRect.anchoredPosition = new Vector2(-64f, 58f);
-                exitRect.sizeDelta = new Vector2(340f, 84f);
+                exitText.text = "SAIR DO JOGO";
+                exitText.fontSize = 17f;
+                exitText.color = new Color32(236, 225, 244, 255);
+                exitText.outlineWidth = 0f;
+                exitText.rectTransform.anchorMin = Vector2.zero;
+                exitText.rectTransform.anchorMax = Vector2.one;
+                exitText.rectTransform.offsetMin = Vector2.zero;
+                exitText.rectTransform.offsetMax = Vector2.zero;
             }
-            else
+            Image exitImage = exitButton.GetComponent<Image>();
+            if (exitImage != null)
             {
-                exitRect.anchoredPosition = new Vector2(0f, -60f);
-                exitRect.sizeDelta = new Vector2(350f, 95f);
+                exitImage.sprite = CreateRoundedRectSprite(190, 48, 18, new Color(0.20f, 0.12f, 0.31f, 1f),
+                    new Color(0.73f, 0.62f, 0.80f, 0.60f), 2, new Color(0, 0, 0, 0));
+                exitImage.type = Image.Type.Sliced;
             }
         }
+    }
 
-        // ETAPA 1: Nunca duplica o texto "GIRL POWER" por cima do logotipo ilustrado da capa!
-        if (coverSprite == null)
+    private TextMeshProUGUI CreateMenuLabel(Transform parent, string name, string value, float fontSize,
+        Vector2 position, Vector2 size, Color color, FontStyles style)
+    {
+        GameObject labelObject = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+        labelObject.transform.SetParent(parent, false);
+        RectTransform rect = labelObject.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
+        label.text = value;
+        label.font = GetTMProFont();
+        label.fontSize = fontSize;
+        label.fontStyle = style;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = color;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = Mathf.Max(12f, fontSize * 0.82f);
+        label.fontSizeMax = fontSize;
+        label.enableWordWrapping = true;
+        label.raycastTarget = false;
+        return label;
+    }
+
+    private void CreateMenuChip(Transform parent, string name, string label, Vector2 position, Color accent)
+    {
+        GameObject chip = new GameObject("Chip" + name, typeof(RectTransform), typeof(Image));
+        chip.transform.SetParent(parent, false);
+        RectTransform rect = chip.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(132f, 64f);
+        Image image = chip.GetComponent<Image>();
+        image.sprite = CreateRoundedRectSprite(132, 64, 22, new Color(0.22f, 0.15f, 0.32f, 0.96f),
+            new Color(accent.r, accent.g, accent.b, 0.82f), 2, new Color(0, 0, 0, 0));
+        image.type = Image.Type.Sliced;
+        image.raycastTarget = false;
+        CreateMenuLabel(chip.transform, "Label", label, 14f, Vector2.zero, new Vector2(120f, 42f), accent, FontStyles.Bold);
+    }
+
+    private Sprite CreateMenuEdgeFade()
+    {
+        const int width = 128;
+        const int height = 8;
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        texture.name = "MenuCoverEdgeFade";
+        texture.filterMode = FilterMode.Bilinear;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        for (int x = 0; x < width; x++)
         {
-            GameObject titleObj = new GameObject("MenuTitle");
-            titleObj.transform.SetParent(menuPanel.transform, false);
-            RectTransform titleRect = titleObj.AddComponent<RectTransform>();
-            titleRect.anchoredPosition = new Vector2(0, 260);
-            titleRect.sizeDelta = new Vector2(500, 100);
-
-            TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-            titleText.text = "GIRL POWER";
-            titleText.font = GetTMProFont();
-            titleText.fontSize = 36;
-            titleText.fontStyle = FontStyles.Bold;
-            titleText.alignment = TextAlignmentOptions.Center;
-            titleText.color = Color.white;
-            titleText.outlineColor = candyPurple;
-            titleText.outlineWidth = 0.25f;
+            float alpha = Mathf.SmoothStep(0f, 0.88f, x / (width - 1f));
+            Color color = new Color(0.11f, 0.065f, 0.20f, alpha);
+            for (int y = 0; y < height; y++) texture.SetPixel(x, y, color);
         }
+        texture.Apply(false, true);
+        return Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 100f);
     }
 
     private void CreateHUDPanel()

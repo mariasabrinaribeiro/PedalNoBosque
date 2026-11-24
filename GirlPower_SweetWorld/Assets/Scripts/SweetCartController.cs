@@ -12,8 +12,8 @@ using UnityEngine.InputSystem;
 public sealed class SweetCartController : MonoBehaviour
 {
     [Header("Limites da Estrada 2.5D")]
-    public float minX = -6.6f;
-    public float maxX = -0.8f;
+    public float minX = 0.6f;
+    public float maxX = 6.6f;
     public float minY = -3.85f;
     public float maxY = -1.10f;
 
@@ -21,6 +21,7 @@ public sealed class SweetCartController : MonoBehaviour
     public float moveSpeedX = 6.2f;
     public float moveSpeedY = 5.6f;
     public float shootCooldown = 0.24f;
+    public Sprite magicBubbleSprite;
 
     public Transform visualRoot;
     public SpriteRenderer cartRenderer;
@@ -53,7 +54,7 @@ public sealed class SweetCartController : MonoBehaviour
         GirlPowerTimer = 0f;
         SlowTimer = 0f;
         hitFlashTimer = 0f;
-        transform.position = new Vector3(-4.4f, -2.55f, 0f);
+        transform.position = new Vector3(4.2f, -2.55f, 0f);
         if (cartRenderer != null) cartRenderer.color = Color.white;
     }
 
@@ -148,24 +149,24 @@ public sealed class SweetCartController : MonoBehaviour
 
     private void FireMagicBubbles()
     {
-        Vector3 spawn = cannonMuzzle != null ? cannonMuzzle.position : (transform.position + new Vector3(1.55f, -0.10f, 0f));
-        SpawnSingleBubble(spawn, new Vector2(15.5f, 0f));
+        Vector3 spawn = cannonMuzzle != null ? cannonMuzzle.position : (transform.position + new Vector3(-1.55f, -0.25f, 0f));
+        SpawnSingleBubble(spawn, new Vector2(-15.5f, 0f));
         if (IsGirlPowerActive)
         {
-            SpawnSingleBubble(spawn + new Vector3(0f, 0.20f, 0f), new Vector2(15.0f, 2.4f));
-            SpawnSingleBubble(spawn + new Vector3(0f, -0.20f, 0f), new Vector2(15.0f, -2.4f));
+            SpawnSingleBubble(spawn + new Vector3(0f, 0.20f, 0f), new Vector2(-15.0f, 2.4f));
+            SpawnSingleBubble(spawn + new Vector3(0f, -0.20f, 0f), new Vector2(-15.0f, -2.4f));
         }
         if (SweetAudio.Instance != null) SweetAudio.Instance.PlayShoot();
     }
 
-    private static void SpawnSingleBubble(Vector3 pos, Vector2 velocity)
+    private void SpawnSingleBubble(Vector3 pos, Vector2 velocity)
     {
         GameObject go = new GameObject("MagicBubble");
         go.transform.position = pos;
-        go.transform.localScale = Vector3.one * 0.62f;
+        go.transform.localScale = Vector3.one * 0.68f;
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = SweetWorldArtUtility.GetMagicBubbleSprite();
+        sr.sprite = magicBubbleSprite != null ? magicBubbleSprite : SweetWorldArtUtility.GetMagicBubbleSprite();
         sr.sortingLayerName = "VFX";
         sr.sortingOrder = 20;
 

@@ -275,7 +275,7 @@ public sealed class SweetWorldGameManager : MonoBehaviour
         bool star = Random.value < 0.14f;
         float y = roadLanes[Random.Range(0, roadLanes.Length)];
         GameObject go = new GameObject(star ? "MagicStar" : "CupcakePickup");
-        go.transform.position = new Vector3(11.5f, y, 0f);
+        go.transform.position = new Vector3(-11.5f, y, 0f);
         go.transform.localScale = Vector3.one * (star ? 0.95f : 1.05f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
@@ -297,7 +297,7 @@ public sealed class SweetWorldGameManager : MonoBehaviour
         int kind = Random.Range(0, 3);
         float y = roadLanes[Random.Range(0, roadLanes.Length)];
         GameObject go = new GameObject("JellyEnemy_" + kind);
-        go.transform.position = new Vector3(11.8f, y, 0f);
+        go.transform.position = new Vector3(-11.8f, y, 0f);
         go.transform.localScale = Vector3.one * (kind == 2 ? 1.25f : 1.08f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
@@ -331,7 +331,7 @@ public sealed class SweetWorldGameManager : MonoBehaviour
         bool boost = Random.value < 0.62f;
         float y = roadLanes[Random.Range(0, roadLanes.Length)];
         GameObject go = new GameObject(boost ? "SpeedBoostZone" : "CaramelSlowZone");
-        go.transform.position = new Vector3(12.2f, y, 0f);
+        go.transform.position = new Vector3(-12.2f, y, 0f);
         go.transform.localScale = boost ? new Vector3(1.25f, 0.85f, 1f) : new Vector3(1.15f, 0.92f, 1f);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
@@ -350,7 +350,7 @@ public sealed class SweetWorldGameManager : MonoBehaviour
     private void SpawnGingerbreadDeliveryHouse()
     {
         GameObject root = new GameObject("GingerbreadDeliveryStop");
-        root.transform.position = new Vector3(13.2f, -1.55f, 0f);
+        root.transform.position = new Vector3(-13.2f, -1.55f, 0f);
 
         // Tapete brilhante de entrega na pista superior!
         SpriteRenderer mat = root.AddComponent<SpriteRenderer>();

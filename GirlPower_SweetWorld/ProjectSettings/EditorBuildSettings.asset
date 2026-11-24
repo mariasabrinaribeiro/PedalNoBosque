@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Girl Power - Cenario Refinado.unity
-    guid: bc161fe3d3c50044688fa075cb9316bf
+    path: Assets/Scenes/Avesso das Horas - Corrida da Meia-Noite.unity
+    guid: ebafbe385e898874ebaf5eb233170edb
+  - enabled: 1
+    path: Assets/Scenes/GirlPower_SweetWorld.unity
+    guid: 348d568ecc16ef94bb13f46c978c4883
   m_configObjects: {}

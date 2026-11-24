@@ -35,7 +35,7 @@ public static class SweetWorldSceneBuilder
     [MenuItem("Girl Power Sweet World/Build Scene (Mundo Igual à Capa)")]
     public static void BuildScene()
     {
-        EnsureSortingLayers("Sky", "Midground", "Road", "RoadDetails", "Entities", "Foreground", "VFX", "UI");
+        AvessoSceneBuilder.EnsureUnifiedSortingLayers();
         SweetWorldCoverArtGenerator.GenerateAndImportAll(ArtFolder);
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -64,10 +64,13 @@ public static class SweetWorldSceneBuilder
         if (midSp != null)
             bands.Add(CreateParallaxBand(worldRoot.transform, "Layer1_CandyHills", midSp, 0.35f, 18.6f, "Midground", 0, 0.30f));
 
-        Sprite roadSp = SweetWorldArtUtility.GetCoverCandyRoadSprite();
-        // Salva também a estrada como PNG em Art/Processed para persistir serializada na cena!
-        SaveSpriteTextureAsPng(roadSp, ArtFolder + "/candy_road_surface.png", TextureWrapMode.Repeat);
-        Sprite persistentRoadSp = LoadArt("candy_road_surface.png") ?? roadSp;
+        Sprite persistentRoadSp = LoadArt("candy_road_surface.png");
+        if (persistentRoadSp == null)
+        {
+            Sprite roadSp = SweetWorldArtUtility.GetCoverCandyRoadSprite();
+            SaveSpriteTextureAsPng(roadSp, ArtFolder + "/candy_road_surface.png", TextureWrapMode.Repeat);
+            persistentRoadSp = LoadArt("candy_road_surface.png") ?? roadSp;
+        }
         bands.Add(CreateParallaxBand(worldRoot.transform, "Layer2_CandyRoad", persistentRoadSp, -2.55f, 18.6f, "Road", 0, 1.00f));
 
         // Estrelas cintilantes no céu galáxia
@@ -102,9 +105,9 @@ public static class SweetWorldSceneBuilder
         parallax.bands = bands.ToArray();
         parallax.twinklingStars = stars.ToArray();
 
-        // 3. Protagonista Girl Power + Carrinho Sweet Treats Delivery!
+        // 3. Protagonista Girl Power + Carrinho Sweet Treats Delivery (alinhado com a capa, dirigindo para a ESQUERDA!)
         GameObject cartRoot = new GameObject("GirlPower_SweetCart");
-        cartRoot.transform.position = new Vector3(-4.4f, -2.55f, 0f);
+        cartRoot.transform.position = new Vector3(4.2f, -2.55f, 0f);
         Rigidbody2D cartRb = cartRoot.AddComponent<Rigidbody2D>();
         cartRb.isKinematic = true;
         BoxCollider2D cartCol = cartRoot.AddComponent<BoxCollider2D>();
@@ -150,7 +153,7 @@ public static class SweetWorldSceneBuilder
 
         GameObject muzzle = new GameObject("BubbleMuzzle");
         muzzle.transform.SetParent(visual.transform, false);
-        muzzle.transform.localPosition = new Vector3(2.05f, -0.25f, 0f);
+        muzzle.transform.localPosition = new Vector3(-2.05f, -0.35f, 0f);
 
         SweetCartController cartCtrl = cartRoot.AddComponent<SweetCartController>();
         cartCtrl.visualRoot = visual.transform;
@@ -158,6 +161,7 @@ public static class SweetWorldSceneBuilder
         cartCtrl.shadowRenderer = shSr;
         cartCtrl.turboAuraRenderer = auraSr;
         cartCtrl.cannonMuzzle = muzzle.transform;
+        cartCtrl.magicBubbleSprite = LoadArt("magic_bubble.png");
 
         // 4. GameManager com todos os sprites da capa conectados!
         GameObject gmObj = new GameObject("SweetWorldGameManager");
@@ -188,12 +192,12 @@ public static class SweetWorldSceneBuilder
     private static SweetWorldParallax.ParallaxBand CreateParallaxBand(
         Transform parent, string name, Sprite sprite, float posY, float targetWidth, string layer, int order, float speedMul)
     {
-        float scaleX = targetWidth / Mathf.Max(0.01f, sprite.bounds.size.x);
+        float scaleX = (targetWidth + 0.08f) / Mathf.Max(0.01f, sprite.bounds.size.x);
         float scaleY = scaleX;
-        if (layer == "Road") scaleY = 4.95f / Mathf.Max(0.01f, sprite.bounds.size.y);
+        if (layer == "Road") scaleY = 5.15f / Mathf.Max(0.01f, sprite.bounds.size.y);
 
         Transform a = MakeBandPiece(parent, name + "_A", sprite, new Vector3(0f, posY, 0f), new Vector3(scaleX, scaleY, 1f), layer, order);
-        Transform b = MakeBandPiece(parent, name + "_B", sprite, new Vector3(targetWidth, posY, 0f), new Vector3(scaleX, scaleY, 1f), layer, order);
+        Transform b = MakeBandPiece(parent, name + "_B", sprite, new Vector3(-targetWidth, posY, 0f), new Vector3(scaleX, scaleY, 1f), layer, order);
 
         return new SweetWorldParallax.ParallaxBand { tileA = a, tileB = b, tileWidth = targetWidth, speedMultiplier = speedMul };
     }

@@ -36,13 +36,14 @@ public sealed class SweetWorldParallax : MonoBehaviour
                 if (b.tileA == null || b.tileB == null || b.tileWidth <= 0.1f) continue;
 
                 float dx = worldSpeed * b.speedMultiplier * Time.deltaTime;
-                b.tileA.position += Vector3.left * dx;
-                b.tileB.position += Vector3.left * dx;
+                // Rola para a DIREITA (+X) acompanhando o carrinho real da capa que dirige para a ESQUERDA (-X)!
+                b.tileA.position += Vector3.right * dx;
+                b.tileB.position += Vector3.right * dx;
 
-                if (b.tileA.position.x <= -b.tileWidth)
-                    b.tileA.position = new Vector3(b.tileB.position.x + b.tileWidth, b.tileA.position.y, b.tileA.position.z);
-                if (b.tileB.position.x <= -b.tileWidth)
-                    b.tileB.position = new Vector3(b.tileA.position.x + b.tileWidth, b.tileB.position.y, b.tileB.position.z);
+                if (b.tileA.position.x >= b.tileWidth)
+                    b.tileA.position = new Vector3(b.tileB.position.x - b.tileWidth, b.tileA.position.y, b.tileA.position.z);
+                if (b.tileB.position.x >= b.tileWidth)
+                    b.tileB.position = new Vector3(b.tileA.position.x - b.tileWidth, b.tileB.position.y, b.tileB.position.z);
             }
         }
 

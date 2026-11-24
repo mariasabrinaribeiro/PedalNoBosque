@@ -18,7 +18,7 @@ public sealed class MagicBubbleProjectile : MonoBehaviour
     private void Update()
     {
         age += Time.deltaTime;
-        if (age >= lifetime || transform.position.x > 11.5f)
+        if (age >= lifetime || transform.position.x < -11.5f || transform.position.x > 11.5f)
         {
             Destroy(gameObject);
             return;
@@ -62,7 +62,7 @@ public sealed class SweetJellyEnemy : MonoBehaviour
     private void Update()
     {
         float scroll = SweetWorldGameManager.Instance != null ? SweetWorldGameManager.Instance.CurrentScrollSpeed : 6f;
-        float x = transform.position.x - (scroll + extraSpeed) * Time.deltaTime;
+        float x = transform.position.x + (scroll + extraSpeed) * Time.deltaTime;
         float hop = Mathf.Abs(Mathf.Sin(Time.time * 5.2f + phase));
         float y = baseY + hop * 0.42f;
         transform.position = new Vector3(x, y, 0f);
@@ -72,7 +72,7 @@ public sealed class SweetJellyEnemy : MonoBehaviour
         transform.localScale = new Vector3(baseScale.x * squash, baseScale.y / squash, 1f);
 
         if (sr != null) sr.sortingOrder = Mathf.RoundToInt(-baseY * 100f);
-        if (x < -12.5f) Destroy(gameObject);
+        if (x > 12.5f) Destroy(gameObject);
     }
 
     public void PopByBubble()
@@ -124,11 +124,11 @@ public sealed class SweetCollectible : MonoBehaviour
     private void Update()
     {
         float scroll = SweetWorldGameManager.Instance != null ? SweetWorldGameManager.Instance.CurrentScrollSpeed : 6f;
-        float x = transform.position.x - scroll * Time.deltaTime;
+        float x = transform.position.x + scroll * Time.deltaTime;
         float y = baseY + Mathf.Sin(Time.time * 4.2f + phase) * 0.18f;
         transform.position = new Vector3(x, y, 0f);
         if (sr != null) sr.sortingOrder = Mathf.RoundToInt(-baseY * 100f);
-        if (x < -12.5f) Destroy(gameObject);
+        if (x > 12.5f) Destroy(gameObject);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -173,7 +173,7 @@ public sealed class GingerbreadDeliveryStop : MonoBehaviour
     private void Update()
     {
         float scroll = SweetWorldGameManager.Instance != null ? SweetWorldGameManager.Instance.CurrentScrollSpeed : 6f;
-        transform.position += Vector3.left * (scroll * Time.deltaTime);
+        transform.position += Vector3.right * (scroll * Time.deltaTime);
 
         if (coneBeacon != null)
             coneBeacon.localPosition = new Vector3(0f, 3.25f + Mathf.Sin(Time.time * 4.5f) * 0.25f, 0f);
@@ -187,7 +187,7 @@ public sealed class GingerbreadDeliveryStop : MonoBehaviour
             if (t >= 1f) { wobbleTime = -1f; houseVisual.localScale = houseBaseScale; }
         }
 
-        if (transform.position.x < -14f) Destroy(gameObject);
+        if (transform.position.x > 14f) Destroy(gameObject);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -219,8 +219,8 @@ public sealed class SweetRoadZone : MonoBehaviour
     private void Update()
     {
         float scroll = SweetWorldGameManager.Instance != null ? SweetWorldGameManager.Instance.CurrentScrollSpeed : 6f;
-        transform.position += Vector3.left * (scroll * Time.deltaTime);
-        if (transform.position.x < -13f) Destroy(gameObject);
+        transform.position += Vector3.right * (scroll * Time.deltaTime);
+        if (transform.position.x > 13f) Destroy(gameObject);
     }
 
     private void OnTriggerEnter2D(Collider2D other)

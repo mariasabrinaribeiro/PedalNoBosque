@@ -976,6 +976,20 @@ public static class CandyRefinadoArtGenerator
             ConfigureImporter(outAssetFolder + "/" + name, 64f, TextureWrapMode.Clamp, 1024);
         }
 
+        // The houses are cutouts from painted source sheets. Import them as compact,
+        // nearest-filtered sprites so they share the hard pixel edges of the road art.
+        // The lower PPU keeps their world-space footprint close to the previous import.
+        string[] houseNames =
+        {
+            "House_Botanical.png", "House_Cappuccino.png", "House_CherryCake.png",
+            "House_ChocoMint.png", "House_Galaxy.png", "House_Gingham.png",
+            "House_Matcha.png", "House_Nautical.png", "House_Rainbow.png",
+            "House_RocketBlue.png", "House_Samovar.png", "House_Strawberry.png",
+            "House_TeaRose.png", "House_Tiramisu.png"
+        };
+        foreach (string houseName in houseNames)
+            ConfigureImporter(outAssetFolder + "/" + houseName, 32f, TextureWrapMode.Clamp, 256);
+
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
     }
 
@@ -1032,7 +1046,7 @@ public static class CandyRefinadoArtGenerator
         imp.textureType = TextureImporterType.Sprite;
         imp.spriteImportMode = SpriteImportMode.Single;
         imp.spritePixelsPerUnit = ppu;
-        imp.filterMode = FilterMode.Bilinear;
+        imp.filterMode = FilterMode.Point;
         imp.wrapMode = wrap;
         imp.alphaIsTransparency = true;
         imp.mipmapEnabled = false;

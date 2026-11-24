@@ -777,14 +777,17 @@ public static class SweetWorldCoverArtGenerator
         string absDir = Path.Combine(Application.dataPath, assetFolder.Replace("Assets/", "").TrimStart('/'));
         Directory.CreateDirectory(absDir);
 
+        // Preserva as artes reais recortadas da capa (se já existirem em Assets/Art/Processed)!
         GenerateAll((name, canvas) =>
         {
+            string outPath = Path.Combine(absDir, name);
+            if (File.Exists(outPath)) return;
             Texture2D tex = new Texture2D(canvas.W, canvas.H, TextureFormat.RGBA32, false);
             Color32[] cols = new Color32[canvas.Px.Length];
             for (int i = 0; i < cols.Length; i++) { Rgba p = canvas.Px[i]; cols[i] = new Color32(p.r, p.g, p.b, p.a); }
             tex.SetPixels32(cols);
             tex.Apply(false, false);
-            File.WriteAllBytes(Path.Combine(absDir, name), tex.EncodeToPNG());
+            File.WriteAllBytes(outPath, tex.EncodeToPNG());
             UnityEngine.Object.DestroyImmediate(tex);
         });
 

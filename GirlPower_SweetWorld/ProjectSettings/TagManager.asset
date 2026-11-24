@@ -51,24 +51,30 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
-  - name: Ground
-    uniqueID: 1000
+  - name: Sky
+    uniqueID: 2200
     locked: 0
-  - name: Track
-    uniqueID: 1017
+  - name: Midground
+    uniqueID: 2229
     locked: 0
-  - name: GroundDetails
-    uniqueID: 1034
+  - name: ElevatedTrack
+    uniqueID: 2258
     locked: 0
-  - name: PropsAndBuildings
-    uniqueID: 1051
+  - name: Road
+    uniqueID: 2287
     locked: 0
-  - name: EntitiesAndPlayer
-    uniqueID: 1068
+  - name: RoadDetails
+    uniqueID: 2316
+    locked: 0
+  - name: Entities
+    uniqueID: 2345
+    locked: 0
+  - name: Foreground
+    uniqueID: 2374
     locked: 0
   - name: VFX
-    uniqueID: 1085
+    uniqueID: 2403
     locked: 0
   - name: UI
-    uniqueID: 1102
+    uniqueID: 2432
     locked: 0
