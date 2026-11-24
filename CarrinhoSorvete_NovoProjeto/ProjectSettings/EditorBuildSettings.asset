@@ -6,7 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Girl power 1- Sorvete.unity
-    guid: de2c0491527f044f3b36e7339231d63e
+    path: Assets/Scenes/Girl Power - Cenario Refinado.unity
+    guid: bc161fe3d3c50044688fa075cb9316bf
   m_configObjects: {}
-

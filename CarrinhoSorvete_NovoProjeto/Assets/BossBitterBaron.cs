@@ -45,33 +45,87 @@ public class BossBitterBaron : MonoBehaviour
 
     private static Sprite GetBossSprite()
     {
-        if (cachedBossSprite == null)
+        if (cachedBossSprite != null) return cachedBossSprite;
+        // Chefão caricaturado "Barão Amargo": trufa de chocolate amargo gigante com coroa dourada,
+        // sobrancelhas grossas emburradas, olhos verde-azedos e bigode rabugento!
+        const int S = 64;
+        Texture2D tex = new Texture2D(S, S, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+        tex.wrapMode = TextureWrapMode.Clamp;
+
+        Color32 clear = new Color32(0, 0, 0, 0);
+        Color32 ink = new Color32(36, 18, 40, 255);
+        Color32 choco = new Color32(82, 46, 56, 255);
+        Color32 chocoHi = new Color32(126, 78, 88, 255);
+        Color32 gold = new Color32(255, 212, 68, 255);
+        Color32 ruby = new Color32(236, 56, 102, 255);
+        Color32 sourEye = new Color32(196, 255, 84, 255);
+        Color32 stache = new Color32(52, 26, 36, 255);
+
+        Color32[] px = new Color32[S * S];
+        for (int i = 0; i < px.Length; i++) px[i] = clear;
+
+        void SetPx(int x, int y, Color32 c) { if (x >= 0 && x < S && y >= 0 && y < S) px[y * S + x] = c; }
+        void FillCircle(float cx, float cy, float r, Color32 c)
         {
-            int w = 64;
-            int h = 64;
-            Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-
-            Color darkGrey = new Color(0.12f, 0.12f, 0.12f, 1f); 
-            Color metallicEdge = new Color(0.35f, 0.35f, 0.35f, 1f);
-
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    if (x <= 4 || x >= w - 5 || y <= 4 || y >= h - 5)
-                    {
-                        tex.SetPixel(x, y, metallicEdge);
-                    }
-                    else
-                    {
-                        tex.SetPixel(x, y, darkGrey);
-                    }
-                }
-            }
-            tex.Apply();
-            cachedBossSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
+            float r2 = r * r;
+            for (int y = 0; y < S; y++)
+                for (int x = 0; x < S; x++)
+                    if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r2) SetPx(x, y, c);
         }
+
+        // Corpo redondo de trufa amarga com capa escura
+        FillCircle(32, 26, 23f, ink);
+        FillCircle(32, 26, 20f, choco);
+        FillCircle(24, 34, 6f, chocoHi);
+
+        // Coroa dourada torta de vilão no topo!
+        for (int y = 45; y <= 57; y++)
+        {
+            for (int x = 18; x <= 46; x++)
+            {
+                bool spire = (x <= 24 && y <= 57 - (x - 18)) ||
+                             (x >= 28 && x <= 36 && y <= 58 - Mathf.Abs(x - 32)) ||
+                             (x >= 40 && y <= 57 - (46 - x)) ||
+                             (y <= 50);
+                if (!spire) continue;
+                bool border = (y == 45 || x == 18 || x == 46 || y >= 55);
+                SetPx(x, y, border ? ink : gold);
+            }
+        }
+        FillCircle(32, 49, 2.4f, ruby);
+
+        // Olhos verde-azedos brilhantes + pupilas zangadas
+        for (int y = 26; y <= 33; y++)
+        {
+            for (int x = 18; x <= 26; x++) SetPx(x, y, sourEye);
+            for (int x = 38; x <= 46; x++) SetPx(x, y, sourEye);
+        }
+        for (int y = 28; y <= 31; y++)
+        {
+            for (int x = 22; x <= 25; x++) SetPx(x, y, ink);
+            for (int x = 39; x <= 42; x++) SetPx(x, y, ink);
+        }
+
+        // Sobrancelhas grossas emburradas em V
+        for (int i = 0; i < 11; i++)
+        {
+            int y = 37 - i / 2;
+            SetPx(16 + i, y, ink); SetPx(16 + i, y - 1, ink); SetPx(16 + i, y - 2, ink);
+            SetPx(48 - i, y, ink); SetPx(48 - i, y - 1, ink); SetPx(48 - i, y - 2, ink);
+        }
+
+        // Bigodão rabugento curvado + boca emburrada
+        for (int x = 14; x <= 50; x++)
+        {
+            int dx = Mathf.Abs(x - 32);
+            int my = 18 + (dx < 8 ? 3 : (dx < 15 ? 1 : 3));
+            for (int dy = -2; dy <= 2; dy++) SetPx(x, my + dy, (Mathf.Abs(dy) == 2) ? ink : stache);
+        }
+
+        tex.SetPixels32(px);
+        tex.Apply(false, false);
+        cachedBossSprite = Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f), 32f);
         return cachedBossSprite;
     }
 
@@ -82,7 +136,8 @@ public class BossBitterBaron : MonoBehaviour
 
         sr = GetComponent<SpriteRenderer>();
         if (sr == null) sr = gameObject.AddComponent<SpriteRenderer>();
-        sr.sortingOrder = 3;
+        sr.sortingLayerName = "EntitiesAndPlayer";
+        sr.sortingOrder = 8;
 
         rb = GetComponent<Rigidbody2D>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody2D>();
@@ -93,9 +148,9 @@ public class BossBitterBaron : MonoBehaviour
         BoxCollider2D col = GetComponent<BoxCollider2D>();
         if (col == null) col = gameObject.AddComponent<BoxCollider2D>();
         col.isTrigger = true;
-        col.size = new Vector2(0.8f, 0.8f);
+        col.size = new Vector2(1.6f, 1.6f);
 
-        transform.localScale = new Vector3(2.8f, 2.8f, 1f);
+        transform.localScale = new Vector3(1.85f, 1.85f, 1f);
 
         DriverPro driverInstance = DriverPro.Instance;
         if (driverInstance != null)

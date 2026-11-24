@@ -24,6 +24,125 @@ public class Enemy : MonoBehaviour
     private bool isExploding = false;
     private static Sprite cachedPinkParticleSprite;
     private static Sprite cachedPurpleParticleSprite;
+    private static Sprite[] cachedSourSprites;
+
+    private static Sprite GetSourCandySprite(EnemyType type)
+    {
+        if (cachedSourSprites == null) cachedSourSprites = new Sprite[4];
+        int idx = (int)type;
+        if (cachedSourSprites[idx] != null) return cachedSourSprites[idx];
+
+        const int S = 48;
+        Texture2D tex = new Texture2D(S, S, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+        tex.wrapMode = TextureWrapMode.Clamp;
+
+        Color32 clear = new Color32(0, 0, 0, 0);
+        Color32 ink = new Color32(48, 22, 54, 255);
+        Color32 white = new Color32(255, 252, 245, 255);
+        Color32 yellow = new Color32(255, 236, 92, 255);
+        Color32 body, hi, wrapper;
+
+        switch (type)
+        {
+            case EnemyType.Slow:
+                body = new Color32(118, 52, 168, 255);    // Ameixa Amarga
+                hi = new Color32(168, 102, 214, 255);
+                wrapper = new Color32(84, 34, 128, 255);
+                break;
+            case EnemyType.Fast:
+                body = new Color32(132, 218, 58, 255);    // Limão Azedo Veloz
+                hi = new Color32(204, 248, 114, 255);
+                wrapper = new Color32(72, 162, 42, 255);
+                break;
+            case EnemyType.Explosive:
+                body = new Color32(246, 108, 42, 255);    // Bala Pimenta Explosiva
+                hi = new Color32(255, 178, 96, 255);
+                wrapper = new Color32(204, 52, 34, 255);
+                break;
+            default:
+                body = new Color32(236, 68, 104, 255);    // Framboesa Azeda
+                hi = new Color32(255, 138, 164, 255);
+                wrapper = new Color32(182, 36, 78, 255);
+                break;
+        }
+
+        Color32[] px = new Color32[S * S];
+        for (int i = 0; i < px.Length; i++) px[i] = clear;
+
+        void SetPx(int x, int y, Color32 c)
+        {
+            if (x >= 0 && x < S && y >= 0 && y < S) px[y * S + x] = c;
+        }
+
+        void FillCircle(float cx, float cy, float r, Color32 c)
+        {
+            float r2 = r * r;
+            for (int y = 0; y < S; y++)
+                for (int x = 0; x < S; x++)
+                    if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r2) SetPx(x, y, c);
+        }
+
+        // Pontas de papel de bala torcido nas laterais!
+        for (int y = 14; y <= 34; y++)
+        {
+            int dy = Mathf.Abs(y - 24);
+            for (int x = 2; x <= 10; x++)
+                if (dy <= (10 - x) + 3) SetPx(x, y, (x == 2 || dy == (10 - x) + 3) ? ink : wrapper);
+            for (int x = 38; x <= 45; x++)
+                if (dy <= (x - 38) + 3) SetPx(x, y, (x == 45 || dy == (x - 38) + 3) ? ink : wrapper);
+        }
+
+        // Corpo gordinho da bala azeda com contorno pixel-art e brilho
+        FillCircle(24, 23, 16.5f, ink);
+        FillCircle(24, 23, 14.0f, body);
+        FillCircle(19, 30, 4.2f, hi);
+
+        // Pavio aceso se for Explosivo, ou topete azedo nos outros!
+        if (type == EnemyType.Explosive)
+        {
+            for (int y = 38; y <= 44; y++) { SetPx(23, y, ink); SetPx(24, y, ink); }
+            FillCircle(24, 44, 3.2f, yellow);
+        }
+        else
+        {
+            FillCircle(24, 39, 3.5f, ink);
+            FillCircle(24, 39, 2.0f, hi);
+        }
+
+        // Olhos brancos com pupila zangada
+        for (int y = 22; y <= 27; y++)
+        {
+            for (int x = 14; x <= 20; x++) SetPx(x, y, white);
+            for (int x = 28; x <= 34; x++) SetPx(x, y, white);
+        }
+        for (int y = 23; y <= 25; y++)
+        {
+            for (int x = 17; x <= 19; x++) SetPx(x, y, ink);
+            for (int x = 29; x <= 31; x++) SetPx(x, y, ink);
+        }
+
+        // Sobrancelhas grossas emburradas em V (deixa claro na hora que é o vilão!)
+        for (int i = 0; i < 8; i++)
+        {
+            int yL = 30 - i / 2;
+            SetPx(13 + i, yL, ink); SetPx(13 + i, yL - 1, ink);
+            SetPx(35 - i, yL, ink); SetPx(35 - i, yL - 1, ink);
+        }
+
+        // Boca azeda emburrada em zigue-zague!
+        for (int x = 16; x <= 32; x++)
+        {
+            int zig = ((x / 3) % 2 == 0) ? 15 : 17;
+            SetPx(x, zig, ink);
+            SetPx(x, zig - 1, ink);
+        }
+
+        tex.SetPixels32(px);
+        tex.Apply(false, false);
+        cachedSourSprites[idx] = Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f), 32f);
+        return cachedSourSprites[idx];
+    }
 
     public static readonly System.Collections.Generic.List<Enemy> ActiveEnemies = new System.Collections.Generic.List<Enemy>();
 
@@ -88,7 +207,7 @@ public class Enemy : MonoBehaviour
             playerTransform = player.transform;
         }
 
-        // Configure stats, scale, and color tints for each variation
+        // Visual caricaturado de doce azedo/amargo com cara emburrada (contraste imediato com o carrinho fofo!)
         switch (enemyType)
         {
             case EnemyType.Standard:
@@ -97,8 +216,7 @@ public class Enemy : MonoBehaviour
                 scoreReward = 2;
                 healthReward = 15;
                 collisionDamage = 20;
-                baseScale = 1.0f;
-                if (sr != null) sr.color = new Color(1f, 0.35f, 0.35f, 1f); // Red
+                baseScale = 1.05f;
                 break;
             case EnemyType.Slow:
                 maxHealth = 150;
@@ -106,8 +224,7 @@ public class Enemy : MonoBehaviour
                 scoreReward = 5;
                 healthReward = 25;
                 collisionDamage = 30;
-                baseScale = 1.5f;
-                if (sr != null) sr.color = new Color(0.4f, 0.15f, 0.8f, 1f); // Deep Violet
+                baseScale = 1.32f;
                 break;
             case EnemyType.Fast:
                 maxHealth = 15;
@@ -115,18 +232,24 @@ public class Enemy : MonoBehaviour
                 scoreReward = 2;
                 healthReward = 10;
                 collisionDamage = 15;
-                baseScale = 0.7f;
-                if (sr != null) sr.color = new Color(0.2f, 0.9f, 0.2f, 1f); // Neon Green
+                baseScale = 0.88f;
                 break;
             case EnemyType.Explosive:
                 maxHealth = 40;
                 chaseSpeed = 2.0f;
                 scoreReward = 2;
                 healthReward = 15;
-                collisionDamage = 35; // high damage on self-destruct
-                baseScale = 1.0f;
-                if (sr != null) sr.color = new Color(1f, 0.5f, 0.1f, 1f); // Orange-Red
+                collisionDamage = 35;
+                baseScale = 1.08f;
                 break;
+        }
+
+        if (sr != null)
+        {
+            sr.sprite = GetSourCandySprite(enemyType);
+            sr.color = Color.white;
+            sr.sortingLayerName = "EntitiesAndPlayer";
+            sr.sortingOrder = 6;
         }
 
         currentHealth = maxHealth;

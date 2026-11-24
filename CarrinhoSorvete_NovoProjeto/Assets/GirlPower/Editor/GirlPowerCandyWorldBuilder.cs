@@ -98,7 +98,8 @@ public static class GirlPowerCandyWorldBuilder
             }
             if (root.name == "Canvas" || root.name == "EventSystem" || root.name == "ControladorJogo" ||
                 root.name.Contains("Audio") || root.name.Contains("Musica") || root.name.Contains("Som") ||
-                root.GetComponent<ControladorJogo>() != null || root.GetComponent<AudioSource>() != null)
+                root.GetComponent<ControladorJogo>() != null || root.GetComponent<AudioSource>() != null ||
+                root.GetComponent<EnemySpawner>() != null || root.GetComponent<ObjectPoolManager>() != null)
             {
                 root.SetActive(true);
                 continue;
@@ -154,7 +155,7 @@ public static class GirlPowerCandyWorldBuilder
             rootSr.sortingOrder = 10;
 
             // Medição real do bounding box opaco de icecreamvan.png: corpo ocupa 30.9% da largura e 59.0% da altura
-            float targetVisibleWidth = 1.95f;  // ~45% da pista dirigível (4.31 units) -> presença forte e curvas folgadas!
+            float targetVisibleWidth = 2.12f;  // ~50% da pista dirigível (4.31 units) -> protagonismo claro e curvas folgadas!
             float spriteCanvasW = (rootSr.sprite != null && rootSr.sprite.bounds.size.x > 0.01f) ? rootSr.sprite.bounds.size.x : 8f;
             float spriteCanvasH = (rootSr.sprite != null && rootSr.sprite.bounds.size.y > 0.01f) ? rootSr.sprite.bounds.size.y : 8f;
             float visibleBodyWidthInLocal = spriteCanvasW * 0.309f;
@@ -210,27 +211,31 @@ public static class GirlPowerCandyWorldBuilder
         if (Object.FindObjectOfType<DynamicEnvironmentInitializer>() == null)
             new GameObject("DynamicEnvironmentInitializer").AddComponent<DynamicEnvironmentInitializer>();
 
-        // 7. Constrói o cenário Candy World em pixel art nítida, escalas calibradas, Y-sorting e paralaxe
+        // 7. Constrói o cenário Candy World vivo com marcos infantis, bichinhos doces, WobbleOnPass e moldura de parque
         GameObject world = new GameObject(CandyRootName);
         List<Transform> swaying = new List<Transform>();
         List<SpriteRenderer> glows = new List<SpriteRenderer>();
         List<SpriteRenderer> sparkles = new List<SpriteRenderer>();
         List<Transform> pickups = new List<Transform>();
+        List<Transform> beacons = new List<Transform>();
+        List<Transform> critters = new List<Transform>();
         List<Transform> parallaxClouds = new List<Transform>();
 
         BuildTilemapGroundAndTrack(world.transform);
-        BuildDeliveryPlazas(world.transform, glows);
+        BuildDeliveryPlazas(world.transform, glows, beacons, critters);
         BuildSlowZonesAndSpeedGates(world.transform);
-        BuildCupcakeHousesAndGroupedProps(world.transform, swaying, glows, sparkles);
+        BuildCupcakeHousesAndGroupedProps(world.transform, swaying, glows, sparkles, critters);
         BuildPickupsAndBoosts(world.transform, pickups);
         BuildParallaxSkyLayer(world.transform, parallaxClouds);
-        BuildPerimeterBoundary(world.transform);
+        BuildPerimeterBoundary(world.transform, swaying);
 
         CandyWorldAmbient ambient = world.AddComponent<CandyWorldAmbient>();
         ambient.swayingProps = swaying.ToArray();
         ambient.pulsingGlows = glows.ToArray();
         ambient.floatingSparkles = sparkles.ToArray();
         ambient.bobbingPickups = pickups.ToArray();
+        ambient.bobbingBeacons = beacons.ToArray();
+        ambient.cheeringCritters = critters.ToArray();
         ambient.parallaxClouds = parallaxClouds.ToArray();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -352,20 +357,40 @@ public static class GirlPowerCandyWorldBuilder
     }
 
     // =========================================================================
-    // 2. PRAÇAS DE ENTREGA AJUSTADAS AO CRUZAMENTO (5.4 units dentro do tile 6x6!)
+    // 2. PRAÇAS DE ENTREGA IRRESISTÍVEIS (Cone gigante animado + Placa + Bichinhos torcendo!)
     // =========================================================================
-    private static void BuildDeliveryPlazas(Transform root, List<SpriteRenderer> glows)
+    private static void BuildDeliveryPlazas(
+        Transform root,
+        List<SpriteRenderer> glows,
+        List<Transform> beacons,
+        List<Transform> critters)
     {
         Transform plazas = CreateGroup(root, "02_Pracas_de_Entrega");
         Sprite plazaSprite = LoadCandy("CandyDeliveryPlaza.png");
         Sprite glowSprite = LoadCandy("CandyGlow.png");
+        Sprite coneBeacon = LoadCandy("CandyDeliveryConeBeacon.png");
+        Sprite signSprite = LoadCandy("CandyIceCreamSign.png");
+        Sprite gummy = LoadCandy("CandyCritterGummy.png");
+        Sprite mallow = LoadCandy("CandyCritterMarshmallow.png");
 
-        CreateDeliveryPlaza(plazas, "Descarga de sorvete - Praça Central", plazaSprite, glowSprite, new Vector2(0f, 0f), glows);
-        CreateDeliveryPlaza(plazas, "Descarga de sorvete - Praça Leste", plazaSprite, glowSprite, new Vector2(18f, 0f), glows);
-        CreateDeliveryPlaza(plazas, "Descarga de sorvete - Praça Oeste", plazaSprite, glowSprite, new Vector2(-18f, 0f), glows);
+        CreateDeliveryPlaza(plazas, "Descarga de sorvete - Praça Central", plazaSprite, glowSprite, coneBeacon, signSprite, gummy, mallow, new Vector2(0f, 0f), glows, beacons, critters);
+        CreateDeliveryPlaza(plazas, "Descarga de sorvete - Praça Leste", plazaSprite, glowSprite, coneBeacon, signSprite, gummy, mallow, new Vector2(18f, 0f), glows, beacons, critters);
+        CreateDeliveryPlaza(plazas, "Descarga de sorvete - Praça Oeste", plazaSprite, glowSprite, coneBeacon, signSprite, gummy, mallow, new Vector2(-18f, 0f), glows, beacons, critters);
     }
 
-    private static void CreateDeliveryPlaza(Transform parent, string name, Sprite plazaSprite, Sprite glowSprite, Vector2 pos, List<SpriteRenderer> glows)
+    private static void CreateDeliveryPlaza(
+        Transform parent,
+        string name,
+        Sprite plazaSprite,
+        Sprite glowSprite,
+        Sprite coneBeacon,
+        Sprite signSprite,
+        Sprite gummy,
+        Sprite mallow,
+        Vector2 pos,
+        List<SpriteRenderer> glows,
+        List<Transform> beacons,
+        List<Transform> critters)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
@@ -389,6 +414,41 @@ public static class GirlPowerCandyWorldBuilder
             SpriteRenderer g = CreateSprite(go.transform, "BrilhoPraca", glowSprite, Vector2.zero, Vector2.one * glowSc, "VFX", 1, 0f);
             g.color = new Color(1f, 0.72f, 0.88f, 0.24f);
             glows.Add(g);
+        }
+
+        // Cone gigante de sorvete + seta dourada flutuando acima da praça (leitura imediata para crianças!)
+        if (coneBeacon != null)
+        {
+            float beaconSc = NormalizeSpriteScale(coneBeacon, 1.75f);
+            SpriteRenderer bSr = CreateSprite(parent, name + "_MarcoCone", coneBeacon, pos + new Vector2(0f, 1.35f), Vector2.one * beaconSc, "VFX", 6, 0f);
+            beacons.Add(bSr.transform);
+        }
+
+        // Placa ilustrada de sorvete ao lado da praça (dá pulinho ao entregar!)
+        if (signSprite != null)
+        {
+            Vector2 signPos = pos + new Vector2(pos.x > 10f ? -3.8f : 3.8f, 3.6f);
+            float signSc = NormalizeSpriteScale(signSprite, 1.35f);
+            SpriteRenderer sSr = CreateSprite(parent, name + "_PlacaSorvete", signSprite, signPos, Vector2.one * signSc, "PropsAndBuildings", YOrder(signPos.y), 0f);
+            AddWobble(sSr.gameObject, 5.5f, 0.26f);
+        }
+
+        // Bichinhos doces torcendo alegremente nos cantos da praça!
+        if (gummy != null)
+        {
+            Vector2 gp = pos + new Vector2(pos.x < -10f ? 3.9f : -3.9f, 3.6f);
+            float gSc = NormalizeSpriteScale(gummy, 1.15f);
+            SpriteRenderer gSr = CreateSprite(parent, name + "_UrsinhoTorcida", gummy, gp, Vector2.one * gSc, "PropsAndBuildings", YOrder(gp.y), 0f);
+            AddWobble(gSr.gameObject, 5.5f, 0.30f);
+            critters.Add(gSr.transform);
+        }
+        if (mallow != null)
+        {
+            Vector2 mp = pos + new Vector2(pos.x > 10f ? -3.9f : 3.9f, -3.7f);
+            float mSc = NormalizeSpriteScale(mallow, 1.10f);
+            SpriteRenderer mSr = CreateSprite(parent, name + "_MarshmallowTorcida", mallow, mp, Vector2.one * mSc, "PropsAndBuildings", YOrder(mp.y), 0f);
+            AddWobble(mSr.gameObject, 5.5f, 0.30f);
+            critters.Add(mSr.transform);
         }
     }
 
@@ -459,23 +519,63 @@ public static class GirlPowerCandyWorldBuilder
         Transform root,
         List<Transform> swaying,
         List<SpriteRenderer> glows,
-        List<SpriteRenderer> sparkles)
+        List<SpriteRenderer> sparkles,
+        List<Transform> critters)
     {
         Transform houses = CreateGroup(root, "04_Casas_e_Cenario_Agrupado");
         Sprite shadowSp = LoadCandy("CandyShadow.png");
+        Sprite awningSp = LoadCandy("CandyStripedAwning.png");
+        Sprite signSp = LoadCandy("CandyIceCreamSign.png");
+        Sprite gummySp = LoadCandy("CandyCritterGummy.png");
+        Sprite mallowSp = LoadCandy("CandyCritterMarshmallow.png");
 
-        // Bloco inicial à direita (visível na primeira tela!): Casa Arco-Íris ligada diretamente à avenida!
-        PlaceHouse(houses, "Casa_ArcoIris", "CandyHouse_Rainbow.png", new Vector2(9.0f, -8.2f), 5.2f, shadowSp);
-        BuildSteppingStoneWalkway(houses, new Vector2(3.3f, -8.9f), new Vector2(8.7f, -10.9f));
-        CreateHouseDeliveryPoint(houses, "Descarga_Casa_ArcoIris", LoadCandy("CandyDeliveryPlaza.png"), new Vector2(9.0f, -11.25f));
+        // Place initial houses at the center of their 12x12 blocks so their art stays clear of the road curb.
+        PlaceHouse(houses, "Casa_ArcoIris", "CandyHouse_Rainbow.png", new Vector2(9.0f, -12.0f), 5.2f, shadowSp);
+        BuildSteppingStoneWalkway(houses, new Vector2(3.3f, -9.2f), new Vector2(8.7f, -12.0f));
+        CreateHouseDeliveryPoint(houses, "Descarga_Casa_ArcoIris", LoadCandy("CandyDeliveryPlaza.png"), new Vector2(9.0f, -14.4f));
+        if (awningSp != null)
+        {
+            float awSc = NormalizeSpriteScale(awningSp, 2.25f);
+            SpriteRenderer aw = CreateSprite(houses, "Toldo_ArcoIris", awningSp, new Vector2(9.0f, -13.05f), Vector2.one * awSc, "PropsAndBuildings", YOrder(-13.05f), 0f);
+            AddWobble(aw.gameObject, 5.2f, 0.16f);
+        }
+        if (signSp != null)
+        {
+            float sSc = NormalizeSpriteScale(signSp, 1.30f);
+            SpriteRenderer sg = CreateSprite(houses, "PlacaSorvete_ArcoIris", signSp, new Vector2(4.4f, -10.8f), Vector2.one * sSc, "PropsAndBuildings", YOrder(-10.8f), 0f);
+            AddWobble(sg.gameObject, 5.0f, 0.24f);
+        }
+        if (gummySp != null)
+        {
+            float cSc = NormalizeSpriteScale(gummySp, 1.15f);
+            SpriteRenderer cr = CreateSprite(houses, "UrsinhoBoasVindas_Dir", gummySp, new Vector2(4.4f, -14.2f), Vector2.one * cSc, "PropsAndBuildings", YOrder(-14.2f), 0f);
+            AddWobble(cr.gameObject, 5.0f, 0.28f);
+            critters.Add(cr.transform);
+        }
 
-        // Bloco inicial à esquerda (visível na primeira tela!): Casa Foguete Azul
-        PlaceHouse(houses, "Casa_FogueteAzul", "CandyHouse_RocketBlue.png", new Vector2(-9.0f, -8.2f), 5.1f, shadowSp);
-        BuildSteppingStoneWalkway(houses, new Vector2(-3.3f, -8.9f), new Vector2(-8.7f, -10.9f));
+        // Bloco inicial à esquerda (visível na primeira tela!): Casa Foguete Azul + bichinho acenando!
+        PlaceHouse(houses, "Casa_FogueteAzul", "CandyHouse_RocketBlue.png", new Vector2(-9.0f, -12.0f), 5.1f, shadowSp);
+        BuildSteppingStoneWalkway(houses, new Vector2(-3.3f, -9.2f), new Vector2(-8.7f, -12.0f));
+        if (mallowSp != null)
+        {
+            float cSc = NormalizeSpriteScale(mallowSp, 1.10f);
+            SpriteRenderer cr = CreateSprite(houses, "MarshmallowBoasVindas_Esq", mallowSp, new Vector2(-4.4f, -14.2f), Vector2.one * cSc, "PropsAndBuildings", YOrder(-14.2f), 0f);
+            AddWobble(cr.gameObject, 5.0f, 0.28f);
+            critters.Add(cr.transform);
+        }
 
-        // Blocos internos superiores (norte da Praça Central)
-        PlaceHouse(houses, "Casa_Morango", "CandyHouse_Strawberry.png", new Vector2(-9.0f, 9.2f), 5.2f, shadowSp);
-        PlaceHouse(houses, "Casa_ChocoMenta", "CandyHouse_ChocoMint.png", new Vector2(9.0f, 9.2f), 5.2f, shadowSp);
+        // Blocos internos superiores (norte da Praça Central) + caminhos e toldo!
+        PlaceHouse(houses, "Casa_Morango", "CandyHouse_Strawberry.png", new Vector2(-9.0f, 12.0f), 5.2f, shadowSp);
+        BuildSteppingStoneWalkway(houses, new Vector2(-3.3f, 9.2f), new Vector2(-7.0f, 11.0f));
+        if (awningSp != null)
+        {
+            float awSc = NormalizeSpriteScale(awningSp, 2.25f);
+            SpriteRenderer aw = CreateSprite(houses, "Toldo_Morango", awningSp, new Vector2(-9.0f, 10.95f), Vector2.one * awSc, "PropsAndBuildings", YOrder(10.95f), 0f);
+            AddWobble(aw.gameObject, 5.2f, 0.16f);
+        }
+
+        PlaceHouse(houses, "Casa_ChocoMenta", "CandyHouse_ChocoMint.png", new Vector2(9.0f, 12.0f), 5.2f, shadowSp);
+        BuildSteppingStoneWalkway(houses, new Vector2(3.3f, 9.2f), new Vector2(7.0f, 11.0f));
 
         // Quintais externos norte e sul (fora do anel viário ±18)
         PlaceHouse(houses, "Casa_EstufaBotanica", "CandyHouse_Botanical.png", new Vector2(-9.0f, 24.5f), 5.2f, shadowSp);
@@ -495,7 +595,6 @@ public static class GirlPowerCandyWorldBuilder
         // Props agrupados em torno das casas com escalas normalizadas pelo tamanho opaco real + Y-sorting!
         Sprite treePink = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/a casa de mosntros/download__2_-removebg-preview.png");
         Sprite treePine = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/a casa de mosntros/background-removed (67).png");
-        Sprite wafer = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/a casa de mosntros/background-removed (63).png");
         Sprite lolliA = LoadCandy("GiantLollipopA.png");
         Sprite lolliB = LoadCandy("GiantLollipopB.png");
         Sprite cane = LoadCandy("CandyCanePost.png");
@@ -536,25 +635,6 @@ public static class GirlPowerCandyWorldBuilder
             col.radius = ts.bounds.size.x * (usePink ? 0.14f : 0.11f);
             col.offset = new Vector2(0f, -ts.bounds.size.y * 0.18f);
             swaying.Add(sr.transform);
-        }
-
-        // Cercas de wafer agrupadas em duplas nos jardins (opaco 58% -> visível 2.3 units!)
-        if (wafer != null)
-        {
-            float fenceSc = NormalizeSpriteScale(wafer, 2.3f / 0.580f);
-            Vector2[] fences =
-            {
-                new Vector2(-11.4f, 4.2f), new Vector2(-6.6f, 4.2f),
-                new Vector2(6.6f, 4.2f), new Vector2(11.4f, 4.2f),
-                new Vector2(-11.4f, -13.6f), new Vector2(-6.6f, -13.6f),
-                new Vector2(6.6f, -13.6f), new Vector2(11.4f, -13.6f)
-            };
-            for (int i = 0; i < fences.Length; i++)
-            {
-                SpriteRenderer sr = CreateSprite(houses, "CercaQuintal_" + (i + 1), wafer, fences[i], Vector2.one * fenceSc, "PropsAndBuildings", YOrder(fences[i].y), 0f);
-                BoxCollider2D bc = sr.gameObject.AddComponent<BoxCollider2D>();
-                bc.size = new Vector2(wafer.bounds.size.x * 0.52f, wafer.bounds.size.y * 0.30f);
-            }
         }
 
         // Pirulitos-marco nos 4 cantos internos da Praça Central (bem recuados do meio-fio, visível = 1.15 units!)
@@ -646,6 +726,14 @@ public static class GirlPowerCandyWorldBuilder
         BoxCollider2D col = sr.gameObject.AddComponent<BoxCollider2D>();
         col.size = new Vector2(sp.bounds.size.x * 0.72f, sp.bounds.size.y * 0.54f);
         col.offset = new Vector2(0f, -sp.bounds.size.y * 0.14f);
+        AddWobble(sr.gameObject, 6.4f, 0.16f);
+    }
+
+    private static void AddWobble(GameObject go, float radius, float hopHeight)
+    {
+        CandyWobbleOnPass w = go.AddComponent<CandyWobbleOnPass>();
+        w.triggerRadius = radius;
+        w.hopHeight = hopHeight;
     }
 
     private static void BuildSteppingStoneWalkway(Transform parent, Vector2 start, Vector2 end)
@@ -758,13 +846,52 @@ public static class GirlPowerCandyWorldBuilder
         }
     }
 
-    private static void BuildPerimeterBoundary(Transform root)
+    private static void BuildPerimeterBoundary(Transform root, List<Transform> swaying)
     {
-        Transform bounds = CreateGroup(root, "07_Limites_do_Mapa");
-        CreateWall(bounds, "Limite_Norte", new Vector2(0f, 30.5f), new Vector2(68f, 2f));
-        CreateWall(bounds, "Limite_Sul", new Vector2(0f, -30.5f), new Vector2(68f, 2f));
-        CreateWall(bounds, "Limite_Oeste", new Vector2(-30.5f, 0f), new Vector2(2f, 64f));
-        CreateWall(bounds, "Limite_Leste", new Vector2(30.5f, 0f), new Vector2(2f, 64f));
+        Transform bounds = CreateGroup(root, "07_Limites_e_Moldura_Parque");
+        CreateWall(bounds, "Limite_Norte", new Vector2(0f, 28.5f), new Vector2(64f, 2f));
+        CreateWall(bounds, "Limite_Sul", new Vector2(0f, -28.5f), new Vector2(64f, 2f));
+        CreateWall(bounds, "Limite_Oeste", new Vector2(-28.5f, 0f), new Vector2(2f, 60f));
+        CreateWall(bounds, "Limite_Leste", new Vector2(28.5f, 0f), new Vector2(2f, 60f));
+
+        // Moldura do parque com vegetação e pirulitos; cercas em segmentos criavam barras soltas no terreno.
+        Sprite bush = LoadCandy("CandyCottonBush.png");
+        Sprite lolliA = LoadCandy("GiantLollipopA.png");
+        Sprite lolliB = LoadCandy("GiantLollipopB.png");
+
+        float bushSc = bush != null ? NormalizeSpriteScale(bush, 2.6f) : 1f;
+        float lolSc = lolliA != null ? NormalizeSpriteScale(lolliA, 1.45f) : 1f;
+
+        // Bordas norte e sul do parque (y = ±27.2)
+        for (int i = -6; i <= 6; i++)
+        {
+            float x = i * 4.2f;
+            foreach (float y in new[] { 27.2f, -27.2f })
+            {
+                if (bush != null)
+                    CreateSprite(bounds, "ArbustoParque_" + x + "_" + y, bush, new Vector2(x, y), Vector2.one * bushSc, "PropsAndBuildings", YOrder(y), 0f);
+            }
+        }
+
+        // Bordas leste e oeste do parque (x = ±22.8, logo fora do anel viário ±18!)
+        for (int i = -5; i <= 5; i++)
+        {
+            float y = i * 4.4f;
+            foreach (float x in new[] { -22.8f, 22.8f })
+            {
+                if (Mathf.Abs(y - 9f) < 3f && x < 0f) continue; // Espaço livre para Lagoa Oeste
+                if (Mathf.Abs(y + 9f) < 3f && x > 0f) continue; // Espaço livre para Lagoa Leste
+
+                if (Mathf.Abs(i) % 2 == 0 && bush != null)
+                    CreateSprite(bounds, "ArbustoLat_" + x + "_" + y, bush, new Vector2(x, y), Vector2.one * bushSc, "PropsAndBuildings", YOrder(y), 0f);
+                else if (lolliA != null)
+                {
+                    Sprite sp = (i % 2 == 0) ? lolliA : lolliB;
+                    SpriteRenderer lSr = CreateSprite(bounds, "PirulitoBorda_" + x + "_" + y, sp, new Vector2(x, y), Vector2.one * lolSc, "PropsAndBuildings", YOrder(y), 0f);
+                    swaying.Add(lSr.transform);
+                }
+            }
+        }
     }
 
     private static void StandardizeExistingStageSpritesToPointPPU32()

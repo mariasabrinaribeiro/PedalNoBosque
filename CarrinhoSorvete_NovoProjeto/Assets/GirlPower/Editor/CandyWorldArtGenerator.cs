@@ -201,22 +201,19 @@ public static class CandyWorldArtGenerator
     {
         Canvas c = new Canvas(TilePx, TilePx);
         const int P = 3; // crisp 3x3 pixel-art texel grid (64x64 logical pixels)
-        int grid = TilePx / P;
         c.Clear(MintBase);
 
-        // Very calm subtle checkered pixel-art meadow weave (low noise!)
-        for (int gy = 0; gy < grid; gy++)
+        // Low-contrast, broad patches avoid the repeated diagonal noise of the earlier tile.
+        int[,] patches = { { 7, 9 }, { 39, 13 }, { 20, 32 }, { 52, 43 }, { 8, 54 } };
+        for (int i = 0; i < patches.GetLength(0); i++)
         {
-            for (int gx = 0; gx < grid; gx++)
-            {
-                bool patch = ((gx / 8 + gy / 8) % 2) == 0;
-                if (patch && ((gx + gy) % 4 == 0))
-                    c.BlockRect(gx, gy, 1, 1, P, MintLight);
-            }
+            int px = patches[i, 0], py = patches[i, 1];
+            c.BlockRect(px, py, 4, 2, P, MintLight);
+            c.BlockRect(px + 1, py + 2, 3, 1, P, MintShade);
         }
 
-        // Clean crisp 3-pixel grass tufts (sparse so background stays super readable!)
-        int[,] tufts = { { 6, 10 }, { 26, 18 }, { 48, 8 }, { 14, 38 }, { 38, 44 }, { 56, 34 }, { 20, 56 }, { 50, 58 } };
+        // A few small grass tufts keep the ground alive without competing with the route.
+        int[,] tufts = { { 12, 18 }, { 45, 30 }, { 28, 51 }, { 56, 8 } };
         for (int i = 0; i < tufts.GetLength(0); i++)
         {
             int tx = tufts[i, 0], ty = tufts[i, 1];
@@ -225,9 +222,9 @@ public static class CandyWorldArtGenerator
             c.BlockRect(tx + 1, ty + 1, 1, 2, P, MintLight);
         }
 
-        // Tiny crisp 4-petal pastel sugar flowers (only 4 per tile!)
-        int[,] fl = { { 16, 22 }, { 44, 26 }, { 28, 50 }, { 54, 14 } };
-        Rgba[] cols = { PinkLight, Cream, LemonCandy, Lavender };
+        // Sparse little flowers; the road edge and delivery markers keep the stronger colors.
+        int[,] fl = { { 16, 22 }, { 48, 46 } };
+        Rgba[] cols = { PinkLight, Cream };
         for (int i = 0; i < fl.GetLength(0); i++)
         {
             int fx = fl[i, 0], fy = fl[i, 1];
@@ -269,9 +266,11 @@ public static class CandyWorldArtGenerator
                 else if (dy <= 7)
                 {
                     // Bubblegum-pink & lavender pixel-art candy curb stones!
-                    bool seam = (gx % 8 == 0);
-                    int stone = (gx / 8) % 2;
-                    Rgba col = seam ? Ink : (stone == 0 ? (dy == 7 ? PinkLight : PinkCandy) : (dy == 7 ? Cream : Lavender));
+                    bool seam = (gx % 12 == 0);
+                    int stone = (gx / 12) % 3;
+                    Rgba col = seam ? new Rgba(176, 126, 112) :
+                        (stone == 0 ? new Rgba(246, 222, 191) :
+                        (stone == 1 ? new Rgba(255, 242, 220) : new Rgba(239, 211, 225)));
                     c.BlockRect(gx, gy, 1, 1, P, col);
                 }
                 else if (dy == 8)
@@ -323,7 +322,7 @@ public static class CandyWorldArtGenerator
                     float d = (float)Math.Sqrt((gx - cx) * (gx - cx) + (gy - cy) * (gy - cy));
                     if (d <= 1.2f) c.BlockRect(gx, gy, 1, 1, P, new Rgba(0, 0, 0, 0));
                     else if (d <= 2.2f) c.BlockRect(gx, gy, 1, 1, P, Ink);
-                    else if (d <= 7.8f) c.BlockRect(gx, gy, 1, 1, P, PinkCandy);
+            else if (d <= 7.8f) c.BlockRect(gx, gy, 1, 1, P, ((gx + gy) / 5) % 2 == 0 ? new Rgba(239, 211, 225) : new Rgba(255, 242, 220));
                     else if (d <= 8.8f) c.BlockRect(gx, gy, 1, 1, P, Ink);
                 }
             }
@@ -362,9 +361,11 @@ public static class CandyWorldArtGenerator
                 else if (dy == 1) c.BlockRect(gx, gy, 1, 1, P, Ink);
                 else if (dy <= 7)
                 {
-                    bool seam = (gx % 8 == 0);
-                    int stone = (gx / 8) % 2;
-                    Rgba col = seam ? Ink : (stone == 0 ? (dy == 7 ? PinkLight : PinkCandy) : (dy == 7 ? Cream : Lavender));
+                    bool seam = (gx % 12 == 0);
+                    int stone = (gx / 12) % 3;
+                    Rgba col = seam ? new Rgba(176, 126, 112) :
+                        (stone == 0 ? new Rgba(246, 222, 191) :
+                        (stone == 1 ? new Rgba(255, 242, 220) : new Rgba(239, 211, 225)));
                     c.BlockRect(gx, gy, 1, 1, P, col);
                 }
                 else if (dy == 8) c.BlockRect(gx, gy, 1, 1, P, Ink);
@@ -385,7 +386,7 @@ public static class CandyWorldArtGenerator
                     float d = (float)Math.Sqrt((gx - cx) * (gx - cx) + (gy - cy) * (gy - cy));
                     if (d <= 1.2f) c.BlockRect(gx, gy, 1, 1, P, new Rgba(0, 0, 0, 0));
                     else if (d <= 2.2f) c.BlockRect(gx, gy, 1, 1, P, Ink);
-                    else if (d <= 7.8f) c.BlockRect(gx, gy, 1, 1, P, ((gx + gy) / 4 % 2 == 0) ? PinkCandy : Lavender);
+                    else if (d <= 7.8f) c.BlockRect(gx, gy, 1, 1, P, ((gx + gy) / 4 % 2 == 0) ? new Rgba(239, 211, 225) : new Rgba(255, 242, 220));
                     else if (d <= 8.8f) c.BlockRect(gx, gy, 1, 1, P, Ink);
                 }
             }
@@ -418,7 +419,7 @@ public static class CandyWorldArtGenerator
                 if (d < 7.8f || d > G - 8.0f)
                 {
                     int seg = (int)(Math.Atan2(G - 1 - gy, G - 1 - gx) * 6.0);
-                    c.BlockRect(gx, gy, 1, 1, P, (seg % 2 == 0) ? PinkCandy : Lavender);
+                    c.BlockRect(gx, gy, 1, 1, P, (seg % 2 == 0) ? new Rgba(239, 211, 225) : new Rgba(255, 242, 220));
                     continue;
                 }
                 if (d < 8.8f || d > G - 9.0f) { c.BlockRect(gx, gy, 1, 1, P, Ink); continue; }
@@ -753,7 +754,7 @@ public static class CandyWorldArtGenerator
         c.CircleHard(30, 89, 1.5f, Cream);
         // Tiny colorful sprinkles on scoop
         c.Rect(26, 72, 4, 2, LemonCandy);
-        c.Rect(35, 74, 4, 2, SkyCandy);
+        c.Rect(35, 74, 4, 2, AquaCandy);
         c.Rect(30, 67, 4, 2, Cream);
         return c;
     }
@@ -780,7 +781,7 @@ public static class CandyWorldArtGenerator
             c.CircleHard(x - 2, 54, 1.8f, Cream);
         }
         // Festive bunting triangles hanging along top rail!
-        Rgba[] flags = { PinkCandy, LemonCandy, SkyCandy, Lavender, MintBase, PinkCandy };
+        Rgba[] flags = { PinkCandy, LemonCandy, AquaCandy, Lavender, MintBase, PinkCandy };
         for (int f = 0; f < 6; f++)
         {
             int fx = 19 + f * 11;

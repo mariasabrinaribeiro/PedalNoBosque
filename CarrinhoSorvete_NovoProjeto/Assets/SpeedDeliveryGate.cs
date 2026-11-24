@@ -281,6 +281,8 @@ public class SpeedDeliveryGate : MonoBehaviour
                 GameAudioController.Instance.PlayGirlPower();
 
             SpawnSuccessParticles();
+            CandyWobbleOnPass.SpawnConfettiBurst(transform.position, 12);
+            CandyWobbleOnPass.CelebrateNearby(transform.position, 12f);
             gameObject.SetActive(false);
         }
         else

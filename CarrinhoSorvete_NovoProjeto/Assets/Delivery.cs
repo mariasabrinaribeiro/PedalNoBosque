@@ -44,6 +44,7 @@ public class Delivery : MonoBehaviour
                         GameAudioController.Instance.PlayHit();
                     }
 
+                    CandyWobbleOnPass.SpawnConfettiBurst(collision.transform.position, 6);
                     Destroy(collision.gameObject, delay);
                 }
                 else
@@ -68,9 +69,11 @@ public class Delivery : MonoBehaviour
 
                 Debug.Log("Delivered " + itemsDelivered + " packages. Score: " + driver.score);
 
-                // Play delivery particles
+                // Play delivery particles & celebratory wobble + confetti!
                 ParticleSystem ps = GetComponent<ParticleSystem>();
                 if (ps != null) ps.Play();
+                CandyWobbleOnPass.SpawnConfettiBurst(collision.transform.position, 14);
+                CandyWobbleOnPass.CelebrateNearby(collision.transform.position, 14f);
 
                 // 1. Reward the player with "Girl Power" boost for 7 seconds!
                 driver.ActivateGirlPower(7f);

@@ -51,3 +51,15 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Ground
+    uniqueID: 2024493863
+    locked: 0
+  - name: GroundDetails
+    uniqueID: 1670831830
+    locked: 0
+  - name: PropsAndVehicles
+    uniqueID: 1068222428
+    locked: 0
+  - name: UI
+    uniqueID: 1090805853
+    locked: 0

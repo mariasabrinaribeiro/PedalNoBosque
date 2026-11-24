@@ -13,6 +13,8 @@ public sealed class CandyWorldAmbient : MonoBehaviour
     public SpriteRenderer[] pulsingGlows;
     public SpriteRenderer[] floatingSparkles;
     public Transform[] bobbingPickups;
+    public Transform[] bobbingBeacons;
+    public Transform[] cheeringCritters;
     public Transform[] parallaxClouds;
 
     [Header("Paralaxe Top-Down")]
@@ -22,6 +24,8 @@ public sealed class CandyWorldAmbient : MonoBehaviour
 
     private Vector3[] sparkleOrigins;
     private Vector3[] pickupOrigins;
+    private Vector3[] beaconOrigins;
+    private Vector3[] critterOrigins;
     private Vector3[] cloudOrigins;
     private Color[] glowBaseColors;
     private Vector3[] glowBaseScales;
@@ -47,6 +51,18 @@ public sealed class CandyWorldAmbient : MonoBehaviour
             pickupOrigins = new Vector3[bobbingPickups.Length];
             for (int i = 0; i < bobbingPickups.Length; i++)
                 if (bobbingPickups[i] != null) pickupOrigins[i] = bobbingPickups[i].transform.position;
+        }
+        if (bobbingBeacons != null)
+        {
+            beaconOrigins = new Vector3[bobbingBeacons.Length];
+            for (int i = 0; i < bobbingBeacons.Length; i++)
+                if (bobbingBeacons[i] != null) beaconOrigins[i] = bobbingBeacons[i].transform.position;
+        }
+        if (cheeringCritters != null)
+        {
+            critterOrigins = new Vector3[cheeringCritters.Length];
+            for (int i = 0; i < cheeringCritters.Length; i++)
+                if (cheeringCritters[i] != null) critterOrigins[i] = cheeringCritters[i].transform.position;
         }
         if (parallaxClouds != null)
         {
@@ -121,6 +137,32 @@ public sealed class CandyWorldAmbient : MonoBehaviour
                 float bob = Mathf.Sin(t * 3.2f + i * 1.3f) * 0.12f;
                 tr.position = new Vector3(pickupOrigins[i].x, pickupOrigins[i].y + bob, pickupOrigins[i].z);
                 tr.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * 2.2f + i) * 7f);
+            }
+        }
+
+        // Cones gigantes + setas flutuantes sobre os pontos de entrega (fácil de ver sem ler!)
+        if (bobbingBeacons != null && beaconOrigins != null)
+        {
+            for (int i = 0; i < bobbingBeacons.Length; i++)
+            {
+                Transform tr = bobbingBeacons[i];
+                if (tr == null) continue;
+                float bob = Mathf.Sin(t * 3.6f + i * 1.4f) * 0.24f;
+                tr.position = new Vector3(beaconOrigins[i].x, beaconOrigins[i].y + bob, beaconOrigins[i].z);
+                tr.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * 2.4f + i) * 5f);
+            }
+        }
+
+        // Bichinhos doces saltitando felizes nas calçadas e pontos de entrega!
+        if (cheeringCritters != null && critterOrigins != null)
+        {
+            for (int i = 0; i < cheeringCritters.Length; i++)
+            {
+                Transform tr = cheeringCritters[i];
+                if (tr == null) continue;
+                float hop = Mathf.Abs(Mathf.Sin(t * 3.4f + i * 1.7f)) * 0.16f;
+                tr.position = new Vector3(critterOrigins[i].x, critterOrigins[i].y + hop, critterOrigins[i].z);
+                tr.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * 3.4f + i * 1.7f) * 6f);
             }
         }
     }

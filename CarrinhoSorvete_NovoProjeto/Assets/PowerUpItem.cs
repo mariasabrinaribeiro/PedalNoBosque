@@ -163,8 +163,10 @@ public class PowerUpItem : MonoBehaviour
                 GameAudioController.Instance.PlayPowerup();
             }
 
-            // Spawn colored particle burst
+            // Spawn colored particle burst & joyful star confetti!
             SpawnCollectParticles();
+            CandyWobbleOnPass.SpawnConfettiBurst(transform.position, 9);
+            CandyWobbleOnPass.CelebrateNearby(transform.position, 10f);
 
             // Destroy item
             Destroy(gameObject);
