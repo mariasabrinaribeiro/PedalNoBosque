@@ -37,6 +37,8 @@ Material:
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
     - _RimStrength: 0.14
+    - _TileScale: 0.35
+    - _UseWorldUV: 0
     - _WrapAmount: 0.28
     m_Colors:
     - _Color: {r: 0.9098039, g: 0.74509805, b: 0.38431373, a: 1}

@@ -22,11 +22,20 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
     private sealed class WaypointWalker
     {
         public Transform tr;
+        public Transform legL;
+        public Transform legR;
+        public Transform armL;
+        public Transform armR;
+        public Quaternion legLBase;
+        public Quaternion legRBase;
+        public Quaternion armLBase;
+        public Quaternion armRBase;
         public Vector3[] route;
         public int wpIdx;
         public float waitTimer;
         public float speed;
         public float baseY;
+        public float gaitPhase;
     }
 
     private sealed class FairyAgent
@@ -118,8 +127,10 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         {
             new[] { new Vector3(-9.5f, 0f, -1.6f), new Vector3(-2.5f, 0f, -1.5f), new Vector3(4.5f, 0f, -1.9f), new Vector3(-5.5f, 0f, -2.4f) },
             new[] { new Vector3(9.5f, 0f, -1.6f), new Vector3(16.8f, 0f, -1.5f), new Vector3(22.5f, 0f, -1.8f), new Vector3(13.2f, 0f, -2.3f) },
-            new[] { new Vector3(-13.5f, 0f, -2.0f), new Vector3(-6.8f, 0f, 0.9f), new Vector3(0.5f, 0f, -2.2f), new Vector3(-10.5f, 0f, -2.1f) },
-            new[] { new Vector3(26.5f, 0f, -1.7f), new Vector3(32.5f, 0f, -1.6f), new Vector3(28.0f, 0f, 0.8f), new Vector3(22.5f, 0f, -1.9f) }
+            new[] { new Vector3(-13.5f, 0f, 3.9f), new Vector3(-7.0f, 0f, 4.6f), new Vector3(-1.0f, 0f, 3.8f), new Vector3(-8.5f, 0f, 3.4f) },
+            new[] { new Vector3(-4.5f, 0f, 4.2f), new Vector3(0.5f, 0f, 3.7f), new Vector3(3.8f, 0f, 4.6f), new Vector3(-1.5f, 0f, 5.0f) },
+            new[] { new Vector3(4.4f, 0f, 4.2f), new Vector3(8.4f, 0f, 3.7f), new Vector3(12.0f, 0f, 4.5f), new Vector3(7.5f, 0f, 5.1f) },
+            new[] { new Vector3(27.8f, 0f, 4.2f), new Vector3(29.0f, 0f, 3.7f), new Vector3(32.0f, 0f, 4.5f), new Vector3(30.0f, 0f, 5.0f) }
         };
 
         for (int i = 0; i < strollingNpcs.Length; i++)
@@ -129,13 +140,33 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
             walkers.Add(new WaypointWalker
             {
                 tr = npc,
+                legL = FindNamedJoint(npc, "Protag_LegL", "Leg_L", "LeftLeg", "LegLeft", "leg.l"),
+                legR = FindNamedJoint(npc, "Protag_LegR", "Leg_R", "RightLeg", "LegRight", "leg.r"),
+                armL = FindNamedJoint(npc, "Protag_ArmL", "Arm_L", "LeftArm", "ArmLeft", "arm.l"),
+                armR = FindNamedJoint(npc, "Protag_ArmR", "Arm_R", "RightArm", "ArmRight", "arm.r"),
                 route = routes[i % routes.Length],
-                wpIdx = i % 4,
+                wpIdx = 0,
                 waitTimer = 1.5f + i * 1.2f,
-                speed = 1.65f + (i % 2) * 0.25f,
+                speed = 1.1f + (i % 3) * 0.12f,
                 baseY = npc.position.y
             });
+            WaypointWalker walker = walkers[walkers.Count - 1];
+            if (walker.legL != null) walker.legLBase = walker.legL.localRotation;
+            if (walker.legR != null) walker.legRBase = walker.legR.localRotation;
+            if (walker.armL != null) walker.armLBase = walker.armL.localRotation;
+            if (walker.armR != null) walker.armRBase = walker.armR.localRotation;
         }
+    }
+
+    private static Transform FindNamedJoint(Transform root, params string[] names)
+    {
+        if (root == null) return null;
+        for (int i = 0; i < names.Length; i++)
+        {
+            Transform direct = FindChildRec(root, names[i]);
+            if (direct != null) return direct;
+        }
+        return null;
     }
 
     private void InitFairyWaitresses()
@@ -209,8 +240,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                     Vector3 look = new Vector3(player.position.x - w.tr.position.x, 0f, player.position.z - w.tr.position.z);
                     if (look.sqrMagnitude > 0.01f)
                         w.tr.rotation = Quaternion.Slerp(w.tr.rotation, Quaternion.LookRotation(-look.normalized, Vector3.up), dt * 6f);
-                    float waveHop = Mathf.Abs(Mathf.Sin(t * 7.2f + i)) * 0.12f;
-                    w.tr.position = new Vector3(w.tr.position.x, w.baseY + waveHop, w.tr.position.z);
+                    AnimateWalkerGait(w, 0f, t, dt, true);
                     continue;
                 }
             }
@@ -223,6 +253,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 w.tr.rotation = Quaternion.Slerp(w.tr.rotation, Quaternion.Euler(0f, browseYaw, 0f), dt * 2.5f);
                 float breathe = Mathf.Abs(Mathf.Sin(t * 2.6f + i)) * 0.03f;
                 w.tr.position = new Vector3(w.tr.position.x, w.baseY + breathe, w.tr.position.z);
+                AnimateWalkerGait(w, 0f, t, dt, false);
                 continue;
             }
 
@@ -238,11 +269,24 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
 
             Vector2 dir = delta / dist;
             float step = Mathf.Min(dist, w.speed * dt);
-            float walkHop = Mathf.Abs(Mathf.Sin(t * 7.4f + i)) * 0.075f;
-            w.tr.position = new Vector3(w.tr.position.x + dir.x * step, w.baseY + walkHop, w.tr.position.z + dir.y * step);
+            w.tr.position = new Vector3(w.tr.position.x + dir.x * step, w.baseY, w.tr.position.z + dir.y * step);
+            w.gaitPhase += step * (Mathf.PI * 2f / 1.45f);
+            AnimateWalkerGait(w, step / Mathf.Max(dt, 0.0001f), t, dt, false);
             Quaternion face = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up);
             w.tr.rotation = Quaternion.Slerp(w.tr.rotation, face, dt * 6.5f);
         }
+    }
+
+    private static void AnimateWalkerGait(WaypointWalker w, float speed, float time, float dt, bool greeting)
+    {
+        float stride = speed > 0.08f ? Mathf.Sin(w.gaitPhase) : 0f;
+        float swing = greeting ? Mathf.Sin(time * 3.4f + w.gaitPhase) : stride;
+        if (w.legL != null) w.legL.localRotation = Quaternion.Slerp(w.legL.localRotation, w.legLBase * Quaternion.Euler(swing * 22f, 0f, 0f), dt * 12f);
+        if (w.legR != null) w.legR.localRotation = Quaternion.Slerp(w.legR.localRotation, w.legRBase * Quaternion.Euler(-swing * 22f, 0f, 0f), dt * 12f);
+        if (w.armL != null) w.armL.localRotation = Quaternion.Slerp(w.armL.localRotation, w.armLBase * Quaternion.Euler(-swing * 13f, 0f, 0f), dt * 10f);
+        if (w.armR != null) w.armR.localRotation = Quaternion.Slerp(w.armR.localRotation, w.armRBase * Quaternion.Euler(swing * 13f, 0f, 0f), dt * 10f);
+        float bob = speed > 0.08f ? Mathf.Abs(stride) * 0.025f : Mathf.Sin(time * 2.2f + w.gaitPhase) * 0.012f;
+        w.tr.position = new Vector3(w.tr.position.x, w.baseY + bob, w.tr.position.z);
     }
 
     private void UpdateFairyWaitresses(float t, float dt)

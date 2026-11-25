@@ -24,7 +24,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: dd79dd0d767fe5845b54df0992d03b94, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -37,9 +37,11 @@ Material:
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
     - _RimStrength: 0.14
+    - _TileScale: 0.24
+    - _UseWorldUV: 1
     - _WrapAmount: 0.28
     m_Colors:
-    - _Color: {r: 0.9137255, g: 0.81960785, b: 0.65882355, a: 1}
+    - _Color: {r: 0.9411765, g: 0.8117647, b: 0.6431373, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 1, g: 0.9, b: 0.72, a: 1}
     - _ShadowColor: {r: 0.38, g: 0.34, b: 0.52, a: 1}
