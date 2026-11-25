@@ -21,7 +21,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-        private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v16_EnterableRestaurant";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v17_ArchetypesPetsAndWaterBowls";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -762,6 +762,106 @@ public static class GirlPowerOrla3DSceneBuilder
         npcAi.distantSailboats = distantBoats.ToArray();
         npcAi.beachSeagulls = beachSeagulls.ToArray();
         npcAi.shallowFish = shallowFish.ToArray();
+
+        // 11h. 4 LOGICAL HARMONIZED ZONES: Orchard Camponesa, 10 Modular Archetypes, Pets (Dog/Cat/Calopsita) & 5 Water Bowls!
+        // Zone 1: Fenced Orchard & Garden (Fundo/Lateral Verde) -> Camponesa harvesting Laranja, Limão, Manjericão & Maçã!
+        List<Transform> orchardTrees = new List<Transform>();
+        Vector3[] orchardCoords = { new Vector3(-5.8f, -0.05f, -8.4f), new Vector3(-2.0f, -0.05f, -8.8f), new Vector3(-8.2f, -0.05f, -7.8f) };
+        for (int i = 0; i < orchardCoords.Length; i++)
+        {
+            GameObject ot = PlaceModel(root.transform, "OrchardFruitTree", "Arvore Pomar Horta " + (i + 1), orchardCoords[i], i * 55f, 0.92f + i * 0.08f, cozyMats);
+            if (ot != null)
+            {
+                AddBlockingBox(ot, new Vector3(0f, 1.4f, 0f), new Vector3(0.95f, 2.8f, 0.95f), obstacles);
+                orchardTrees.Add(ot.transform);
+            }
+        }
+        GameObject camponesaObj = PlaceModel(root.transform, "Char_Camponesa", "Camponesa Colhedora da Horta", new Vector3(-4.6f, 0f, -7.2f), 20f, 1.0f, cozyMats);
+        if (camponesaObj != null) AddShadow(shadowEntries, camponesaObj.transform, new Vector2(1.0f, 1.0f), true);
+
+        // Zone 2 & 3 & 4: Modular Harmonized Archetypes + Pet Companions (Dog, Cat, Flying Calopsita!)
+        var guestSpecs = new (GirlPowerOrla3DArchetypeConfig.ArchetypeKind kind, string fbx, string name, Vector3 pos, GirlPowerOrla3DArchetypeConfig.PetKind pet)[]
+        {
+            // Zone 2 (Central Promenade & Pet Restaurant guests)
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Gaucho,           "Char_Gaucho",           "Cliente - Gaucho do Sul",        new Vector3(-8.2f, 0f, -2.2f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Espia,            "Char_Espia",            "Cliente - Espia Estilosa",       new Vector3(1.4f, 0f, -2.5f),    GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Barbie,           "Char_Barbie",           "Cliente - Estilo Barbie",        new Vector3(7.6f, 0f, -2.1f),    GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Princesa,         "Char_Princesa",         "Cliente - Princesa da Orla",     new Vector3(13.8f, 0f, -2.3f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Vovo,             "Char_Vovo",             "Cliente - Vovo Carinhosa",       new Vector3(18.6f, 0f, -2.1f),   GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.KungFu,           "Char_KungFu",           "Cliente - Mestre Kung Fu",       new Vector3(23.0f, 0f, -2.4f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Japones,          "Char_Japones",          "Cliente - Estilo Japones",       new Vector3(-3.8f, 0f, -2.4f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
+            // Zone 4 (Beach Sand & Sea strictly for Beach/Sports outfits!)
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.PraiaFutebol,     "Char_FutebolPraia",     "Praiano - Futebol de Areia",     new Vector3(6.8f, -0.14f, 6.0f), GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.FutebolAmericano, "Char_FutebolAmericano", "Praiano - Futebol Americano",    new Vector3(19.2f, -0.14f, 6.2f),GirlPowerOrla3DArchetypeConfig.PetKind.None)
+        };
+
+        List<GirlPowerOrla3DPetFriendlySystem.ArchetypeActorEntry> guestEntries = new List<GirlPowerOrla3DPetFriendlySystem.ArchetypeActorEntry>();
+        for (int i = 0; i < guestSpecs.Length; i++)
+        {
+            var gs = guestSpecs[i];
+            GameObject actor = PlaceModel(root.transform, gs.fbx, gs.name, gs.pos, (i % 2 == 0) ? 18f : -18f, 1.0f, cozyMats);
+            if (actor == null) continue;
+            AddShadow(shadowEntries, actor.transform, new Vector2(0.95f, 0.95f), true);
+
+            Transform petT = null;
+            if (gs.pet != GirlPowerOrla3DArchetypeConfig.PetKind.None)
+            {
+                string petFbx = gs.pet == GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita ? "Pet_Calopsita"
+                    : (gs.pet == GirlPowerOrla3DArchetypeConfig.PetKind.Gato ? "PetCat" : "PetDog");
+                GameObject petGo = PlaceModel(root.transform, petFbx, "Pet_" + gs.kind + "_" + gs.pet, gs.pos + new Vector3(-0.75f, 0f, -0.55f), 0f, gs.pet == GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita ? 1.0f : 0.78f, cozyMats);
+                if (petGo != null)
+                {
+                    petT = petGo.transform;
+                    if (gs.pet != GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita)
+                        AddShadow(shadowEntries, petT, new Vector2(0.62f, 0.62f), true);
+                }
+            }
+
+            guestEntries.Add(new GirlPowerOrla3DPetFriendlySystem.ArchetypeActorEntry
+            {
+                actor = actor.transform,
+                petCompanion = petT,
+                kind = gs.kind,
+                petKind = gs.pet
+            });
+        }
+
+        // 5 Interactive Pet Water Bowls along the Central Promenade & Restaurant/Cafe entrances!
+        var bowlSpecs = new (string label, Vector3 pos)[]
+        {
+            ("Pote Agua - Quiosque",      new Vector3(-2.6f, 0f, -0.85f)),
+            ("Pote Agua - Cafe Fadas",    new Vector3(3.4f, -0.05f, -5.8f)),
+            ("Pote Agua - Batata e Mar",  new Vector3(-11.4f, -0.05f, -4.4f)),
+            ("Pote Agua - Feira Central", new Vector3(13.0f, 0f, -0.85f)),
+            ("Pote Agua - Florista",      new Vector3(22.2f, 0f, -0.85f))
+        };
+        List<GirlPowerOrla3DPetFriendlySystem.WaterBowlEntry> bowlEntries = new List<GirlPowerOrla3DPetFriendlySystem.WaterBowlEntry>();
+        for (int i = 0; i < bowlSpecs.Length; i++)
+        {
+            GameObject bowl = PlaceModel(root.transform, "PetWaterBowl", bowlSpecs[i].label, bowlSpecs[i].pos, i * 25f, 1.05f, cozyMats);
+            if (bowl != null)
+            {
+                AddShadow(shadowEntries, bowl.transform, new Vector2(0.68f, 0.68f), false);
+                bowlEntries.Add(new GirlPowerOrla3DPetFriendlySystem.WaterBowlEntry
+                {
+                    label = bowlSpecs[i].label,
+                    bowlRoot = bowl.transform
+                });
+            }
+        }
+
+        GameObject petSysObj = new GameObject("Sistema_PetFriendly_PotesAgua_e_Arquetipos");
+        petSysObj.transform.SetParent(root.transform, false);
+        GirlPowerOrla3DPetFriendlySystem petFriendlySys = petSysObj.AddComponent<GirlPowerOrla3DPetFriendlySystem>();
+        petFriendlySys.player = playerRoot.transform;
+        petFriendlySys.sceneCamera = mainCam;
+        petFriendlySys.camponesaHarvester = camponesaObj != null ? camponesaObj.transform : null;
+        petFriendlySys.orchardTreePoints = orchardTrees.ToArray();
+        petFriendlySys.kitchenDropoffPoint = restKitchen != null ? restKitchen.transform : null;
+        petFriendlySys.fairyHelpers = fairyList.ToArray();
+        petFriendlySys.archetypeGuests = guestEntries.ToArray();
+        petFriendlySys.petFriendlyTables = restaurantTables.ToArray();
+        petFriendlySys.waterBowls = bowlEntries.ToArray();
         foreach (Transform child in root.transform)
         {
             if (child.name.StartsWith("Banco da Orla")) AddShadow(shadowEntries, child, new Vector2(2.30f, 1.15f), false);
@@ -1473,21 +1573,29 @@ public static class GirlPowerOrla3DSceneBuilder
             ("AC_HouseWall", "#F7ECDC", 0.14f, null, 0f),
             ("AC_HouseRoof", "#D98D74", 0.20f, null, 0f),
             ("AC_ProtagShirt", "#F26392", 0.28f, null, 0f),   // Hero focal accent!
+            // GPU Vertex-Animated Breeze Hair Materials (upgraded to OrlaACNHHairWind shader below!)
+            ("AC_HairWind_Brown", "#6B442A", 0.34f, null, 0f),
+            ("AC_HairWind_Blonde", "#EBC772", 0.36f, null, 0f),
+            ("AC_HairWind_Dark", "#2E2736", 0.36f, null, 0f),
+            ("AC_HairWind_Silver", "#D6D8E0", 0.34f, null, 0f),
+            ("AC_HairWind_Auburn", "#B4563C", 0.34f, null, 0f),
         };
 
+        Shader hairWindShader = Shader.Find("GirlPower/OrlaACNHHairWind");
         var dict = new Dictionary<string, Material>();
         foreach (var item in palette)
         {
+            Shader targetShader = (item.name.StartsWith("AC_HairWind_") && hairWindShader != null) ? hairWindShader : cozyShader;
             string matPath = MaterialsFolder + "/" + item.name + ".mat";
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
             if (mat == null)
             {
-                mat = new Material(cozyShader);
+                mat = new Material(targetShader);
                 AssetDatabase.CreateAsset(mat, matPath);
             }
             else
             {
-                mat.shader = cozyShader;
+                mat.shader = targetShader;
             }
 
             if (ColorUtility.TryParseHtmlString(item.hex, out Color baseCol))
