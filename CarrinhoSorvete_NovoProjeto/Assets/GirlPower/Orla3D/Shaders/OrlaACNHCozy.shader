@@ -16,6 +16,8 @@ Shader "GirlPower/OrlaACNHCozy"
         _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0016
         _OccluderEnabled ("Camera Occlusion Dither", Range(0.0, 1.0)) = 0.0
         _OccluderRadius ("Occluder Cutout Radius", Range(0.8, 4.5)) = 2.1
+        _UseWorldUV ("World Space Tiling", Range(0.0, 1.0)) = 0.0
+        _TileScale ("World Tile Scale", Range(0.05, 4.0)) = 0.35
     }
 
     SubShader
@@ -41,6 +43,8 @@ Shader "GirlPower/OrlaACNHCozy"
         float _CurveStrength;
         half _OccluderEnabled;
         half _OccluderRadius;
+        half _UseWorldUV;
+        float _TileScale;
 
         // Updated globally by GirlPowerOrla3DOcclusionFader
         float4 _BaiaPlayerPos;
@@ -133,7 +137,10 @@ Shader "GirlPower/OrlaACNHCozy"
                 }
             }
 
-            fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+            float2 sampleUV = (_UseWorldUV > 0.5)
+                ? (IN.worldPos.xz * _TileScale + float2(IN.worldPos.y * _TileScale * 0.5, 0.0))
+                : IN.uv_MainTex;
+            fixed4 c = tex2D(_MainTex, sampleUV) * _Color;
 
             // Ground-contact Ambient Occlusion: gently darkens bases where objects meet ground
             float aoH = saturate((IN.worldPos.y + 0.16) / max(0.1, _GroundAOHeight));

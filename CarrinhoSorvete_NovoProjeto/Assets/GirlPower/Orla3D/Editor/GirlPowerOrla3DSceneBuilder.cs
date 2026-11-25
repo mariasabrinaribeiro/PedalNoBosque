@@ -1287,6 +1287,9 @@ public static class GirlPowerOrla3DSceneBuilder
             if (mat.HasProperty("_CurveStrength"))
                 mat.SetFloat("_CurveStrength", 0.0008f);
 
+            // Bind seamless hand-painted coastal textures (world-space tiled so all meshes look crisp & tactile!)
+            AssignHandPaintedTexture(mat, item.name);
+
             if (!string.IsNullOrEmpty(item.emitHex) && ColorUtility.TryParseHtmlString(item.emitHex, out Color emCol))
             {
                 if (mat.HasProperty("_EmissionColor"))
@@ -1303,6 +1306,58 @@ public static class GirlPowerOrla3DSceneBuilder
 
         AssetDatabase.SaveAssets();
         return dict;
+    }
+
+    private static void AssignHandPaintedTexture(Material mat, string matName)
+    {
+        if (mat == null || !mat.HasProperty("_MainTex")) return;
+        string texFile = null;
+        float tileScale = 0.35f;
+        switch (matName)
+        {
+            case "AC_StoneWhite":
+            case "AC_StoneWarm":
+            case "AC_PlazaTile":
+            case "AC_PlazaAccent":
+                texFile = "Tex_WalkwayTiles.png";
+                tileScale = 0.34f;
+                break;
+            case "AC_Sand":
+            case "AC_SandWet":
+                texFile = "Tex_BeachSand.png";
+                tileScale = 0.24f;
+                break;
+            case "AC_Grass":
+            case "AC_GrassLight":
+                texFile = "Tex_CoastalGrass.png";
+                tileScale = 0.28f;
+                break;
+            case "AC_WoodLight":
+            case "AC_WoodWarm":
+            case "AC_WoodDark":
+                texFile = "Tex_WoodPlanks.png";
+                tileScale = 0.55f;
+                break;
+            case "AC_CobbleA":
+            case "AC_CobbleB":
+                texFile = "Tex_CobbleFeira.png";
+                tileScale = 0.42f;
+                break;
+        }
+
+        if (!string.IsNullOrEmpty(texFile))
+        {
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/GirlPower/Orla3D/Textures/" + texFile);
+            if (tex != null)
+            {
+                mat.SetTexture("_MainTex", tex);
+                if (mat.HasProperty("_UseWorldUV")) mat.SetFloat("_UseWorldUV", 1f);
+                if (mat.HasProperty("_TileScale")) mat.SetFloat("_TileScale", tileScale);
+                return;
+            }
+        }
+        mat.SetTexture("_MainTex", null);
+        if (mat.HasProperty("_UseWorldUV")) mat.SetFloat("_UseWorldUV", 0f);
     }
 
     private static void AddSceneToBuildSettings(string scenePath)
