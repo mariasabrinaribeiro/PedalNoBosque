@@ -1319,7 +1319,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (gameFlow != null && !gameFlow.IsPlaying) return;
         GirlPowerOrla3DUITheme.EnsureInitialized();
 
-        float s = Mathf.Clamp(Screen.width / 1440f, 0.72f, 1.15f);
+        float s = Mathf.Clamp(Screen.width / 1440f, 0.82f, 1.15f);
 
         // Floating diegetic numbers (+10 moedas, +1 Manjericão...)
         GirlPowerOrla3DUITheme.UpdateAndDrawFloatingFeedback(sceneCamera, Time.deltaTime, s);

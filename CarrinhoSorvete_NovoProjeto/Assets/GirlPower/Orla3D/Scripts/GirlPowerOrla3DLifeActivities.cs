@@ -361,7 +361,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
 
         GirlPowerOrla3DUITheme.EnsureInitialized();
         GUI.color = Color.white;
-        float s = Mathf.Clamp(Screen.width / 1440f, 0.72f, 1.15f);
+        float s = Mathf.Clamp(Screen.width / 1440f, 0.82f, 1.15f);
 
         // ------------------------------------------------------------------
         // BOTTOM-LEFT: Crisp Illustrated Coins + Synced Inventory + Clear Labeled Controls (ZERO empty gray slots!)

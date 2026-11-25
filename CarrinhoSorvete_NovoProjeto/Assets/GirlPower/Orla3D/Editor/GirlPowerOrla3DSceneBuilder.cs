@@ -21,7 +21,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v15_FairiesOpenCafeAndWideCam";
+        private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v16_EnterableRestaurant";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -149,7 +149,16 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 6a. Mega Life Blender Landmarks: Restaurant "Batata & Mar" facing the promenade cleanly (no buried sign!)
         GameObject restKitchen = PlaceModel(root.transform, "RestaurantFriesKitchen", "Restaurante Batata e Mar", new Vector3(-14.2f, 0f, -6.2f), 180f, 1f, cozyMats);
-        if (restKitchen != null) AddBlockingBox(restKitchen, new Vector3(0f, 2.1f, 0f), new Vector3(4.0f, 4.2f, 2.1f), obstacles);
+        if (restKitchen != null)
+        {
+            // Segment the collision perimeter and leave a real doorway on the promenade-facing side (local -Z).
+            AddBlockingBox(restKitchen, new Vector3(0f, 1.8f, 0.92f), new Vector3(4.0f, 3.6f, 0.28f), obstacles);
+            AddBlockingBox(restKitchen, new Vector3(-1.86f, 1.8f, 0f), new Vector3(0.28f, 3.6f, 1.85f), obstacles);
+            AddBlockingBox(restKitchen, new Vector3( 1.86f, 1.8f, 0f), new Vector3(0.28f, 3.6f, 1.85f), obstacles);
+            AddBlockingBox(restKitchen, new Vector3(-1.34f, 1.8f, -0.92f), new Vector3(1.32f, 3.6f, 0.28f), obstacles);
+            AddBlockingBox(restKitchen, new Vector3( 1.34f, 1.8f, -0.92f), new Vector3(1.32f, 3.6f, 0.28f), obstacles);
+            ApplyFadeMaterials(restKitchen, false);
+        }
         // Pavilion: 4 solid corner pillars so stairs & interior festival table remain 100% walkable!
         if (pavilion != null)
         {
@@ -729,6 +738,18 @@ public static class GirlPowerOrla3DSceneBuilder
             cafeFade.roofObject = cafeRoof.transform;
             cafeFade.buildingCenter = cafePos;
             cafeFade.halfBoundsXZ = new Vector2(3.6f, 2.9f);
+        }
+
+        // Batata & Mar interior: fade the shell while the player is inside so its room remains visible.
+        if (restKitchen != null)
+        {
+            GameObject restaurantFadeObj = new GameObject("Batata_Mar_Teto_Fade_Automatico");
+            restaurantFadeObj.transform.SetParent(root.transform, false);
+            GirlPowerOrla3DCafeRoofFade restaurantFade = restaurantFadeObj.AddComponent<GirlPowerOrla3DCafeRoofFade>();
+            restaurantFade.player = playerRoot.transform;
+            restaurantFade.roofObject = restKitchen.transform;
+            restaurantFade.buildingCenter = new Vector3(-14.2f, 0f, -6.2f);
+            restaurantFade.halfBoundsXZ = new Vector2(2.25f, 1.45f);
         }
 
         GameObject npcAiObj = new GameObject("IA_Moradores_e_Fauna_Local");
