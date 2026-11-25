@@ -20,7 +20,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string CozyShaderName = "GirlPower/OrlaACNHCozy";
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v9_VideoAuditPolish";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v10_HeroAndDepthWater";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -54,9 +54,9 @@ public static class GirlPowerOrla3DSceneBuilder
         RenderSettings.ambientGroundColor = new Color(0.26f, 0.22f, 0.26f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.78f, 0.66f, 0.62f);
-        RenderSettings.fogStartDistance = 40f;
-        RenderSettings.fogEndDistance = 108f;
+        RenderSettings.fogColor = new Color(0.68f, 0.79f, 0.87f);
+        RenderSettings.fogStartDistance = 35f;
+        RenderSettings.fogEndDistance = 85f;
 
         GameObject root = new GameObject("Orla de Matinhos 3D - Animal Crossing Style");
 
@@ -182,15 +182,20 @@ public static class GirlPowerOrla3DSceneBuilder
         // Moored decorative Hawaiian Canoe on the beach
         PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.16f, 8.2f), 22f, 1.0f, cozyMats);
 
-        // 6b. 3 Paintable Coastal Houses lining the south side of the street!
+        // 6b. 3 Low-Profile Paintable Coastal Houses placed cleanly clear of the foreground camera corridor!
         List<Transform> paintableHouses = new List<Transform>();
-        float[] houseXs = { -7.2f, 6.2f, 20.4f };
-        for (int i = 0; i < houseXs.Length; i++)
+        Vector3[] housePositions =
         {
-            GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), new Vector3(houseXs[i], -0.08f, -10.2f), 0f, 1f, cozyMats);
+            new Vector3(-14.8f, -0.08f, -12.8f),
+            new Vector3(9.5f, -0.08f, -14.2f),
+            new Vector3(34.2f, -0.08f, -12.8f)
+        };
+        for (int i = 0; i < housePositions.Length; i++)
+        {
+            GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), housePositions[i], 0f, 0.82f, cozyMats);
             if (house != null)
             {
-                AddBlockingBox(house, new Vector3(0f, 1.5f, 0f), new Vector3(4.2f, 3.0f, 3.3f), obstacles);
+                AddBlockingBox(house, new Vector3(0f, 1.3f, 0f), new Vector3(3.6f, 2.5f, 2.9f), obstacles);
                 paintableHouses.Add(house.transform);
             }
         }
@@ -203,15 +208,15 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fest != null) swayingFestoons.Add(fest.transform);
         }
 
-        // 7. Arched Coconut Palms along the coastal mureta
+        // 7. Arched Coconut Palms framed cleanly away from the Pavilion stairs & Fishing Pier entrance!
         List<Transform> swayingPalms = new List<Transform>();
         Vector4[] palmSpecs =
         {
-            new Vector4(-5.2f, 3.15f, -12f, 1.05f),
-            new Vector4(4.3f, 3.15f, 18f, 0.98f),
-            new Vector4(8.6f, 3.15f, -160f, 0.96f),
-            new Vector4(17.8f, 3.15f, 14f, 1.04f),
-            new Vector4(27.8f, 3.15f, -155f, 1.08f)
+            new Vector4(-9.6f, 3.35f, -14f, 1.02f),
+            new Vector4(4.4f, 3.35f, 18f, 0.96f),
+            new Vector4(9.2f, 3.35f, -162f, 0.94f),
+            new Vector4(22.4f, 3.35f, 16f, 1.02f),
+            new Vector4(35.4f, 3.35f, -152f, 1.04f)
         };
         for (int i = 0; i < palmSpecs.Length; i++)
         {
@@ -224,15 +229,25 @@ public static class GirlPowerOrla3DSceneBuilder
             }
         }
 
-        // 8. Planter Bushes, Streetlamps + Warm Lights, Coastal Benches, Route Signpost
+        // 8. Varied Coastal Vegetation Planters & Grass Clusters (Blender 5.3 — replacing repetitive identical bushes!)
         List<Light> warmLights = new List<Light>();
         List<Transform> idleCharacters = new List<Transform>();
 
-        float[] bushXs = { -4.4f, 10.6f, 13.8f, 17.0f, 20.1f, 27.6f };
-        for (int i = 0; i < bushXs.Length; i++)
+        var vegSpecs = new (string model, Vector3 pos, float rotY, float scale, bool blocks)[]
         {
-            GameObject bush = PlaceModel(root.transform, "PlanterBush", "Jardineira Costeira " + (i + 1), new Vector3(bushXs[i], 0f, -0.20f), 0f, 1f, cozyMats);
-            if (bush != null) AddBlockingBox(bush, new Vector3(0f, 0.45f, 0f), new Vector3(1.65f, 0.9f, 0.80f), obstacles);
+            ("CoastalVegetationB", new Vector3(-4.4f, 0f, -0.22f), 4f, 1.0f, true),
+            ("CoastalVegetationA", new Vector3(7.4f, 0f, -0.35f), 22f, 1.05f, false),
+            ("CoastalVegetationB", new Vector3(11.4f, 0f, -0.22f), -6f, 0.96f, true),
+            ("CoastalVegetationA", new Vector3(15.6f, 0f, -0.40f), 145f, 0.92f, false),
+            ("CoastalVegetationB", new Vector3(19.8f, 0f, -0.22f), 8f, 1.02f, true),
+            ("CoastalVegetationA", new Vector3(26.8f, 0f, -0.32f), -35f, 1.08f, false),
+            ("CoastalVegetationA", new Vector3(-8.4f, 0f, -0.35f), 68f, 1.0f, false)
+        };
+        for (int i = 0; i < vegSpecs.Length; i++)
+        {
+            var vs = vegSpecs[i];
+            GameObject veg = PlaceModel(root.transform, vs.model, "Jardineira Costeira " + (i + 1), vs.pos, vs.rotY, vs.scale, cozyMats);
+            if (veg != null && vs.blocks) AddBlockingBox(veg, new Vector3(0f, 0.42f, 0f), new Vector3(1.48f, 0.84f, 0.72f), obstacles);
         }
 
         Vector2[] lampCoords =
@@ -307,13 +322,14 @@ public static class GirlPowerOrla3DSceneBuilder
             idleCharacters.Add(pedCoral.transform);
         }
 
-        // 11. Ice Cream Cart (+ Painted Sign Upgrade + Basil Pot), Two Friends (Nina & Bia), Articulated Protagonist & Florist
-        GameObject cart = PlaceModel(root.transform, "IceCreamCart", "Carrinho de Sorvete", new Vector3(1.15f, 0f, -1.75f), 6f, 1f, cozyMats);
+        // 11. Hero Ice Cream Cart (+ Front Plaque + Painted Sign Upgrade + Basil Pot), Two Friends (Nina & Bia), Protagonist & Florist
+        GameObject cart = PlaceModel(root.transform, "IceCreamCart", "Carrinho de Sorvete", new Vector3(1.15f, 0f, -1.75f), 6f, 1.06f, cozyMats);
 
-        // Choice Upgrade 2: Hand-painted Wooden Crest Sign on Cart (hidden until chosen!)
+        // Clean front plaque typography on the Hero Ice Cream Cart + Choice Upgrade 2
         GameObject cartPaintedSignUpgrade = null;
         if (cart != null)
         {
+            Make3DText(cart.transform, "Placa Frontal Sorvetes", new Vector3(0.10f, 0.81f, -0.54f), "SORVETES", 1.15f, new Color32(218, 72, 118, 255), new Vector2(1.05f, 0.34f));
             cartPaintedSignUpgrade = PlaceModel(cart.transform, "CartPaintedSignUpgrade", "Melhoria - Placa Pintada", new Vector3(0f, 1.62f, -0.52f), 0f, 0.95f, cozyMats);
             if (cartPaintedSignUpgrade != null) cartPaintedSignUpgrade.SetActive(false);
         }
@@ -538,7 +554,9 @@ public static class GirlPowerOrla3DSceneBuilder
         occFader.player = playerRoot.transform;
         occFader.targetCamera = mainCam;
         occFader.occluderRoots = occluderRoots.ToArray();
-        occFader.cutoutRadius = 2.35f;
+        // Fade only the roof section that intersects the avatar silhouette.
+        // The former wide radius made stalls look as if they had a dotted halo.
+        occFader.cutoutRadius = 1.35f;
 
         // 11f. Contact / Blob Shadows anchoring every character, pet, cart, bench, stall, table & prop to the ground!
         List<GirlPowerOrla3DContactShadows.ShadowEntry> shadowEntries = new List<GirlPowerOrla3DContactShadows.ShadowEntry>();
@@ -909,21 +927,22 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject camObj = new GameObject("ACNH Diorama Camera");
         camObj.transform.SetParent(parent, false);
-        camObj.transform.position = new Vector3(10.5f, 6.7f, -11.5f);
-        camObj.transform.rotation = Quaternion.Euler(31.5f, 0f, 0f);
+        camObj.transform.position = new Vector3(-0.2f, 8.2f, -11.35f);
+        camObj.transform.rotation = Quaternion.Euler(39.5f, 0f, 0f);
         Camera cam = camObj.AddComponent<Camera>();
         cam.tag = "MainCamera";
-        cam.fieldOfView = 44f;
+        cam.fieldOfView = 42f;
         cam.nearClipPlane = 0.2f;
         cam.farClipPlane = 140f;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.62f, 0.70f, 0.82f);
+        cam.backgroundColor = new Color(0.64f, 0.77f, 0.87f);
+        cam.depthTextureMode |= DepthTextureMode.Depth;
         camObj.AddComponent<AudioListener>();
         GirlPowerOrla3DCameraPost post = camObj.AddComponent<GirlPowerOrla3DCameraPost>();
-        post.exposure = 0.89f;
-        post.contrast = 1.08f;
-        post.saturation = 1.14f;
-        post.vignetteStrength = 0.17f;
+        post.exposure = 0.90f;
+        post.contrast = 1.06f;
+        post.saturation = 1.08f;
+        post.vignetteStrength = 0.14f;
         return cam;
     }
 
@@ -1132,8 +1151,11 @@ public static class GirlPowerOrla3DSceneBuilder
         {
             mat.shader = oceanShader;
         }
+        if (mat.HasProperty("_DepthDistance")) mat.SetFloat("_DepthDistance", 2.5f);
+        if (mat.HasProperty("_FoamDistance")) mat.SetFloat("_FoamDistance", 0.65f);
+        if (mat.HasProperty("_FoamSpeed")) mat.SetFloat("_FoamSpeed", 0.35f);
         if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
-        if (mat.HasProperty("_WaveHeight")) mat.SetFloat("_WaveHeight", 0.06f);
+        if (mat.HasProperty("_WaveHeight")) mat.SetFloat("_WaveHeight", 0.055f);
         EditorUtility.SetDirty(mat);
         return mat;
     }
@@ -1147,87 +1169,88 @@ public static class GirlPowerOrla3DSceneBuilder
             cozyShader = Shader.Find("Standard");
         }
 
-        // Exact palette matching build_orla_acnh.py!
+        // Calm, cohesive coastal palette: soft cream stone, light wood, desaturated coastal greens,
+        // toned-down secondary reds/oranges, reserving vibrant Hero Berry Pink for Cart & Protagonist!
         var palette = new (string name, string hex, float gloss, string emitHex, float emitStr)[]
         {
-            ("AC_Sand", "#E8CB98", 0.10f, null, 0f),
-            ("AC_SandWet", "#CFA974", 0.28f, null, 0f),
-            ("AC_Grass", "#5EB55B", 0.12f, null, 0f),
-            ("AC_GrassLight", "#7ECA6B", 0.14f, null, 0f),
-            ("AC_Ocean", "#289CB0", 0.55f, null, 0f),
-            ("AC_OceanShallow", "#54CFCB", 0.50f, null, 0f),
-            ("AC_Foam", "#EAF6FA", 0.22f, "#D8F2F8", 0.14f),
-            ("AC_HillDistant", "#5A937C", 0.08f, null, 0f),
-            ("AC_HillFar", "#6A8AA0", 0.08f, null, 0f),
+            ("AC_Sand", "#E9D1A8", 0.10f, null, 0f),
+            ("AC_SandWet", "#CFAF80", 0.24f, null, 0f),
+            ("AC_Grass", "#73A978", 0.10f, null, 0f),
+            ("AC_GrassLight", "#8BBA8B", 0.12f, null, 0f),
+            ("AC_Ocean", "#289CB0", 0.50f, null, 0f),
+            ("AC_OceanShallow", "#54CFCB", 0.45f, null, 0f),
+            ("AC_Foam", "#F4FBFE", 0.20f, "#E2F4FA", 0.12f),
+            ("AC_HillDistant", "#689488", 0.08f, null, 0f),
+            ("AC_HillFar", "#7A98AA", 0.08f, null, 0f),
 
-            ("AC_StoneWhite", "#E2D9CA", 0.14f, null, 0f),
-            ("AC_StoneWarm", "#D2C2AA", 0.14f, null, 0f),
-            ("AC_StoneDark", "#A4947E", 0.12f, null, 0f),
-            ("AC_CobbleA", "#CCA989", 0.14f, null, 0f),
-            ("AC_CobbleB", "#B78F72", 0.14f, null, 0f),
-            ("AC_PlazaTile", "#E0CEB3", 0.14f, null, 0f),
-            ("AC_PlazaAccent", "#D6B48F", 0.14f, null, 0f),
-            ("AC_Asphalt", "#636E7B", 0.10f, null, 0f),
-            ("AC_RoadLine", "#F6E2A2", 0.15f, null, 0f),
+            ("AC_StoneWhite", "#EFE5D2", 0.14f, null, 0f),
+            ("AC_StoneWarm", "#DDD0BA", 0.14f, null, 0f),
+            ("AC_StoneDark", "#9E9382", 0.12f, null, 0f),
+            ("AC_CobbleA", "#D8C2A8", 0.14f, null, 0f),
+            ("AC_CobbleB", "#C5AC92", 0.14f, null, 0f),
+            ("AC_PlazaTile", "#EAE0CC", 0.14f, null, 0f),
+            ("AC_PlazaAccent", "#DEC7A8", 0.14f, null, 0f),
+            ("AC_Asphalt", "#6D7682", 0.10f, null, 0f),
+            ("AC_RoadLine", "#F0DFA8", 0.14f, null, 0f),
 
-            ("AC_WoodWarm", "#B97A4B", 0.20f, null, 0f),
-            ("AC_WoodLight", "#D89E6A", 0.22f, null, 0f),
-            ("AC_WoodDark", "#7B4C2F", 0.18f, null, 0f),
-            ("AC_Cream", "#FFF6E5", 0.28f, null, 0f),
-            ("AC_PinkBerry", "#F26E97", 0.30f, null, 0f),
-            ("AC_PinkSoft", "#FFA9C2", 0.30f, null, 0f),
-            ("AC_MintTeal", "#4EC7B6", 0.32f, null, 0f),
-            ("AC_MintSoft", "#8FE3D6", 0.30f, null, 0f),
-            ("AC_PurplePlum", "#488E8C", 0.28f, null, 0f), // Cohesive coastal teal replacing jarring purple kiosk header!
-            ("AC_Lavender", "#B89CE0", 0.28f, null, 0f),
-            ("AC_Coral", "#F27B66", 0.28f, null, 0f),
-            ("AC_SunnyYellow", "#FFD45E", 0.30f, null, 0f),
-            ("AC_SkyBlue", "#6CC0F0", 0.30f, null, 0f),
-            ("AC_Glass", "#B8F0FA", 0.65f, "#9EE6F5", 0.25f),
-            ("AC_MetalDark", "#3F4959", 0.45f, null, 0f),
-            ("AC_MetalSilver", "#D4DCE6", 0.55f, null, 0f),
-            ("AC_Gold", "#F5BE4F", 0.50f, null, 0f),
+            ("AC_WoodWarm", "#BA885E", 0.18f, null, 0f),
+            ("AC_WoodLight", "#D8B085", 0.20f, null, 0f),
+            ("AC_WoodDark", "#83593D", 0.16f, null, 0f),
+            ("AC_Cream", "#FAF2E4", 0.24f, null, 0f),
+            ("AC_PinkBerry", "#F26392", 0.30f, null, 0f),     // Hero focal accent!
+            ("AC_PinkSoft", "#F6A8C0", 0.28f, null, 0f),
+            ("AC_MintTeal", "#4CC6B8", 0.30f, null, 0f),      // Hero cart body turquoise!
+            ("AC_MintSoft", "#98DBD1", 0.26f, null, 0f),
+            ("AC_PurplePlum", "#4A8C8B", 0.26f, null, 0f),    // Calm coastal teal fascia
+            ("AC_Lavender", "#B3A0D4", 0.24f, null, 0f),
+            ("AC_Coral", "#D68E7E", 0.24f, null, 0f),         // Toned-down coastal terracotta-coral
+            ("AC_SunnyYellow", "#EED286", 0.26f, null, 0f),
+            ("AC_SkyBlue", "#7BBAD8", 0.26f, null, 0f),
+            ("AC_Glass", "#CBEFF7", 0.62f, "#B4E6F2", 0.18f),
+            ("AC_MetalDark", "#475160", 0.42f, null, 0f),
+            ("AC_MetalSilver", "#D6DDE6", 0.52f, null, 0f),
+            ("AC_Gold", "#E8BE62", 0.48f, null, 0f),
 
             ("AC_LanternGlow", "#FFE69C", 0.20f, "#FFD26B", 1.35f),
             ("AC_BulbWarm", "#FFF0B3", 0.20f, "#FFE082", 1.25f),
 
-            ("AC_PalmTrunk", "#C48A5A", 0.15f, null, 0f),
-            ("AC_PalmRing", "#9F6A40", 0.14f, null, 0f),
-            ("AC_PalmLeaf", "#4EBF5C", 0.26f, null, 0f),
-            ("AC_PalmLeafTip", "#7BE06C", 0.28f, null, 0f),
-            ("AC_Coconut", "#6D4127", 0.30f, null, 0f),
-            ("AC_CoconutGreen", "#5DBB53", 0.36f, null, 0f),
-            ("AC_BushGreen", "#52B55E", 0.18f, null, 0f),
-            ("AC_BushLight", "#7CD46E", 0.20f, null, 0f),
-            ("AC_Terracotta", "#D47551", 0.18f, null, 0f),
-            ("AC_Orange", "#FF9333", 0.36f, null, 0f),
-            ("AC_Strawberry", "#FF6E8D", 0.35f, null, 0f),
-            ("AC_Chocolate", "#6E422C", 0.32f, null, 0f),
-            ("AC_Vanilla", "#FFF3D1", 0.30f, null, 0f),
-            ("AC_Waffle", "#E3A75B", 0.22f, null, 0f),
-            ("AC_FlowerPink", "#FF7AA8", 0.28f, null, 0f),
-            ("AC_FlowerYellow", "#FFE055", 0.28f, null, 0f),
-            ("AC_FlowerBlue", "#75BFFF", 0.28f, null, 0f),
-            ("AC_FlowerWhite", "#FFFDF7", 0.28f, null, 0f),
-            ("AC_Starfish", "#FF8566", 0.25f, null, 0f),
-            ("AC_Shell", "#FFE8D6", 0.35f, null, 0f),
+            ("AC_PalmTrunk", "#C6966B", 0.14f, null, 0f),
+            ("AC_PalmRing", "#A47852", 0.14f, null, 0f),
+            ("AC_PalmLeaf", "#5B9B67", 0.22f, null, 0f),
+            ("AC_PalmLeafTip", "#7BB57E", 0.24f, null, 0f),
+            ("AC_Coconut", "#734B32", 0.26f, null, 0f),
+            ("AC_CoconutGreen", "#6DA968", 0.30f, null, 0f),
+            ("AC_BushGreen", "#639A6C", 0.16f, null, 0f),
+            ("AC_BushLight", "#7FB182", 0.18f, null, 0f),
+            ("AC_Terracotta", "#C97D60", 0.16f, null, 0f),
+            ("AC_Orange", "#DF9F68", 0.30f, null, 0f),
+            ("AC_Strawberry", "#F27B96", 0.32f, null, 0f),
+            ("AC_Chocolate", "#724934", 0.30f, null, 0f),
+            ("AC_Vanilla", "#FBF0D4", 0.28f, null, 0f),
+            ("AC_Waffle", "#DFAA68", 0.20f, null, 0f),
+            ("AC_FlowerPink", "#F290B2", 0.26f, null, 0f),
+            ("AC_FlowerYellow", "#F2DA7A", 0.26f, null, 0f),
+            ("AC_FlowerBlue", "#88C2E8", 0.26f, null, 0f),
+            ("AC_FlowerWhite", "#FBF8F0", 0.26f, null, 0f),
+            ("AC_Starfish", "#E28E76", 0.24f, null, 0f),
+            ("AC_Shell", "#F8E8DA", 0.32f, null, 0f),
 
-            ("AC_SkinWarm", "#C9855E", 0.25f, null, 0f),
-            ("AC_SkinLight", "#F4C29F", 0.25f, null, 0f),
-            ("AC_SkinTan", "#DF9F73", 0.25f, null, 0f),
-            ("AC_CheekBlush", "#FF8EA6", 0.25f, null, 0f),
+            ("AC_SkinWarm", "#C9855E", 0.24f, null, 0f),
+            ("AC_SkinLight", "#F4C29F", 0.24f, null, 0f),
+            ("AC_SkinTan", "#DF9F73", 0.24f, null, 0f),
+            ("AC_CheekBlush", "#F694AA", 0.24f, null, 0f),
             ("AC_EyeDark", "#251D29", 0.65f, null, 0f),
             ("AC_EyeShine", "#FFFFFF", 0.40f, "#FFFFFF", 0.65f),
-            ("AC_HairPlum", "#723678", 0.32f, null, 0f),
-            ("AC_HairBrown", "#6B442A", 0.28f, null, 0f),
-            ("AC_HairDark", "#332A38", 0.30f, null, 0f),
-            ("AC_HairAuburn", "#B85337", 0.30f, null, 0f),
-            ("AC_Denim", "#4E78A8", 0.16f, null, 0f),
-            ("AC_StrawHat", "#F2CF7E", 0.16f, null, 0f),
-            ("AC_ShoeDark", "#4E3A4C", 0.25f, null, 0f),
-            ("AC_HouseWall", "#FFF2DB", 0.16f, null, 0f),
-            ("AC_HouseRoof", "#F27B66", 0.22f, null, 0f),
-            ("AC_ProtagShirt", "#F26E97", 0.28f, null, 0f),
+            ("AC_HairPlum", "#723678", 0.30f, null, 0f),
+            ("AC_HairBrown", "#6B442A", 0.26f, null, 0f),
+            ("AC_HairDark", "#332A38", 0.28f, null, 0f),
+            ("AC_HairAuburn", "#B45C42", 0.28f, null, 0f),
+            ("AC_Denim", "#567EA8", 0.16f, null, 0f),
+            ("AC_StrawHat", "#ECCE86", 0.16f, null, 0f),
+            ("AC_ShoeDark", "#4E3A4C", 0.24f, null, 0f),
+            ("AC_HouseWall", "#F7ECDC", 0.14f, null, 0f),
+            ("AC_HouseRoof", "#D98D74", 0.20f, null, 0f),
+            ("AC_ProtagShirt", "#F26392", 0.28f, null, 0f),   // Hero focal accent!
         };
 
         var dict = new Dictionary<string, Material>();

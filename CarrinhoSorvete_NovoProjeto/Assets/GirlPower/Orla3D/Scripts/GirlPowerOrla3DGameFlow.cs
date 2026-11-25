@@ -79,6 +79,10 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
 
     private SubModal activeModal = SubModal.None;
     private float menuOrbitClock;
+    private Vector3 previousPlayerPosition;
+    private float cameraLeadX = 1f;
+    private float cameraLeadZ;
+    private bool hasPreviousPlayerPosition;
     private int chapterCoinsStart;
     private int chapterPaintStart;
 
@@ -106,6 +110,25 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private void Start()
     {
         if (sceneCamera == null) sceneCamera = Camera.main;
+        if (characterAnimator == null) characterAnimator = FindObjectOfType<GirlPowerOrla3DCharacterAnimator>();
+        if (sceneCamera != null)
+        {
+            sceneCamera.fieldOfView = 48f;
+            GirlPowerOrla3DCameraPost cameraPost = sceneCamera.GetComponent<GirlPowerOrla3DCameraPost>();
+            if (cameraPost != null)
+            {
+                cameraPost.contrast = 1.04f;
+                cameraPost.saturation = 1.02f;
+                cameraPost.vignetteStrength = 0.10f;
+            }
+        }
+        GirlPowerOrla3DOcclusionFader occlusionFader = FindObjectOfType<GirlPowerOrla3DOcclusionFader>();
+        if (occlusionFader != null) occlusionFader.cutoutRadius = 1.35f;
+        if (characterAnimator != null)
+        {
+            previousPlayerPosition = characterAnimator.transform.position;
+            hasPreviousPlayerPosition = true;
+        }
         EnterTitleMenu();
     }
 
@@ -348,6 +371,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         }
         else if (CurrentState == GameState.Playing)
         {
+            UpdateGameplayCamera(Time.deltaTime);
             UpdateChapterTimer(Time.deltaTime);
         }
         else if (CurrentState == GameState.ChapterVictory)
@@ -368,6 +392,44 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, targetPos, 1f - Mathf.Exp(-2.2f * dt));
         Quaternion targetRot = Quaternion.LookRotation((lookAt - sceneCamera.transform.position).normalized, Vector3.up);
         sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRot, 1f - Mathf.Exp(-2.4f * dt));
+    }
+
+    private void UpdateGameplayCamera(float dt)
+    {
+        if (sceneCamera == null || characterAnimator == null) return;
+
+        Transform player = characterAnimator.transform;
+        Vector3 playerPosition = player.position;
+        if (hasPreviousPlayerPosition)
+        {
+            Vector3 movement = playerPosition - previousPlayerPosition;
+            if (movement.sqrMagnitude > 0.0004f)
+            {
+                if (Mathf.Abs(movement.x) > Mathf.Abs(movement.z) * 0.72f)
+                {
+                    cameraLeadX = Mathf.Sign(movement.x);
+                    cameraLeadZ = 0f;
+                }
+                else
+                {
+                    cameraLeadZ = Mathf.Sign(movement.z);
+                    cameraLeadX = 0f;
+                }
+            }
+        }
+        previousPlayerPosition = playerPosition;
+        hasPreviousPlayerPosition = true;
+
+        // Keep the avatar in the lower half of the frame and reveal the route ahead.
+        Vector3 lookAhead = new Vector3(cameraLeadX * 2.8f, 0f, cameraLeadZ * 2.2f);
+        Vector3 focus = playerPosition + lookAhead;
+        Vector3 targetPosition = focus + new Vector3(0f, 9.6f, -10.5f);
+        float positionBlend = 1f - Mathf.Exp(-4.0f * Mathf.Max(0f, dt));
+        sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, targetPosition, positionBlend);
+
+        Vector3 lookAt = playerPosition + Vector3.up * 0.8f + lookAhead * 0.72f;
+        Quaternion targetRotation = Quaternion.LookRotation(lookAt - sceneCamera.transform.position, Vector3.up);
+        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRotation, 1f - Mathf.Exp(-5.0f * Mathf.Max(0f, dt)));
     }
 
     private void UpdateChapterTimer(float dt)

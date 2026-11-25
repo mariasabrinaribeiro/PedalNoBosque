@@ -407,18 +407,21 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
     private void OnGUI()
     {
         if (gameFlow != null && !gameFlow.IsPlaying) return;
+        // Keep the HUD calm & uncluttered during peaceful exploration: show Detective UI ONLY when a raid is active!
+        if (!IsThiefActive && state != RaidState.PoliceResponding) return;
+
         GirlPowerOrla3DUITheme.EnsureInitialized();
         float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
 
-        // Compact Detective Security Badge below top-left Order Card
+        // Compact Detective Security Badge below top-left Order Card (only while thief event is active)
         float bw = 326f * s;
-        Rect badge = new Rect(18f * s, 134f * s, bw, 44f * s);
+        Rect badge = new Rect(18f * s, 134f * s, bw, 42f * s);
         GUI.Box(badge, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
-        GUI.DrawTexture(new Rect(badge.x + 8f * s, badge.y + 8f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconPaw);
+        GUI.DrawTexture(new Rect(badge.x + 8f * s, badge.y + 7f * s, 26f * s, 26f * s), GirlPowerOrla3DUITheme.IconPaw);
 
-        string secText = "Detetive Pipoca: " + ArrestsCount + "/" + arrestsToWin + "  •  " + DetectivePoints + " pts  •  Furtos: " + TheftsOccurred + "/" + maxAllowedThefts;
-        GUI.Label(new Rect(badge.x + 40f * s, badge.y + 4f * s, bw - 48f * s, 36f * s), secText,
-            new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle) { fontSize = Mathf.RoundToInt(11.5f * s), alignment = TextAnchor.MiddleLeft });
+        string secText = "Pipoca: " + ArrestsCount + "/" + arrestsToWin + " presos  •  " + DetectivePoints + " pts";
+        GUI.Label(new Rect(badge.x + 40f * s, badge.y + 3f * s, bw - 48f * s, 34f * s), secText,
+            new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle) { fontSize = Mathf.RoundToInt(12f * s), alignment = TextAnchor.MiddleLeft });
 
         // Active Thief Alert Banner + One-Click Call Police [L] Button!
         if (IsThiefActive || state == RaidState.PoliceResponding)

@@ -20,6 +20,9 @@ public sealed class GirlPowerOrla3DCameraPost : MonoBehaviour
 
     private void OnEnable()
     {
+        Camera cam = GetComponent<Camera>();
+        if (cam != null)
+            cam.depthTextureMode |= DepthTextureMode.Depth;
         EnsureMaterial();
     }
 

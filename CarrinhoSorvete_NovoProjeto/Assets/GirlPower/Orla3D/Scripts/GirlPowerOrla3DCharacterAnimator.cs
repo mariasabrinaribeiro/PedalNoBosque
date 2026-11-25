@@ -398,14 +398,24 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
 
         effectClock += dt;
-        if (effectClock >= (moving ? 0.07f : 0.20f))
+        if (effectClock >= (moving ? 0.065f : 0.22f))
         {
             effectClock = 0f;
-            Vector3 sprayPos = worldPos + Vector3.up * 0.08f;
-            Vector3 vel = new Vector3(Random.Range(-1.1f, 1.1f), Random.Range(0.75f, 1.6f), Random.Range(-1.1f, 1.1f));
-            SpawnPuff(sprayPos, vel, 0.14f, 0.28f, 0.46f, new Color(0.90f, 0.99f, 1.0f), false);
-            if (moving && audioController != null && Random.value > 0.65f)
-                audioController.PlayFootstep(2);
+            Vector3 backDir = visualRoot != null ? visualRoot.forward : Vector3.back;
+            Vector3 rightDir = visualRoot != null ? visualRoot.right : Vector3.right;
+            // Clean white wake ribbon right behind the surfboard / canoe so height & shore direction read clearly!
+            Vector3 wakeCenter = new Vector3(worldPos.x, -0.25f, worldPos.z) + backDir * 0.45f;
+            SpawnPuff(wakeCenter + rightDir * 0.22f, Vector3.zero, moving ? 0.24f : 0.16f, 0.36f, 0.95f, new Color(0.93f, 0.99f, 1.0f), true);
+            SpawnPuff(wakeCenter - rightDir * 0.22f, Vector3.zero, moving ? 0.24f : 0.16f, 0.36f, 0.95f, new Color(0.93f, 0.99f, 1.0f), true);
+
+            if (moving)
+            {
+                Vector3 sprayPos = worldPos + Vector3.up * 0.06f + backDir * 0.35f;
+                Vector3 vel = new Vector3(Random.Range(-0.85f, 0.85f), Random.Range(0.55f, 1.25f), Random.Range(-0.85f, 0.85f));
+                SpawnPuff(sprayPos, vel, 0.12f, 0.22f, 0.38f, new Color(0.95f, 0.99f, 1.0f), false);
+                if (audioController != null && Random.value > 0.68f)
+                    audioController.PlayFootstep(2);
+            }
         }
     }
 

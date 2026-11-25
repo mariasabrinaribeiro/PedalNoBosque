@@ -377,9 +377,9 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         float btnH = 50f * s;
         float gap = 8f * s;
 
-        // 3. Cardápio Ilustrado Button with clear [TAB] key tag
+        // 3. Cardápio Ilustrado Button (calm cream style — strong accent reserved strictly for primary [E] action!)
         Rect cardapioBtn = new Rect(x, y, 134f * s, btnH);
-        if (GUI.Button(cardapioBtn, "[TAB] Cardápio", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        if (GUI.Button(cardapioBtn, "[TAB] Cardápio", GirlPowerOrla3DUITheme.BtnTileStyle))
             if (cardapioUI != null) cardapioUI.Toggle();
         x += 134f * s + gap;
 
@@ -427,33 +427,31 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
             x += 48f * s + gap;
         }
 
-        // 7. Contextual Friendship / Gift Heart Pill when near a neighbor!
+        // 7. Contextual Friendship / Gift Heart Pill when near a neighbor (calm style!)
         int nearFriend = FindNearestFriend(3.5f);
         if (nearFriend >= 0)
         {
             Rect heartRect = new Rect(x, y, 134f * s, btnH);
-            if (GUI.Button(heartRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            if (GUI.Button(heartRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnTileStyle))
                 TriggerFriendAction();
             GUI.DrawTexture(new Rect(heartRect.x + 10f * s, heartRect.y + 10f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconHeart);
             GUI.Label(new Rect(heartRect.x + 42f * s, heartRect.y + 6f * s, 86f * s, 38f * s),
                 bagItems.Count > 0 ? "[G] Presente" : "[G] Amizade",
-                new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(12f * s), alignment = TextAnchor.MiddleLeft });
+                new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(12f * s), alignment = TextAnchor.MiddleLeft });
         }
 
-        // World-space [E] prompt above nearby Market Stall
+        // Consistent bottom-center primary [E] prompt for nearby Market Stall (never overlaps story action!)
+        bool storyHasAction = storyController != null && storyController.HasNearbyStoryInteractable;
         int nearShop = FindNearestShop(3.0f);
-        if (nearShop >= 0 && !IsShopMenuOpen && sceneCamera != null && shops[nearShop].stallTransform != null)
+        if (nearShop >= 0 && !storyHasAction && !IsShopMenuOpen && (megaSystems == null || !megaSystems.IsAnyModalOpen))
         {
-            Vector3 sp = sceneCamera.WorldToScreenPoint(shops[nearShop].stallTransform.position + Vector3.up * 2.5f);
-            if (sp.z > 0.1f)
-            {
-                float sw = 230f * s;
-                float sh = 42f * s;
-                float sx = Mathf.Clamp(sp.x - sw * 0.5f, 16f * s, Screen.width - sw - 16f * s);
-                float sy = Mathf.Clamp((Screen.height - sp.y) - sh, 90f * s, Screen.height - 150f * s);
-                if (GUI.Button(new Rect(sx, sy, sw, sh), "[E]  " + shops[nearShop].shopName, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
-                    OpenShopAsCardapio(nearShop);
-            }
+            string shopTxt = "[E]  " + shops[nearShop].shopName;
+            float sw = Mathf.Clamp(92f * s + shopTxt.Length * 7.8f * s, 215f * s, 360f * s);
+            float sh = 46f * s;
+            float sx = (Screen.width - sw) * 0.5f;
+            float sy = Screen.height - 118f * s;
+            if (GUI.Button(new Rect(sx, sy, sw, sh), shopTxt, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+                OpenShopAsCardapio(nearShop);
         }
 
         // Rounded Cozy Shop Modal

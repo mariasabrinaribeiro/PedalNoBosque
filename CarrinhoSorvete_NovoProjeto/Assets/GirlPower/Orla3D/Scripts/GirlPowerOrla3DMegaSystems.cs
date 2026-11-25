@@ -621,12 +621,12 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
 
     private void DrawFloatingStationBtn(Transform target, string label, float s, Action onClick)
     {
-        Vector3 sp = sceneCamera.WorldToScreenPoint(target.position + Vector3.up * 2.35f);
-        if (sp.z <= 0.1f) return;
-        float w = Mathf.Clamp(90f * s + label.Length * 7.2f * s, 190f * s, 350f * s);
-        float h = 42f * s;
-        float x = Mathf.Clamp(sp.x - w * 0.5f, 16f * s, Screen.width - w - 16f * s);
-        float y = Mathf.Clamp((Screen.height - sp.y) - h, 88f * s, Screen.height - 150f * s);
+        if (target == null) return;
+        // Consistent bottom-center primary action region (matches FirstDelivery & Shops!)
+        float w = Mathf.Clamp(92f * s + label.Length * 7.8f * s, 215f * s, 360f * s);
+        float h = 46f * s;
+        float x = (Screen.width - w) * 0.5f;
+        float y = Screen.height - 118f * s;
         if (GUI.Button(new Rect(x, y, w, h), label, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             onClick?.Invoke();
     }

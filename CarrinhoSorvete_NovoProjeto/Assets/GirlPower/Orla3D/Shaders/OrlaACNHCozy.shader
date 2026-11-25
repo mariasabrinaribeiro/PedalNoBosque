@@ -125,7 +125,7 @@ Shader "GirlPower/OrlaACNHCozy"
                     if (distToRay < _OccluderRadius)
                     {
                         float fade = smoothstep(0.18, 1.0, saturate(distToRay / max(0.01, _OccluderRadius)));
-                        float alphaKeep = lerp(0.30, 1.0, fade);
+                        float alphaKeep = lerp(0.02, 1.0, fade);
                         float2 screenUV = IN.screenPos.xy / max(0.0001, IN.screenPos.w);
                         float2 pixelPos = screenUV * _ScreenParams.xy;
                         clip(alphaKeep - BayerDither4x4(pixelPos));

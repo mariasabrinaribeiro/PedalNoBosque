@@ -68,9 +68,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public float turnSpeed = 9.5f;
     public float interactionRadius = 2.9f;
 
-    [Header("Balanced Horizon Diorama Camera")]
-    public Vector3 cameraOffset = new Vector3(0f, 6.7f, -11.5f);
-    public float cameraPitch = 31.5f;
+    [Header("Elevated Clear Diorama Camera (Hero Protagonist & Cart Framing)")]
+    public Vector3 cameraOffset = new Vector3(0f, 8.2f, -9.6f);
+    public float cameraPitch = 39.5f;
     public float cameraSmoothTime = 0.22f;
     public float minZoom = 0.72f;
     public float maxZoom = 1.48f;
@@ -90,6 +90,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     public int BasilLeavesCount => basilLeaves;
     public bool HasChoiceMenuOpen => cartOpen || inviteMenuOpen;
+    public bool HasNearbyStoryInteractable => TryGetNearbyInteractable(out _, out _);
 
     public void AddBasilLeaves(int amount)
     {
@@ -603,16 +604,21 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private void FollowAnimalCrossingCamera(Vector2 input)
     {
         if (sceneCamera == null) return;
-        Vector3 scaledOffset = cameraOffset * zoomFactor;
-        float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.25f, -1.4f, 1.4f);
-        float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.18f, -0.9f, 0.9f);
+        bool inWater = characterAnimator != null && characterAnimator.IsInWater;
+        Vector3 baseOff = inWater ? new Vector3(0f, 8.8f, -10.8f) : cameraOffset;
+        float targetPitch = inWater ? 41.0f : cameraPitch;
+
+        Vector3 scaledOffset = baseOff * zoomFactor;
+        float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.26f, -1.5f, 1.5f);
+        // Slightly bias camera forward (+0.65f Z) on land so the protagonist sees more path ahead!
+        float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.18f, -0.9f, 0.9f) + (inWater ? -0.4f : 0.55f);
         float desiredX = Mathf.Clamp(player.position.x + lookAheadX, minWorldX + 3.0f, maxWorldX - 3.0f);
         float desiredZ = player.position.z + lookAheadZ + scaledOffset.z;
         float desiredY = player.position.y + scaledOffset.y;
         Vector3 shake = GirlPowerOrla3DJuice.Instance != null ? GirlPowerOrla3DJuice.Instance.GetCameraShakeOffset() : Vector3.zero;
         Vector3 target = new Vector3(desiredX, desiredY, desiredZ) + shake;
         sceneCamera.transform.position = Vector3.SmoothDamp(sceneCamera.transform.position, target, ref cameraVelRef, cameraSmoothTime);
-        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, Quaternion.Euler(cameraPitch, 0f, 0f), 1f - Mathf.Exp(-5.5f * Time.deltaTime));
+        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, Quaternion.Euler(targetPitch, 0f, 0f), 1f - Mathf.Exp(-5.5f * Time.deltaTime));
     }
 
     private void TryAutoPickupNearbyCard()
@@ -1611,19 +1617,17 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private void DrawWorldSpaceInteractPrompt(float s)
     {
         if (!TryGetNearbyInteractable(out Transform target, out string actionLabel)) return;
-        if (sceneCamera == null || target == null) return;
+        if (target == null) return;
 
-        Vector3 sp = sceneCamera.WorldToScreenPoint(target.position + Vector3.up * 2.15f);
-        if (sp.z <= 0.1f) return;
-
-        float bob = Mathf.Sin(Time.time * 5.2f) * 4f * s;
-        float w = Mathf.Clamp(110f * s + actionLabel.Length * 7.2f * s, 170f * s, 320f * s);
-        float h = 42f * s;
-        float x = Mathf.Clamp(sp.x - w * 0.5f, 16f * s, Screen.width - w - 16f * s);
-        float y = Mathf.Clamp((Screen.height - sp.y) - h + bob, 90f * s, Screen.height - 135f * s);
+        // Fixed, consistent bottom-center primary action region (reserves strong accent color for the main action!)
+        string text = "[E]  " + actionLabel;
+        float w = Mathf.Clamp(92f * s + text.Length * 7.8f * s, 215f * s, 360f * s);
+        float h = 46f * s;
+        float x = (Screen.width - w) * 0.5f;
+        float y = Screen.height - 118f * s;
 
         Rect pill = new Rect(x, y, w, h);
-        if (GUI.Button(pill, "  [E]  " + actionLabel, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        if (GUI.Button(pill, text, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             Interact();
     }
 

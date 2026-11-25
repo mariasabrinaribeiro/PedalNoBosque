@@ -10,7 +10,7 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
     public Transform player;
     public Camera targetCamera;
     public Transform[] occluderRoots;
-    public float cutoutRadius = 2.25f;
+    public float cutoutRadius = 1.45f;
 
     private static readonly int PropPlayerPos = Shader.PropertyToID("_BaiaPlayerPos");
     private static readonly int PropCamPos = Shader.PropertyToID("_BaiaCamPos");

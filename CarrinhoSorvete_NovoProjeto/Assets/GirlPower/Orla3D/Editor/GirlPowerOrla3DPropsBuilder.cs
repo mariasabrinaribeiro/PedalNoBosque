@@ -63,11 +63,22 @@ public static class GirlPowerOrla3DPropsBuilder
         grp.transform.SetParent(parent, false);
 
         Material grass = GetMat(mats, "AC_Grass");
+        Material stoneWhite = GetMat(mats, "AC_StoneWhite");
         Material stoneWarm = GetMat(mats, "AC_StoneWarm");
         Material woodWarm = GetMat(mats, "AC_WoodWarm");
         Material woodLight = GetMat(mats, "AC_WoodLight");
         Material bush = GetMat(mats, "AC_BushGreen");
         Material stoneDark = GetMat(mats, "AC_StoneDark");
+
+        // Crisp continuous boardwalk curbs defining walkway, lawn, and beach sand cleanly!
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Calcadao_Sul",
+            new Vector3(12f, 0.03f, -3.52f), new Vector3(92f, 0.12f, 0.22f), Quaternion.identity, stoneWhite, true);
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Jardim_Interno",
+            new Vector3(12f, 0.025f, -0.58f), new Vector3(90f, 0.09f, 0.16f), Quaternion.identity, stoneWarm, false);
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Oeste",
+            new Vector3(-3.2f, 0.03f, 3.42f), new Vector3(31.5f, 0.12f, 0.24f), Quaternion.identity, stoneWhite, true);
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Leste",
+            new Vector3(28.5f, 0.03f, 3.42f), new Vector3(20.5f, 0.12f, 0.24f), Quaternion.identity, stoneWhite, true);
 
         // Continuous south sidewalk & coastal garden ground behind the road (z = -8.0 .. -26.0, zero gray void!)
         MakePrim(grp.transform, PrimitiveType.Cube, "Calcada_Sul",
@@ -543,19 +554,7 @@ public static class GirlPowerOrla3DPropsBuilder
                 i % 3 == 0 ? leafA : (i % 3 == 1 ? leafB : leafC), false);
             leaves.Add(leaf.transform);
         }
-
-        GameObject sparkGrp = new GameObject("Brilhos_Agua_Baia");
-        sparkGrp.transform.SetParent(parent, false);
-        Material glow = GetMat(mats, "AC_LanternGlow");
-        for (int i = 0; i < 18; i++)
-        {
-            float x = -11f + i * 2.65f;
-            float z = 11.0f + (i % 4) * 1.85f;
-            GameObject sp = MakePrim(sparkGrp.transform, PrimitiveType.Sphere, "Brilho_Mar_" + (i + 1),
-                new Vector3(x, -0.18f, z),
-                Vector3.one * 0.12f, Quaternion.identity, glow, false);
-            sparkles.Add(sp.transform);
-        }
+        // Open ocean sparkles intentionally omitted so Depth-Buffer Stylized Water stays pure & calm!
     }
 
     private static GameObject MakePrim(

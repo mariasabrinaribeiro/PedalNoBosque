@@ -112,12 +112,14 @@ public sealed class GirlPowerOrla3DContactShadows : MonoBehaviour
         float heightAbove = Mathf.Max(0f, p.y - groundY);
         float shrink = Mathf.Clamp(1f - heightAbove * 0.25f, 0.52f, 1.05f);
 
-        // Hide ground shadow slightly when surfing deep water (replace with subtle water silhouette)
-        bool inDeepWater = p.z >= 10.2f;
-        float scaleBoost = inDeepWater ? 0.85f : 1f;
+        // Clear soft surfboard/water contact shadow so board height above waves reads effortlessly!
+        bool inWater = p.z >= 9.75f;
+        float shadowY = inWater ? -0.22f + inst.yOffset : groundY + 0.032f + inst.yOffset;
+        float scaleX = inWater ? 1.28f : 1f;
+        float scaleZ = inWater ? 1.48f : 1f;
 
-        inst.quad.position = new Vector3(p.x, groundY + 0.032f + inst.yOffset, p.z);
-        inst.quad.localScale = new Vector3(inst.baseSize.x * shrink * scaleBoost, 1f, inst.baseSize.y * shrink * scaleBoost);
+        inst.quad.position = new Vector3(p.x, shadowY, p.z);
+        inst.quad.localScale = new Vector3(inst.baseSize.x * shrink * scaleX, 1f, inst.baseSize.y * shrink * scaleZ);
     }
 
     private static float SampleGroundY(float x, float z)
