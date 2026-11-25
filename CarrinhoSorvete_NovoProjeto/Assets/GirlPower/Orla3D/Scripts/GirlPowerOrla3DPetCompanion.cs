@@ -49,6 +49,17 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private float detectiveAnimClock;
     private float detectiveHappyTimer;
 
+    // Articulated Blender 5.3 joints for Pipoca (tail wag, floppy ears, galloping legs!)
+    private Transform pHead;
+    private Transform pTail;
+    private Transform pEarL;
+    private Transform pEarR;
+    private Transform pLegFL;
+    private Transform pLegFR;
+    private Transform pLegBL;
+    private Transform pLegBR;
+    private Vector3 prevFramePos;
+
     private static readonly Vector3[] HiddenSpots =
     {
         new Vector3(4.5f, -0.15f, 7.2f),   // Low-tide shells near sand
@@ -76,6 +87,57 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
             detectiveHatProp.localScale = Vector3.one * 0.85f;
             detectiveHatProp.gameObject.SetActive(false);
         }
+        pHead = FindChildRec(transform, "Pipoca_Head");
+        pTail = FindChildRec(transform, "Pipoca_Tail");
+        pEarL = FindChildRec(transform, "Pipoca_EarL");
+        pEarR = FindChildRec(transform, "Pipoca_EarR");
+        pLegFL = FindChildRec(transform, "Pipoca_LegFL");
+        pLegFR = FindChildRec(transform, "Pipoca_LegFR");
+        pLegBL = FindChildRec(transform, "Pipoca_LegBL");
+        pLegBR = FindChildRec(transform, "Pipoca_LegBR");
+        prevFramePos = transform.position;
+    }
+
+    private static Transform FindChildRec(Transform root, string n)
+    {
+        if (root.name == n) return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform hit = FindChildRec(root.GetChild(i), n);
+            if (hit != null) return hit;
+        }
+        return null;
+    }
+
+    private void LateUpdate()
+    {
+        if (isCat) return;
+        float t = Time.time;
+        float dt = Mathf.Max(0.001f, Time.deltaTime);
+        float speed = new Vector2(transform.position.x - prevFramePos.x, transform.position.z - prevFramePos.z).magnitude / dt;
+        prevFramePos = transform.position;
+
+        bool excited = happyTimer > 0f || detectiveHappyTimer > 0f || detectiveSuspect != null || trickTimer > 0f;
+        float wagRate = excited ? 20f : 9f;
+        float wagAmp = excited ? 36f : 18f;
+        if (pTail != null)
+            pTail.localRotation = Quaternion.Euler(excited ? 18f : 0f, Mathf.Sin(t * wagRate) * wagAmp, 0f);
+
+        float earFlop = speed > 0.35f ? Mathf.Abs(Mathf.Sin(t * 14f)) * 22f : Mathf.Sin(t * 3.5f) * 5f;
+        if (pEarL != null) pEarL.localRotation = Quaternion.Euler(0f, 0f, earFlop);
+        if (pEarR != null) pEarR.localRotation = Quaternion.Euler(0f, 0f, -earFlop);
+
+        if (pHead != null)
+        {
+            float headTilt = CurrentDetectiveSignal == DetectiveSignal.Chorar ? 18f : (CurrentDetectiveSignal == DetectiveSignal.Latir ? -14f : Mathf.Sin(t * 2.5f) * 4f);
+            pHead.localRotation = Quaternion.Euler(headTilt, 0f, excited ? Mathf.Sin(t * 6f) * 8f : 0f);
+        }
+
+        float stride = speed > 0.25f ? Mathf.Sin(t * 16f) * 34f : 0f;
+        if (pLegFL != null) pLegFL.localRotation = Quaternion.Euler(stride, 0f, 0f);
+        if (pLegFR != null) pLegFR.localRotation = Quaternion.Euler(-stride, 0f, 0f);
+        if (pLegBL != null) pLegBL.localRotation = Quaternion.Euler(-stride, 0f, 0f);
+        if (pLegBR != null) pLegBR.localRotation = Quaternion.Euler(stride, 0f, 0f);
     }
 
     public void SetDetectiveAlert(Transform suspect, DetectiveSignal signal)
