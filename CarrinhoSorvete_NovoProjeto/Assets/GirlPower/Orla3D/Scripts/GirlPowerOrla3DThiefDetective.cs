@@ -40,6 +40,8 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
     public GirlPowerOrla3DCharacterAnimator characterAnimator;
 
     [Header("Balance & Rules (Calm Cozy Resort Pacing)")]
+    [Tooltip("Keep disabled for cozy relaxed serving without disruptive thief raids or unexpected Game Over.")]
+    public bool enableThiefRaids = false;
     public int arrestsToWin = 3;
     public int maxAllowedThefts = 3;
     public float firstRaidDelay = 55f;
@@ -93,6 +95,11 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
 
     private void Update()
     {
+        if (!enableThiefRaids)
+        {
+            if (IsThiefActive) ResetSession();
+            return;
+        }
         if (gameFlow != null && !gameFlow.IsPlaying) return;
         if (gameFlow != null && gameFlow.FreePlayKidsMode)
         {

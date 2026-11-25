@@ -362,7 +362,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         if (tbl != null && g.cfg.actor != null)
         {
             g.cfg.actor.position = tbl.position + new Vector3(-1.35f, 0f, -0.35f);
-            g.cfg.actor.rotation = Quaternion.Euler(0f, -90f, 0f);
+            g.cfg.actor.rotation = Quaternion.Euler(0f, 90f, 0f);
         }
     }
 
@@ -449,14 +449,15 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                 }
                 else
                 {
-                    // Dog or Cat sits/trots with distinct pet sniffing & varied gait rhythm beside owner!
+                    // Dog or Cat sits/trots cleanly beside owner (outside table collider!) with sniffing & varied gait rhythm!
                     float sniffWave = Mathf.Sin(t * 0.9f + i * 2.3f);
                     bool sniffingGround = sniffWave > 0.55f;
                     float paceMult = sniffingGround ? 0.45f : (sniffWave < -0.3f ? 1.28f : 0.95f);
-                    Vector3 petGoal = ownerPos + new Vector3(-0.78f, 0f, -0.55f);
-                    petGoal.y = g.homePos.y + (sniffingGround ? 0.01f : Mathf.Abs(Mathf.Sin(t * (6.2f * paceMult) + i)) * 0.07f);
+                    Vector3 petGoal = ownerPos + new Vector3(-0.55f, 0f, 0.85f);
+                    petGoal.y = Mathf.Max(0f, g.homePos.y) + (sniffingGround ? 0.01f : Mathf.Abs(Mathf.Sin(t * (6.2f * paceMult) + i)) * 0.06f);
                     g.cfg.petCompanion.position = Vector3.Lerp(g.cfg.petCompanion.position, petGoal, dt * (4.5f * paceMult));
-                    g.cfg.petCompanion.rotation = Quaternion.Slerp(g.cfg.petCompanion.rotation, g.cfg.actor.rotation, dt * 6f);
+                    Quaternion flatOwnerRot = Quaternion.Euler(0f, g.cfg.actor.eulerAngles.y, 0f);
+                    g.cfg.petCompanion.rotation = Quaternion.Slerp(g.cfg.petCompanion.rotation, flatOwnerRot, dt * 6f);
                     if (g.petHead != null)
                     {
                         Quaternion headTarget = sniffingGround
@@ -496,15 +497,15 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
     private bool TryInteractNearPlayer()
     {
         if (player == null) return false;
-        // 1. Refill nearby thirsty/low water bowl
-        int bowlIdx = FindNearestLowBowl(2.8f);
+        // 1. Refill nearby low water bowl (generous 4.4m radius!)
+        int bowlIdx = FindNearestLowBowl(4.4f);
         if (bowlIdx >= 0)
         {
             RefillBowl(bowlIdx, false);
             return true;
         }
-        // 2. Serve nearby Pet-Friendly dual-order table
-        GuestRuntime g = FindNearestWaitingGuest(3.4f);
+        // 2. Serve nearby Pet-Friendly dual-order table (generous 5.0m radius!)
+        GuestRuntime g = FindNearestWaitingGuest(5.0f);
         if (g != null)
         {
             ServePetFriendlyGuest(g);
@@ -520,7 +521,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         float bestD = maxDist;
         for (int i = 0; i < bowls.Count; i++)
         {
-            if (bowls[i].level > 0.72f || bowls[i].cfg.bowlRoot == null) continue;
+            if (bowls[i].level > 0.85f || bowls[i].cfg.bowlRoot == null) continue;
             float d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(bowls[i].cfg.bowlRoot.position.x, bowls[i].cfg.bowlRoot.position.z));
             if (d < bestD) { bestD = d; best = i; }
         }
@@ -543,15 +544,19 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
 
     public bool TryServeTableByIndex(int tableIndex, bool byFairy)
     {
+        bool servedAny = false;
         for (int i = 0; i < guests.Count; i++)
         {
             if (guests[i].assignedTable == tableIndex && guests[i].waitingForOrder)
             {
                 ServePetFriendlyGuest(guests[i]);
-                return true;
+                servedAny = true;
+                break;
             }
         }
-        return false;
+        if (megaSystems != null && megaSystems.TryQuickServeTable(tableIndex))
+            servedAny = true;
+        return servedAny;
     }
 
     private Texture2D GetIllustratedOrderIcon(string orderName)
@@ -610,70 +615,115 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         GirlPowerOrla3DUITheme.EnsureInitialized();
         float s = Mathf.Clamp(Screen.width / 1600f, 0.72f, 1.15f);
 
-        // 1. PURE ICON-ONLY Dual Order Bubbles above seated Pet-Friendly guests (NO text labels!)
+        // 1. CLICKABLE 1-TAP Order Bubbles above seated Pet-Friendly guests (tap bubble -> serve instantly or dispatch Fairy!)
         for (int i = 0; i < guests.Count; i++)
         {
             GuestRuntime g = guests[i];
             if (!g.waitingForOrder || g.cfg.actor == null) continue;
             Vector3 sp = sceneCamera.WorldToScreenPoint(g.cfg.actor.position + Vector3.up * 2.15f);
-            if (sp.z <= 0.2f || sp.z > 30f) continue;
+            if (sp.z <= 0.2f || sp.z > 32f) continue;
 
             float cx = sp.x;
             float cy = Screen.height - sp.y;
             float bob = Mathf.Sin(Time.time * 3.2f + i) * 3.5f * s;
             bool hasPet = g.cfg.petKind != GirlPowerOrla3DArchetypeConfig.PetKind.None;
 
-            float bSz = 54f * s;
+            float bSz = 56f * s;
             float pad = 7f * s;
-            Rect humanBubble = new Rect(hasPet ? (cx - bSz - 3f * s) : (cx - bSz * 0.5f), cy - bSz + bob, bSz, bSz);
-            GUI.Box(humanBubble, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+            float totalW = hasPet ? (bSz + 48f * s + 6f * s) : bSz;
+            Rect hitBubble = new Rect(cx - totalW * 0.5f, cy - bSz + bob, totalW, bSz);
+            if (GUI.Button(hitBubble, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle))
+            {
+                QuickServeGuest(g);
+            }
             Texture2D foodIcon = GetIllustratedOrderIcon(g.humanOrder);
             if (foodIcon != null)
-                GUI.DrawTexture(new Rect(humanBubble.x + pad, humanBubble.y + pad, bSz - pad * 2f, bSz - pad * 2f), foodIcon);
+                GUI.DrawTexture(new Rect(hitBubble.x + pad, hitBubble.y + pad, bSz - pad * 2f, bSz - pad * 2f), foodIcon);
 
             if (hasPet)
             {
                 float pSz = 46f * s;
-                Rect petBubble = new Rect(cx + 3f * s, cy - pSz + bob - 3f * s, pSz, pSz);
-                GUI.Box(petBubble, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
                 Texture2D petIcon = GetPetOrderIcon(g.cfg.petKind);
                 if (petIcon != null)
-                    GUI.DrawTexture(new Rect(petBubble.x + pad, petBubble.y + pad, pSz - pad * 2f, pSz - pad * 2f), petIcon);
+                    GUI.DrawTexture(new Rect(hitBubble.x + bSz + 2f * s, hitBubble.y + (bSz - pSz) * 0.5f, pSz - 6f * s, pSz - 6f * s), petIcon);
             }
         }
 
-        // 2. PURE ICON-ONLY Pulsing Blue Water Drop above EMPTY/LOW Water Bowls (NO text banner!)
+        // 2. CLICKABLE 1-TAP Pulsing Blue Water Drop above LOW Water Bowls (tap drop -> refill instantly or dispatch Fairy!)
         for (int i = 0; i < bowls.Count; i++)
         {
-            if (bowls[i].level > 0.22f || bowls[i].cfg.bowlRoot == null) continue;
+            if (bowls[i].level > 0.45f || bowls[i].cfg.bowlRoot == null) continue;
             Vector3 sp = sceneCamera.WorldToScreenPoint(bowls[i].cfg.bowlRoot.position + Vector3.up * 0.92f);
-            if (sp.z <= 0.2f || sp.z > 28f) continue;
+            if (sp.z <= 0.2f || sp.z > 30f) continue;
 
             float pulse = 1.0f + Mathf.Sin(Time.time * 6.5f + i) * 0.14f;
             float floatY = Mathf.Sin(Time.time * 3.4f + i) * 4.5f * s;
-            float sz = 44f * s * pulse;
+            float sz = 48f * s * pulse;
             Rect badge = new Rect(sp.x - sz * 0.5f, (Screen.height - sp.y) - sz + floatY, sz, sz);
+            if (GUI.Button(badge, GUIContent.none, GUIStyle.none))
+            {
+                QuickRefillBowl(i);
+            }
             GUI.DrawTexture(badge, GirlPowerOrla3DUITheme.CircleGlassTex);
             float ip = 7f * s * pulse;
             GUI.DrawTexture(new Rect(badge.x + ip, badge.y + ip, sz - ip * 2f, sz - ip * 2f), GirlPowerOrla3DUITheme.IconWaterDrop);
         }
 
-        // 3. Compact contextual bottom-center primary action pill ONLY when standing right next to a bowl/table
+        // 3. Compact contextual bottom-center primary action pill with generous easy-to-serve radius!
         bool storyBusy = storyController != null && storyController.HasNearbyStoryInteractable;
         if (!storyBusy)
         {
-            int lowBowl = FindNearestLowBowl(2.8f);
+            int lowBowl = FindNearestLowBowl(4.4f);
             if (lowBowl >= 0)
             {
-                DrawUnifiedActionPill("[E] Encher Água", s, () => RefillBowl(lowBowl, false));
+                DrawUnifiedActionPill(GirlPowerOrla3DLocalization.T("[E] Encher Água", "[E] Refill Water", "[E] Llenar Agua"), s, () => RefillBowl(lowBowl, false));
                 return;
             }
-            GuestRuntime waiting = FindNearestWaitingGuest(3.4f);
+            GuestRuntime waiting = FindNearestWaitingGuest(5.0f);
             if (waiting != null)
             {
-                DrawUnifiedActionPill("[E] Servir Mesa", s, () => ServePetFriendlyGuest(waiting));
+                DrawUnifiedActionPill(GirlPowerOrla3DLocalization.T("[E] Servir Mesa", "[E] Serve Table", "[E] Servir Mesa"), s, () => ServePetFriendlyGuest(waiting));
             }
         }
+    }
+
+    private void QuickServeGuest(GuestRuntime g)
+    {
+        if (g == null || !g.waitingForOrder || g.cfg.actor == null) return;
+        if (player != null && Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(g.cfg.actor.position.x, g.cfg.actor.position.z)) <= 5.2f)
+        {
+            ServePetFriendlyGuest(g);
+            return;
+        }
+        var npcAi = FindObjectOfType<GirlPowerOrla3DNpcAI>();
+        if (npcAi != null && fairyHelpers != null && fairyHelpers.Length > 0 && fairyHelpers[0] != null)
+        {
+            npcAi.DispatchFairyTo(fairyHelpers[0], g.cfg.actor.position, () => ServePetFriendlyGuest(g));
+            GirlPowerOrla3DUITheme.SpawnFloatingFeedback(g.cfg.actor.position + Vector3.up * 1.3f, "✨ Fada indo servir!", new Color(1f, 0.80f, 0.94f), 1.4f);
+            return;
+        }
+        if (storyController != null)
+            storyController.SetTapDestination(g.cfg.actor.position, () => ServePetFriendlyGuest(g));
+    }
+
+    private void QuickRefillBowl(int bowlIdx)
+    {
+        if (bowlIdx < 0 || bowlIdx >= bowls.Count || bowls[bowlIdx].cfg.bowlRoot == null) return;
+        Vector3 bPos = bowls[bowlIdx].cfg.bowlRoot.position;
+        if (player != null && Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(bPos.x, bPos.z)) <= 4.6f)
+        {
+            RefillBowl(bowlIdx, false);
+            return;
+        }
+        var npcAi = FindObjectOfType<GirlPowerOrla3DNpcAI>();
+        if (npcAi != null && fairyHelpers != null && fairyHelpers.Length > 0 && fairyHelpers[0] != null)
+        {
+            npcAi.DispatchFairyTo(fairyHelpers[0], bPos, () => RefillBowl(bowlIdx, true));
+            GirlPowerOrla3DUITheme.SpawnFloatingFeedback(bPos + Vector3.up * 0.6f, "✨ Fada enchendo água!", new Color(0.58f, 0.94f, 1f), 1.4f);
+            return;
+        }
+        if (storyController != null)
+            storyController.SetTapDestination(bPos, () => RefillBowl(bowlIdx, false));
     }
 
     private static void DrawUnifiedActionPill(string text, float s, Action onClick)

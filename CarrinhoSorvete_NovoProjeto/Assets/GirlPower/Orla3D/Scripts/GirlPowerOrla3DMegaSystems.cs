@@ -495,12 +495,12 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             }
         }
 
-        // Deliver carried restaurant tray to the seated Kiosk Table!
-        if (CarryingRestaurantTray && restaurantTables != null)
+        // Serve any nearby seated Kiosk/Restaurant Table directly in 1 tap (carrying a tray still grants the Perfect bonus!)
+        if (restaurantTables != null)
         {
             for (int i = 0; i < restaurantTables.Length; i++)
             {
-                if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
+                if (Near(restaurantTables[i], 4.6f) && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
                 {
                     DeliverTableOrder(i);
                     return true;
@@ -517,6 +517,14 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    public bool TryQuickServeTable(int idx)
+    {
+        if (Orders == null || idx < 0 || idx >= Orders.Length || !Orders[idx].active || !IsTableCustomerVisible(idx))
+            return false;
+        DeliverTableOrder(idx);
+        return true;
     }
 
     private void DeliverTableOrder(int idx)

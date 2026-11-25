@@ -30,7 +30,7 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     public Vector3 followOffset = new Vector3(-1.15f, 0f, -0.75f);
     public float followSpeed = 5.6f;
     public float stopDistance = 1.45f;
-    public bool isFollowing;
+    public bool isFollowing = true;
 
     public bool HasBandanaEquipped { get; private set; }
     public DetectiveSignal CurrentDetectiveSignal { get; private set; } = DetectiveSignal.None;
@@ -87,8 +87,11 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private void Start()
     {
         GirlPowerOrla3DCharacterFacing.DisableRootMotion(transform);
+        // All exported PetDog / PetCat models are standardized to Unity +Z forward.
         petFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(transform, 1f);
-        lastValidRot = transform.rotation;
+        Vector3 startE = transform.eulerAngles;
+        lastValidRot = Quaternion.Euler(0f, startE.y, 0f);
+        transform.rotation = lastValidRot;
         homePos = transform.position;
         float fz = petFaceSign >= 0f ? 1f : -1f;
         if (bandanaProp != null)
@@ -342,26 +345,27 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
                 switch (CurrentDetectiveSignal)
                 {
                     case DetectiveSignal.Latir:
-                        transform.position = new Vector3(curPos.x, baseY + Mathf.Abs(Mathf.Sin(t * 14f)) * 0.24f, curPos.z);
+                        transform.position = new Vector3(curPos.x, baseY + Mathf.Abs(Mathf.Sin(t * 14f)) * 0.22f, curPos.z);
                         transform.rotation = Quaternion.Slerp(transform.rotation, faceThief, dt * 10f);
                         break;
                     case DetectiveSignal.Rolar:
-                        transform.position = new Vector3(curPos.x, baseY + 0.14f, curPos.z);
-                        transform.rotation = faceThief * Quaternion.Euler(0f, 0f, t * 480f);
+                        // Playful upright alert spin instead of flipping upside-down on Z!
+                        transform.position = new Vector3(curPos.x, baseY + Mathf.Abs(Mathf.Sin(t * 10f)) * 0.14f, curPos.z);
+                        transform.rotation = Quaternion.Euler(0f, faceThief.eulerAngles.y + Mathf.Sin(t * 9f) * 38f, 0f);
                         break;
                     case DetectiveSignal.Morder:
-                        float lunge = Mathf.Abs(Mathf.Sin(t * 10f)) * 0.42f;
+                        float lunge = Mathf.Abs(Mathf.Sin(t * 10f)) * 0.30f;
                         Vector3 fwd = toThief.sqrMagnitude > 0.01f ? toThief.normalized : Vector3.forward;
-                        transform.position = new Vector3(curPos.x, baseY + 0.08f, curPos.z) + fwd * (lunge * dt * 2.5f);
-                        transform.rotation = faceThief * Quaternion.Euler(-16f, Mathf.Sin(t * 28f) * 14f, 0f);
+                        transform.position = new Vector3(curPos.x, baseY + 0.06f, curPos.z) + fwd * (lunge * dt * 2.0f);
+                        transform.rotation = Quaternion.Euler(0f, faceThief.eulerAngles.y + Mathf.Sin(t * 24f) * 14f, 0f);
                         break;
                     case DetectiveSignal.Chacalhar:
                         transform.position = new Vector3(curPos.x, baseY + 0.04f, curPos.z);
-                        transform.rotation = faceThief * Quaternion.Euler(0f, 0f, Mathf.Sin(t * 42f) * 28f);
+                        transform.rotation = Quaternion.Euler(0f, faceThief.eulerAngles.y + Mathf.Sin(t * 32f) * 20f, 0f);
                         break;
                     case DetectiveSignal.Chorar:
-                        transform.position = new Vector3(curPos.x, baseY - 0.04f + Mathf.Sin(t * 18f) * 0.02f, curPos.z);
-                        transform.rotation = faceThief * Quaternion.Euler(18f, 0f, Mathf.Sin(t * 14f) * 6f);
+                        transform.position = new Vector3(curPos.x, baseY + Mathf.Sin(t * 14f) * 0.02f, curPos.z);
+                        transform.rotation = Quaternion.Slerp(transform.rotation, faceThief, dt * 10f);
                         break;
                 }
             }
@@ -394,12 +398,12 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
             trickTimer = Mathf.Max(0f, trickTimer - dt);
             Vector3 p = transform.position;
             float baseY = SampleCompanionGroundY(p.x, p.z);
-            if (trickMode == 2) // Spin 360
-                transform.Rotate(0f, 560f * dt, 0f, Space.World);
+            if (trickMode == 2) // Upright 360 spin
+                transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y + 540f * dt, 0f);
             else if (trickMode == 1) // Paw bounce
                 transform.position = new Vector3(p.x, baseY + Mathf.Abs(Mathf.Sin(trickTimer * 12f)) * 0.24f, p.z);
             else // Sit squat
-                transform.position = new Vector3(p.x, baseY - 0.06f, p.z);
+                transform.position = new Vector3(p.x, baseY - 0.03f, p.z);
             return;
         }
 
@@ -464,16 +468,19 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
             if (look.magnitude / Mathf.Max(0.0001f, dt) > 0.25f
                 && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(look, petFaceSign, 0.00001f, out Quaternion targetRot))
             {
-                lastValidRot = targetRot;
+                lastValidRot = Quaternion.Euler(0f, targetRot.eulerAngles.y, 0f);
             }
-            transform.rotation = Quaternion.Slerp(transform.rotation, lastValidRot, 1f - Mathf.Exp(-10f * dt));
+            // Always keep pet strictly upright (zero accidental X/Z roll!)
+            Quaternion flatCur = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+            transform.rotation = Quaternion.Slerp(flatCur, lastValidRot, 1f - Mathf.Exp(-10f * dt));
         }
         else
         {
             float baseY = SampleCompanionGroundY(current.x, current.z);
             float idle = Mathf.Abs(Mathf.Sin(t * 3.0f)) * 0.035f;
             transform.position = Vector3.Lerp(current, new Vector3(current.x, baseY + idle, current.z), dt * 10f);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lastValidRot, 1f - Mathf.Exp(-8f * dt));
+            Quaternion flatCur = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+            transform.rotation = Quaternion.Slerp(flatCur, lastValidRot, 1f - Mathf.Exp(-8f * dt));
         }
     }
 
@@ -481,12 +488,12 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     {
         if (x >= 23.2f && x <= 28.8f && z >= -11.9f && z <= -7.6f)
         {
-            if (z > -8.3f) return Mathf.Lerp(-0.04f, 0.34f, (-7.6f - z) / 0.7f);
+            if (z > -8.3f) return Mathf.Lerp(0f, 0.34f, (-7.6f - z) / 0.7f);
             return 0.34f;
         }
-        if (z < -3.75f) return -0.05f;
-        if (z <= 3.35f) return 0f;
-        if (z < 4.10f) return Mathf.Sin(((z - 3.35f) / 0.75f) * Mathf.PI) * 0.48f;
-        return Mathf.Lerp(-0.04f, -0.34f, Mathf.Clamp01((z - 4.10f) / 6.40f));
+        // Synced cleanly with ContinuousBoardwalk (z = -15.6..+3.45 at y = 0.0) and Beach slope!
+        if (z <= 3.45f) return 0f;
+        float beachT = Mathf.Clamp01((z - 3.45f) / 6.40f);
+        return Mathf.Lerp(-0.04f, -0.32f, beachT);
     }
 }

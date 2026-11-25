@@ -262,3 +262,18 @@
   - **Painel inferior para uma mão (`Ch1_AtCart`):** pedido da Florista sempre visível no topo, casquinha montada ao centro, ingredientes ilustrados e nomeados com **símbolos de forma (`◆ / ● / ▲ / ♣`)** além de cor, e botão **Confirmar pedido** fixo exatamente na mesma posição durante toda a montagem.
   - **Entrega sem cobrir o percurso:** ao entregar à Florista Luna, exibe reação curta não bloqueante no topo, atualiza objetivo, desbloqueia a foto silenciosamente no ícone superior e devolve controle imediato.
   - **Acessibilidade e segurança de progresso:** `Screen.safeArea` em telas estreitas e largas, quebra de linha (`wordWrap`) para textos longos em PT/EN/ES, alto contraste sobre mar claro, selo de partida salva no menu e **diálogo de confirmação explícito (`SubModal.ConfirmAction`)** antes de sobrescrever/reiniciar progresso ou sair ao menu.
+
+---
+
+### Etapa 19 (v30) — Correção do Cachorro Pipoca, Zero Erros de Console & Serviço/Tarefas em 1 Toque
+- [x] **1. Correção Completa do Cachorro Pipoca & Pets (`GirlPowerOrla3DPetCompanion.cs`, `GirlPowerOrla3DThiefDetective.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Corrigidas todas as rotações do Pipoca para permanecer **100% em pé no plano horizontal** (eliminado o giro no eixo Z que virava o cachorro de cabeça para baixo e o `SampleCompanionGroundY` dessincronizado com a orla contínua).
+  - Pipoca agora nasce ao lado da protagonista (`(-2.35, 0, -4.35)`) já seguindo alegremente (`isFollowing = true`); invasões disruptivas de ladrão/Game Over automático desativadas por padrão (`enableThiefRaids = false`) para nunca sequestrar o cachorro nem interromper o serviço.
+  - Pets dos clientes reposicionados fora do colisor da mesa (`ownerPos + (-0.55, 0, 0.85)`) e alinhados de frente para a mesa.
+- [x] **2. Zero Erros no Console da Unity (`GirlPowerOrla3DSceneBuilder.cs`):**
+  - `AttachConfiguredNavMeshAgent` nunca mais anexa `NavMeshAgent` em objetos estáticos com `NavMeshObstacle` e mantém `agent.enabled = false` no modo sem NavMesh assado (eliminando os 18 erros `Failed to create agent` e 4 avisos de conflito `NavMeshAgent/NavMeshObstacle`).
+  - Removido o vazamento de material em Edit Mode no `Make3DText`.
+- [x] **3. Servir e Cumprir Tarefas em 1 Toque (`GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`, `GirlPowerOrla3DMegaSystems.cs`):**
+  - **Botão `▶ IR` / `▶ OK` no Cartão de Objetivo:** 1 toque leva a protagonista automaticamente pela rota A\* até o objetivo atual e executa a ação na chegada.
+  - **Carrinho pré-selecionado em 1 clique:** ao abrir o painel do carrinho, `◆ Limão + ♣ Manjericão` já vem selecionado e pronto para confirmar em 1 toque (com preparo rápido de `0.65s` e raio generoso `3.8 m`).
+  - **Balões de Pedido e Gota d'Água Clicáveis:** tocar direto no balão da mesa ou na gota azul do pote serve/enche instantaneamente (até `5.0 m` / `4.4 m`) ou despacha a Fada Garçonete automaticamente se estiver longe; mesas do *Batata & Mar* também aceitam serviço direto em 1 toque (`TryQuickServeTable`).

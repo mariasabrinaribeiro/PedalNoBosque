@@ -69,7 +69,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public float surfSpeed = 7.9f;
     public float turnSpeed = 7.8f;
     public float angularSpeedDeg = 420f;
-    public float interactionRadius = 2.9f;
+    public float interactionRadius = 3.8f;
 
     [Header("Open Spacious Horizon Camera (Wide Beach, Fairies & Town Horizon)")]
     public Vector3 cameraOffset = new Vector3(0f, 10.6f, -16.4f);
@@ -143,7 +143,6 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private bool inviteMenuOpen;
     private bool routeChosen;
     private bool biaHintShown;
-    private bool ninaIntroShown;
     private float zoomFactor = 1f;
 
     // Smart multiplatform touch/keyboard detection & 3-layer mobile tap-to-move / camera pan
@@ -224,6 +223,18 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public void AdjustCameraZoom(float deltaZoom)
     {
         zoomFactor = Mathf.Clamp(zoomFactor + deltaZoom, Mathf.Max(0.75f, minZoom), Mathf.Min(1.62f, maxZoom));
+    }
+
+    public void GuideAndPerformActiveObjective()
+    {
+        Transform target = GetActiveObjectiveTarget();
+        if (target == null || player == null) return;
+        if (NearXZ(target, interactionRadius))
+        {
+            Interact();
+            return;
+        }
+        SetTapDestination(target.position, () => Interact());
     }
 
     public bool IsUiPointBlocked(Vector2 guiPos)
@@ -324,7 +335,6 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         inviteMenuOpen = false;
         routeChosen = false;
         biaHintShown = false;
-        ninaIntroShown = false;
         selectedFlavor = "";
 
         if (dialogueController != null) dialogueController.CloseImmediate();
@@ -953,28 +963,17 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 if (!cartOpen)
                 {
                     cartOpen = true;
+                    // Pre-select the Florist's requested flavor so 1 tap confirms immediately (player can still switch flavors!)
+                    if (string.IsNullOrEmpty(selectedFlavor))
+                        selectedFlavor = "Limão com Manjericão";
                     if (audioController != null) audioController.PlayChime();
-                    if (!ninaIntroShown && dialogueController != null)
-                    {
-                        ninaIntroShown = true;
-                        dialogueController.ShowDialogue(
-                            "Nina (Amiga do Quiosque)",
-                            new Color(0.24f, 0.70f, 0.62f, 1f),
-                            1.18f,
-                            new[]
-                            {
-                                "Oi!! Já deixei o carrinho pronto e os potes geladinhos!",
-                                "A florista encomendou um sorvete de Limão com Manjericão. Escolha esse sabor para montar a casquinha!"
-                            }
-                        );
-                    }
                 }
                 else if (selectedFlavor == "Limão com Manjericão")
                 {
                     cartOpen = false;
-                    craftProgressDuration = 1.15f;
+                    craftProgressDuration = 0.65f;
                     craftProgressTimer = craftProgressDuration;
-                    craftProgressLabel = "Montando Limão com Manjericão...";
+                    craftProgressLabel = GirlPowerOrla3DLocalization.T("Montando Limão + Manjericão...", "Building Lemon + Basil...", "Armando Limón + Albahaca...");
                     if (audioController != null) audioController.PlayChime();
                     if (characterAnimator != null) characterAnimator.SpawnLeafBurst(cart.position);
                     onCraftComplete = () =>
@@ -1600,9 +1599,24 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         }
         if (!string.IsNullOrEmpty(distStr))
         {
-            Rect distRect = new Rect(card.x + 150f * s, card.y + 8f * s, Mathf.Min(96f * s, cw - 158f * s), 26f * s);
-            GUI.Box(distRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-            GirlPowerOrla3DUITheme.DrawOutlinedLabel(distRect, distStr, badgeSt, Color.white, darkOutline, 1.2f);
+            Rect distRect = new Rect(card.x + 150f * s, card.y + 8f * s, Mathf.Min(96f * s, cw - 224f * s), 26f * s);
+            if (distRect.width > 42f * s)
+            {
+                GUI.Box(distRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
+                GirlPowerOrla3DUITheme.DrawOutlinedLabel(distRect, distStr, badgeSt, Color.white, darkOutline, 1.2f);
+            }
+        }
+
+        // One-tap "▶ IR / FAZER" quick-action button on the Objective Card -> auto-walks via A* and executes the task!
+        if (objTarget != null)
+        {
+            float goW = 68f * s;
+            Rect goRect = new Rect(card.xMax - goW - 8f * s, card.y + 7f * s, goW, 28f * s);
+            string goLbl = NearXZ(objTarget, interactionRadius)
+                ? GirlPowerOrla3DLocalization.T("▶ OK", "▶ DO", "▶ YA")
+                : GirlPowerOrla3DLocalization.T("▶ IR", "▶ GO", "▶ IR");
+            if (GUI.Button(goRect, goLbl, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+                GuideAndPerformActiveObjective();
         }
 
         // Wrapped localized objective text (supports longer PT/EN/ES strings cleanly without truncation!)

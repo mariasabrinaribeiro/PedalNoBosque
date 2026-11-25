@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v29_OrlaContinua_UXAcessivel";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v30_PipocaFix_ServirFacil";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -477,8 +477,8 @@ public static class GirlPowerOrla3DSceneBuilder
         // Decorative beach surfboard standing near Lifeguard Tower 1 (keeping sand access #2 x=5.5..9.5 clear!)
         PlaceModel(root.transform, "Surfboard", "Prancha na Areia", new Vector3(14.0f, 0.25f, 7.2f), 32f, 1.05f, cozyMats);
 
-        // Cute Pet Companions: Dog "Pipoca" (+ Bandana + Detective Cap!) & Cat "Mingau"!
-        GameObject dogObj = PlaceModel(root.transform, "PetDog", "Cachorro Pipoca", new Vector3(-2.5f, 0f, 0.45f), 145f, 1.05f, cozyMats);
+        // Cute Pet Companions: Dog "Pipoca" right beside the Protagonist (ready to follow!) & Cat "Mingau"!
+        GameObject dogObj = PlaceModel(root.transform, "PetDog", "Cachorro Pipoca", new Vector3(-2.35f, 0f, -4.35f), 145f, 1.05f, cozyMats);
         GameObject pipocaBandana = dogObj != null ? PlaceModel(dogObj.transform, "PetBandanaProp", "Bandana do Pipoca", Vector3.zero, 0f, 1f, cozyMats) : null;
         GameObject pipocaDetHat = dogObj != null ? PlaceModel(dogObj.transform, "DetectiveHatPipoca", "Chapeu Detetive Pipoca", Vector3.zero, 0f, 1f, cozyMats) : null;
         GirlPowerOrla3DPetCompanion petDog = null;
@@ -1586,6 +1586,8 @@ public static class GirlPowerOrla3DSceneBuilder
     private static void AttachConfiguredNavMeshAgent(GameObject go, int avoidancePriority)
     {
         if (go == null) return;
+        // Never attach NavMeshAgent onto a static NavMeshObstacle (prevents Unity Console conflict warning!)
+        if (go.GetComponent<NavMeshObstacle>() != null) return;
         NavMeshAgent agent = go.GetComponent<NavMeshAgent>();
         if (agent == null) agent = go.AddComponent<NavMeshAgent>();
         agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
@@ -1595,6 +1597,8 @@ public static class GirlPowerOrla3DSceneBuilder
         agent.avoidancePriority = Mathf.Clamp(avoidancePriority, 1, 98);
         agent.updatePosition = false;
         agent.updateRotation = false;
+        // Keep disabled by default since Orla das Fadas uses zero-bake OBB + A* Pathfinder (eliminates 18x "no valid NavMesh" errors!)
+        agent.enabled = false;
     }
 
     private static void AddBlockingBox(GameObject go, Vector3 center, Vector3 size, List<BoxCollider> list)
@@ -1629,8 +1633,6 @@ public static class GirlPowerOrla3DSceneBuilder
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = color;
-        tmp.outlineWidth = 0.22f;
-        tmp.outlineColor = new Color32(26, 18, 32, 255);
         tmp.enableWordWrapping = false;
         tmp.rectTransform.sizeDelta = rectSize * 1.48f;
         return tmp;
