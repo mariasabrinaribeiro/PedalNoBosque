@@ -1,28 +1,28 @@
 using UnityEngine;
 
 /// <summary>
-/// Cinematic 3-Layer Ocean & Horizon Parallax Controller for Orla das Fadas:
-/// - Layer 1 (Far Horizon — 10% relative camera speed): Distant tropical islands/mountains & fluffy clouds
-///   tracking 90% of camera lateral movement so they glide majestically at 10% apparent parallax speed!
-/// - Layer 2 (Mid-Sea — 30% relative camera speed): Stylized sailboats & yachts sailing continuously
-///   across the turquoise bay while tracking 70% of camera lateral movement (30% parallax depth!).
-/// - Layer 3 (Shoreline — 100% world space): Soft looping wave-foam ribbons washing smoothly onto the wet sand!
+/// Clean 2D/3D Hybrid Ocean & Horizon Parallax Controller for Orla das Fadas:
+/// - Restricts decorative horizon parallax strictly to subtle LATERAL (X) movement (ZERO depth Z drift!)
+///   so distant islands, 2D horizon clouds, and far sails stay locked inside the sea bounds at every zoom!
+/// - Layer 1 (Far 2D Horizon): Wide coastal islands & calm cloud bands closing the horizon end-to-end.
+/// - Layer 2 (Mid-Sea): Gentle distant sails staying strictly inside the visible ocean band.
+/// - Layer 3 (Shoreline): 100% world-space foam ribbons anchored cleanly to the sand edge.
 /// </summary>
 public sealed class GirlPowerOrla3DParallaxHorizon : MonoBehaviour
 {
     [Header("Camera Reference")]
     public Camera sceneCamera;
 
-    [Header("Layer 1: Far Horizon Islands & Clouds (10% camera speed)")]
+    [Header("Layer 1: Far 2D Horizon Islands & Clouds (Lateral-Only Subtle Drift)")]
     public Transform[] farHorizonIslands;
     public Transform[] farHorizonClouds;
-    [Range(0f, 1f)] public float farLayerFollowFactor = 0.90f; // 10% relative screen drift!
+    [Range(0f, 1f)] public float farLayerFollowFactor = 0.85f;
 
-    [Header("Layer 2: Mid-Sea Sailing Boats (30% camera speed)")]
+    [Header("Layer 2: Distant Decorative Sails (Clamped Inside Sea Area)")]
     public Transform[] midSeaSailboats;
-    [Range(0f, 1f)] public float midLayerFollowFactor = 0.70f; // 30% relative screen drift!
+    [Range(0f, 1f)] public float midLayerFollowFactor = 0.35f;
 
-    [Header("Layer 3: Shoreline Looping Wave Foam")]
+    [Header("Layer 3: World-Space Shoreline Foam")]
     public Transform[] shorelineFoamRibbons;
 
     private Vector3 camOrigin;
@@ -62,17 +62,13 @@ public sealed class GirlPowerOrla3DParallaxHorizon : MonoBehaviour
         }
 
         float t = Time.time;
-        Vector3 camDelta = sceneCamera.transform.position - camOrigin;
-        float camDx = camDelta.x;
-        float camDz = camDelta.z;
+        // Lateral-only camera delta (ZERO depth Z follow so horizon & sails never slide over the shoreline or out of the sea!)
+        float camDx = sceneCamera.transform.position.x - camOrigin.x;
 
-        // ------------------------------------------------------------------
-        // LAYER 1 (10% apparent speed): Far Tropical Islands & Horizon Clouds
-        // ------------------------------------------------------------------
+        // 1. Far 2D Horizon Islands (pure lateral parallax, fixed world Z!)
         if (farHorizonIslands != null && islandBasePos != null)
         {
             float px = camDx * farLayerFollowFactor;
-            float pz = camDz * (farLayerFollowFactor * 0.45f);
             for (int i = 0; i < farHorizonIslands.Length; i++)
             {
                 Transform tr = farHorizonIslands[i];
@@ -80,10 +76,11 @@ public sealed class GirlPowerOrla3DParallaxHorizon : MonoBehaviour
                 tr.position = new Vector3(
                     islandBasePos[i].x + px,
                     islandBasePos[i].y,
-                    islandBasePos[i].z + pz);
+                    islandBasePos[i].z);
             }
         }
 
+        // 2. Wide 2D Horizon Cloud Bands (gentle slow wind drift + lateral-only follow, fixed world Z!)
         if (farHorizonClouds != null && cloudBasePos != null)
         {
             float px = camDx * farLayerFollowFactor;
@@ -91,58 +88,50 @@ public sealed class GirlPowerOrla3DParallaxHorizon : MonoBehaviour
             {
                 Transform tr = farHorizonClouds[i];
                 if (tr == null) continue;
-                float windDrift = Mathf.Repeat((t * (0.35f + (i % 3) * 0.12f)) + i * 14f, 84f) - 42f;
-                float bobY = Mathf.Sin(t * 0.42f + i * 1.5f) * 0.25f;
+                float gentleDrift = Mathf.Sin(t * 0.08f + i * 1.4f) * 3.8f;
                 tr.position = new Vector3(
-                    cloudBasePos[i].x + px + windDrift,
-                    cloudBasePos[i].y + bobY,
+                    cloudBasePos[i].x + px + gentleDrift,
+                    cloudBasePos[i].y,
                     cloudBasePos[i].z);
             }
         }
 
-        // ------------------------------------------------------------------
-        // LAYER 2 (30% apparent speed): Mid-Sea Sailboats gliding smoothly!
-        // ------------------------------------------------------------------
+        // 3. Distant Decorative Sails (gentle motion strictly inside the sea visual band, fixed world Z!)
         if (midSeaSailboats != null && boatBasePos != null)
         {
             float px = camDx * midLayerFollowFactor;
-            float pz = camDz * (midLayerFollowFactor * 0.28f);
             for (int i = 0; i < midSeaSailboats.Length; i++)
             {
                 Transform tr = midSeaSailboats[i];
                 if (tr == null) continue;
                 float dir = (i % 2 == 0) ? 1f : -1f;
-                float speed = 0.72f + (i % 3) * 0.24f;
-                float span = 68f;
-                float localSail = Mathf.Repeat((boatBasePos[i].x + 28f) + t * speed * dir, span) - 28f;
-                float bob = Mathf.Sin(t * 1.55f + i * 1.7f) * 0.11f;
-                float roll = Mathf.Sin(t * 1.35f + i * 1.3f) * 4.8f;
-                float pitch = Mathf.Cos(t * 1.10f + i * 1.9f) * 2.6f;
+                float speed = 0.45f + (i % 3) * 0.14f;
+                float span = 88f;
+                float localSail = Mathf.Repeat((boatBasePos[i].x + 34f) + t * speed * dir, span) - 34f;
+                float bob = Mathf.Sin(t * 1.35f + i * 1.7f) * 0.08f;
+                float roll = Mathf.Sin(t * 1.15f + i * 1.3f) * 3.5f;
 
-                tr.position = new Vector3(localSail + px, boatBasePos[i].y + bob, boatBasePos[i].z + pz);
+                tr.position = new Vector3(localSail + px, boatBasePos[i].y + bob, boatBasePos[i].z);
                 if (boatBaseRot != null && i < boatBaseRot.Length)
-                    tr.localRotation = boatBaseRot[i] * Quaternion.Euler(pitch, 0f, roll);
+                    tr.localRotation = boatBaseRot[i] * Quaternion.Euler(0f, 0f, roll);
             }
         }
 
-        // ------------------------------------------------------------------
-        // LAYER 3 (100% world space): Looping Shoreline Wave-Foam on the Sand!
-        // ------------------------------------------------------------------
+        // 4. World-Space Shoreline Foam Ribbons anchored strictly to the sand edge
         if (shorelineFoamRibbons != null && foamBasePos != null)
         {
             for (int i = 0; i < shorelineFoamRibbons.Length; i++)
             {
                 Transform tr = shorelineFoamRibbons[i];
                 if (tr == null) continue;
-                // Smooth rhythmic surf wash onto the sand and gently back to sea
                 float phase = t * 1.15f + i * 0.85f;
-                float wash = Mathf.Sin(phase); // -1 (recede) .. +1 (wash onto sand)
-                float zOffset = -wash * 0.62f;
-                float xSway = Mathf.Cos(phase * 0.6f) * 0.25f;
+                float wash = Mathf.Sin(phase);
+                float zOffset = -wash * 0.55f;
+                float xSway = Mathf.Cos(phase * 0.6f) * 0.22f;
                 tr.position = new Vector3(foamBasePos[i].x + xSway, foamBasePos[i].y, foamBasePos[i].z + zOffset);
                 if (foamBaseScale != null && i < foamBaseScale.Length)
                 {
-                    float widthPulse = 0.76f + 0.34f * (0.5f + 0.5f * wash);
+                    float widthPulse = 0.78f + 0.30f * (0.5f + 0.5f * wash);
                     tr.localScale = new Vector3(foamBaseScale[i].x, foamBaseScale[i].y, foamBaseScale[i].z * widthPulse);
                 }
             }

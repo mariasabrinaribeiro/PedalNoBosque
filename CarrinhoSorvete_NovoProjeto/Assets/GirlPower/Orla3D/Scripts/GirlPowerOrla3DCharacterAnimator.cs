@@ -260,14 +260,14 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private void SetupProps()
     {
         float fz = FaceForwardSign >= 0f ? 1f : -1f;
-        // Heights calibrated to the +15% longer legs & -8% refined head proportions!
-        AttachProp(heldIceCreamCone, new Vector3(0.35f, 0.80f, 0.22f * fz), Quaternion.Euler(12f * fz, 0f, -10f), 1.05f, holdingCone);
+        // Calibrated for +18% longer legs & -7% refined head so carried Lemon+Basil cone reads unmistakably from every angle!
+        AttachProp(heldIceCreamCone, new Vector3(0.36f, 0.94f, 0.27f * fz), Quaternion.Euler(14f * fz, 0f, -10f), 1.18f, holdingCone);
         AttachProp(surfboardProp, new Vector3(0f, 0.02f, 0f), Quaternion.identity, 1.05f, false);
         AttachProp(skateboardProp, new Vector3(0f, 0.01f, 0f), Quaternion.identity, 0.92f, false);
         AttachProp(scooterProp, new Vector3(0f, 0.01f, 0.08f * fz), Quaternion.identity, 0.90f, false);
         AttachProp(rollerSkatesProp, new Vector3(0f, 0.0f, 0f), Quaternion.identity, 0.95f, false);
         AttachProp(hawaiianCanoeProp, new Vector3(0f, -0.10f, 0f), Quaternion.identity, 0.85f, false);
-        AttachProp(wardrobeHatProp, new Vector3(0f, 1.44f, 0f), Quaternion.identity, 0.88f, HasHatEquipped);
+        AttachProp(wardrobeHatProp, new Vector3(0f, 1.54f, 0f), Quaternion.identity, 0.86f, HasHatEquipped);
     }
 
     private void AttachProp(Transform prop, Vector3 pos, Quaternion rot, float scale, bool active)

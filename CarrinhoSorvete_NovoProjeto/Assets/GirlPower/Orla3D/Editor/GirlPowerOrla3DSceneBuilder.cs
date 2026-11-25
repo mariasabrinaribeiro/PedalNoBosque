@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v34_AguaExplicita_Quadra_Servico_IA";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v35_EntregaLivre_MarFechado_Proporcoes_Camera";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -86,9 +86,10 @@ public static class GirlPowerOrla3DSceneBuilder
             waterZoneObj.transform.localPosition = Vector3.zero;
             waterSurfZone = waterZoneObj.AddComponent<BoxCollider>();
             waterSurfZone.isTrigger = true;
-            // Ocean mesh spans local Z -16..+16; start water zone 0.9m past shoreline feather (-15.1 -> +16.0) so dry sand never triggers surf!
+            // Ocean mesh spans local Z -38..+38 (260m wide x 76m deep -> ZERO exposed left/right/far edges at any zoom!).
+            // Start water zone 0.9m past shoreline feather (-37.1 -> +38.0) so dry sand never triggers surf!
             waterSurfZone.center = new Vector3(0f, 0.5f, 0.45f);
-            waterSurfZone.size = new Vector3(110f, 4.0f, 31.1f);
+            waterSurfZone.size = new Vector3(260f, 4.0f, 75.1f);
         }
 
         // 4. Barraca Central (Quiosque Orla das Fadas) recuada para o fundo da praça (z = -16.8 -> passagem central 100% livre!)
@@ -335,15 +336,15 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fest != null) swayingFestoons.Add(fest.transform);
         }
 
-        // 7. Varied Arched Coconut Palms (distinct heights, lean angles & rotations -> natural silhouette variety!)
+        // 7. Flanking Coconut Palms placed cleanly on OUTER edges (trimmer scale 0.78..0.94 -> canopies NEVER fill the screen or block Cart -> Luna!)
         List<Transform> swayingPalms = new List<Transform>();
         Vector4[] palmSpecs =
         {
-            new Vector4(-9.6f, 3.45f, -24f, 1.14f),
-            new Vector4(4.4f, 3.40f, 32f, 0.88f),
-            new Vector4(9.8f, 3.55f, -152f, 1.06f),
-            new Vector4(22.4f, 3.40f, 48f, 0.92f),
-            new Vector4(35.4f, 3.50f, -138f, 1.18f)
+            new Vector4(-15.5f, 4.85f, -24f, 0.92f),
+            new Vector4(-7.8f,  5.10f,  32f, 0.78f),
+            new Vector4(18.6f,  5.05f, -152f, 0.86f),
+            new Vector4(30.6f,  4.85f,  48f, 0.84f),
+            new Vector4(36.4f,  5.00f, -138f, 0.94f)
         };
         float[] palmTilts = { -4.5f, 3.5f, -2.5f, 5.0f, -3.5f };
         for (int i = 0; i < palmSpecs.Length; i++)
@@ -545,21 +546,8 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject florist = PlaceModel(root.transform, "Char_Florist", "Florista Luna", new Vector3(24.0f, 0f, -8.48f), 195f, 1f, cozyMats);
         if (florist != null) idleCharacters.Add(florist.transform);
 
-        // 11b. Living Sky & Coastal Wildlife (Clouds, Seagulls, Butterflies, Beach Crabs, Fireflies!)
+        // 11b. Living Sky & Coastal Wildlife (Wide 2D Horizon Clouds live in Parallax_Horizonte_3Camadas -> ZERO loose floating discs!)
         List<Transform> clouds = new List<Transform>();
-        Vector3[] cloudPositions =
-        {
-            new Vector3(-14f, 11.5f, 22f),
-            new Vector3(1f, 13.0f, 28f),
-            new Vector3(16f, 12.2f, 25f),
-            new Vector3(32f, 13.4f, 30f),
-            new Vector3(44f, 11.8f, 23f)
-        };
-        for (int i = 0; i < cloudPositions.Length; i++)
-        {
-            GameObject c = PlaceModel(root.transform, "CloudFluffy", "Nuvem Fofinha " + (i + 1), cloudPositions[i], i * 18f, 1.45f + (i % 2) * 0.35f, cozyMats);
-            if (c != null) clouds.Add(c.transform);
-        }
 
         List<Transform> seagulls = new List<Transform>();
         Vector3[] gullPositions =
@@ -1426,17 +1414,18 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject ocean = new GameObject("Mar Estilizado - Animado");
         ocean.transform.SetParent(parent, false);
-        ocean.transform.position = new Vector3(12f, -0.29f, 26.2f);
+        // Expanded 260m x 76m ocean plane keeping the shoreline at exact z = 10.2m while closing ALL left, right & far horizon edges at every zoom!
+        ocean.transform.position = new Vector3(12f, -0.29f, 48.2f);
 
         MeshFilter mf = ocean.AddComponent<MeshFilter>();
         MeshRenderer mr = ocean.AddComponent<MeshRenderer>();
 
         // Subdivided grid mesh for smooth vertex waves & horizon curvature
         Mesh mesh = new Mesh { name = "OrlaOceanGrid" };
-        int segsX = 64;
-        int segsZ = 28;
-        float sizeX = 110f;
-        float sizeZ = 32f;
+        int segsX = 84;
+        int segsZ = 34;
+        float sizeX = 260f;
+        float sizeZ = 76f;
         Vector3[] verts = new Vector3[(segsX + 1) * (segsZ + 1)];
         Vector2[] uvs = new Vector2[verts.Length];
         int[] tris = new int[segsX * segsZ * 6];

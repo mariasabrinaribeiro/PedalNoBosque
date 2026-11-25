@@ -98,6 +98,25 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public int BasilLeavesCount => basilLeaves;
     public bool HasChoiceMenuOpen => cartOpen || inviteMenuOpen;
     public bool HasNearbyStoryInteractable => TryGetNearbyInteractable(out _, out _);
+    public bool IsAssemblingOrder => phase == StoryPhase.Ch1_AtCart || phase == StoryPhase.Ch3_PrepareFestivalTreat || craftProgressTimer > 0f;
+
+    public bool TryResetMeltedDeliveryOrder()
+    {
+        if (phase != StoryPhase.Ch1_Delivering) return false;
+        phase = StoryPhase.Ch1_AtCart;
+        selectedFlavor = "Limão com Manjericão";
+        if (characterAnimator != null) characterAnimator.SetHoldingCone(false);
+        SaveProgress();
+        Vector3 popPos = player != null ? player.position : (cart != null ? cart.position : Vector3.zero);
+        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(
+            popPos + Vector3.up * 1.4f,
+            GirlPowerOrla3DLocalization.T(
+                "O sorvete derreteu! Refaça no carrinho sem perder progresso.",
+                "The ice cream melted! Remake it at the cart — progress kept.",
+                "¡El helado se derritió! Prepáralo de nuevo en el carrito."),
+            new Color(1f, 0.78f, 0.45f), 2.8f);
+        return true;
+    }
 
     public void AddBasilLeaves(int amount)
     {
@@ -110,6 +129,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         switch (phase)
         {
             case StoryPhase.Ch1_AtCart:
+                return english
+                    ? "Time ran out before the ice cream was assembled at the cart!"
+                    : "O tempo acabou antes de montar o pedido no carrinho!";
             case StoryPhase.Ch1_Delivering:
                 return english
                     ? "Sunset arrived and the ice cream melted before you delivered it to Florist Luna!"
@@ -167,7 +189,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     public float CurrentZoomFactor => zoomFactor;
 
-    public void SetTapDestination(Vector3 worldPos, System.Action onArrive = null)
+    public bool SetTapDestination(Vector3 worldPos, System.Action onArrive = null, bool requireReachable = false)
     {
         Vector3 requested = new Vector3(
             Mathf.Clamp(worldPos.x, minWorldX + 0.35f, maxWorldX - 0.35f),
@@ -177,12 +199,27 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         tapRoute.Clear();
         GirlPowerOrla3DPathfinder pathfinder = EnsurePathfinder();
         if (pathfinder != null && player != null)
-            pathfinder.FindPath(player.position, requested, tapRoute, PlayerRadius + 0.06f);
+        {
+            Vector3 safeRequested = pathfinder.FindNearestWalkablePoint(requested, Vector3.back, PlayerRadius + 0.08f);
+            pathfinder.FindPath(player.position, safeRequested, tapRoute, PlayerRadius + 0.06f);
+            if (requireReachable && tapRoute.Count > 0)
+            {
+                Vector3 endPt = tapRoute[tapRoute.Count - 1];
+                if (Vector2.Distance(new Vector2(endPt.x, endPt.z), new Vector2(safeRequested.x, safeRequested.z)) > 1.85f)
+                {
+                    tapRoute.Clear();
+                }
+            }
+        }
         else
+        {
             tapRoute.Add(requested);
+        }
         tapRouteIndex = 0;
         hasTapDest = tapRoute.Count > 0;
         if (hasTapDest) tapDestWorld = tapRoute[tapRoute.Count - 1];
+        else tapArriveCallback = null;
+        return hasTapDest;
     }
 
     private GirlPowerOrla3DPathfinder EnsurePathfinder()
@@ -298,7 +335,11 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             return;
         }
         Vector3 frontPoint = GetWalkableServicePoint(target);
-        SetTapDestination(frontPoint, () => Interact());
+        if (!SetTapDestination(frontPoint, () => Interact(), true))
+        {
+            // Retry with a slightly wider front offset so the player still reaches the usable side cleanly
+            SetTapDestination(frontPoint + new Vector3(0f, 0f, -0.8f), () => Interact(), false);
+        }
     }
 
     public bool IsUiPointBlocked(Vector2 guiPos)
@@ -861,16 +902,26 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     {
         if (sceneCamera == null) return;
         bool inWater = characterAnimator != null && characterAnimator.IsInWater;
-        Vector3 baseOff = inWater ? new Vector3(0f, 9.8f, -15.4f) : cameraOffset;
-        float targetPitch = inWater ? 34.0f : cameraPitch;
+        bool talking = dialogueController != null && dialogueController.IsOpen;
+        bool closeUpFocus = !inWater && (cartOpen || inviteMenuOpen || talking);
 
-        // Smart arrival framing: gently lift and center on the Cart or Florist pocket so roofs never crowd the view!
+        // Contextual Camera Modes:
+        // 1. Close-Up Focus when assembling ice cream at Cart or conversing with Luna/NPCs!
+        // 2. Stable Exploration framing showing feet + next walkway exit (default on land)
+        // 3. Water framing when surfing/swimming!
+        Vector3 baseOff = closeUpFocus
+            ? new Vector3(0f, 5.5f, -7.2f)
+            : (inWater ? new Vector3(0f, 9.6f, -13.6f) : cameraOffset);
+        float targetPitch = closeUpFocus ? 32.5f : (inWater ? 36.0f : cameraPitch);
+        float targetFov = closeUpFocus ? 40f : 44f;
+
+        // Smart framing pull when talking or assembling at the Cart/Florist so BOTH protagonist and station shine!
         float arrivalLiftY = 0f;
         Vector2 servicePullXZ = Vector2.zero;
         if (!inWater)
         {
             Transform focusService = null;
-            float bestDist = 4.8f;
+            float bestDist = 4.6f;
             if (cart != null)
             {
                 float d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(cart.position.x, cart.position.z));
@@ -883,18 +934,17 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             }
             if (focusService != null)
             {
-                float blend = Mathf.SmoothStep(0f, 1f, 1f - (bestDist / 4.8f));
-                arrivalLiftY = blend * 0.85f;
-                servicePullXZ = new Vector2(focusService.position.x - player.position.x, focusService.position.z - player.position.z) * (blend * 0.28f);
+                float blend = closeUpFocus ? 1f : Mathf.SmoothStep(0f, 1f, 1f - (bestDist / 4.6f));
+                arrivalLiftY = closeUpFocus ? 0f : (blend * 0.45f);
+                servicePullXZ = new Vector2(focusService.position.x - player.position.x, focusService.position.z - player.position.z) * (blend * (closeUpFocus ? 0.38f : 0.22f));
             }
         }
 
-        Vector3 scaledOffset = baseOff * zoomFactor;
-        float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.24f, -1.4f, 1.4f);
-        // Balanced forward bias (+0.35f Z) on land so the protagonist's feet AND the walkway ahead stay clearly framed!
-        float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.16f, -0.8f, 0.8f) + (inWater ? -0.4f : 0.35f);
-        float focusX = Mathf.Clamp(player.position.x + lookAheadX + servicePullXZ.x + cameraPanOffsetXZ.x, minWorldX + 2.5f, maxWorldX - 2.5f);
-        float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + servicePullXZ.y + cameraPanOffsetXZ.y, minWorldZ + 1.2f, maxWorldZ - 2.0f);
+        Vector3 scaledOffset = baseOff * (closeUpFocus ? 1f : zoomFactor);
+        float lookAheadX = closeUpFocus ? 0f : Mathf.Clamp(currentMoveVel.x * 0.24f, -1.4f, 1.4f);
+        float lookAheadZ = closeUpFocus ? 0.15f : (Mathf.Clamp(currentMoveVel.y * 0.16f, -0.8f, 0.8f) + (inWater ? -0.35f : 0.35f));
+        float focusX = Mathf.Clamp(player.position.x + lookAheadX + servicePullXZ.x + (closeUpFocus ? 0f : cameraPanOffsetXZ.x), minWorldX + 2.5f, maxWorldX - 2.5f);
+        float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + servicePullXZ.y + (closeUpFocus ? 0f : cameraPanOffsetXZ.y), minWorldZ + 1.2f, maxWorldZ - 2.0f);
         float desiredX = focusX;
         float desiredZ = focusZ + scaledOffset.z;
         float desiredY = player.position.y + scaledOffset.y + arrivalLiftY;
@@ -902,6 +952,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         Vector3 target = new Vector3(desiredX, desiredY, desiredZ) + shake;
         sceneCamera.transform.position = Vector3.SmoothDamp(sceneCamera.transform.position, target, ref cameraVelRef, cameraSmoothTime);
         sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, Quaternion.Euler(targetPitch, 0f, 0f), 1f - Mathf.Exp(-5.5f * Time.deltaTime));
+        sceneCamera.fieldOfView = Mathf.Lerp(sceneCamera.fieldOfView, targetFov, 1f - Mathf.Exp(-5.0f * Time.deltaTime));
     }
 
     private void TryAutoPickupNearbyCard()

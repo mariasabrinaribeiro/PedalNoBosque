@@ -244,16 +244,16 @@ def export_standardized_unity_fbx(objs, filename):
 # =========================================================================
 def build_protagonist(col):
     exported = []
-    dz = 0.08  # +8cm taller stride & silhouette lift so walking gait reads instantly on mobile!
+    dz = 0.13  # +18% longer legs (hip z=0.54) + smaller balanced head -> feet, stride & hands at 0.94m counter read clearly!
 
-    # Torso lifted cleanly over longer legs (hip pivot z=0.49 -> neck z=0.98)
+    # Torso lifted cleanly over longer legs (hip pivot z=0.54 -> neck z=1.02)
     torso_parts = [
         # Signature Berry-Pink coastal top + Cream sailor-style collar & hem trim
-        add_cyl("T_Shirt", 0.195, 0.42, MATS["AC_ProtagShirt"], col, loc=(0, 0, 0.68 + dz), r_top=0.16),
-        add_sphere("T_Collar", 0.138, MATS["AC_Cream"], col, loc=(0, 0, 0.88 + dz), scale=(1.10, 1.02, 0.36)),
-        add_cyl("T_ShirtHem", 0.205, 0.048, MATS["AC_Cream"], col, loc=(0, 0, 0.49 + dz), r_top=0.20),
+        add_cyl("T_Shirt", 0.192, 0.42, MATS["AC_ProtagShirt"], col, loc=(0, 0, 0.68 + dz), r_top=0.158),
+        add_sphere("T_Collar", 0.136, MATS["AC_Cream"], col, loc=(0, 0, 0.88 + dz), scale=(1.10, 1.02, 0.36)),
+        add_cyl("T_ShirtHem", 0.202, 0.048, MATS["AC_Cream"], col, loc=(0, 0, 0.49 + dz), r_top=0.198),
         # Deep coastal denim shorts
-        add_cyl("T_Shorts", 0.205, 0.17, MATS["AC_Denim"], col, loc=(0, 0, 0.44 + dz), r_top=0.195),
+        add_cyl("T_Shorts", 0.202, 0.17, MATS["AC_Denim"], col, loc=(0, 0, 0.44 + dz), r_top=0.192),
         # SHORT CROSSBODY SATCHEL (Bolsa Curta): diagonal strap visible front & back + golden pouch at hip!
         add_box("T_StrapFront", (0.045, 0.028, 0.44), MATS["AC_WoodDark"], col,
                 loc=(0.02, -0.175, 0.67 + dz), rot=(0.12, math.radians(-34), 0.0), bevel=0.008),
@@ -270,57 +270,57 @@ def build_protagonist(col):
     torso = join_around_pivot(torso_parts, "Protag_Torso", (0, 0, 0.48 + dz), col)
     exported.append(torso)
 
-    # Head proportional & expressive, with unmistakable back-readable ponytail & turquoise bow!
+    # Head ~7% smaller (r=0.248) so silhouette balances head, torso & elongated stride in game camera!
     head_parts = [
-        add_sphere("H_Skull", 0.264, MATS["AC_SkinLight"], col, loc=(0, 0, 1.14 + dz), scale=(1.01, 0.97, 0.99), u=18, v=14),
-        add_sphere("H_CheekL", 0.048, MATS["AC_CheekBlush"], col, loc=(-0.138, -0.220, 1.085 + dz), scale=(1.2, 0.42, 0.82)),
-        add_sphere("H_CheekR", 0.048, MATS["AC_CheekBlush"], col, loc=(0.138, -0.220, 1.085 + dz), scale=(1.2, 0.42, 0.82)),
-        add_sphere("H_Nose", 0.028, MATS["AC_SkinLight"], col, loc=(0, -0.265, 1.105 + dz)),
-        add_sphere("H_HairMain", 0.288, MATS["AC_HairBrown"], col, loc=(0, 0.035, 1.185 + dz), scale=(1.03, 1.01, 0.97), u=16, v=12),
-        add_sphere("H_BangL", 0.118, MATS["AC_HairBrown"], col, loc=(-0.125, -0.195, 1.285 + dz), scale=(1.2, 0.72, 0.72)),
-        add_sphere("H_BangR", 0.118, MATS["AC_HairBrown"], col, loc=(0.125, -0.195, 1.285 + dz), scale=(1.2, 0.72, 0.72)),
+        add_sphere("H_Skull", 0.248, MATS["AC_SkinLight"], col, loc=(0, 0, 1.13 + dz), scale=(1.01, 0.97, 0.99), u=18, v=14),
+        add_sphere("H_CheekL", 0.045, MATS["AC_CheekBlush"], col, loc=(-0.130, -0.206, 1.078 + dz), scale=(1.2, 0.42, 0.82)),
+        add_sphere("H_CheekR", 0.045, MATS["AC_CheekBlush"], col, loc=(0.130, -0.206, 1.078 + dz), scale=(1.2, 0.42, 0.82)),
+        add_sphere("H_Nose", 0.026, MATS["AC_SkinLight"], col, loc=(0, -0.248, 1.098 + dz)),
+        add_sphere("H_HairMain", 0.272, MATS["AC_HairBrown"], col, loc=(0, 0.035, 1.172 + dz), scale=(1.03, 1.01, 0.97), u=16, v=12),
+        add_sphere("H_BangL", 0.112, MATS["AC_HairBrown"], col, loc=(-0.118, -0.184, 1.268 + dz), scale=(1.2, 0.72, 0.72)),
+        add_sphere("H_BangR", 0.112, MATS["AC_HairBrown"], col, loc=(0.118, -0.184, 1.268 + dz), scale=(1.2, 0.72, 0.72)),
         # Iconic back-readable high double-tier sweeping ponytail + wide MintTeal ribbon bow!
-        add_sphere("H_PonytailUpper", 0.152, MATS["AC_HairBrown"], col, loc=(0, 0.31, 1.22 + dz), scale=(0.95, 1.14, 1.16)),
-        add_sphere("H_PonytailTail", 0.136, MATS["AC_HairBrown"], col, loc=(0, 0.375, 1.02 + dz), scale=(0.86, 0.94, 1.52), rot=(math.radians(16), 0, 0)),
-        add_sphere("H_RibbonKnot", 0.060, MATS["AC_MintTeal"], col, loc=(0, 0.258, 1.298 + dz)),
-        add_sphere("H_RibbonBowL", 0.095, MATS["AC_MintTeal"], col, loc=(-0.118, 0.278, 1.32 + dz), scale=(1.28, 0.56, 0.80), rot=(0, 0, math.radians(-18))),
-        add_sphere("H_RibbonBowR", 0.095, MATS["AC_MintTeal"], col, loc=(0.118, 0.278, 1.32 + dz), scale=(1.28, 0.56, 0.80), rot=(0, 0, math.radians(18))),
-        add_cyl("H_RibbonTailL", 0.028, 0.16, MATS["AC_Gold"], col, loc=(-0.058, 0.288, 1.20 + dz), rot=(math.radians(14), math.radians(12), 0), r_top=0.018),
-        add_cyl("H_RibbonTailR", 0.028, 0.16, MATS["AC_Gold"], col, loc=(0.058, 0.288, 1.20 + dz), rot=(math.radians(14), math.radians(-12), 0), r_top=0.018),
-        add_smile("H_Smile", MATS["AC_EyeDark"], col, loc=(0, -0.262, 1.052 + dz), width=0.118, dip=0.025),
-        add_sphere("H_Tongue", 0.022, MATS["AC_Coral"], col, loc=(0, -0.276, 1.028 + dz), scale=(1.0, 0.36, 0.50), u=10, v=8),
+        add_sphere("H_PonytailUpper", 0.146, MATS["AC_HairBrown"], col, loc=(0, 0.295, 1.205 + dz), scale=(0.95, 1.14, 1.16)),
+        add_sphere("H_PonytailTail", 0.132, MATS["AC_HairBrown"], col, loc=(0, 0.36, 1.01 + dz), scale=(0.86, 0.94, 1.52), rot=(math.radians(16), 0, 0)),
+        add_sphere("H_RibbonKnot", 0.058, MATS["AC_MintTeal"], col, loc=(0, 0.246, 1.28 + dz)),
+        add_sphere("H_RibbonBowL", 0.092, MATS["AC_MintTeal"], col, loc=(-0.112, 0.265, 1.30 + dz), scale=(1.28, 0.56, 0.80), rot=(0, 0, math.radians(-18))),
+        add_sphere("H_RibbonBowR", 0.092, MATS["AC_MintTeal"], col, loc=(0.112, 0.265, 1.30 + dz), scale=(1.28, 0.56, 0.80), rot=(0, 0, math.radians(18))),
+        add_cyl("H_RibbonTailL", 0.026, 0.155, MATS["AC_Gold"], col, loc=(-0.055, 0.275, 1.185 + dz), rot=(math.radians(14), math.radians(12), 0), r_top=0.018),
+        add_cyl("H_RibbonTailR", 0.026, 0.155, MATS["AC_Gold"], col, loc=(0.055, 0.275, 1.185 + dz), rot=(math.radians(14), math.radians(-12), 0), r_top=0.018),
+        add_smile("H_Smile", MATS["AC_EyeDark"], col, loc=(0, -0.245, 1.048 + dz), width=0.112, dip=0.023),
+        add_sphere("H_Tongue", 0.020, MATS["AC_Coral"], col, loc=(0, -0.258, 1.026 + dz), scale=(1.0, 0.36, 0.50), u=10, v=8),
     ]
     head = join_around_pivot(head_parts, "Protag_Head", (0, 0, 0.89 + dz), col)
     exported.append(head)
 
     # Separate expressive Eyes for natural blinking!
-    for side, sx in [("L", -0.095), ("R", 0.095)]:
+    for side, sx in [("L", -0.090), ("R", 0.090)]:
         ep = [
-            add_sphere(f"EyeBall_{side}", 0.044, MATS["AC_EyeDark"], col, loc=(sx, -0.234, 1.14 + dz), scale=(0.90, 0.45, 1.15)),
-            add_sphere(f"EyeShine_{side}", 0.017, MATS["AC_EyeShine"], col, loc=(sx - 0.013, -0.255, 1.158 + dz)),
+            add_sphere(f"EyeBall_{side}", 0.042, MATS["AC_EyeDark"], col, loc=(sx, -0.220, 1.13 + dz), scale=(0.90, 0.45, 1.15)),
+            add_sphere(f"EyeShine_{side}", 0.016, MATS["AC_EyeShine"], col, loc=(sx - 0.012, -0.240, 1.147 + dz)),
         ]
-        eye = join_around_pivot(ep, f"Protag_Eye{side}", (sx, -0.234, 1.14 + dz), col)
+        eye = join_around_pivot(ep, f"Protag_Eye{side}", (sx, -0.220, 1.13 + dz), col)
         exported.append(eye)
 
-    # Articulated Arms (pivoted at shoulders z=0.82 + dz)
-    for side, sx in [("L", -0.235), ("R", 0.235)]:
+    # Articulated Arms (pivoted at shoulders z=0.82 + dz -> hands naturally reach 0.94m counters & carry visible cone!)
+    for side, sx in [("L", -0.232), ("R", 0.232)]:
         ap = [
-            add_sphere(f"Sleeve_{side}", 0.082, MATS["AC_ProtagShirt"], col, loc=(sx, 0, 0.79 + dz)),
-            add_cyl(f"ArmTube_{side}", 0.050, 0.26, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.63 + dz)),
-            add_sphere(f"Hand_{side}", 0.062, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.495 + dz)),
+            add_sphere(f"Sleeve_{side}", 0.080, MATS["AC_ProtagShirt"], col, loc=(sx, 0, 0.79 + dz)),
+            add_cyl(f"ArmTube_{side}", 0.048, 0.28, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.625 + dz)),
+            add_sphere(f"Hand_{side}", 0.060, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.48 + dz)),
         ]
         arm = join_around_pivot(ap, f"Protag_Arm{side}", (sx, 0, 0.82 + dz), col)
         exported.append(arm)
 
-    # Articulated Legs (discreetly longer: hip z=0.49, LegTube h=0.37, crisp sneakers for unmistakable stride!)
+    # Articulated Legs (+18% longer: hip z=0.54, LegTube h=0.42, crisp socks & berry sneakers clearly visible when walking!)
     for side, sx in [("L", -0.105), ("R", 0.105)]:
         lp = [
-            add_cyl(f"LegTube_{side}", 0.058, 0.37, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.305)),
-            add_cyl(f"Sock_{side}", 0.064, 0.095, MATS["AC_Cream"], col, loc=(sx, 0, 0.12)),
-            add_sphere(f"Shoe_{side}", 0.085, MATS["AC_ProtagShirt"], col, loc=(sx, -0.04, 0.056), scale=(0.94, 1.42, 0.66)),
-            add_sphere(f"ShoeSole_{side}", 0.087, MATS["AC_Cream"], col, loc=(sx, -0.04, 0.022), scale=(0.96, 1.44, 0.28)),
+            add_cyl(f"LegTube_{side}", 0.056, 0.42, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.33)),
+            add_cyl(f"Sock_{side}", 0.062, 0.10, MATS["AC_Cream"], col, loc=(sx, 0, 0.125)),
+            add_sphere(f"Shoe_{side}", 0.086, MATS["AC_ProtagShirt"], col, loc=(sx, -0.042, 0.056), scale=(0.94, 1.44, 0.66)),
+            add_sphere(f"ShoeSole_{side}", 0.088, MATS["AC_Cream"], col, loc=(sx, -0.042, 0.022), scale=(0.96, 1.46, 0.28)),
         ]
-        leg = join_around_pivot(lp, f"Protag_Leg{side}", (sx, 0, 0.49), col)
+        leg = join_around_pivot(lp, f"Protag_Leg{side}", (sx, 0, 0.54), col)
         exported.append(leg)
 
     export_standardized_unity_fbx(exported, "Char_Protagonist")
@@ -516,13 +516,14 @@ def build_modular_resident(
             add_box("B_PackPocket", (0.22, 0.07, 0.15), MATS["AC_Cream"], col, loc=(0, 0.31, torso_z - 0.05), bevel=0.02),
         ])
     elif role == "coral":
-        # Shorter agile beach walker: sun visor + high swooping side ponytail + coastal scarf/belt-bag on back!
+        # Shorter wide-coat resident with voluminous rounded curly-bob hair (unmistakable silhouette even in grayscale!)
         body.extend([
-            add_cyl("C_Skirt", 0.255 * w_scale, 0.26 * h_scale, m_bot, col, loc=(0, 0, hip_z + 0.02), r_top=0.18 * w_scale),
-            add_cyl("C_VisorBand", 0.245, 0.05, MATS["AC_Cream"], col, loc=(0, 0.0, head_z + 0.10)),
-            add_box("C_VisorBrim", (0.25, 0.16, 0.026), MATS["AC_Cream"], col, loc=(0, -0.21, head_z + 0.09), bevel=0.01),
-            add_sphere("C_SidePony", 0.145, m_hair, col, loc=(0.20, 0.22, head_z + 0.05), scale=(0.95, 1.0, 1.38), rot=(0.2, -0.3, 0)),
-            add_sphere("C_BeltBag", 0.11, MATS["AC_MintTeal"], col, loc=(0, 0.22, hip_z + 0.10), scale=(1.45, 0.65, 0.85)),
+            add_cyl("C_WideCoat", 0.30 * w_scale, 0.42 * h_scale, m_top, col, loc=(0, 0, torso_z - 0.05), r_top=0.19 * w_scale),
+            add_cyl("C_CoatTrim", 0.31 * w_scale, 0.06 * h_scale, MATS["AC_Cream"], col, loc=(0, 0, hip_z + 0.02), r_top=0.30 * w_scale),
+            add_sphere("C_HairCloudL", 0.175, m_hair, col, loc=(-0.21, 0.06, head_z + 0.02), scale=(0.92, 0.98, 1.05)),
+            add_sphere("C_HairCloudR", 0.175, m_hair, col, loc=( 0.21, 0.06, head_z + 0.02), scale=(0.92, 0.98, 1.05)),
+            add_sphere("C_HairCloudBack", 0.215, m_hair, col, loc=(0.0, 0.19, head_z - 0.01), scale=(1.18, 0.82, 1.04)),
+            add_sphere("C_BeltBag", 0.115, MATS["AC_MintTeal"], col, loc=(0, 0.26, hip_z + 0.10), scale=(1.45, 0.65, 0.85)),
         ])
     elif role == "marina":
         # Tall graceful sister: flowing coral dress + long wavy hair + BIG sunny yellow bow on back!
@@ -710,8 +711,8 @@ def main():
         lambda c: build_friend_nina(c),
         lambda c: build_friend_bia(c),
         lambda c: build_modular_resident(c, "Char_Florist", "AC_SkinLight", "AC_HairBrown", "AC_Cream", "AC_WoodLight", "AC_StrawHat", h_scale=1.02, w_scale=0.96, role="florist"),
-        lambda c: build_modular_resident(c, "Char_PedestrianBlue", "AC_SkinTan", "AC_HairDark", "AC_SkyBlue", "AC_Denim", "AC_Denim", h_scale=1.12, w_scale=1.12, role="blue"),
-        lambda c: build_modular_resident(c, "Char_PedestrianCoral", "AC_SkinLight", "AC_HairAuburn", "AC_Coral", "AC_Cream", "AC_MintTeal", h_scale=0.92, w_scale=0.95, role="coral"),
+        lambda c: build_modular_resident(c, "Char_PedestrianBlue", "AC_SkinTan", "AC_HairDark", "AC_SkyBlue", "AC_Denim", "AC_Denim", h_scale=1.18, w_scale=1.00, role="blue"),
+        lambda c: build_modular_resident(c, "Char_PedestrianCoral", "AC_SkinLight", "AC_HairAuburn", "AC_Coral", "AC_Cream", "AC_MintTeal", h_scale=0.88, w_scale=1.14, role="coral"),
         lambda c: build_modular_resident(c, "Char_SisterMarina", "AC_SkinLight", "AC_HairBrown", "AC_Coral", "AC_Cream", "AC_SunnyYellow", h_scale=1.06, w_scale=0.94, role="marina"),
         lambda c: build_fairy_waitress(c),
         lambda c: build_pipoca(c),
@@ -741,6 +742,13 @@ def main():
         bpy.ops.import_scene.fbx(filepath=os.path.join(MODELS_DIR, f"{fname}.fbx"), axis_forward="Z", axis_up="Y")
         for o in set(bpy.data.objects) - before:
             o.location.x += idx * 1.45
+
+    # Also add architectural scale reference props side-by-side (Counter 0.94m, Bench 0.48m, Doorway 2.15m) for proportion checks!
+    col_ref = bpy.data.collections.new("Ref_Escala_Cenario")
+    bpy.context.scene.collection.children.link(col_ref)
+    add_box("Ref_Balcao_094m", (1.60, 0.72, 0.94), MATS["AC_WoodLight"], col_ref, loc=(-1.9, 0.0, 0.47))
+    add_box("Ref_Banco_048m", (1.60, 0.52, 0.48), MATS["AC_WoodWarm"], col_ref, loc=(-3.9, 0.0, 0.24))
+    add_box("Ref_Porta_215m", (1.10, 0.14, 2.15), MATS["AC_Cream"], col_ref, loc=(-5.6, 0.0, 1.075))
 
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_OUT)
     print(f"[Orla das Fadas Art Direction Characters Saved & Exported (+Z Forward, Clean Joint Names)] {BLEND_OUT}")

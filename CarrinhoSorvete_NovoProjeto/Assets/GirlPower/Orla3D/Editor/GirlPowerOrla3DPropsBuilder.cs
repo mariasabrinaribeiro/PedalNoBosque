@@ -91,6 +91,18 @@ public static class GirlPowerOrla3DPropsBuilder
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Leste",
             new Vector3(30.8f, 0.02f, 3.44f), new Vector3(17.2f, 0.08f, 0.20f), Quaternion.identity, stoneWhite, false);
 
+        // 3 Unmistakable Wooden Deck Beach Accesses (x = -5.4, 7.5, 20.0) so beach entrances read instantly even with HUD hidden!
+        float[] deckXs = { -5.35f, 7.5f, 20.0f };
+        for (int d = 0; d < deckXs.Length; d++)
+        {
+            for (int p = 0; p < 5; p++)
+            {
+                MakePrim(grp.transform, PrimitiveType.Cube, "Acesso_Madeira_Praia_" + (d + 1) + "_" + p,
+                    new Vector3(deckXs[d], -0.02f - p * 0.014f, 3.65f + p * 0.38f),
+                    new Vector3(2.85f, 0.055f, 0.30f), Quaternion.identity, (p % 2 == 0) ? woodLight : woodWarm, false);
+            }
+        }
+
         // Clean chamfered south lawn border starting flush behind ContinuousBoardwalk (z = -15.6f -> ZERO Z-fighting or abrupt slab overlap!)
         MakePrim(grp.transform, PrimitiveType.Cube, "Borda_Sul_Calcadão",
             new Vector3(12f, -0.02f, -15.65f), new Vector3(114f, 0.14f, 0.34f), Quaternion.identity, stoneWarm, false);
@@ -621,13 +633,15 @@ public static class GirlPowerOrla3DPropsBuilder
         Material woodDark = GetMat(mats, "AC_WoodDark");
         Material foam = GetMat(mats, "AC_Foam");
 
-        // LAYER 1A: 3 Low-Profile Atmospheric Horizon Islands (soft sky-blended silhouette — ZERO heavy gray horizon wall!)
+        // LAYER 1A: Wide 2D-Silhouette Horizon Islands covering x = -110..+135 so even wide panoramic zoom stays seamlessly closed!
         Material skyMist = GetMat(mats, "AC_SkyBlue");
         var islandSpecs = new (Vector3 pos, Vector3 hillScale, bool tallPeak)[]
         {
-            (new Vector3(-34f, -0.45f, 58f), new Vector3(24f, 3.2f, 10f), false),
-            (new Vector3(12f,  -0.45f, 64f), new Vector3(30f, 3.8f, 11f), true),
-            (new Vector3(54f,  -0.45f, 59f), new Vector3(26f, 3.4f, 10f), false)
+            (new Vector3(-84f, -0.55f, 74f), new Vector3(52f, 4.0f, 3.0f), false),
+            (new Vector3(-34f, -0.50f, 72f), new Vector3(44f, 3.6f, 2.8f), false),
+            (new Vector3(14f,  -0.50f, 75f), new Vector3(56f, 4.4f, 3.0f), true),
+            (new Vector3(62f,  -0.50f, 72f), new Vector3(48f, 3.8f, 2.8f), false),
+            (new Vector3(110f, -0.55f, 74f), new Vector3(52f, 3.6f, 3.0f), false)
         };
         for (int i = 0; i < islandSpecs.Length; i++)
         {
@@ -640,30 +654,21 @@ public static class GirlPowerOrla3DPropsBuilder
                 new Vector3(0f, ispec.hillScale.y * 0.22f, 0.4f), ispec.hillScale,
                 Quaternion.identity, hillFar, false);
             MakePrim(isl.transform, PrimitiveType.Sphere, "Morro_Secundario",
-                new Vector3(ispec.hillScale.x * 0.28f, ispec.hillScale.y * 0.14f, -0.5f),
-                new Vector3(ispec.hillScale.x * 0.56f, ispec.hillScale.y * 0.62f, ispec.hillScale.z * 0.72f),
+                new Vector3(ispec.hillScale.x * 0.26f, ispec.hillScale.y * 0.14f, -0.5f),
+                new Vector3(ispec.hillScale.x * 0.54f, ispec.hillScale.y * 0.62f, ispec.hillScale.z * 0.72f),
                 Quaternion.identity, hillDist, false);
-            if (ispec.tallPeak)
-            {
-                MakePrim(isl.transform, PrimitiveType.Cylinder, "Palmeira_Tronco",
-                    new Vector3(-2.5f, ispec.hillScale.y * 0.55f, 0f), new Vector3(0.35f, 1.5f, 0.35f),
-                    Quaternion.Euler(0f, 0f, 8f), hillDist, false);
-                MakePrim(isl.transform, PrimitiveType.Sphere, "Palmeira_Copa",
-                    new Vector3(-2.7f, ispec.hillScale.y * 0.55f + 1.45f, 0f), new Vector3(2.1f, 0.8f, 1.9f),
-                    Quaternion.identity, hillDist, false);
-            }
             farIslands.Add(isl.transform);
         }
 
-        // LAYER 1B: 5 Soft Distant Horizon Clouds (calm sky transition!)
-        for (int i = 0; i < 5; i++)
+        // LAYER 1B: Wide Flat 2D Horizon Cloud Bands spanning the entire sky horizon (NO loose floating discs!)
+        for (int i = 0; i < 7; i++)
         {
             GameObject cl = new GameObject("Parallax_Nuvem_Horizonte_" + (i + 1));
             cl.transform.SetParent(pxRoot.transform, false);
-            cl.transform.position = new Vector3(-24f + i * 17.5f, 10.8f + (i % 3) * 1.6f, 44f + (i % 2) * 8f);
-            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffC", Vector3.zero, new Vector3(6.8f, 2.2f, 2.6f), Quaternion.identity, cream, false);
-            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffL", new Vector3(-2.8f, -0.22f, 0.2f), new Vector3(4.4f, 1.7f, 2.2f), Quaternion.identity, cream, false);
-            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffR", new Vector3(2.9f, -0.26f, -0.2f), new Vector3(4.6f, 1.8f, 2.3f), Quaternion.identity, cream, false);
+            cl.transform.position = new Vector3(-92f + i * 34f, 9.6f + (i % 3) * 1.4f, 70f + (i % 2) * 5f);
+            MakePrim(cl.transform, PrimitiveType.Sphere, "BandC", Vector3.zero, new Vector3(22f, 1.9f, 0.9f), Quaternion.identity, cream, false);
+            MakePrim(cl.transform, PrimitiveType.Sphere, "BandL", new Vector3(-7.5f, -0.35f, 0.1f), new Vector3(13f, 1.3f, 0.8f), Quaternion.identity, cream, false);
+            MakePrim(cl.transform, PrimitiveType.Sphere, "BandR", new Vector3(8.0f, -0.30f, -0.1f), new Vector3(14f, 1.4f, 0.8f), Quaternion.identity, cream, false);
             farClouds.Add(cl.transform);
         }
 

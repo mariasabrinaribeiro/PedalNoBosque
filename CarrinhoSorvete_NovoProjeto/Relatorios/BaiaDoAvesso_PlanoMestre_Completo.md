@@ -370,3 +370,23 @@
   - Adicionados `IsPositionWalkable` e `IsMoveStepClear` no pathfinder OBB.
   - Removido o fallback em linha reta quando `FindPath` volta vazio: o morador aguarda com calma (`waitTimer = 1.15 s`) e recalcula (ou avança para o próximo ponto alcançável após 2 tentativas).
   - Todo passo de desvio lateral ao cruzar com a protagonista agora valida ambos os lados (`yieldPref`, `yieldAlt`, `pathDir`) via `IsMoveStepClear` **antes** de mover o `Transform`; sem passagem livre, o morador espera e recalcula a rota sem atravessar mobiliário.
+
+
+---
+
+## Etapa 24 (v35) — Primeira Entrega Livre do Relógio, Mar e Horizonte 2D Fechados, Escala Coerente, Câmera Contextual e Moradores com Ações nas Bordas
+
+- **1. Primeira entrega livre do relógio (`GirlPowerOrla3DGameFlow.cs`, `GirlPowerOrla3DFirstDelivery.cs`):**
+  - Removido o limite de 150 s do Capítulo 1 padrão (`ChapterTimeMax = 0f`) para que a sequência **Montar → Entregar à Luna → Voltar ao carrinho** aconteça sem risco de perder antes do sorvete existir.
+  - Em desafios cronometrados opcionais (`StartOptionalQuickDeliveryTimer`), o relógio só corre **após concluir a montagem** (`IsAssemblingOrder` pausa o relógio) e, caso o tempo termine com o sorvete na mão, `TryResetMeltedDeliveryOrder()` permite refazer o pedido no carrinho preservando todo o progresso da sessão.
+  - `SetTapDestination(..., requireReachable: true)` e `GuideAndPerformActiveObjective()` verificam antes da caminhada se a rota A* alcança o lado de uso diante do balcão.
+- **2. Mar fechado em todos os zooms, Parallax 2D lateral-only e copas fora da linha de visão (`GirlPowerOrla3DParallaxHorizon.cs`, `GirlPowerOrla3DSceneBuilder.cs`, `GirlPowerOrla3DPropsBuilder.cs`):**
+  - Malha do mar (`OrlaOceanGrid`) ampliada para **`260 m × 76 m`** (`x = -118..+142`, margem mantida em `z = 10.2 m`, estendendo até `z = 86.2 m`) com `Zona_Agua_Mar_Surf` sincronizada, eliminando a borda reta exposta na esquerda/direita em qualquer zoom.
+  - `GirlPowerOrla3DParallaxHorizon.cs` restrito ao deslocamento **exclusivamente lateral (`X`)** (zero deriva em profundidade `Z`), com ilhas distantes e faixas largas de nuvens 2D fechando o horizonte de ponta a ponta (removidos os discos soltos `CloudFluffy`).
+  - Coqueiros afastados para as bordas externas com escala mais contida (`0.78–0.94`) para nenhuma copa invadir o enquadramento entre Carrinho e Luna; adicionados 3 acessos de madeira na praia (`Acesso_Madeira_Praia_1..3`) reforçando a leitura espacial mesmo sem HUD.
+- **3. Câmera contextual por situação (`GirlPowerOrla3DFirstDelivery.cs`):**
+  - **Exploração:** enquadramento médio estável (`(0, 8.6, -10.8)`, `pitch 39.5°`, `FOV 44°`) mostrando os pés e a próxima saída.
+  - **Montagem / Diálogo com Luna:** aproximação suave (`(0, 5.5, -7.2)`, `pitch 32.5°`, `FOV 40°`) destacando ingredientes, casquinha e expressão dos personagens.
+- **4. Escala coerente, proporções no Blender 5.3 e moradores vivos nas bordas (`build_orla_art_direction_characters.py`, `GirlPowerOrla3DCharacterAnimator.cs`, `GirlPowerOrla3DNpcAI.cs`):**
+  - Protagonista atualizada com pernas `+18%` mais longas (`hip z = 0.54`, tubo `0.42 m`) e cabeça `-7%` menor (`r = 0.248`), casquinha elevada (`y = 0.94`, escala `1.18`) claramente visível ao carregar, e coleção `Ref_Escala_Cenario` (balcão `0.94 m`, banco `0.48 m`, porta `2.15 m`) lado a lado em `OrlaDasFadas_ArtDirectionChars.blend`.
+  - Moradores contrastados por silhueta (`Char_PedestrianBlue` alto/pernas longas `h=1.18` vs. `Char_PedestrianCoral` mais baixa com casaco amplo e cabelo volumoso arredondado `h=0.88, w=1.14`) e com pausas naturais nas bordas (admirando o mar na mureta norte e conferindo mesas no recuo direito).

@@ -281,12 +281,28 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
             if (w.waitTimer > 0f)
             {
                 w.waitTimer -= dt;
-                // Keep last valid facing smoothly when paused (no flipping!)
-                w.tr.rotation = Quaternion.Slerp(w.tr.rotation, w.lastValidRot, dt * 4f);
-                float breathe = Mathf.Abs(Mathf.Sin(t * 2.6f + i)) * 0.03f;
+                // Natural environmental actions at border stops: look out toward the sea on the north boardwalk rail,
+                // or face & tidy near dining tables on the right plaza recess — giving life to the edges while keeping paths open!
+                Quaternion idleTargetRot = w.lastValidRot;
+                bool tendingBorder = false;
+                if (w.tr.position.z >= 1.4f)
+                {
+                    // Pause to admire the ocean (+Z)!
+                    if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(Vector3.forward, w.faceSign, 0.01f, out Quaternion seaRot))
+                        idleTargetRot = seaRot;
+                }
+                else if (w.tr.position.z <= -4.5f && w.tr.position.x >= 2.5f)
+                {
+                    // Pause beside a right-side dining table to tidy/check!
+                    tendingBorder = true;
+                    if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(Vector3.back, w.faceSign, 0.01f, out Quaternion tblRot))
+                        idleTargetRot = tblRot;
+                }
+                w.tr.rotation = Quaternion.Slerp(w.tr.rotation, idleTargetRot, dt * 3.8f);
+                float breathe = Mathf.Abs(Mathf.Sin(t * 2.6f + i)) * 0.025f;
                 w.tr.position = new Vector3(w.tr.position.x, w.baseY + breathe, w.tr.position.z);
                 w.prevWorldPos = w.tr.position;
-                AnimateWalkerGait(w, 0f, t, dt, false);
+                AnimateWalkerGait(w, 0f, t, dt, tendingBorder);
                 continue;
             }
 

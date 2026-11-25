@@ -284,11 +284,18 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
 
         switch (chapterNumber)
         {
-            case 1: ChapterTimeMax = chapter1TimeLimit; break;
+            case 1: ChapterTimeMax = 0f; break; // Primeira entrega padrão livre do relógio (Montar -> Luna -> Voltar ao carrinho)
             case 2: ChapterTimeMax = chapter2TimeLimit; break;
             case 3: ChapterTimeMax = chapter3TimeLimit; break;
             default: ChapterTimeMax = 0f; break; // Chapter 4 Finale is free cozy celebration
         }
+        ChapterTimeRemaining = ChapterTimeMax;
+    }
+
+    public void StartOptionalQuickDeliveryTimer(float seconds = 95f)
+    {
+        if (FreePlayKidsMode) return;
+        ChapterTimeMax = Mathf.Max(20f, seconds);
         ChapterTimeRemaining = ChapterTimeMax;
     }
 
@@ -447,14 +454,23 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private void UpdateChapterTimer(float dt)
     {
         if (FreePlayKidsMode || !challengeTimerEnabled || ChapterTimeMax <= 1f) return;
-        // Pause timer gently while reading story dialogues or viewing the Polaroid photo
+        // Pause timer gently while reading story dialogues, viewing Polaroid, or assembling an order at the cart!
         if (dialogueController != null && dialogueController.IsOpen) return;
         if (photoOverlay != null && photoOverlay.IsShowing) return;
+        if (storyController != null && storyController.IsAssemblingOrder) return;
 
         ChapterTimeRemaining -= dt;
         if (ChapterTimeRemaining <= 0f)
         {
             ChapterTimeRemaining = 0f;
+            // If an optional timed delivery expires while carrying an order, let the player remake it at the cart without losing session progress!
+            if (storyController != null && storyController.TryResetMeltedDeliveryOrder())
+            {
+                ChapterTimeMax = 0f;
+                if (audioController != null) audioController.PlayFailChime();
+                return;
+            }
+
             string reason = storyController != null
                 ? storyController.GetMatchingTimeoutFailReason(IsEnglish)
                 : (IsEnglish
