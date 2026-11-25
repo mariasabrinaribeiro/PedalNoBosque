@@ -14,8 +14,6 @@ Shader "GirlPower/OrlaACNHCozy"
         _GroundAOHeight ("Ground AO Height", Range(0.1, 2.5)) = 0.72
         [HDR] _EmissionColor ("Emission Color", Color) = (0, 0, 0, 1)
         _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0016
-        _OccluderEnabled ("Camera Occlusion Dither", Range(0.0, 1.0)) = 0.0
-        _OccluderRadius ("Occluder Cutout Radius", Range(0.8, 4.5)) = 2.1
         _UseWorldUV ("World Space Tiling", Range(0.0, 1.0)) = 0.0
         _TileScale ("World Tile Scale", Range(0.05, 4.0)) = 0.35
     }
@@ -46,17 +44,11 @@ Shader "GirlPower/OrlaACNHCozy"
         half _UseWorldUV;
         float _TileScale;
 
-        // Updated globally by GirlPowerOrla3DOcclusionFader
-        float4 _BaiaPlayerPos;
-        float4 _BaiaCamPos;
-        float _BaiaOccluderActive;
-
         struct Input
         {
             float2 uv_MainTex;
             float3 viewDir;
             float3 worldPos;
-            float4 screenPos;
         };
 
         void vert(inout appdata_full v)
@@ -70,20 +62,6 @@ Shader "GirlPower/OrlaACNHCozy"
                 worldPos.y -= distSq * _CurveStrength;
                 v.vertex = mul(unity_WorldToObject, worldPos);
             }
-        }
-
-        // Cross-platform 4x4 Bayer dither (100% compatible with DX11, WebGL & Android GLES)
-        float BayerDither4x4(float2 pixelPos)
-        {
-            float2 p = floor(fmod(abs(pixelPos), 4.0));
-            float4x4 bayer = float4x4(
-                 0.0/16.0,  8.0/16.0,  2.0/16.0, 10.0/16.0,
-                12.0/16.0,  4.0/16.0, 14.0/16.0,  6.0/16.0,
-                 3.0/16.0, 11.0/16.0,  1.0/16.0,  9.0/16.0,
-                15.0/16.0,  7.0/16.0, 13.0/16.0,  5.0/16.0
-            );
-            float4 row = (p.y < 0.5) ? bayer[0] : ((p.y < 1.5) ? bayer[1] : ((p.y < 2.5) ? bayer[2] : bayer[3]));
-            return (p.x < 0.5) ? row.x : ((p.x < 1.5) ? row.y : ((p.x < 2.5) ? row.z : row.w));
         }
 
         half4 LightingCozyACNH(SurfaceOutput s, half3 lightDir, half3 viewDir, half atten)
@@ -112,31 +90,6 @@ Shader "GirlPower/OrlaACNHCozy"
 
         void surf(Input IN, inout SurfaceOutput o)
         {
-            // Smooth roof-only screen-space fade when upper building sits between camera and player
-            if (_OccluderEnabled > 0.5 && _BaiaOccluderActive > 0.5 && IN.worldPos.y > 1.35)
-            {
-                float3 camToPlayer = _BaiaPlayerPos.xyz - _BaiaCamPos.xyz;
-                float camToPlayerLen = max(0.01, length(camToPlayer));
-                float3 rayDir = camToPlayer / camToPlayerLen;
-
-                float3 camToFrag = IN.worldPos - _BaiaCamPos.xyz;
-                float proj = dot(camToFrag, rayDir);
-
-                if (proj > 1.5 && proj < camToPlayerLen - 0.45)
-                {
-                    float3 closest = _BaiaCamPos.xyz + rayDir * proj;
-                    float distToRay = length(IN.worldPos - closest);
-                    if (distToRay < _OccluderRadius)
-                    {
-                        float fade = smoothstep(0.18, 1.0, saturate(distToRay / max(0.01, _OccluderRadius)));
-                        float alphaKeep = lerp(0.02, 1.0, fade);
-                        float2 screenUV = IN.screenPos.xy / max(0.0001, IN.screenPos.w);
-                        float2 pixelPos = screenUV * _ScreenParams.xy;
-                        clip(alphaKeep - BayerDither4x4(pixelPos));
-                    }
-                }
-            }
-
             float2 sampleUV = (_UseWorldUV > 0.5)
                 ? (IN.worldPos.xz * _TileScale + float2(IN.worldPos.y * _TileScale * 0.5, 0.0))
                 : IN.uv_MainTex;

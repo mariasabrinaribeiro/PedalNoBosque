@@ -93,6 +93,11 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
     private void Update()
     {
         if (gameFlow != null && !gameFlow.IsPlaying) return;
+        if (gameFlow != null && gameFlow.FreePlayKidsMode)
+        {
+            if (IsThiefActive) ResetSession();
+            return;
+        }
         float dt = Time.deltaTime;
 
         // Player hotkey [L] to call the Police in advance!

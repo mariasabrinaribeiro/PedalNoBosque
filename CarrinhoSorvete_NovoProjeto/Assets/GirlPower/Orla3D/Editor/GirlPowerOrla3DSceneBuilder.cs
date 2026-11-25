@@ -19,8 +19,9 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string MaterialsFolder = "Assets/GirlPower/Orla3D/Materials";
     private const string CozyShaderName = "GirlPower/OrlaACNHCozy";
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
+    private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v10_HeroAndDepthWater";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v12_PhysicsAndCleanFade";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -31,11 +32,11 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || Application.isBatchMode) return;
         string fullScenePath = Path.Combine(Application.dataPath, "Scenes/Girl Power - Orla 3D (Animal Crossing).unity");
-        bool alreadyBuiltV5 = EditorPrefs.GetBool(BuildVersionKey, false);
-        if (File.Exists(fullScenePath) && alreadyBuiltV5) return;
+        bool alreadyBuiltCurrent = EditorPrefs.GetBool(BuildVersionKey, false);
+        if (File.Exists(fullScenePath) && alreadyBuiltCurrent) return;
         if (AssetDatabase.LoadAssetAtPath<GameObject>(ModelsFolder + "/CoastalHouse.fbx") == null) return;
-        EditorPrefs.SetBool(BuildVersionKey, true);
         Build();
+        if (File.Exists(fullScenePath)) EditorPrefs.SetBool(BuildVersionKey, true);
     }
 
     [MenuItem("Girl Power/Build Orla 3D (Animal Crossing Style)")]
@@ -78,7 +79,7 @@ public static class GirlPowerOrla3DSceneBuilder
         // 4. Quiosque Sorvetes da Baía (Cohesive pastel coastal branding — zero clashing "GIRL POWER"!)
         List<BoxCollider> obstacles = new List<BoxCollider>();
         GameObject kiosk = PlaceModel(root.transform, "KioskGirlPower", "Quiosque Sorvetes da Baia", new Vector3(0f, 0f, 2.35f), 0f, 1f, cozyMats);
-        if (kiosk != null) AddBlockingBox(kiosk, new Vector3(0f, 1.2f, 0f), new Vector3(4.6f, 2.4f, 2.2f), obstacles);
+        if (kiosk != null) AddBlockingBox(kiosk, new Vector3(0f, 2.0f, 0f), new Vector3(4.6f, 4.0f, 2.2f), obstacles);
         Make3DText(root.transform, "Titulo Quiosque", new Vector3(0f, 3.55f, 1.65f), "SORVETES DA BAÍA", 1.72f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.48f));
 
         GameObject customSign = PlaceModel(root.transform, "SignboardNew", "Placa Personalizada - Sorveteria", new Vector3(0f, 3.56f, 1.54f), 0f, 0.96f, cozyMats);
@@ -95,7 +96,7 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 5. Banca da Florista + Swaying Breeze Curtains + Standardized Fascia Sign
         GameObject floristStand = PlaceModel(root.transform, "FloristStand", "Banca da Florista - Baia do Avesso", new Vector3(24f, 0f, 2.35f), 0f, 1f, cozyMats);
-        if (floristStand != null) AddBlockingBox(floristStand, new Vector3(0f, 1.2f, 0f), new Vector3(4.3f, 2.4f, 2.1f), obstacles);
+        if (floristStand != null) AddBlockingBox(floristStand, new Vector3(0f, 2.0f, 0f), new Vector3(4.3f, 4.0f, 2.1f), obstacles);
         Make3DText(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, 1.62f), "FLORES DA BAÍA", 1.65f, new Color32(255, 246, 224, 255), new Vector2(2.50f, 0.45f));
 
         List<Transform> breezeCurtains = new List<Transform>();
@@ -136,7 +137,7 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject stallDoces = PlaceModel(root.transform, "MarketStall_Doces", "Barraca - Doces e Cupcakes", new Vector3(-16.0f, 0f, 2.55f), 0f, 1f, cozyMats);
         GameObject stallSucos = PlaceModel(root.transform, "MarketStall_SucosRefri", "Barraca - Sucos, Agua e Refri", new Vector3(34.0f, 0f, 2.55f), 0f, 1f, cozyMats);
         foreach (GameObject st in new[] { stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
-            if (st != null) AddBlockingBox(st, new Vector3(0f, 1.0f, 0f), new Vector3(2.7f, 2.0f, 1.15f), obstacles);
+            if (st != null) AddBlockingBox(st, new Vector3(0f, 2.0f, 0f), new Vector3(2.7f, 4.0f, 1.15f), obstacles);
 
         // Uniform, clean fascia signage across all stalls (consistent height, typography & alignment!)
         Make3DText(root.transform, "Placa Sushi", new Vector3(-7.4f, 2.48f, 1.72f), "SUSHI", 1.48f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
@@ -148,7 +149,8 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 6a. Mega Life Blender Landmarks: Restaurant "Batata & Mar" facing the promenade cleanly (no buried sign!)
         GameObject restKitchen = PlaceModel(root.transform, "RestaurantFriesKitchen", "Restaurante Batata e Mar", new Vector3(-14.2f, 0f, -6.2f), 180f, 1f, cozyMats);
-        if (restKitchen != null) AddBlockingBox(restKitchen, new Vector3(0f, 1.3f, 0f), new Vector3(4.0f, 2.6f, 2.1f), obstacles);
+        if (restKitchen != null) AddBlockingBox(restKitchen, new Vector3(0f, 2.1f, 0f), new Vector3(4.0f, 4.2f, 2.1f), obstacles);
+        if (pavilion != null) AddBlockingBox(pavilion, new Vector3(0f, 2.0f, 0f), new Vector3(5.4f, 4.0f, 3.0f), obstacles);
         Make3DText(root.transform, "Placa Restaurante", new Vector3(-14.2f, 3.22f, -5.08f), "BATATA & MAR", 1.62f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.45f));
 
         List<Transform> restaurantTables = new List<Transform>();
@@ -184,6 +186,7 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 6b. 3 Low-Profile Paintable Coastal Houses placed cleanly clear of the foreground camera corridor!
         List<Transform> paintableHouses = new List<Transform>();
+        GameObject mainHouse = null;
         Vector3[] housePositions =
         {
             new Vector3(-14.8f, -0.08f, -12.8f),
@@ -195,10 +198,12 @@ public static class GirlPowerOrla3DSceneBuilder
             GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), housePositions[i], 0f, 0.82f, cozyMats);
             if (house != null)
             {
-                AddBlockingBox(house, new Vector3(0f, 1.3f, 0f), new Vector3(3.6f, 2.5f, 2.9f), obstacles);
+                AddBlockingBox(house, new Vector3(0f, 2.0f, 0f), new Vector3(3.8f, 4.0f, 3.1f), obstacles);
                 paintableHouses.Add(house.transform);
+                if (i == 1) mainHouse = house;
             }
         }
+        if (mainHouse != null) ApplyFadeMaterials(mainHouse);
 
         List<Transform> swayingFestoons = new List<Transform>();
         float[] festoonXs = { 11.1f, 15.6f, 20.1f };
@@ -247,7 +252,7 @@ public static class GirlPowerOrla3DSceneBuilder
         {
             var vs = vegSpecs[i];
             GameObject veg = PlaceModel(root.transform, vs.model, "Jardineira Costeira " + (i + 1), vs.pos, vs.rotY, vs.scale, cozyMats);
-            if (veg != null && vs.blocks) AddBlockingBox(veg, new Vector3(0f, 0.42f, 0f), new Vector3(1.48f, 0.84f, 0.72f), obstacles);
+            if (veg != null) AddBlockingBox(veg, new Vector3(0f, 0.72f, 0f), new Vector3(1.48f, 1.44f, 0.72f), obstacles);
         }
 
         Vector2[] lampCoords =
@@ -542,11 +547,9 @@ public static class GirlPowerOrla3DSceneBuilder
         GirlPowerOrla3DPropsBuilder.PropsResult coastalDetails =
             GirlPowerOrla3DPropsBuilder.PopulateCoastalDetails(root.transform, cozyMats, obstacles, lampCoords);
 
-        // 11e. Camera Occlusion Dither Fader (houses, kiosk, florist stand, market stalls, restaurant & pavilion fade cleanly when avatar walks behind them!)
+        // Only the central coastal house fades; stalls, palms, umbrellas and other homes stay opaque.
         List<Transform> occluderRoots = new List<Transform>();
-        occluderRoots.AddRange(paintableHouses);
-        foreach (GameObject occ in new[] { kiosk, kioskAwningUpgrade, floristStand, pavilion, restKitchen, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
-            if (occ != null) occluderRoots.Add(occ.transform);
+        if (mainHouse != null) occluderRoots.Add(mainHouse.transform);
 
         GameObject occObj = new GameObject("Oclusao_Transparencia_Construcoes");
         occObj.transform.SetParent(root.transform, false);
@@ -554,9 +557,7 @@ public static class GirlPowerOrla3DSceneBuilder
         occFader.player = playerRoot.transform;
         occFader.targetCamera = mainCam;
         occFader.occluderRoots = occluderRoots.ToArray();
-        // Fade only the roof section that intersects the avatar silhouette.
-        // The former wide radius made stalls look as if they had a dotted halo.
-        occFader.cutoutRadius = 1.35f;
+        occFader.cutoutRadius = 1.15f;
 
         // 11f. Contact / Blob Shadows anchoring every character, pet, cart, bench, stall, table & prop to the ground!
         List<GirlPowerOrla3DContactShadows.ShadowEntry> shadowEntries = new List<GirlPowerOrla3DContactShadows.ShadowEntry>();
@@ -1139,7 +1140,13 @@ public static class GirlPowerOrla3DSceneBuilder
     private static Material BuildOceanMaterial()
     {
         Shader oceanShader = Shader.Find(OceanShaderName);
-        if (oceanShader == null) oceanShader = Shader.Find("Standard");
+        bool customWaterSupported = oceanShader != null && oceanShader.isSupported;
+        if (!customWaterSupported)
+        {
+            oceanShader = Shader.Find("Universal Render Pipeline/Lit");
+            if (oceanShader == null) oceanShader = Shader.Find("Standard");
+            Debug.LogWarning("[Orla3D] Animated ocean shader is unavailable in the active render pipeline. Using a teal fallback material instead of a default white plane.");
+        }
         string matPath = MaterialsFolder + "/AC_OceanAnimated.mat";
         Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
         if (mat == null)
@@ -1151,6 +1158,15 @@ public static class GirlPowerOrla3DSceneBuilder
         {
             mat.shader = oceanShader;
         }
+        if (!customWaterSupported)
+        {
+            Color fallbackWater = new Color(0.14f, 0.58f, 0.67f, 1f);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", fallbackWater);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", fallbackWater);
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.18f);
+        }
         if (mat.HasProperty("_DepthDistance")) mat.SetFloat("_DepthDistance", 2.5f);
         if (mat.HasProperty("_FoamDistance")) mat.SetFloat("_FoamDistance", 0.65f);
         if (mat.HasProperty("_FoamSpeed")) mat.SetFloat("_FoamSpeed", 0.35f);
@@ -1158,6 +1174,61 @@ public static class GirlPowerOrla3DSceneBuilder
         if (mat.HasProperty("_WaveHeight")) mat.SetFloat("_WaveHeight", 0.055f);
         EditorUtility.SetDirty(mat);
         return mat;
+    }
+
+    private static void ApplyFadeMaterials(GameObject root)
+    {
+        Shader fadeShader = Shader.Find(FadeShaderName);
+        if (fadeShader == null || !fadeShader.isSupported)
+        {
+            Debug.LogWarning("[Orla3D] Smooth house fade shader is unavailable; the house will remain opaque rather than use a noisy cutout.");
+            return;
+        }
+
+        foreach (MeshRenderer renderer in root.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            Material[] materials = renderer.sharedMaterials;
+            bool changed = false;
+            for (int i = 0; i < materials.Length; i++)
+            {
+                Material source = materials[i];
+                if (source == null) continue;
+                if (source.shader == null || source.shader.name != CozyShaderName) continue;
+
+                string key = SafeAssetFileName(source.name);
+                string path = MaterialsFolder + "/AC_Fade_" + key + ".mat";
+                Material fadeMaterial = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (fadeMaterial == null)
+                {
+                    fadeMaterial = new Material(source);
+                    fadeMaterial.name = "AC_Fade_" + key;
+                    fadeMaterial.shader = fadeShader;
+                    AssetDatabase.CreateAsset(fadeMaterial, path);
+                }
+                else
+                {
+                    fadeMaterial.CopyPropertiesFromMaterial(source);
+                    fadeMaterial.shader = fadeShader;
+                }
+
+                if (fadeMaterial.HasProperty("_OccluderEnabled")) fadeMaterial.SetFloat("_OccluderEnabled", 1f);
+                materials[i] = fadeMaterial;
+                changed = true;
+            }
+
+            if (changed) renderer.sharedMaterials = materials;
+        }
+        AssetDatabase.SaveAssets();
+    }
+
+    private static string SafeAssetFileName(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "Unnamed";
+        char[] chars = value.ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+            if (!char.IsLetterOrDigit(chars[i]) && chars[i] != '_' && chars[i] != '-')
+                chars[i] = '_';
+        return new string(chars);
     }
 
     private static Dictionary<string, Material> BuildCozyMaterials()

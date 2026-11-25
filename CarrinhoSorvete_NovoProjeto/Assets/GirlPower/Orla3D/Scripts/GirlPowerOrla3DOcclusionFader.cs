@@ -2,8 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Eliminates camera-to-player building clipping/occlusion by driving screen-space
-/// Bayer dither fade in GirlPower/OrlaACNHCozy whenever the player walks behind houses,
-/// kiosk awnings, market stalls, or the Pavilion roof!
+/// Smooth alpha fade on the designated main-house roof when it blocks the player.
+/// Other buildings and beach props remain fully opaque.
 /// </summary>
 public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
 {

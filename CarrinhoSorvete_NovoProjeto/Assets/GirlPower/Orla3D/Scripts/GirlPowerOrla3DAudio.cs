@@ -427,34 +427,71 @@ public sealed class GirlPowerOrla3DAudio : MonoBehaviour
 
     private static AudioClip GenerateCozyMarimbaLoop()
     {
-        float stepDur = 0.5f;
-        int steps = 16;
+        // Lush Brazilian Coastal Bossa Nova loop (32 eighth-note steps, Cmaj7 -> Am7 -> Dm7 -> G7(9))
+        // Layers warm nylon acoustic guitar chords, syncopated melody, soft upright bass & beach shaker!
+        float stepDur = 0.28f;
+        int steps = 32;
         int count = Mathf.RoundToInt(SampleRate * stepDur * steps);
         float[] data = new float[count];
+        System.Random rng = new System.Random(777);
 
         float[] melody =
         {
-            523.25f, 0f, 659.25f, 587.33f,
-            440.00f, 0f, 523.25f, 392.00f,
-            349.23f, 0f, 440.00f, 523.25f,
-            587.33f, 523.25f, 392.00f, 0f
+            659.25f, 0f, 587.33f, 523.25f, 0f, 493.88f, 523.25f, 0f,
+            523.25f, 0f, 493.88f, 440.00f, 0f, 392.00f, 440.00f, 0f,
+            587.33f, 0f, 523.25f, 440.00f, 0f, 392.00f, 440.00f, 0f,
+            493.88f, 523.25f, 587.33f, 0f, 523.25f, 0f, 392.00f, 0f
         };
-        float[] bass =
+        float[][] chords =
         {
-            130.81f, 0f, 0f, 0f,
-            110.00f, 0f, 0f, 0f,
-            174.61f, 0f, 0f, 0f,
-            196.00f, 0f, 130.81f, 0f
+            new[] { 261.63f, 329.63f, 392.00f, 493.88f }, // Cmaj7
+            new[] { 220.00f, 261.63f, 329.63f, 392.00f }, // Am7
+            new[] { 293.66f, 349.23f, 440.00f, 523.25f }, // Dm7
+            new[] { 246.94f, 293.66f, 349.23f, 440.00f }  // G7(9)
         };
+        float[] bassRoots = { 130.81f, 110.00f, 146.83f, 98.00f };
+        // Classic bossa-nova clave strum pattern across 8 eighth-notes per bar
+        bool[] bossaHits = { true, false, false, true, false, false, true, false };
 
         for (int s = 0; s < steps; s++)
         {
             int start = Mathf.RoundToInt(s * stepDur * SampleRate);
-            AddWarmNote(data, start, melody[s], 0.48f, 0.24f);
-            AddWarmNote(data, start, bass[s], 0.92f, 0.18f);
+            int bar = s / 8;
+            int beat = s % 8;
+
+            // Gentle acoustic melody pluck
+            AddWarmNote(data, start, melody[s], 0.44f, 0.19f);
+
+            // Syncopated Bossa Nova nylon guitar chord comping
+            if (bossaHits[beat])
+            {
+                float[] ch = chords[bar];
+                for (int n = 0; n < ch.Length; n++)
+                    AddWarmNote(data, start + n * 240, ch[n], 0.42f, 0.068f);
+            }
+
+            // Soft upright bass (root on beat 0 & 4, fifth on beat 6)
+            if (beat == 0 || beat == 4)
+                AddWarmNote(data, start, bassRoots[bar], 0.56f, 0.17f);
+            else if (beat == 6)
+                AddWarmNote(data, start, bassRoots[bar] * 1.498f, 0.36f, 0.12f);
+
+            // Whisper-soft cabasa / beach shaker on every 8th note
+            int shLen = Mathf.RoundToInt(0.055f * SampleRate);
+            float shAmp = (beat % 2 == 0) ? 0.026f : 0.015f;
+            float hpPrev = 0f;
+            for (int i = 0; i < shLen; i++)
+            {
+                int idx = (start + i) % count;
+                float u = (float)i / shLen;
+                float raw = (float)(rng.NextDouble() * 2.0 - 1.0);
+                float hp = raw - hpPrev * 0.82f;
+                hpPrev = raw;
+                data[idx] += hp * Mathf.Sin(u * Mathf.PI) * shAmp;
+            }
         }
 
-        AudioClip clip = AudioClip.Create("CozyBeachLoop", count, 1, SampleRate, false);
+        AudioClip clip = AudioClip.Create("CozyBossaBeachLoop", count, 1, SampleRate, false);
         clip.SetData(data, 0);
         return clip;
     }

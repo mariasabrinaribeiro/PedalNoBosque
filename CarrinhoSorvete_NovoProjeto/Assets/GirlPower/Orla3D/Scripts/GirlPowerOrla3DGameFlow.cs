@@ -34,7 +34,8 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         Chapters,
         Settings,
         ControlsGuide,
-        Credits
+        Credits,
+        ParentsArea
     }
 
     private sealed class ConfettiPiece
@@ -71,18 +72,18 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     public int LanguageIndex { get; private set; } // 0=PT, 1=EN, 2=ES
     public bool IsEnglish => LanguageIndex == 1;
     public bool IsSpanish => LanguageIndex == 2;
+    public bool FreePlayKidsMode { get; private set; }
+    public int SessionLimitMinutes { get; private set; } // 0=Unlimited, 15, 30, 45
+    private float sessionElapsedSeconds;
+    private bool sessionBreakShowing;
     public float ChapterTimeRemaining { get; private set; }
     public float ChapterTimeMax { get; private set; }
-    public bool HasActiveTimer => challengeTimerEnabled && ChapterTimeMax > 1f && CurrentState == GameState.Playing;
+    public bool HasActiveTimer => !FreePlayKidsMode && challengeTimerEnabled && ChapterTimeMax > 1f && CurrentState == GameState.Playing;
 
     public bool IsPlaying => CurrentState == GameState.Playing;
 
     private SubModal activeModal = SubModal.None;
     private float menuOrbitClock;
-    private Vector3 previousPlayerPosition;
-    private float cameraLeadX = 1f;
-    private float cameraLeadZ;
-    private bool hasPreviousPlayerPosition;
     private int chapterCoinsStart;
     private int chapterPaintStart;
 
@@ -113,22 +114,18 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         if (characterAnimator == null) characterAnimator = FindObjectOfType<GirlPowerOrla3DCharacterAnimator>();
         if (sceneCamera != null)
         {
-            sceneCamera.fieldOfView = 48f;
+            sceneCamera.fieldOfView = 42f;
+            sceneCamera.depthTextureMode |= DepthTextureMode.Depth;
             GirlPowerOrla3DCameraPost cameraPost = sceneCamera.GetComponent<GirlPowerOrla3DCameraPost>();
             if (cameraPost != null)
             {
-                cameraPost.contrast = 1.04f;
-                cameraPost.saturation = 1.02f;
-                cameraPost.vignetteStrength = 0.10f;
+                cameraPost.contrast = 1.06f;
+                cameraPost.saturation = 1.08f;
+                cameraPost.vignetteStrength = 0.14f;
             }
         }
         GirlPowerOrla3DOcclusionFader occlusionFader = FindObjectOfType<GirlPowerOrla3DOcclusionFader>();
-        if (occlusionFader != null) occlusionFader.cutoutRadius = 1.35f;
-        if (characterAnimator != null)
-        {
-            previousPlayerPosition = characterAnimator.transform.position;
-            hasPreviousPlayerPosition = true;
-        }
+        if (occlusionFader != null) occlusionFader.cutoutRadius = 1.45f;
         EnterTitleMenu();
     }
 
@@ -142,13 +139,19 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         ControlMode = (TouchControlMode)Mathf.Clamp(PlayerPrefs.GetInt(PrefPrefix + "TouchMode", 0), 0, 2);
         challengeTimerEnabled = PlayerPrefs.GetInt(PrefPrefix + "TimerOn", 1) == 1;
         LanguageIndex = Mathf.Clamp(PlayerPrefs.GetInt(PrefPrefix + "LangIdx", 0), 0, 2);
+        FreePlayKidsMode = PlayerPrefs.GetInt(PrefPrefix + "KidsFreePlay", 0) == 1;
+        SessionLimitMinutes = PlayerPrefs.GetInt(PrefPrefix + "SessionLimit", 0);
+        GirlPowerOrla3DLocalization.Lang = LanguageIndex;
     }
 
     private void SaveUserPreferences()
     {
+        GirlPowerOrla3DLocalization.Lang = LanguageIndex;
         PlayerPrefs.SetInt(PrefPrefix + "TouchMode", (int)ControlMode);
         PlayerPrefs.SetInt(PrefPrefix + "TimerOn", challengeTimerEnabled ? 1 : 0);
         PlayerPrefs.SetInt(PrefPrefix + "LangIdx", LanguageIndex);
+        PlayerPrefs.SetInt(PrefPrefix + "KidsFreePlay", FreePlayKidsMode ? 1 : 0);
+        PlayerPrefs.SetInt(PrefPrefix + "SessionLimit", SessionLimitMinutes);
         PlayerPrefs.Save();
     }
 
@@ -371,8 +374,17 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         }
         else if (CurrentState == GameState.Playing)
         {
-            UpdateGameplayCamera(Time.deltaTime);
+            // GirlPowerOrla3DFirstDelivery.FollowAnimalCrossingCamera is the single SmoothDamp gameplay camera owner (zero dual-camera fighting!)
             UpdateChapterTimer(Time.deltaTime);
+            if (SessionLimitMinutes > 0 && !sessionBreakShowing)
+            {
+                sessionElapsedSeconds += Time.unscaledDeltaTime;
+                if (sessionElapsedSeconds >= SessionLimitMinutes * 60f)
+                {
+                    sessionBreakShowing = true;
+                    Time.timeScale = 0f;
+                }
+            }
         }
         else if (CurrentState == GameState.ChapterVictory)
         {
@@ -394,47 +406,9 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRot, 1f - Mathf.Exp(-2.4f * dt));
     }
 
-    private void UpdateGameplayCamera(float dt)
-    {
-        if (sceneCamera == null || characterAnimator == null) return;
-
-        Transform player = characterAnimator.transform;
-        Vector3 playerPosition = player.position;
-        if (hasPreviousPlayerPosition)
-        {
-            Vector3 movement = playerPosition - previousPlayerPosition;
-            if (movement.sqrMagnitude > 0.0004f)
-            {
-                if (Mathf.Abs(movement.x) > Mathf.Abs(movement.z) * 0.72f)
-                {
-                    cameraLeadX = Mathf.Sign(movement.x);
-                    cameraLeadZ = 0f;
-                }
-                else
-                {
-                    cameraLeadZ = Mathf.Sign(movement.z);
-                    cameraLeadX = 0f;
-                }
-            }
-        }
-        previousPlayerPosition = playerPosition;
-        hasPreviousPlayerPosition = true;
-
-        // Keep the avatar in the lower half of the frame and reveal the route ahead.
-        Vector3 lookAhead = new Vector3(cameraLeadX * 2.8f, 0f, cameraLeadZ * 2.2f);
-        Vector3 focus = playerPosition + lookAhead;
-        Vector3 targetPosition = focus + new Vector3(0f, 9.6f, -10.5f);
-        float positionBlend = 1f - Mathf.Exp(-4.0f * Mathf.Max(0f, dt));
-        sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, targetPosition, positionBlend);
-
-        Vector3 lookAt = playerPosition + Vector3.up * 0.8f + lookAhead * 0.72f;
-        Quaternion targetRotation = Quaternion.LookRotation(lookAt - sceneCamera.transform.position, Vector3.up);
-        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRotation, 1f - Mathf.Exp(-5.0f * Mathf.Max(0f, dt)));
-    }
-
     private void UpdateChapterTimer(float dt)
     {
-        if (!challengeTimerEnabled || ChapterTimeMax <= 1f) return;
+        if (FreePlayKidsMode || !challengeTimerEnabled || ChapterTimeMax <= 1f) return;
         // Pause timer gently while reading story dialogues or viewing the Polaroid photo
         if (dialogueController != null && dialogueController.IsOpen) return;
         if (photoOverlay != null && photoOverlay.IsShowing) return;
@@ -524,6 +498,31 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
 
         if (activeModal != SubModal.None)
             DrawSubModal(s);
+
+        // Gentle cozy session break reminder when parental session limit is reached
+        if (sessionBreakShowing)
+        {
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), GirlPowerOrla3DUITheme.DimOverlayTex);
+            float bw = 480f * s;
+            float bh = 240f * s;
+            Rect box = new Rect((Screen.width - bw) * 0.5f, (Screen.height - bh) * 0.5f, bw, bh);
+            GUI.Box(box, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+            GUI.Label(new Rect(box.x + 24f * s, box.y + 24f * s, bw - 48f * s, 36f * s),
+                GirlPowerOrla3DLocalization.T("Hora de descansar um pouquinho!", "Time for a short break!", "¡Hora de descansar un poco!"),
+                GirlPowerOrla3DUITheme.HeadingStyle);
+            GUI.Label(new Rect(box.x + 24f * s, box.y + 74f * s, bw - 48f * s, 70f * s),
+                GirlPowerOrla3DLocalization.T("O limite de sessão configurado na Área dos Pais foi atingido. Beba água e volte depois!",
+                    "The session limit set in the Parents Area was reached. Stretch, drink water, and come back later!",
+                    "Se alcanzó el límite configurado en el Área de Padres. ¡Toma agua y vuelve más tarde!"),
+                new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { alignment = TextAnchor.MiddleCenter, wordWrap = true });
+            if (GUI.Button(new Rect(box.x + (bw - 210f * s) * 0.5f, box.yMax - 64f * s, 210f * s, 44f * s),
+                GirlPowerOrla3DLocalization.T("Continuar (+15 min)", "Continue (+15 min)", "Continuar (+15 min)"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            {
+                sessionBreakShowing = false;
+                sessionElapsedSeconds = 0f;
+                Time.timeScale = 1f;
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -676,21 +675,29 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         }
         by += 44f * s;
 
-        // Chapters & Credits compact dark pills
-        string chapLbl = IsEnglish ? "Chapters" : (IsSpanish ? "Capítulos" : "Capítulos");
-        string credLbl = IsEnglish ? "Credits" : (IsSpanish ? "Créditos" : "Créditos");
+        // Chapters, Parents Area & Credits compact dark pills (matching Pedal no Bosque!)
+        string parentsLbl = GirlPowerOrla3DLocalization.T("Área dos Pais", "Parents Area", "Área de Padres");
+        if (GUI.Button(new Rect(bx, by, bw, 36f * s), parentsLbl, pedalDarkBtn))
+            activeModal = SubModal.ParentsArea;
+        by += 44f * s;
+
+        string chapLbl = GirlPowerOrla3DLocalization.T("Capítulos", "Chapters", "Capítulos");
+        string credLbl = GirlPowerOrla3DLocalization.T("Créditos", "Credits", "Créditos");
         if (GUI.Button(new Rect(bx, by, halfW, 36f * s), chapLbl, pedalDarkBtn))
             activeModal = SubModal.Chapters;
         if (GUI.Button(new Rect(bx + halfW + 14f * s, by, halfW, 36f * s), credLbl, pedalDarkBtn))
             activeModal = SubModal.Credits;
-        by += 52f * s;
+        by += 48f * s;
 
         // Bottom live stats line matching Pedal no Bosque!
         int coins = lifeActivities != null ? lifeActivities.Coins : (megaSystems != null ? megaSystems.Data.coins : 60);
         int deliv = megaSystems != null ? megaSystems.Data.deliveriesTotal : 0;
         int stars = GetChapterBestStars(1) + GetChapterBestStars(2) + GetChapterBestStars(3) + GetChapterBestStars(4);
         int prest = megaSystems != null ? megaSystems.Data.prestige : 10;
-        string statsLine = "Moedas: " + coins + "  |  Entregas: " + deliv + "  |  Estrelas: " + stars + "  |  Prestígio: " + prest;
+        string statsLine = GirlPowerOrla3DLocalization.T(
+            "Moedas: " + coins + "  |  Entregas: " + deliv + "  |  Estrelas: " + stars + "  |  Prestígio: " + prest,
+            "Coins: " + coins + "  |  Deliveries: " + deliv + "  |  Stars: " + stars + "  |  Prestige: " + prest,
+            "Monedas: " + coins + "  |  Entregas: " + deliv + "  |  Estrellas: " + stars + "  |  Prestigio: " + prest);
         GUIStyle statSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle)
         {
             fontSize = Mathf.RoundToInt(14f * s),
@@ -886,10 +893,11 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         string title = "";
         switch (activeModal)
         {
-            case SubModal.Chapters: title = IsEnglish ? "CHAPTER SELECT" : "SELEÇÃO DE CAPÍTULOS"; break;
-            case SubModal.Settings: title = IsEnglish ? "SETTINGS" : "CONFIGURAÇÕES"; break;
-            case SubModal.ControlsGuide: title = IsEnglish ? "CONTROLS GUIDE" : "GUIA DE CONTROLES"; break;
-            case SubModal.Credits: title = IsEnglish ? "CREDITS" : "CRÉDITOS"; break;
+            case SubModal.Chapters: title = GirlPowerOrla3DLocalization.T("SELEÇÃO DE CAPÍTULOS", "CHAPTER SELECT", "SELECCIÓN DE CAPÍTULOS"); break;
+            case SubModal.Settings: title = GirlPowerOrla3DLocalization.T("CONFIGURAÇÕES", "SETTINGS", "AJUSTES"); break;
+            case SubModal.ControlsGuide: title = GirlPowerOrla3DLocalization.T("GUIA DE CONTROLES", "CONTROLS GUIDE", "GUÍA DE CONTROLES"); break;
+            case SubModal.Credits: title = GirlPowerOrla3DLocalization.T("CRÉDITOS", "CREDITS", "CRÉDITOS"); break;
+            case SubModal.ParentsArea: title = GirlPowerOrla3DLocalization.T("ÁREA DOS PAIS", "PARENTS AREA", "ÁREA DE PADRES"); break;
         }
 
         Rect head = new Rect(card.x + 68f * s, card.y - 20f * s, w - 136f * s, 44f * s);
@@ -904,9 +912,65 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
             DrawControlsModalContent(card, s);
         else if (activeModal == SubModal.Credits)
             DrawCreditsModalContent(card, s);
+        else if (activeModal == SubModal.ParentsArea)
+            DrawParentsAreaModalContent(card, s);
 
-        if (GUI.Button(new Rect(card.x + (w - 190f * s) * 0.5f, card.yMax - 58f * s, 190f * s, 42f * s), IsEnglish ? "BACK" : "VOLTAR", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+        if (GUI.Button(new Rect(card.x + (w - 190f * s) * 0.5f, card.yMax - 58f * s, 190f * s, 42f * s), GirlPowerOrla3DLocalization.T("VOLTAR", "BACK", "VOLVER"), GirlPowerOrla3DUITheme.BtnSecondaryStyle))
             activeModal = SubModal.None;
+    }
+
+    private void DrawParentsAreaModalContent(Rect card, float s)
+    {
+        float x = card.x + 36f * s;
+        float w = card.width - 72f * s;
+        float y = card.y + 44f * s;
+
+        GUIStyle descSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+        {
+            alignment = TextAnchor.UpperLeft,
+            fontSize = Mathf.RoundToInt(14f * s),
+            wordWrap = true
+        };
+        GUI.Label(new Rect(x, y, w, 54f * s), GirlPowerOrla3DLocalization.T(
+            "Configure uma experiência tranquila para crianças: desative o cronômetro de derrota ou defina um lembrete de pausa da sessão.",
+            "Configure a calm experience for younger kids: disable defeat timers or set a gentle session break reminder.",
+            "Configura una experiencia tranquila para niños: desactiva el temporizador o define un aviso de descanso."), descSt);
+        y += 66f * s;
+
+        string freeLbl = GirlPowerOrla3DLocalization.T("Modo Livre Infantil (Sem Derrota): ", "Kids Free-Play Mode (No Defeat): ", "Modo Libre Infantil (Sin Derrota): ")
+            + (FreePlayKidsMode ? "ON" : "OFF");
+        if (GUI.Button(new Rect(x, y, w, 46f * s), freeLbl, FreePlayKidsMode ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnTileStyle))
+        {
+            FreePlayKidsMode = !FreePlayKidsMode;
+            SaveUserPreferences();
+        }
+        y += 62f * s;
+
+        GUI.Label(new Rect(x, y, w, 28f * s), GirlPowerOrla3DLocalization.T("Limite de Tempo da Sessão:", "Session Time Limit:", "Límite de Tiempo de Sesión:"), GirlPowerOrla3DUITheme.BodyDarkStyle);
+        y += 32f * s;
+
+        int[] limits = { 0, 15, 30, 45 };
+        float lw = (w - 24f * s) / 4f;
+        for (int i = 0; i < limits.Length; i++)
+        {
+            string lbl = limits[i] == 0 ? GirlPowerOrla3DLocalization.T("Livre", "None", "Libre") : (limits[i] + " min");
+            bool sel = SessionLimitMinutes == limits[i];
+            if (GUI.Button(new Rect(x + i * (lw + 8f * s), y, lw, 40f * s), lbl, sel ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnTileStyle))
+            {
+                SessionLimitMinutes = limits[i];
+                sessionElapsedSeconds = 0f;
+                sessionBreakShowing = false;
+                SaveUserPreferences();
+            }
+        }
+        y += 60f * s;
+
+        int minsUsed = Mathf.FloorToInt(sessionElapsedSeconds / 60f);
+        string status = GirlPowerOrla3DLocalization.T(
+            "Tempo jogado nesta sessão: " + minsUsed + " min",
+            "Time played this session: " + minsUsed + " min",
+            "Tiempo jugado en esta sesión: " + minsUsed + " min");
+        GUI.Label(new Rect(x, y, w, 30f * s), status, GirlPowerOrla3DUITheme.SmallMutedStyle);
     }
 
     private void DrawChaptersModalContent(Rect card, float s)

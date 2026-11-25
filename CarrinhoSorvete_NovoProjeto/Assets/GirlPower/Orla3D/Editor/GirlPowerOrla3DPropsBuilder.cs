@@ -35,7 +35,7 @@ public static class GirlPowerOrla3DPropsBuilder
         GameObject propsRoot = new GameObject("Microdetalhes_e_Mar_BaiaDoAvesso");
         propsRoot.transform.SetParent(root, false);
 
-        BuildCoastalRocks(propsRoot.transform, mats);
+        BuildCoastalRocks(propsRoot.transform, mats, obstacles);
         BuildSouthNeighborhoodGroundAndBoundaries(propsRoot.transform, mats, obstacles);
         BuildWoodenPier(propsRoot.transform, mats, obstacles);
         BuildAnchoredBoats(propsRoot.transform, mats, res.floatingBoats);
@@ -82,9 +82,9 @@ public static class GirlPowerOrla3DPropsBuilder
 
         // Continuous south sidewalk & coastal garden ground behind the road (z = -8.0 .. -26.0, zero gray void!)
         MakePrim(grp.transform, PrimitiveType.Cube, "Calcada_Sul",
-            new Vector3(12f, -0.14f, -8.85f), new Vector3(96f, 0.16f, 1.8f), Quaternion.identity, stoneWarm, false);
+            new Vector3(12f, -0.16f, -8.85f), new Vector3(96f, 0.16f, 1.8f), Quaternion.identity, stoneWarm, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "Gramado_Bairro_Sul",
-            new Vector3(12f, -0.20f, -18.5f), new Vector3(106f, 0.20f, 18.0f), Quaternion.identity, grass, false);
+            new Vector3(12f, -0.18f, -18.5f), new Vector3(106f, 0.20f, 18.0f), Quaternion.identity, grass, false);
 
         // Low coastal wooden fence & hedge along the far south & side map borders
         for (float x = -18f; x <= 38f; x += 4.0f)
@@ -109,9 +109,30 @@ public static class GirlPowerOrla3DPropsBuilder
                     Quaternion.identity, onBeach ? stoneDark : bush, true);
             }
         }
+
+        // Continuous invisible blockers close the gaps between the visible edge props.
+        AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Oeste",
+            new Vector3(-17.62f, 1.5f, 6.8f), new Vector3(0.24f, 4.0f, 27.8f));
+        AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Leste",
+            new Vector3(36.92f, 1.5f, 6.8f), new Vector3(0.24f, 4.0f, 27.8f));
+        AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Sul",
+            new Vector3(9.6f, 1.5f, -7.02f), new Vector3(54.4f, 4.0f, 0.24f));
+        AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Mar",
+            new Vector3(9.6f, 1.5f, 20.62f), new Vector3(54.4f, 4.0f, 0.24f));
     }
 
-    private static void BuildCoastalRocks(Transform parent, Dictionary<string, Material> mats)
+    private static void AddBoundaryBox(Transform parent, List<BoxCollider> obstacles, string name, Vector3 position, Vector3 size)
+    {
+        GameObject wall = new GameObject(name);
+        wall.transform.SetParent(parent, false);
+        wall.transform.position = position;
+        BoxCollider box = wall.AddComponent<BoxCollider>();
+        box.size = size;
+        box.isTrigger = false;
+        obstacles.Add(box);
+    }
+
+    private static void BuildCoastalRocks(Transform parent, Dictionary<string, Material> mats, List<BoxCollider> obstacles)
     {
         GameObject grp = new GameObject("Pedras_Costeiras");
         grp.transform.SetParent(parent, false);
@@ -141,6 +162,13 @@ public static class GirlPowerOrla3DPropsBuilder
                 new Vector3(s.z, s.w, s.z * 0.82f),
                 Quaternion.Euler(6f * (i % 3), i * 37f, -4f * (i % 2)),
                 i % 2 == 0 ? rockDark : rockWarm, true);
+
+            // MakePrim strips primitive colliders; use a predictable box for each large rock.
+            BoxCollider rockBlocker = rock.AddComponent<BoxCollider>();
+            rockBlocker.center = Vector3.zero;
+            rockBlocker.size = Vector3.one;
+            rockBlocker.isTrigger = false;
+            obstacles.Add(rockBlocker);
 
             // Subtle sea-foam collar around submerged rocks
             if (s.y >= 10.2f && foam != null)
