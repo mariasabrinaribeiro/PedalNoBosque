@@ -176,3 +176,24 @@
   - Bloqueio via `GUIUtility.hotControl != 0` e proteção da pílula contextual `[E]` na base, evitando andar/arrastar a câmera ao tocar em botões.
 - [x] **Zero Avisos de Compilação em Todo o Projeto (`0 Erros, 0 Avisos`):**
   - Eliminados todos os `warning CS0414` restantes em `Enemy.cs`, `DriverPro.cs` e `GirlPowerFirstDelivery.cs`.
+
+
+---
+
+### Etapa 15 — Correções Técnicas Obrigatórias v22: Fade Roof Interno 0.5m, NavMeshObstacle + Desvio NPCs, Corredor +50%, Fontes +70% e Parallax 3 Camadas
+- [x] **1. Remoção de Bloqueio Visual & Fade Roof Estritamente Interno (`GirlPowerOrla3DCafeRoofFade.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Casas e fachadas do primeiro plano sul recuadas para `z = -17.8..-25.2` com altura reduzida (`scaleY = 0.72..0.80`) para nunca tamparem a área jogável nem a protagonista.
+  - `BoxCollider (isTrigger = true)` do Fade Roof agora fica estritamente dentro do piso interno com **margem interna de `0.50m`** das paredes externas, com transição suave por `Mathf.Lerp` e histerese (`0.14m`) — fim total do pisca-pisca ao encostar na parede externa.
+- [x] **2. Colisores + `NavMeshObstacle (Carve)` nos Arbustos Verdes & Desvio entre Personagens (`GirlPowerOrla3DPropsBuilder.cs`, `GirlPowerOrla3DCharacterAvoidance.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Todos os arbustos verdes (`Restinga_1..14`, `Arbusto_Sul_*`), pedras, jardineiras, bancos, postes, cercas e barracas receberam `BoxCollider` físico + `NavMeshObstacle (carving = true)`.
+  - Protagonista e todos os NPCs/Turistas/Fadas configurados com `NavMeshAgent` (`HighQualityObstacleAvoidance`, `radius = 0.45`, `angularSpeed = 420`, prioridades distintas) + resolvedor runtime de separação suave (`GirlPowerOrla3DCharacterAvoidance.cs`) para ninguém se atravessar.
+- [x] **3. Corredor +50% Mais Largo & Câmera Mais Aberta (`GirlPowerOrla3DSceneBuilder.cs`, `GirlPowerOrla3DPropsBuilder.cs`):**
+  - Cerca sul e parede sul recuadas para `z = -23.6`, calçada sul alargada e espaçamento entre barracas da feira (`z = -5.6`) e casas sul (`z = -17.8+`) ampliado em +50%+; câmera mais aberta (`FOV = 50°`, `offset = (0, 10.6, -16.4)`, `pitch = 31.5°`, `farClipPlane = 185`).
+- [x] **4. Caminhada Sincronizada sem Deslize & Giro 420°/s (`GirlPowerOrla3DCharacterAnimator.cs`, `GirlPowerOrla3DFirstDelivery.cs`):**
+  - Cadência e `Animator.speed = actualSpeed / baseWalkSpeed` sincronizados à velocidade real de deslocamento + rotação suavizada com `Quaternion.Slerp` limitada por `angularSpeedDeg = 420°/s`.
+- [x] **5. Fontes +65% a +75% com Contorno Escuro para Mobile (`GirlPowerOrla3DUITheme.cs`, `GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DDialogue.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Aumento de +65% a +75% nas fontes de HUD (moedas, missões, timer), balões de diálogo e todas as placas 3D (`TextMeshPro` com `outlineWidth = 0.22` escuro).
+- [x] **6. Novo Efeito Parallax Real em 3 Camadas no Horizonte do Mar (`GirlPowerOrla3DParallaxHorizon.cs`, `GirlPowerOrla3DPropsBuilder.cs`):**
+  - **Camada 1 (10% da velocidade da câmera):** 5 ilhas tropicais estilizadas com colinas/palmeiras + 6 nuvens volumosas no horizonte (`z = 38..55`).
+  - **Camada 2 (30% da velocidade da câmera):** 5 barcos e veleiros coloridos navegando continuamente no mar médio (`z = 20.5..30`) com balanço nas ondas.
+  - **Camada 3 (Beira-mar):** 8 faixas de espuma das ondas animadas em loop suave avançando e recuando sobre a areia molhada.

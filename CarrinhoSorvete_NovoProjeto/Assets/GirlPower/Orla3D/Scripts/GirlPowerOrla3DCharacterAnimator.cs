@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// Expressive 3D Protagonist Animator supporting ALL land & water sports and wardrobe props:
@@ -25,8 +26,12 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     public GirlPowerOrla3DAudio audioController;
 
     [Header("Feel")]
+    public float baseWalkSpeed = 4.0f;
     public float walkStepRate = 9.2f;
     public float runStepRate = 13.8f;
+
+    private Animator cachedAnimator;
+    private NavMeshAgent cachedAgent;
 
     public LandMode CurrentLandMode { get; private set; } = LandMode.Walk;
     public WaterMode CurrentWaterMode { get; private set; } = WaterMode.Surf;
@@ -81,6 +86,8 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private void Start()
     {
         if (visualRoot == null) visualRoot = transform;
+        cachedAnimator = visualRoot.GetComponentInChildren<Animator>(true);
+        cachedAgent = GetComponent<NavMeshAgent>();
         visualBaseLocalPos = visualRoot.localPosition;
         visualRoot.localRotation = Quaternion.Euler(0f, visualRoot.localEulerAngles.y, 0f);
         prevYaw = visualRoot.localEulerAngles.y;
@@ -518,16 +525,23 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
 
         // Ground-speed synchronized walk/run cycle (eliminates foot sliding!) + vertical bobbing & forward sprint lean!
-        float actualSpeed = 0f;
-        if (hasPrevWorldPos && dt > 0.0001f)
+        float actualSpeed = actualPlanarSpeed;
+        if (cachedAgent != null && cachedAgent.enabled && cachedAgent.isOnNavMesh && cachedAgent.velocity.sqrMagnitude > 0.01f)
+            actualSpeed = cachedAgent.velocity.magnitude;
+        else if (actualSpeed <= 0.01f && hasPrevWorldPos && dt > 0.0001f)
             actualSpeed = new Vector2(worldPos.x - prevWorldPos.x, worldPos.z - prevWorldPos.z).magnitude / dt;
         prevWorldPos = worldPos;
         hasPrevWorldPos = true;
 
+        // Strictly synchronize Animator.speed = actualSpeed / baseWalkSpeed when an Animator is present!
+        float walkSpeedRatio = actualSpeed / Mathf.Max(0.5f, baseWalkSpeed);
+        if (cachedAnimator != null)
+            cachedAnimator.speed = moving ? Mathf.Clamp(walkSpeedRatio, 0.35f, 2.25f) : 1.0f;
+
         if (moving && actualSpeed > 0.12f)
         {
-            // Sync footstep cadence strictly to real ground displacement (2.55 rad per meter walked!)
-            float syncRate = Mathf.Clamp(actualSpeed * 2.55f, 4.8f, 17.5f);
+            // Sync footstep cadence strictly to real ground displacement (exact stride match, zero foot sliding!)
+            float syncRate = Mathf.Clamp(walkSpeedRatio * walkStepRate, 3.6f, 18.0f);
             walkPhase += dt * syncRate;
             float s = Mathf.Sin(walkPhase);
             float cadenceWeight = Mathf.Clamp01(actualSpeed / 3.2f);

@@ -133,35 +133,35 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
         GUI.depth = -10;
         GUI.color = Color.white;
 
-        float s = Mathf.Clamp(Screen.width / 1600f, 0.70f, 1.15f);
-        float bw = 790f * s;
-        float bh = 154f * s;
+        float s = Mathf.Clamp(Screen.width / 1600f, 0.72f, 1.15f);
+        float bw = 880f * s;
+        float bh = 186f * s;
         float bx = (Screen.width - bw) * 0.5f;
-        float by = Screen.height - bh - 28f * s;
+        float by = Screen.height - bh - 24f * s;
 
         Rect boxRect = new Rect(bx, by, bw, bh);
         GUI.Box(boxRect, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         // 2D Illustrated Speaker Portrait on left side of dialogue bubble!
         Texture2D portrait = ResolveSpeakerPortrait(speakerName);
-        float portSz = 96f * s;
+        float portSz = 108f * s;
         GUI.DrawTexture(new Rect(bx + 20f * s, by + (bh - portSz) * 0.5f + 4f * s, portSz, portSz), portrait);
 
-        // Rounded speaker badge overlapping top-left corner
-        Rect tagRect = new Rect(bx + 128f * s, by - 22f * s, 290f * s, 40f * s);
+        // Rounded speaker badge overlapping top-left corner (+65% enlarged mobile font with crisp dark outline!)
+        Rect tagRect = new Rect(bx + 140f * s, by - 28f * s, 360f * s, 50f * s);
         GUI.color = speakerColor;
         GUI.DrawTexture(tagRect, GirlPowerOrla3DUITheme.PillWhiteTex);
         GUI.color = Color.white;
-        nameTagStyle.fontSize = Mathf.RoundToInt(17f * s);
-        GUI.Label(tagRect, speakerName, nameTagStyle);
+        nameTagStyle.fontSize = Mathf.RoundToInt(27f * s);
+        GirlPowerOrla3DUITheme.DrawOutlinedLabel(tagRect, speakerName, nameTagStyle, Color.white, new Color(0.14f, 0.10f, 0.16f, 0.92f), 1.5f);
 
-        // Always guarantee visible, high-contrast dark brown text!
+        // Enlarged (+65%) high-contrast mobile-legible dialogue text!
         string fullLine = lines[lineIndex] ?? "";
         int shownLen = Mathf.Clamp(visibleChars, Mathf.Min(fullLine.Length, 3), fullLine.Length);
         string shown = fullLine.Substring(0, shownLen);
-        bubbleTextStyle.fontSize = Mathf.RoundToInt(20f * s);
-        bubbleTextStyle.normal.textColor = new Color(0.24f, 0.16f, 0.12f, 1f);
-        GUI.Label(new Rect(bx + 132f * s, by + 26f * s, bw - 178f * s, bh - 48f * s), shown, bubbleTextStyle);
+        bubbleTextStyle.fontSize = Mathf.RoundToInt(31f * s);
+        bubbleTextStyle.normal.textColor = new Color(0.18f, 0.12f, 0.09f, 1f);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(bx + 146f * s, by + 30f * s, bw - 196f * s, bh - 46f * s), shown, bubbleTextStyle, new Color(0.18f, 0.12f, 0.09f, 1f), new Color(1f, 0.99f, 0.95f, 0.9f), 1.2f);
 
         if (shownLen >= fullLine.Length)
         {

@@ -4,6 +4,7 @@ using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -21,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v21_OrlaDasFadas_ZeroErrors";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v22_ParallaxCollisionsMobileFonts";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -187,10 +188,13 @@ public static class GirlPowerOrla3DSceneBuilder
         if (cafeRoof != null) ApplyFadeMaterials(cafeRoof, false);
         Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.55f, new Color32(255, 246, 224, 255), new Vector2(2.8f, 0.44f));
 
-        // 6a3. Colorful Low Coastal Town Facades along the far south horizon (eliminates empty backdrop edge!)
+        // 6a3. Colorful Low Coastal Town Facades pushed far south (z = -25.2f) so foreground roofs NEVER block gameplay!
         float[] facadeXs = { -11.5f, 11.5f, 34.0f };
         for (int i = 0; i < facadeXs.Length; i++)
-            PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.12f, -17.8f), 0f, 1.04f, cozyMats);
+        {
+            GameObject fac = PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.16f, -25.2f), 0f, 1.0f, cozyMats);
+            if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.80f, 1.0f);
+        }
 
         // 6a4. Original Tropical-Magical Props (Glowing Beach Mushrooms, Floating Lanterns & Flower Lamp Posts!)
         Vector3[] mushroomSpots =
@@ -262,20 +266,22 @@ public static class GirlPowerOrla3DSceneBuilder
         // Moored decorative Hawaiian Canoe on the beach
         PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.16f, 8.2f), 22f, 1.0f, cozyMats);
 
-        // 6b. 3 Low-Profile Paintable Coastal Houses placed cleanly clear of the foreground camera corridor!
+        // 6b. 3 Low-Profile Paintable Coastal Houses pushed +50% further south (z = -17.8..-19.2, lower roof height)
+        // so the corridor between Fair stalls & South Houses is wide open and foreground roofs NEVER cover the player!
         List<Transform> paintableHouses = new List<Transform>();
         GameObject mainHouse = null;
         Vector3[] housePositions =
         {
-            new Vector3(-14.8f, -0.08f, -12.8f),
-            new Vector3(9.5f, -0.08f, -14.2f),
-            new Vector3(34.2f, -0.08f, -12.8f)
+            new Vector3(-14.8f, -0.10f, -17.8f),
+            new Vector3(9.5f, -0.10f, -19.2f),
+            new Vector3(34.2f, -0.10f, -17.8f)
         };
         for (int i = 0; i < housePositions.Length; i++)
         {
-            GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), housePositions[i], 0f, 0.82f, cozyMats);
+            GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), housePositions[i], 0f, 0.84f, cozyMats);
             if (house != null)
             {
+                house.transform.localScale = new Vector3(0.84f, 0.72f, 0.84f);
                 AddBlockingBox(house, new Vector3(0f, 2.0f, 0f), new Vector3(3.8f, 4.0f, 3.1f), obstacles);
                 paintableHouses.Add(house.transform);
                 if (i == 1) mainHouse = house;
@@ -735,7 +741,7 @@ public static class GirlPowerOrla3DSceneBuilder
             if (db != null) distantBoats.Add(db.transform);
         }
 
-        // Seamless Café das Fadas Roof Fade Controller (zero loading screen when walking indoors!)
+        // Seamless Café das Fadas Roof Fade Controller (strict interior 0.5m inset margin -> never flickers on outside sidewalk!)
         if (cafeRoof != null)
         {
             GameObject cafeFadeObj = new GameObject("Cafe_Teto_Fade_Automatico");
@@ -744,10 +750,11 @@ public static class GirlPowerOrla3DSceneBuilder
             cafeFade.player = playerRoot.transform;
             cafeFade.roofObject = cafeRoof.transform;
             cafeFade.buildingCenter = cafePos;
-            cafeFade.halfBoundsXZ = new Vector2(3.6f, 2.9f);
+            cafeFade.halfBoundsXZ = new Vector2(3.05f, 2.05f);
+            cafeFade.interiorWallMargin = 0.50f;
         }
 
-        // Batata & Mar interior: fade the shell while the player is inside so its room remains visible.
+        // Batata & Mar interior: strict 0.5m interior trigger inset so sidewalk outside never fades the roof!
         if (restKitchen != null)
         {
             GameObject restaurantFadeObj = new GameObject("Batata_Mar_Teto_Fade_Automatico");
@@ -756,7 +763,8 @@ public static class GirlPowerOrla3DSceneBuilder
             restaurantFade.player = playerRoot.transform;
             restaurantFade.roofObject = restKitchen.transform;
             restaurantFade.buildingCenter = new Vector3(-14.2f, 0f, -6.2f);
-            restaurantFade.halfBoundsXZ = new Vector2(2.25f, 1.45f);
+            restaurantFade.halfBoundsXZ = new Vector2(1.86f, 0.92f);
+            restaurantFade.interiorWallMargin = 0.50f;
         }
 
         GameObject npcAiObj = new GameObject("IA_Moradores_e_Fauna_Local");
@@ -1081,11 +1089,11 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject missionObj = new GameObject("Historia Baia do Avesso - 4 Capitulos");
         missionObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DFirstDelivery mission = missionObj.AddComponent<GirlPowerOrla3DFirstDelivery>();
-        // Open spacious coastal horizon camera (+50% wider beach, fair plaza, orchard & horizon!)
-        mission.cameraOffset = new Vector3(0f, 9.2f, -14.2f);
-        mission.cameraPitch = 32.5f;
-        mission.minWorldZ = -21.5f;
-        mission.maxWorldZ = 24.5f;
+        // Open spacious coastal horizon camera (wider distance + balanced FOV 50° -> zero cramped screen!)
+        mission.cameraOffset = new Vector3(0f, 10.6f, -16.4f);
+        mission.cameraPitch = 31.5f;
+        mission.minWorldZ = -22.2f;
+        mission.maxWorldZ = 22.5f;
         mission.player = playerRoot.transform;
         mission.playerVisual = playerVisual != null ? playerVisual.transform : playerRoot.transform;
         mission.characterAnimator = charAnim;
@@ -1242,6 +1250,61 @@ public static class GirlPowerOrla3DSceneBuilder
         mobileTouch.petFriendlySystem = petFriendlySys;
         mobileTouch.npcAI = npcAi;
 
+        // 14. NAVMESHAGENT OBSTACLE AVOIDANCE (High Quality, Radius 0.45, AngularSpeed 420, Distinct Priorities)
+        //     + RUNTIME CHARACTER-TO-CHARACTER & GREEN-BUSH SEPARATION!
+        List<Transform> avoidanceActors = new List<Transform>();
+        int nextPriority = 20;
+        AttachConfiguredNavMeshAgent(playerRoot, nextPriority);
+        nextPriority += 3;
+        foreach (GameObject coreNpc in new[] { friendNina, friendBia, florist, sisterMarina, pedBlue, pedCoral, camponesaObj })
+        {
+            if (coreNpc == null) continue;
+            AttachConfiguredNavMeshAgent(coreNpc, nextPriority);
+            avoidanceActors.Add(coreNpc.transform);
+            nextPriority = Mathf.Min(96, nextPriority + 3);
+        }
+        for (int i = 0; i < strollingNpcs.Count; i++)
+        {
+            if (strollingNpcs[i] == null) continue;
+            AttachConfiguredNavMeshAgent(strollingNpcs[i].gameObject, nextPriority);
+            avoidanceActors.Add(strollingNpcs[i]);
+            nextPriority = Mathf.Min(96, nextPriority + 3);
+        }
+        for (int i = 0; i < guestEntries.Count; i++)
+        {
+            if (guestEntries[i].actor == null) continue;
+            AttachConfiguredNavMeshAgent(guestEntries[i].actor.gameObject, nextPriority);
+            avoidanceActors.Add(guestEntries[i].actor);
+            nextPriority = Mathf.Min(96, nextPriority + 3);
+        }
+        for (int i = 0; i < fairyList.Count; i++)
+        {
+            if (fairyList[i] == null) continue;
+            AttachConfiguredNavMeshAgent(fairyList[i].gameObject, nextPriority);
+            avoidanceActors.Add(fairyList[i]);
+            nextPriority = Mathf.Min(96, nextPriority + 3);
+        }
+
+        GameObject avoidObj = new GameObject("Sistema_Colisao_e_Desvio_Personagens");
+        avoidObj.transform.SetParent(root.transform, false);
+        GirlPowerOrla3DCharacterAvoidance charAvoid = avoidObj.AddComponent<GirlPowerOrla3DCharacterAvoidance>();
+        charAvoid.player = playerRoot.transform;
+        charAvoid.npcActors = avoidanceActors.ToArray();
+        charAvoid.blockingObstacles = obstacles.ToArray();
+        charAvoid.characterRadius = 0.45f;
+
+        // 15. CINEMATIC 3-LAYER OCEAN & HORIZON PARALLAX (Islands/Clouds 10% -> Sailboats 30% -> Looping Shore Foam!)
+        GameObject parallaxObj = new GameObject("Parallax_Horizonte_Mar_3Camadas");
+        parallaxObj.transform.SetParent(root.transform, false);
+        GirlPowerOrla3DParallaxHorizon parallax = parallaxObj.AddComponent<GirlPowerOrla3DParallaxHorizon>();
+        parallax.sceneCamera = mainCam;
+        parallax.farHorizonIslands = coastalDetails.parallaxFarIslands.ToArray();
+        parallax.farHorizonClouds = coastalDetails.parallaxFarClouds.ToArray();
+        parallax.midSeaSailboats = coastalDetails.parallaxMidSailboats.ToArray();
+        parallax.shorelineFoamRibbons = coastalDetails.parallaxShoreFoam.ToArray();
+        parallax.farLayerFollowFactor = 0.90f;
+        parallax.midLayerFollowFactor = 0.70f;
+
         // Align every sign and entrance with the new market coordinates after all scene systems are wired.
         if (kioskAwningUpgrade != null) kioskAwningUpgrade.transform.position = kiosk.transform.position;
         if (customSign != null) customSign.transform.position = new Vector3(0f, 3.56f, -9.91f);
@@ -1290,13 +1353,13 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject camObj = new GameObject("ACNH Diorama Camera");
         camObj.transform.SetParent(parent, false);
-        camObj.transform.position = new Vector3(-0.2f, 9.2f, -15.95f);
-        camObj.transform.rotation = Quaternion.Euler(32.5f, 0f, 0f);
+        camObj.transform.position = new Vector3(-0.2f, 10.6f, -18.2f);
+        camObj.transform.rotation = Quaternion.Euler(31.5f, 0f, 0f);
         Camera cam = camObj.AddComponent<Camera>();
         cam.tag = "MainCamera";
-        cam.fieldOfView = 48f;
+        cam.fieldOfView = 50f;
         cam.nearClipPlane = 0.2f;
-        cam.farClipPlane = 155f;
+        cam.farClipPlane = 185f;
         cam.allowMSAA = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.64f, 0.77f, 0.87f);
@@ -1493,6 +1556,20 @@ public static class GirlPowerOrla3DSceneBuilder
         return null;
     }
 
+    private static void AttachConfiguredNavMeshAgent(GameObject go, int avoidancePriority)
+    {
+        if (go == null) return;
+        NavMeshAgent agent = go.GetComponent<NavMeshAgent>();
+        if (agent == null) agent = go.AddComponent<NavMeshAgent>();
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        agent.radius = 0.45f;
+        agent.height = 1.65f;
+        agent.angularSpeed = 420f;
+        agent.avoidancePriority = Mathf.Clamp(avoidancePriority, 1, 98);
+        agent.updatePosition = false;
+        agent.updateRotation = false;
+    }
+
     private static void AddBlockingBox(GameObject go, Vector3 center, Vector3 size, List<BoxCollider> list)
     {
         BoxCollider box = go.AddComponent<BoxCollider>();
@@ -1500,6 +1577,17 @@ public static class GirlPowerOrla3DSceneBuilder
         box.size = size;
         box.isTrigger = false;
         list.Add(box);
+
+        // Add carving NavMeshObstacle on EVERY stall, planter, bush, bench, lamp post, tree & house!
+        NavMeshObstacle nav = go.GetComponent<NavMeshObstacle>();
+        if (nav == null)
+        {
+            nav = go.AddComponent<NavMeshObstacle>();
+            nav.shape = NavMeshObstacleShape.Box;
+            nav.center = center;
+            nav.size = size;
+            nav.carving = true;
+        }
     }
 
     private static TextMeshPro Make3DText(Transform parent, string name, Vector3 localPos, string content, float fontSize, Color color, Vector2 rectSize)
@@ -1509,11 +1597,15 @@ public static class GirlPowerOrla3DSceneBuilder
         go.transform.localPosition = localPos;
         TextMeshPro tmp = go.AddComponent<TextMeshPro>();
         tmp.text = content;
-        tmp.fontSize = fontSize;
+        // Mobile Legibility (+70% font size + subtle dark outline for instant readability on phones!)
+        tmp.fontSize = fontSize * 1.70f;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = color;
-        tmp.rectTransform.sizeDelta = rectSize;
+        tmp.outlineWidth = 0.22f;
+        tmp.outlineColor = new Color32(26, 18, 32, 255);
+        tmp.enableWordWrapping = false;
+        tmp.rectTransform.sizeDelta = rectSize * 1.48f;
         return tmp;
     }
 

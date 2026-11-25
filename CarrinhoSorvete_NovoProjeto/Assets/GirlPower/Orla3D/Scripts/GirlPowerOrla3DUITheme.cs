@@ -288,6 +288,19 @@ public static class GirlPowerOrla3DUITheme
         style.normal.textColor = prev;
     }
 
+    public static void DrawOutlinedLabel(Rect rect, string text, GUIStyle style, Color textColor, Color outlineColor, float thickness = 1.5f)
+    {
+        Color prev = style.normal.textColor;
+        style.normal.textColor = outlineColor;
+        GUI.Label(new Rect(rect.x - thickness, rect.y, rect.width, rect.height), text, style);
+        GUI.Label(new Rect(rect.x + thickness, rect.y, rect.width, rect.height), text, style);
+        GUI.Label(new Rect(rect.x, rect.y - thickness, rect.width, rect.height), text, style);
+        GUI.Label(new Rect(rect.x, rect.y + thickness, rect.width, rect.height), text, style);
+        style.normal.textColor = textColor;
+        GUI.Label(rect, text, style);
+        style.normal.textColor = prev;
+    }
+
     private static GUIStyle MakeBtnStyle(Texture2D normal, Texture2D hover, Texture2D active, Color txtColor, int fontSize, RectOffset border)
     {
         return new GUIStyle(GUI.skin.button)

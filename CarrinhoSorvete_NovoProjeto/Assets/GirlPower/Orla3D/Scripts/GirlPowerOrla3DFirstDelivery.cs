@@ -67,11 +67,12 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public float runSpeed = 6.4f;
     public float surfSpeed = 7.9f;
     public float turnSpeed = 7.8f;
+    public float angularSpeedDeg = 420f;
     public float interactionRadius = 2.9f;
 
     [Header("Open Spacious Horizon Camera (Wide Beach, Fairies & Town Horizon)")]
-    public Vector3 cameraOffset = new Vector3(0f, 9.2f, -14.2f);
-    public float cameraPitch = 32.5f;
+    public Vector3 cameraOffset = new Vector3(0f, 10.6f, -16.4f);
+    public float cameraPitch = 31.5f;
     public float cameraSmoothTime = 0.22f;
     public float minZoom = 0.72f;
     public float maxZoom = 1.65f;
@@ -628,7 +629,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             Vector3 curE = playerVisual.localEulerAngles;
             Quaternion flatTarget = Quaternion.Euler(0f, targetRot.eulerAngles.y, 0f);
             Quaternion currentFlat = Quaternion.Euler(0f, curE.y, 0f);
-            Quaternion nextFlat = Quaternion.Slerp(currentFlat, flatTarget, 1f - Mathf.Exp(-turnSpeed * dt));
+            Quaternion slerpStep = Quaternion.Slerp(currentFlat, flatTarget, 1f - Mathf.Exp(-turnSpeed * dt));
+            Quaternion nextFlat = Quaternion.RotateTowards(currentFlat, slerpStep, angularSpeedDeg * dt);
             playerVisual.localRotation = Quaternion.Euler(curE.x, nextFlat.eulerAngles.y, curE.z);
         }
     }
@@ -1463,21 +1465,21 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawCompactOrderCard(float s)
     {
-        // 15%-SCREEN RULE: Ultra-compact Top-Left illustrated pill (client + item + icon-only resource strip!)
-        float cw = 256f * s;
-        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 74f * s : 62f * s;
+        // MOBILE LEGIBILITY (+70% font scale with crisp dark outline, still compact in extreme Top-Left corner!)
+        float cw = 342f * s;
+        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 94f * s : 78f * s;
         Rect card = new Rect(14f * s, 14f * s, cw, ch);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         GetOrderVisuals(out Texture2D clientIcon, out Texture2D itemIcon, out string chapterTag, out string shortTask, out string counterBadge);
 
         // Client portrait badge on left + overlapping order item mini-icon
-        float iconSz = 46f * s;
-        GUI.DrawTexture(new Rect(card.x + 8f * s, card.y + 8f * s, iconSz, iconSz), clientIcon);
-        float miniSz = 26f * s;
-        GUI.DrawTexture(new Rect(card.x + 32f * s, card.y + 30f * s, miniSz, miniSz), itemIcon);
+        float iconSz = 56f * s;
+        GUI.DrawTexture(new Rect(card.x + 10f * s, card.y + 10f * s, iconSz, iconSz), clientIcon);
+        float miniSz = 30f * s;
+        GUI.DrawTexture(new Rect(card.x + 38f * s, card.y + 38f * s, miniSz, miniSz), itemIcon);
 
-        // Concise directional distance + progress counter (no heavy text walls!)
+        // Concise directional distance + progress counter (enlarged +70% with outline for mobile screens!)
         Transform objTarget = GetActiveObjectiveTarget();
         string distStr = "";
         if (objTarget != null && player != null && !NearXZ(objTarget, 3.0f))
@@ -1488,22 +1490,23 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             distStr = arr + " " + Mathf.RoundToInt(m) + "m";
         }
 
-        GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(11f * s) };
+        Color darkOutline = new Color(0.14f, 0.10f, 0.14f, 0.90f);
+        GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(18f * s) };
         if (!string.IsNullOrEmpty(counterBadge))
         {
-            Rect cntRect = new Rect(card.x + 64f * s, card.y + 8f * s, 54f * s, 20f * s);
+            Rect cntRect = new Rect(card.x + 76f * s, card.y + 9f * s, 72f * s, 28f * s);
             GUI.Box(cntRect, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
-            GUI.Label(cntRect, counterBadge, badgeSt);
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(cntRect, counterBadge, badgeSt, Color.white, darkOutline, 1.2f);
         }
         if (!string.IsNullOrEmpty(distStr))
         {
-            Rect distRect = new Rect(card.x + 124f * s, card.y + 8f * s, 68f * s, 20f * s);
+            Rect distRect = new Rect(card.x + 154f * s, card.y + 9f * s, 96f * s, 28f * s);
             GUI.Box(distRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-            GUI.Label(distRect, distStr, badgeSt);
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(distRect, distStr, badgeSt, Color.white, darkOutline, 1.2f);
         }
 
-        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(11.5f * s), wordWrap = false };
-        GUI.Label(new Rect(card.x + 64f * s, card.y + 30f * s, cw - 72f * s, 24f * s), shortTask, taskSt);
+        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(18.5f * s), wordWrap = false };
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(card.x + 76f * s, card.y + 40f * s, cw - 86f * s, 28f * s), shortTask, taskSt, new Color(0.22f, 0.14f, 0.10f), new Color(1f, 0.98f, 0.92f, 0.9f), 1.0f);
 
         // Sleek Daylight/Patience Progress Bar tucked at bottom edge
         if (gameFlow != null && gameFlow.HasActiveTimer)
@@ -1512,20 +1515,20 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             Color barCol = ratio > 0.45f
                 ? new Color(0.165f, 0.776f, 0.80f)
                 : (ratio > 0.22f ? new Color(0.95f, 0.76f, 0.34f) : new Color(0.925f, 0.435f, 0.643f));
-            Rect barRect = new Rect(card.x + 10f * s, card.yMax - 15f * s, cw - 62f * s, 9f * s);
+            Rect barRect = new Rect(card.x + 12f * s, card.yMax - 19f * s, cw - 82f * s, 11f * s);
             GirlPowerOrla3DUITheme.DrawProgressBar(barRect, ratio, barCol);
 
             GUIStyle tmSt = new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle)
             {
                 alignment = TextAnchor.MiddleRight,
-                fontSize = Mathf.RoundToInt(10.5f * s),
-                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.22f, 0.34f) : new Color(0.42f, 0.30f, 0.22f) }
+                fontSize = Mathf.RoundToInt(16.5f * s),
+                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.20f, 0.30f) : new Color(0.32f, 0.22f, 0.16f) }
             };
-            GUI.Label(new Rect(card.xMax - 50f * s, card.yMax - 19f * s, 40f * s, 16f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
+            GUI.Label(new Rect(card.xMax - 68f * s, card.yMax - 25f * s, 56f * s, 22f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
         }
 
-        // Compact Icon-Only Resource Strip directly below (Coins + 5 Pet Reputation Stars + Herbs — ZERO text words!)
-        Rect resStrip = new Rect(card.x, card.yMax + 6f * s, cw, 34f * s);
+        // Compact Icon-Only Resource Strip directly below (Large +70% Coins + 5 Pet Stars + Herbs!)
+        Rect resStrip = new Rect(card.x, card.yMax + 6f * s, cw, 44f * s);
         GUI.Box(resStrip, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         int coins = lifeActivities != null ? lifeActivities.Coins : 0;
@@ -1533,30 +1536,30 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         int petStars = Mathf.Clamp(Mathf.RoundToInt(petRep / 20f), 0, 5);
         int herbs = basilLeaves + (megaSystems != null ? megaSystems.Data.organicHerbs : 0);
 
-        GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(12.5f * s), alignment = TextAnchor.MiddleLeft };
-        float rx = resStrip.x + 8f * s;
-        float ry = resStrip.y + 6f * s;
-        float isz = 22f * s;
+        GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(21f * s), alignment = TextAnchor.MiddleLeft };
+        float rx = resStrip.x + 10f * s;
+        float ry = resStrip.y + 8f * s;
+        float isz = 28f * s;
 
-        // 1. Coins
+        // 1. Coins (+70% bold outlined counter)
         GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconCoin);
-        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 36f * s, 30f * s), coins.ToString(), numSt);
-        rx += 62f * s;
+        GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(rx + isz + 4f * s, resStrip.y + 4f * s, 56f * s, 36f * s), coins.ToString(), numSt, new Color(1f, 0.94f, 0.68f), darkOutline, 1.3f);
+        rx += 88f * s;
 
         // 2. Pet Reputation (Paw + 5 Golden Stars!)
-        GUI.DrawTexture(new Rect(rx, ry + 1f * s, 19f * s, 19f * s), GirlPowerOrla3DUITheme.IconPaw);
-        rx += 22f * s;
-        float starSz = 16f * s;
+        GUI.DrawTexture(new Rect(rx, ry + 2f * s, 24f * s, 24f * s), GirlPowerOrla3DUITheme.IconPaw);
+        rx += 28f * s;
+        float starSz = 22f * s;
         for (int st = 0; st < 5; st++)
         {
             Texture2D starTex = (st < petStars) ? GirlPowerOrla3DUITheme.IconStarFilled : GirlPowerOrla3DUITheme.IconStarEmpty;
-            GUI.DrawTexture(new Rect(rx + st * (starSz + 1f * s), resStrip.y + 9f * s, starSz, starSz), starTex);
+            GUI.DrawTexture(new Rect(rx + st * (starSz + 2f * s), resStrip.y + 11f * s, starSz, starSz), starTex);
         }
-        rx += 5 * (starSz + 1f * s) + 10f * s;
+        rx += 5 * (starSz + 2f * s) + 12f * s;
 
         // 3. Organic Orchard Herbs
-        GUI.DrawTexture(new Rect(rx, ry, 20f * s, 20f * s), GirlPowerOrla3DUITheme.IconBasil);
-        GUI.Label(new Rect(rx + 22f * s, resStrip.y + 2f * s, 26f * s, 30f * s), herbs.ToString(), numSt);
+        GUI.DrawTexture(new Rect(rx, ry + 1f * s, 26f * s, 26f * s), GirlPowerOrla3DUITheme.IconBasil);
+        GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(rx + 28f * s, resStrip.y + 4f * s, 40f * s, 36f * s), herbs.ToString(), numSt, new Color(0.84f, 1f, 0.78f), darkOutline, 1.3f);
 
         topLeftHudRect = new Rect(card.x - 6f, card.y - 6f, cw + 12f, (resStrip.yMax - card.y) + 12f);
     }
