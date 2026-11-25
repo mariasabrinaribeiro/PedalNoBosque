@@ -39,17 +39,18 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
     public GirlPowerOrla3DAudio audioController;
     public GirlPowerOrla3DCharacterAnimator characterAnimator;
 
-    [Header("Balance & Rules")]
+    [Header("Balance & Rules (Calm Cozy Resort Pacing)")]
     public int arrestsToWin = 3;
     public int maxAllowedThefts = 3;
-    public float firstRaidDelay = 16f;
-    public float raidInterval = 22f;
-    public float stealDurationSeconds = 20f;
+    public float firstRaidDelay = 55f;
+    public float raidInterval = 75f;
+    public float stealDurationSeconds = 24f;
 
     public int ArrestsCount { get; private set; }
     public int TheftsOccurred { get; private set; }
     public int DetectivePoints { get; private set; }
     public bool IsThiefActive => state == RaidState.ThiefApproaching || state == RaidState.ThiefStealing;
+    public string LiveGuardianHint => livePipocaSignalText;
 
     private RaidState state = RaidState.Calm;
     private float stateTimer;
@@ -200,17 +201,17 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
         thiefActor.position = new Vector3(targetStandPos.x, Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.06f, targetStandPos.z);
         thiefActor.rotation = Quaternion.Euler(14f, 0f, wiggle);
 
-        // Cycle Pipoca through ALL 5 detective warning signals as danger rises!
+        // Cycle Pipoca through ALL 5 cozy beach guardian signals!
         if (stealProgress < 0.20f)
-            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Latir, "Pipoca está LATINDO! Suspeito na feira!");
+            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Latir, "Pipoca latiu! Travesso bagunçando a orla!");
         else if (stealProgress < 0.40f)
-            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Rolar, "Pipoca está ROLANDO no chão avisando os trabalhadores!");
+            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Rolar, "Pipoca rolou avisando o quiosque!");
         else if (stealProgress < 0.62f)
-            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Morder, "Pipoca está MORDENDO o ladrão para atrasar o furto!");
+            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Morder, "Pipoca está distraindo o travesso!");
         else if (stealProgress < 0.78f)
-            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Chacalhar, "Pipoca está SE CHACOALHANDO de alerta! Chame a Polícia [L]!");
+            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Chacalhar, "Pipoca deu sinal! Chame a Fada Guardiã!");
         else
-            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Chorar, "Pipoca está CHORANDO! Furto quase acontecendo — Chame a Polícia [L]!");
+            UpdatePipocaSignal(GirlPowerOrla3DPetCompanion.DetectiveSignal.Chorar, "Pipoca pediu ajuda! Acione a Fada Guardiã!");
 
         TickPipocaAlertSounds(dt);
 
@@ -262,38 +263,31 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
         state = RaidState.PoliceResponding;
         stateTimer = 2.4f;
 
-        if (audioController != null) audioController.PlayPoliceSiren();
-        GirlPowerOrla3DJuice.ShakeCamera(0.10f, 0.16f);
+        if (audioController != null) audioController.PlayChime();
+        GirlPowerOrla3DJuice.ShakeCamera(0.06f, 0.12f);
 
-        // Workers notice and shout in support!
+        // Resort hosts celebrate the Fairy Guardian arriving!
         if (workerNpcs != null)
         {
             for (int i = 0; i < workerNpcs.Length; i++)
             {
                 if (workerNpcs[i] != null && workerNpcs[i].gameObject.activeInHierarchy)
                 {
-                    GirlPowerOrla3DJuice.PopScale(workerNpcs[i], 1.18f, 0.30f);
+                    GirlPowerOrla3DJuice.PopScale(workerNpcs[i], 1.15f, 0.26f);
                     if (i == 0)
-                        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(workerNpcs[i].position, "Trabalhadores: Polícia chamada a tempo!", new Color(0.56f, 0.90f, 1f), 2.0f);
+                        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(workerNpcs[i].position, "✨ Fada Guardiã a caminho!", new Color(0.925f, 0.435f, 0.643f), 1.8f);
                 }
             }
         }
 
-        // Dispatch Coastal Police Patrol Car + Officer rushing toward the thief!
-        if (policeCar != null && thiefActor != null)
-        {
-            float startX = thiefActor.position.x - 14f;
-            policeCar.position = new Vector3(startX, 0f, -4.4f);
-            policeCar.rotation = Quaternion.Euler(0f, -90f, 0f);
-            policeCar.gameObject.SetActive(true);
-        }
+        // Dispatch Coastal Lifeguard / Fairy Guardian gently toward the mischievous prankster (NO police car!)
         if (policeOfficer != null && thiefActor != null)
         {
             policeOfficer.position = thiefActor.position + new Vector3(-2.6f, 0f, -1.6f);
             policeOfficer.gameObject.SetActive(true);
         }
 
-        livePipocaSignalText = "🚓 Polícia a caminho! Detetive Pipoca salvou a feira!";
+        livePipocaSignalText = "✨ Fada Guardiã a caminho! Pipoca protegeu a Orla!";
     }
 
     private void UpdatePoliceArrestSequence(float dt)
@@ -347,8 +341,8 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
         GirlPowerOrla3DJuice.SpawnFlyingCoins(arrestPos, 9);
         GirlPowerOrla3DJuice.ShakeCamera(0.14f, 0.20f);
         GirlPowerOrla3DUITheme.SpawnFloatingFeedback(arrestPos,
-            "🚓 LADRÃO PRESO! +" + pts + " pts  (+" + coinsReward + " moedas)",
-            new Color(0.54f, 0.96f, 0.86f), 2.5f);
+            "✨ ORLA PROTEGIDA! +" + pts + " pts  (+" + coinsReward + " moedas)",
+            new Color(0.165f, 0.776f, 0.80f), 2.2f);
 
         // WIN THE GAME when 3 robberies are prevented in advance!
         if (ArrestsCount >= arrestsToWin)
@@ -376,15 +370,15 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
 
         if (lifeActivities != null) lifeActivities.AddCoins(-10);
         GirlPowerOrla3DUITheme.SpawnFloatingFeedback(theftPos,
-            "⚠ FURTO NA BAÍA! (" + TheftsOccurred + "/" + maxAllowedThefts + ")",
-            new Color(1f, 0.36f, 0.40f), 2.5f);
+            "🍃 Bagunça na Orla! (" + TheftsOccurred + "/" + maxAllowedThefts + ")",
+            new Color(0.95f, 0.68f, 0.34f), 2.2f);
 
-        // GAME OVER when street thieves rob the fairs/restaurants 3 times!
+        // Gentle cozy reset only if 3 pranksters disturb the resort unassisted
         if (TheftsOccurred >= maxAllowedThefts)
         {
             state = RaidState.Calm;
             if (gameFlow != null)
-                gameFlow.TriggerGameOver("Os ladrões de rua furtaram as feiras e restaurantes da Baía do Avesso! Observe os sinais do Detetive Pipoca e chame a Polícia com antecedência [L]!");
+                gameFlow.TriggerGameOver("Os travessos bagunçaram a feira da Orla das Fadas! Observe os sinais fofos do Pipoca e acione a Fada Guardiã [L]!");
             return;
         }
 
@@ -418,32 +412,20 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
         GirlPowerOrla3DUITheme.EnsureInitialized();
         float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
 
-        // Sleek semi-transparent TOP-RIGHT corner alert (leaves 100% of center view open & spacious!)
-        float aw = 290f * s;
-        float ah = IsThiefActive ? 112f * s : 52f * s;
-        Rect alert = new Rect(Screen.width - aw - 16f * s, 68f * s, aw, ah);
-        GUI.Box(alert, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
+        // Cozy Magical Fairy Guardian / Lifeguard Icon Pill tucked neatly under Top-Right (NO harsh red Police button!)
+        float aw = 218f * s;
+        float ah = IsThiefActive ? 78f * s : 40f * s;
+        Rect alert = new Rect(Screen.width - aw - 14f * s, 74f * s, aw, ah);
+        GUI.Box(alert, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
-        GUIStyle warnSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle)
-        {
-            fontSize = Mathf.RoundToInt(11.5f * s),
-            alignment = TextAnchor.MiddleLeft,
-            wordWrap = true,
-            normal = { textColor = new Color(1f, 0.92f, 0.72f) }
-        };
-        GUI.DrawTexture(new Rect(alert.x + 10f * s, alert.y + 8f * s, 24f * s, 24f * s), GirlPowerOrla3DUITheme.IconPaw);
-        string cornerHead = IsThiefActive
-            ? livePipocaSignalText
-            : ("Pipoca: " + ArrestsCount + "/" + arrestsToWin + "  •  Polícia a caminho!");
-        GUI.Label(new Rect(alert.x + 38f * s, alert.y + 4f * s, aw - 48f * s, 36f * s), cornerHead, warnSt);
+        GUI.DrawTexture(new Rect(alert.x + 8f * s, alert.y + 8f * s, 22f * s, 22f * s), GirlPowerOrla3DUITheme.IconPaw);
+        Color barCol = stealProgress < 0.55f ? new Color(0.165f, 0.776f, 0.80f) : new Color(0.925f, 0.435f, 0.643f);
+        GirlPowerOrla3DUITheme.DrawProgressBar(new Rect(alert.x + 36f * s, alert.y + 14f * s, aw - 46f * s, 10f * s), IsThiefActive ? stealProgress : 1f, barCol);
 
         if (IsThiefActive)
         {
-            Color barCol = stealProgress < 0.55f ? new Color(0.98f, 0.76f, 0.28f) : new Color(0.94f, 0.30f, 0.36f);
-            GirlPowerOrla3DUITheme.DrawProgressBar(new Rect(alert.x + 12f * s, alert.y + 44f * s, aw - 24f * s, 10f * s), stealProgress, barCol);
-
-            if (GUI.Button(new Rect(alert.x + 12f * s, alert.y + 62f * s, aw - 24f * s, 38f * s),
-                GirlPowerOrla3DLocalization.T("🚓 Polícia (190) [L]", "🚓 Police (911) [L]", "🚓 Policía [L]"),
+            if (GUI.Button(new Rect(alert.x + 10f * s, alert.y + 34f * s, aw - 20f * s, 34f * s),
+                GirlPowerOrla3DLocalization.T("✨ Fada Guardiã [L]", "✨ Fairy Guardian [L]", "✨ Hada Guardiana [L]"),
                 GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 CallPoliceNow();
         }

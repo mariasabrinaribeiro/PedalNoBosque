@@ -1518,34 +1518,39 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             GUI.Label(new Rect(card.xMax - 50f * s, card.yMax - 19f * s, 40f * s, 16f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
         }
 
-        // Compact Icon-Only Resource Strip directly below (Coins + PetRep% + Herbs + Bag — ZERO text words!)
+        // Compact Icon-Only Resource Strip directly below (Coins + 5 Pet Reputation Stars + Herbs — ZERO text words!)
         Rect resStrip = new Rect(card.x, card.yMax + 6f * s, cw, 34f * s);
         GUI.Box(resStrip, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         int coins = lifeActivities != null ? lifeActivities.Coins : 0;
         int petRep = petFriendlySystem != null ? petFriendlySystem.PetReputation : 100;
+        int petStars = Mathf.Clamp(Mathf.RoundToInt(petRep / 20f), 0, 5);
         int herbs = basilLeaves + (megaSystems != null ? megaSystems.Data.organicHerbs : 0);
-        int bagCount = lifeActivities != null ? lifeActivities.BagItemsCount : 0;
 
         GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(12.5f * s), alignment = TextAnchor.MiddleLeft };
         float rx = resStrip.x + 8f * s;
         float ry = resStrip.y + 6f * s;
         float isz = 22f * s;
 
+        // 1. Coins
         GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconCoin);
         GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 36f * s, 30f * s), coins.ToString(), numSt);
         rx += 62f * s;
 
-        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconPaw);
-        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 42f * s, 30f * s), petRep + "%", numSt);
-        rx += 68f * s;
+        // 2. Pet Reputation (Paw + 5 Golden Stars!)
+        GUI.DrawTexture(new Rect(rx, ry + 1f * s, 19f * s, 19f * s), GirlPowerOrla3DUITheme.IconPaw);
+        rx += 22f * s;
+        float starSz = 16f * s;
+        for (int st = 0; st < 5; st++)
+        {
+            Texture2D starTex = (st < petStars) ? GirlPowerOrla3DUITheme.IconStarFilled : GirlPowerOrla3DUITheme.IconStarEmpty;
+            GUI.DrawTexture(new Rect(rx + st * (starSz + 1f * s), resStrip.y + 9f * s, starSz, starSz), starTex);
+        }
+        rx += 5 * (starSz + 1f * s) + 10f * s;
 
-        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconBasil);
-        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 28f * s, 30f * s), herbs.ToString(), numSt);
-        rx += 56f * s;
-
-        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconBag);
-        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 28f * s, 30f * s), bagCount.ToString(), numSt);
+        // 3. Organic Orchard Herbs
+        GUI.DrawTexture(new Rect(rx, ry, 20f * s, 20f * s), GirlPowerOrla3DUITheme.IconBasil);
+        GUI.Label(new Rect(rx + 22f * s, resStrip.y + 2f * s, 26f * s, 30f * s), herbs.ToString(), numSt);
 
         topLeftHudRect = new Rect(card.x - 6f, card.y - 6f, cw + 12f, (resStrip.yMax - card.y) + 12f);
     }

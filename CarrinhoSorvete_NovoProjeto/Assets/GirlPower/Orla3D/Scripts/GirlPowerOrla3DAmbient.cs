@@ -17,6 +17,7 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
 
     [Header("Living World Wildlife, Sea & Sky")]
     public Transform[] clouds;
+    public Transform[] cloudShadows;
     public Transform[] seagulls;
     public Transform[] butterflies;
     public Transform[] beachCrabs;
@@ -65,6 +66,7 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
     private Vector3[] charBasePos;
     private float[] lightBaseIntensity;
     private Vector3[] cloudBasePos;
+    private Vector3[] cloudShadowBasePos;
     private Vector3[] gullBasePos;
     private Transform[] gullWingL;
     private Transform[] gullWingR;
@@ -85,6 +87,7 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         festoonBaseRot = CaptureRotations(swayingFestoons);
         charBasePos = CapturePositions(idleCharacters);
         cloudBasePos = CapturePositions(clouds);
+        cloudShadowBasePos = CapturePositions(cloudShadows);
         gullBasePos = CapturePositions(seagulls);
         bfBasePos = CapturePositions(butterflies);
         crabBasePos = CapturePositions(beachCrabs);
@@ -140,6 +143,7 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         AnimateIdleCharacters(t);
         AnimateLanterns(t);
         AnimateClouds(t);
+        AnimateCloudShadows(t);
         AnimateSeagulls(t);
         AnimateButterflies(t);
         AnimateCrabs(t);
@@ -251,65 +255,65 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         currentPreset = preset;
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 35f;
-        RenderSettings.fogEndDistance = 85f;
+        RenderSettings.fogStartDistance = 32f;
+        RenderSettings.fogEndDistance = 78f;
 
-        // Carefully balanced Linear-space lighting (prevents overexposure / washed-out whites!)
+        // Warm golden coastal lighting hierarchy (soft shadows + warm ambient + light horizon fog, zero plastic flatness!)
         switch (preset)
         {
             case TimePreset.ManhaTropical:
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(1.0f, 0.94f, 0.84f);
-                    sunLight.intensity = 0.82f;
-                    sunLight.shadowStrength = 0.66f;
-                    sunLight.transform.rotation = Quaternion.Euler(48f, -28f, 0f);
+                    sunLight.color = new Color(1.0f, 0.92f, 0.78f);
+                    sunLight.intensity = 0.88f;
+                    sunLight.shadowStrength = 0.62f;
+                    sunLight.transform.rotation = Quaternion.Euler(46f, -30f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.40f, 0.56f, 0.72f);
-                RenderSettings.ambientEquatorColor = new Color(0.50f, 0.56f, 0.58f);
-                RenderSettings.ambientGroundColor = new Color(0.28f, 0.30f, 0.28f);
-                RenderSettings.fogColor = new Color(0.61f, 0.80f, 0.91f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.58f, 0.78f, 0.91f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.92f, 1.08f, 0.13f, new Color(1.0f, 1.0f, 0.98f, 1f));
-                lanternScale = 0.20f;
+                RenderSettings.ambientSkyColor = new Color(0.42f, 0.62f, 0.76f);
+                RenderSettings.ambientEquatorColor = new Color(0.62f, 0.58f, 0.52f);
+                RenderSettings.ambientGroundColor = new Color(0.32f, 0.28f, 0.26f);
+                RenderSettings.fogColor = new Color(0.66f, 0.84f, 0.92f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.60f, 0.80f, 0.90f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.94f, 1.09f, 0.12f, new Color(1.02f, 1.0f, 0.96f, 1f));
+                lanternScale = 0.25f;
                 SetArrayActive(butterflies, true);
-                SetArrayActive(fireflies, false);
+                SetArrayActive(fireflies, true);
                 break;
 
             case TimePreset.NoiteNaOrla:
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(0.52f, 0.66f, 0.96f);
-                    sunLight.intensity = 0.42f;
+                    sunLight.color = new Color(0.54f, 0.68f, 0.96f);
+                    sunLight.intensity = 0.44f;
                     sunLight.shadowStrength = 0.58f;
                     sunLight.transform.rotation = Quaternion.Euler(38f, 34f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.12f, 0.17f, 0.34f);
-                RenderSettings.ambientEquatorColor = new Color(0.16f, 0.20f, 0.36f);
-                RenderSettings.ambientGroundColor = new Color(0.08f, 0.10f, 0.18f);
-                RenderSettings.fogColor = new Color(0.11f, 0.16f, 0.29f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.09f, 0.14f, 0.28f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.95f, 1.12f, 0.22f, new Color(0.92f, 0.96f, 1.05f, 1f));
+                RenderSettings.ambientSkyColor = new Color(0.13f, 0.18f, 0.35f);
+                RenderSettings.ambientEquatorColor = new Color(0.18f, 0.22f, 0.38f);
+                RenderSettings.ambientGroundColor = new Color(0.09f, 0.11f, 0.20f);
+                RenderSettings.fogColor = new Color(0.12f, 0.18f, 0.31f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.10f, 0.15f, 0.29f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.95f, 1.12f, 0.20f, new Color(0.94f, 0.97f, 1.05f, 1f));
                 lanternScale = 1.65f;
                 SetArrayActive(butterflies, false);
                 SetArrayActive(fireflies, true);
                 break;
 
-            default: // FimDeTarde (Calm Coastal Horizon with Warm Sun & Soft Sky-Blue Mist)
+            default: // FimDeTarde (Warm Golden Sunset Resort Light + Soft Atmospheric Horizon Mist!)
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(1.0f, 0.84f, 0.64f);
-                    sunLight.intensity = 0.78f;
-                    sunLight.shadowStrength = 0.68f;
-                    sunLight.transform.rotation = Quaternion.Euler(36f, -36f, 0f);
+                    sunLight.color = new Color(1.0f, 0.82f, 0.58f);
+                    sunLight.intensity = 0.86f;
+                    sunLight.shadowStrength = 0.64f;
+                    sunLight.transform.rotation = Quaternion.Euler(34f, -38f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.46f, 0.56f, 0.70f);
-                RenderSettings.ambientEquatorColor = new Color(0.56f, 0.54f, 0.50f);
-                RenderSettings.ambientGroundColor = new Color(0.28f, 0.26f, 0.28f);
-                RenderSettings.fogColor = new Color(0.68f, 0.79f, 0.87f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.64f, 0.77f, 0.87f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.90f, 1.08f, 0.14f, new Color(1.02f, 0.99f, 0.95f, 1f));
-                lanternScale = 1.05f;
+                RenderSettings.ambientSkyColor = new Color(0.48f, 0.60f, 0.72f);
+                RenderSettings.ambientEquatorColor = new Color(0.66f, 0.56f, 0.48f);
+                RenderSettings.ambientGroundColor = new Color(0.32f, 0.26f, 0.28f);
+                RenderSettings.fogColor = new Color(0.74f, 0.82f, 0.86f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.66f, 0.79f, 0.88f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.93f, 1.09f, 0.12f, new Color(1.03f, 0.98f, 0.92f, 1f));
+                lanternScale = 1.10f;
                 SetArrayActive(butterflies, true);
                 SetArrayActive(fireflies, true);
                 break;
@@ -496,6 +500,21 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
             float x = Mathf.Repeat((cloudBasePos[i].x + 24f) + t * speed, span) - 24f;
             float y = cloudBasePos[i].y + Mathf.Sin(t * 0.45f + i * 1.3f) * 0.22f;
             tr.position = new Vector3(x, y, cloudBasePos[i].z);
+        }
+    }
+
+    private void AnimateCloudShadows(float t)
+    {
+        if (cloudShadows == null || cloudShadowBasePos == null) return;
+        for (int i = 0; i < cloudShadows.Length; i++)
+        {
+            Transform sh = cloudShadows[i];
+            if (sh == null) continue;
+            float speed = 0.52f + (i % 2) * 0.18f;
+            float span = 68f;
+            float x = Mathf.Repeat((cloudShadowBasePos[i].x + 22f) + t * speed, span) - 22f;
+            float zDrift = Mathf.Sin(t * 0.18f + i * 1.7f) * 1.1f;
+            sh.position = new Vector3(x, cloudShadowBasePos[i].y, cloudShadowBasePos[i].z + zDrift);
         }
     }
 

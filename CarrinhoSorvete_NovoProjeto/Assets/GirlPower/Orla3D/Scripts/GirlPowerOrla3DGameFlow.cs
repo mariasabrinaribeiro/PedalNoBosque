@@ -319,7 +319,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         activeModal = SubModal.None;
 
         summaryChapter = 4;
-        summaryTitle = "VENCEDOR DA BAÍA! Detetive Pipoca está Super Feliz! (" + detectivePoints + " pts)";
+        summaryTitle = "ORLA DAS FADAS EM PAZ! Pipoca & Fada Guardiã venceram! (" + detectivePoints + " pts)";
         summaryDeliveries = arrestsPrevented;
         summaryDecorBonus = detectivePoints;
         summaryCoinsEarned = coinsEarned;
@@ -616,18 +616,18 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         float colW = 350f * s;
         float topY = Screen.height * 0.14f;
 
-        // Stacked bold cream title ("BAÍA / DO AVESSO") matching Pedal no Bosque
+        // Stacked bold cream title ("ORLA / DAS FADAS") — Magical Seaside Resort & Pet-Friendly Island
         GUIStyle bigTitle = new GUIStyle(GirlPowerOrla3DUITheme.TitleLogoStyle)
         {
             fontSize = Mathf.RoundToInt(54f * s),
             alignment = TextAnchor.MiddleCenter
         };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 20f * s, topY, colW + 40f * s, 60f * s), "BAÍA", bigTitle, new Color(1f, 0.98f, 0.92f), new Color(0.06f, 0.14f, 0.14f, 0.85f), 3f * s);
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 20f * s, topY + 56f * s, colW + 40f * s, 60f * s), "DO AVESSO", bigTitle, new Color(1f, 0.98f, 0.92f), new Color(0.06f, 0.14f, 0.14f, 0.85f), 3f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 20f * s, topY, colW + 40f * s, 60f * s), "ORLA", bigTitle, new Color(1f, 0.98f, 0.92f), new Color(0.06f, 0.14f, 0.14f, 0.85f), 3f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 20f * s, topY + 56f * s, colW + 40f * s, 60f * s), "DAS FADAS", bigTitle, new Color(1f, 0.96f, 0.94f), new Color(0.06f, 0.14f, 0.14f, 0.85f), 3f * s);
 
         string tagline = IsEnglish
-            ? "Small deliveries. Big coastal discoveries."
-            : (IsSpanish ? "Pequeñas entregas. Grandes descubrimientos." : "Pequenas entregas. Grandes descobertas.");
+            ? "Magical seaside resort • Fairy Cuisine & Pets"
+            : (IsSpanish ? "Resort mágico costero • Hadas y Mascotas" : "Resort mágico à beira-mar • Fadas & Pets");
         GUIStyle subSt = new GUIStyle(GirlPowerOrla3DUITheme.SubtitleStyle)
         {
             fontSize = Mathf.RoundToInt(16f * s),
