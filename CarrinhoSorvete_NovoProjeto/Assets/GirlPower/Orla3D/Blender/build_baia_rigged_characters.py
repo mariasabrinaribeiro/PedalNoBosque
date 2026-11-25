@@ -98,6 +98,32 @@ def add_cyl(name, r, h, mat, col, loc=(0, 0, 0), rot=(0, 0, 0), segs=12, r_top=N
     return obj
 
 
+def add_smile(name, mat, col, loc, width=0.13, dip=0.025, thickness=0.007):
+    curve = bpy.data.curves.new(name, type="CURVE")
+    curve.dimensions = "3D"
+    curve.resolution_u = 12
+    curve.bevel_depth = thickness
+    curve.bevel_resolution = 3
+    curve.use_fill_caps = True
+    spline = curve.splines.new("BEZIER")
+    spline.bezier_points.add(2)
+    spline.bezier_points[0].co = (-width * 0.5, 0.0, 0.0)
+    spline.bezier_points[1].co = (0.0, 0.0, -dip)
+    spline.bezier_points[2].co = (width * 0.5, 0.0, 0.0)
+    for point in spline.bezier_points:
+        point.handle_left_type = "AUTO"
+        point.handle_right_type = "AUTO"
+    curve.materials.append(mat)
+    obj = bpy.data.objects.new(name, curve)
+    obj.location = loc
+    col.objects.link(obj)
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.convert(target="MESH")
+    return bpy.context.view_layer.objects.active
+
+
 def join_around_pivot(parts, name, pivot_world, col):
     """Joins mesh parts into a single mesh whose origin sits cleanly at pivot_world."""
     bpy.ops.object.select_all(action="DESELECT")
@@ -172,6 +198,8 @@ def build_protagonist(col):
         add_sphere("H_BangR", 0.13, MATS["AC_HairBrown"], col, loc=(0.14, -0.21, 1.24), scale=(1.2, 0.75, 0.75)),
         add_sphere("H_Ponytail", 0.17, MATS["AC_HairBrown"], col, loc=(0, 0.34, 1.05), scale=(0.95, 1.05, 1.25)),
         add_sphere("H_HairRibbon", 0.09, MATS["AC_ProtagShirt"], col, loc=(0, 0.26, 1.20), scale=(1.35, 0.65, 0.75)),
+        add_smile("H_Smile", MATS["AC_EyeDark"], col, loc=(0, -0.286, 0.985), width=0.13, dip=0.027),
+        add_sphere("H_Tongue", 0.025, MATS["AC_Coral"], col, loc=(0, -0.301, 0.958), scale=(1.0, 0.38, 0.52), u=10, v=8),
     ]
     head = join_around_pivot(head_parts, "Protag_Head", (0, 0, 0.82), col)
     exported.append(head)
@@ -228,6 +256,8 @@ def build_pipoca(col):
         add_sphere("P_Skull", 0.20, MATS["AC_Cream"], col, loc=(0, -0.28, 0.48), scale=(1.04, 1.0, 0.95), u=16, v=12),
         add_sphere("P_Snout", 0.105, MATS["AC_Cream"], col, loc=(0, -0.44, 0.44), scale=(1.05, 0.95, 0.80)),
         add_sphere("P_Nose", 0.044, MATS["AC_EyeDark"], col, loc=(0, -0.53, 0.465), scale=(1.1, 0.8, 0.8)),
+        add_smile("P_Smile", MATS["AC_EyeDark"], col, loc=(0, -0.532, 0.386), width=0.11, dip=0.022, thickness=0.006),
+        add_sphere("P_Tongue", 0.024, MATS["AC_Coral"], col, loc=(0, -0.548, 0.364), scale=(1.0, 0.38, 0.50), u=10, v=8),
         add_sphere("P_EyeL", 0.036, MATS["AC_EyeDark"], col, loc=(-0.09, -0.43, 0.52)),
         add_sphere("P_EyeR", 0.036, MATS["AC_EyeDark"], col, loc=(0.09, -0.43, 0.52)),
         add_sphere("P_ShineL", 0.014, MATS["AC_EyeShine"], col, loc=(-0.10, -0.458, 0.535)),
