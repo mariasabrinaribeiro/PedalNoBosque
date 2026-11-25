@@ -414,3 +414,26 @@
   - Botão rosa morango principal (`BtnPrimaryStyle`, maior) reservado **exclusivamente** à ação da missão principal ativa (`Montar sorvete`, `Entregar sorvete`, `Colher manjericão`); atividades paralelas (`Pescar`, `Horta & Plantação`, `Beach Tennis`, `Falar com Clara`, `Encher pote`, `Servir mesa`) usam o estilo secundário mais calmo (`BtnSecondaryStyle`); atalho `[E]` aparece apenas com teclado, mantendo rótulos limpos no mobile.
   - Avisos de fundo (`"Cozinha abastecida"`, `"Camponesa colheu..."`) movidos para faixa discreta logo abaixo do cartão de missão (`ShowDiscreteNotice`), sem flutuar sobre as barracas.
 
+---
+
+## Etapa 26 (v37) — Terreno Subdividido Sem Divisões Verticais, Alvo Único de Interação, Guarda-Sóis Abaulados, Praia em 2 Setores e Tela Própria de Preparo do Sorvete
+
+- **1. Eliminação de divisões verticais/retangulares no chão (`build_orla_v36_hero_and_terrain.py`, `OrlaACNHCozy.shader`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - `Surf_Calcadao`, `Surf_BordaPraca`, `Surf_PracaContinua` e muretas reconstruídos em `bmesh` com **96 subdivisões em `X`** (antes eram caixas de 2 vértices que afundavam sob o `Horizon Curve` do shader em relação à areia subdividida).
+  - `OrlaACNHCozy.shader`: removido o deslocamento vertical `worldPos.y` nas UVs de mundo e adicionado `_TexStrength` controlado (`0.14` areia, `0.18` calçadão/praça, `0.38` madeira), eliminando linhas de rejunte/faixas verticais. Desativado auto-sombreamento (`shadowCastingMode = Off`) na malha do terreno e reduzido `shadowNormalBias` para `0.16`.
+- **2. Entradas abertas, guarda-sóis de domo contínuo e identidade sem texto (`build_orla_establishments.py`, `build_orla_v36_hero_and_terrain.py`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - **Guarda-sóis do café e da praia (`RestaurantKioskTable.fbx`, `BeachUmbrella.fbx`)**: substituídos os 8 painéis radiais estilo "hélice" por uma **copa contínua de 16 segmentos levemente abaulada** com gomos fechados sem frestas + mesa redonda e cadeiras proporcionais à protagonista.
+  - **Floricultura (`FloristStand.fbx`)**: aberta diretamente para o calçadão (`x = 21.8, z = -6.2`) com **expositor baixo de vasos na entrada** e placa creme de alto contraste voltada para a passagem, sem toldo azul cobrindo o nome (`PavilionBay` deslocado para leste `x = 30.8` e barracas agrupadas na praça lateral `z = -14.2`).
+  - **Quiosque (`KioskGirlPower.fbx`)** aberto para a praça (`x = -2.2, z = -14.8`), sem árvores nem mureta na frente; espessura de postes e quinas suavizadas padronizadas em todos os estabelecimentos.
+- **3. Praia em 2 setores distintos + acabamento de espuma fina, velas marfim e bandos de aves (`GirlPowerOrla3DPropsBuilder.cs`, `OrlaACNHOcean.shader`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - **Lado Leste**: conjunto marcante **1 Torre de Salva-Vidas** (escala contida `0.86`) + **1 Píer de Pesca** (`x = 31.0`).
+  - **Lado Oeste / Centro**: areia ampla aberta com **toalhas baixas em 2 grupos espaçados** e apenas 1 guarda-sol isolado no extremo oeste.
+  - **Espuma da margem**: afinada tanto no shader (`OrlaACNHOcean.shader`, sincronizado à curva `coast_curve` da areia com quebras orgânicas) quanto nos filetes de margem (`0.38 m` seguindo o ângulo da curva da costa).
+  - **Barcos e aves**: veleiros com **velas marfim suave (`AC_SailIvory`)** bem legíveis sobre a água azul-petróleo; gaivotas reunidas em 2 pequenos bandos laterais (escala `0.78`) deixando o mar central limpo para os barcos.
+- **4. Coordenador único de alvo ativo + Câmera do carrinho + Seta discreta na borda (`GirlPowerOrla3DInteractionHub.cs`, `GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DMegaSystems.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`, `GirlPowerOrla3DLifeActivities.cs`):**
+  - Criado `GirlPowerOrla3DInteractionHub.cs`: recebe candidatos dentro do alcance real (ex.: `Pescar no Píer <= 3.2 m`, `Clara <= 2.5 m`) e renderiza **1 pequeno marcador diretamente sobre o alvo ativo** + **1 único botão de ação grande e legível** (desaparece ao sair do alcance).
+  - Câmera desloca suavemente na direção do carrinho durante a aproximação (raio ampliado `8.2 m` na fase do carrinho) e exibe uma **seta discreta na borda** quando o destino está fora da tela, sem colar `"Montar aqui"` na margem esquerda.
+- **5. Nova Tela de Preparo do Sorvete com revisão em 1 toque (`GirlPowerOrla3DFirstDelivery.cs`):**
+  - Interface própria com **casquinha em destaque ao vivo** na coluna esquerda, **2 slots de seleção atual** (`1. Sabor` e `2. Toque`) que corrigem/removem qualquer ingrediente com **1 único toque**, **ingredientes com ícones e nomes grandes** na direita (`Limão / Morango / Baunilha` + `Manjericão / Hortelã / Calda`) e botão **`Confirmar`** em destaque no rodapé.
+
+

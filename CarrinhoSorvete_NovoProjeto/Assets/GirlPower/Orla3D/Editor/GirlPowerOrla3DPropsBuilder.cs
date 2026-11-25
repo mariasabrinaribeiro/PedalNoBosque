@@ -499,12 +499,14 @@ public static class GirlPowerOrla3DPropsBuilder
         Material coral = GetMat(mats, "AC_Coral");
         Material blue = GetMat(mats, "AC_SkyBlue");
 
+        // Open-sand relaxation zone (west & center beach) with low towels spaced in 2 calm clusters
+        // clearly contrasting with the Tower + Pier landmark cluster on the east end!
         var towels = new (Vector3 pos, float rotY, Material baseMat, Material stripeMat)[]
         {
-            (new Vector3(-1.3f, -0.14f, 6.7f), 14f, pink, cream),
-            (new Vector3(3.8f, -0.15f, 6.9f), -18f, mint, cream),
-            (new Vector3(20.2f, -0.14f, 6.6f), 11f, yellow, coral),
-            (new Vector3(23.5f, -0.15f, 7.1f), -9f, blue, cream)
+            (new Vector3(-7.6f, -0.14f, 6.45f),  14f, pink,   cream),
+            (new Vector3(-5.6f, -0.15f, 6.95f), -12f, yellow, cream),
+            (new Vector3( 6.8f, -0.14f, 6.55f),  10f, mint,   cream),
+            (new Vector3( 8.9f, -0.15f, 7.05f),  -9f, blue,   cream)
         };
 
         for (int i = 0; i < towels.Length; i++)
@@ -671,36 +673,46 @@ public static class GirlPowerOrla3DPropsBuilder
             farClouds.Add(cl.transform);
         }
 
-        // LAYER 2: 3 Small Distant Sailboats far from shore (crisp cream sails clearly distinct from the petrol-blue sea!)
-        float[] boatXs = { -26f, 14f, 48f };
-        float[] boatZs = { 44f, 52f, 46f };
-        float[] boatScales = { 0.44f, 0.36f, 0.46f };
+        // LAYER 2: 3 Clear Open-Sea Sailboats with soft IVORY sails contrasting crisply against petrol-blue water!
+        Material sailIvory = GetMat(mats, "AC_SailIvory") ?? cream;
+        float[] boatXs = { -16f, 11f, 38f };
+        float[] boatZs = { 34f, 40f, 36f };
+        float[] boatScales = { 0.62f, 0.56f, 0.64f };
         for (int i = 0; i < boatXs.Length; i++)
         {
             GameObject sb = new GameObject("Parallax_Veleiro_MarMedio_" + (i + 1));
             sb.transform.SetParent(pxRoot.transform, false);
-            sb.transform.position = new Vector3(boatXs[i], -0.26f, boatZs[i]);
+            sb.transform.position = new Vector3(boatXs[i], -0.24f, boatZs[i]);
             sb.transform.rotation = Quaternion.Euler(0f, (i % 2 == 0) ? 90f : -90f, 0f);
             sb.transform.localScale = Vector3.one * boatScales[i];
 
-            MakePrim(sb.transform, PrimitiveType.Cube, "Casco", new Vector3(0f, 0.22f, 0f), new Vector3(1.05f, 0.40f, 2.6f), Quaternion.identity, woodDark, false);
-            MakePrim(sb.transform, PrimitiveType.Cube, "Faixa", new Vector3(0f, 0.34f, 0f), new Vector3(1.10f, 0.14f, 2.64f), Quaternion.identity, cream, false);
-            MakePrim(sb.transform, PrimitiveType.Cylinder, "Mastro", new Vector3(0f, 1.45f, 0.1f), new Vector3(0.08f, 1.25f, 0.08f), Quaternion.identity, woodDark, false);
-            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Principal", new Vector3(0.05f, 1.60f, -0.42f), new Vector3(0.07f, 1.72f, 1.22f), Quaternion.Euler(0f, 10f, 0f), cream, false);
-            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Proa", new Vector3(-0.04f, 1.26f, 0.60f), new Vector3(0.06f, 1.18f, 0.80f), Quaternion.Euler(0f, -12f, 0f), cream, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Casco", new Vector3(0f, 0.24f, 0f), new Vector3(1.10f, 0.42f, 2.75f), Quaternion.identity, woodDark, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Faixa", new Vector3(0f, 0.36f, 0f), new Vector3(1.14f, 0.14f, 2.78f), Quaternion.identity, sailIvory, false);
+            MakePrim(sb.transform, PrimitiveType.Cylinder, "Mastro", new Vector3(0f, 1.55f, 0.1f), new Vector3(0.085f, 1.35f, 0.085f), Quaternion.identity, woodDark, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Principal", new Vector3(0.06f, 1.72f, -0.44f), new Vector3(0.08f, 1.92f, 1.34f), Quaternion.Euler(0f, 10f, 0f), sailIvory, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Proa", new Vector3(-0.05f, 1.36f, 0.64f), new Vector3(0.07f, 1.32f, 0.88f), Quaternion.Euler(0f, -12f, 0f), sailIvory, false);
             midSailboats.Add(sb.transform);
         }
 
-        // LAYER 3: 10 Lively Layered Shoreline Wave-Foam Ribbons washing gently onto the wet sand!
-        for (int i = 0; i < 10; i++)
+        // LAYER 3: Delicate, Thin, Interrupted Shoreline Wave-Foam Wisps following the exact curved sand line!
+        float[] foamXs = { -16.5f, -11.2f, -5.8f, 0.4f, 5.6f, 11.4f, 16.8f, 22.5f, 28.4f, 34.0f };
+        for (int i = 0; i < foamXs.Length; i++)
         {
+            float fx = foamXs[i];
+            float coastCurve = Mathf.Sin(fx * 0.045f) * 0.95f + Mathf.Cos(fx * 0.022f) * 0.45f;
+            float slopeAngleDeg = Mathf.Atan(Mathf.Cos(fx * 0.045f) * 0.045f * 0.95f - Mathf.Sin(fx * 0.022f) * 0.022f * 0.45f) * Mathf.Rad2Deg;
             GameObject fr = new GameObject("Parallax_Espuma_BeiraMar_" + (i + 1));
             fr.transform.SetParent(pxRoot.transform, false);
-            fr.transform.position = new Vector3(-18f + i * 6.2f, -0.25f, 9.65f + (i % 2) * 0.38f);
+            fr.transform.position = new Vector3(fx, -0.265f, 9.85f + coastCurve * 0.80f + (i % 2) * 0.18f);
+            fr.transform.rotation = Quaternion.Euler(0f, -slopeAngleDeg, 0f);
+            float segLen = 3.2f + (i % 3) * 0.45f;
             MakePrim(fr.transform, PrimitiveType.Cylinder, "Faixa_Espuma",
-                Vector3.zero, new Vector3(6.8f, 0.028f, 1.38f), Quaternion.identity, foam, false);
-            MakePrim(fr.transform, PrimitiveType.Cylinder, "Onda_Rasa",
-                new Vector3(0.8f, -0.01f, 0.95f), new Vector3(5.4f, 0.022f, 0.90f), Quaternion.identity, foam, false);
+                Vector3.zero, new Vector3(segLen, 0.016f, 0.38f), Quaternion.identity, foam, false);
+            if (i % 2 == 0)
+            {
+                MakePrim(fr.transform, PrimitiveType.Cylinder, "Onda_Rasa",
+                    new Vector3(0.45f, -0.008f, 0.62f), new Vector3(segLen * 0.72f, 0.014f, 0.24f), Quaternion.identity, foam, false);
+            }
             shoreFoam.Add(fr.transform);
         }
     }

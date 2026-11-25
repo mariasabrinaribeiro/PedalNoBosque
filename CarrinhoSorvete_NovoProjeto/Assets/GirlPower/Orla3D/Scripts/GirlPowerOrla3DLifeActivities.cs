@@ -127,6 +127,9 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         if (toastTimer > 0f) toastTimer = Mathf.Max(0f, toastTimer - Time.deltaTime);
 
         bool talking = dialogueController != null && dialogueController.IsOpen;
+        if (!talking && !IsShopMenuOpen && (megaSystems == null || !megaSystems.IsAnyModalOpen))
+            SubmitShopCandidate();
+
         Keyboard keys = Keyboard.current;
         if (keys == null || talking) return;
 
@@ -148,9 +151,9 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         if (keys.bKey.wasPressedThisFrame)
             TriggerPetAction();
 
-        if (keys.eKey.wasPressedThisFrame)
+        if (keys.eKey.wasPressedThisFrame && GirlPowerOrla3DInteractionHub.Instance == null)
         {
-            int nearShop = FindNearestShop(3.0f);
+            int nearShop = FindNearestShop(2.8f);
             if (nearShop >= 0)
             {
                 OpenShopAsCardapio(nearShop);
@@ -159,6 +162,29 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
 
         if (openShopIndex >= 0 && FindNearestShop(3.8f) != openShopIndex)
             openShopIndex = -1;
+    }
+
+    private void SubmitShopCandidate()
+    {
+        var hub = GirlPowerOrla3DInteractionHub.Instance;
+        if (hub == null || shops == null || player == null) return;
+        int nearShop = FindNearestShop(2.8f);
+        if (nearShop < 0 || shops[nearShop].stallTransform == null) return;
+        float dist = Vector2.Distance(
+            new Vector2(player.position.x, player.position.z),
+            new Vector2(shops[nearShop].stallTransform.position.x, shops[nearShop].stallTransform.position.z));
+        int capturedIdx = nearShop;
+        hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+        {
+            id = "shop_" + capturedIdx,
+            target = shops[capturedIdx].stallTransform,
+            buttonLabel = "Ver " + shops[capturedIdx].shopName,
+            targetBadgeLabel = shops[capturedIdx].shopName,
+            distance = dist,
+            markerHeight = 2.15f,
+            isPrimaryMission = false,
+            onExecute = () => OpenShopAsCardapio(capturedIdx)
+        });
     }
 
     public void OpenShopAsCardapio(int shopIdx)
@@ -407,18 +433,21 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
             GUI.DrawTexture(new Rect(heartRect.x + 8f * s, heartRect.y + 8f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconHeart);
         }
 
-        // Consistent bottom-center primary [E] prompt for nearby Market Stall (never overlaps story action!)
-        bool storyHasAction = storyController != null && storyController.HasNearbyStoryInteractable;
-        int nearShop = FindNearestShop(3.0f);
-        if (nearShop >= 0 && !storyHasAction && !IsShopMenuOpen && (megaSystems == null || !megaSystems.IsAnyModalOpen))
+        // Shop action button is unified inside GirlPowerOrla3DInteractionHub when present!
+        if (GirlPowerOrla3DInteractionHub.Instance == null)
         {
-            string shopTxt = "[E]  " + shops[nearShop].shopName;
-            float sw = Mathf.Clamp(92f * s + shopTxt.Length * 7.8f * s, 215f * s, 360f * s);
-            float sh = 46f * s;
-            float sx = (Screen.width - sw) * 0.5f;
-            float sy = Screen.height - 118f * s;
-            if (GUI.Button(new Rect(sx, sy, sw, sh), shopTxt, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
-                OpenShopAsCardapio(nearShop);
+            bool storyHasAction = storyController != null && storyController.HasNearbyStoryInteractable;
+            int nearShop = FindNearestShop(2.8f);
+            if (nearShop >= 0 && !storyHasAction && !IsShopMenuOpen && (megaSystems == null || !megaSystems.IsAnyModalOpen))
+            {
+                string shopTxt = "[E]  " + shops[nearShop].shopName;
+                float sw = Mathf.Clamp(92f * s + shopTxt.Length * 7.8f * s, 215f * s, 360f * s);
+                float sh = 46f * s;
+                float sx = (Screen.width - sw) * 0.5f;
+                float sy = Screen.height - 118f * s;
+                if (GUI.Button(new Rect(sx, sy, sw, sh), shopTxt, GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+                    OpenShopAsCardapio(nearShop);
+            }
         }
 
         // Rounded Cozy Shop Modal

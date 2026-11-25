@@ -16,6 +16,7 @@ Shader "GirlPower/OrlaACNHCozy"
         _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0016
         _UseWorldUV ("World Space Tiling", Range(0.0, 1.0)) = 0.0
         _TileScale ("World Tile Scale", Range(0.05, 4.0)) = 0.35
+        _TexStrength ("Texture Contrast", Range(0.0, 1.0)) = 0.32
     }
 
     SubShader
@@ -43,6 +44,7 @@ Shader "GirlPower/OrlaACNHCozy"
         half _OccluderRadius;
         half _UseWorldUV;
         float _TileScale;
+        half _TexStrength;
 
         struct Input
         {
@@ -90,16 +92,19 @@ Shader "GirlPower/OrlaACNHCozy"
 
         void surf(Input IN, inout SurfaceOutput o)
         {
+            // Pure XZ world tiling (zero Y-shift seams across sand/boardwalk/plaza slopes!)
             float2 sampleUV = (_UseWorldUV > 0.5)
-                ? (IN.worldPos.xz * _TileScale + float2(IN.worldPos.y * _TileScale * 0.5, 0.0))
+                ? (IN.worldPos.xz * _TileScale)
                 : IN.uv_MainTex;
-            fixed4 c = tex2D(_MainTex, sampleUV) * _Color;
+            fixed4 texCol = tex2D(_MainTex, sampleUV);
+            fixed3 blendedTex = lerp(fixed3(1.0, 1.0, 1.0), texCol.rgb, _TexStrength);
+            fixed4 c = fixed4(blendedTex * _Color.rgb, _Color.a);
 
             // Ground-contact Ambient Occlusion: gently darkens bases where objects meet ground
             float aoH = saturate((IN.worldPos.y + 0.16) / max(0.1, _GroundAOHeight));
             float groundAO = lerp(1.0 - _GroundAO * 0.55, 1.0, smoothstep(0.0, 1.0, aoH));
 
-            // Clean, band-free matte surface (no periodic sine striping)
+            // Clean, band-free matte surface (no periodic striping or tile seams!)
             o.Albedo = saturate(c.rgb * groundAO);
             o.Alpha = c.a;
 

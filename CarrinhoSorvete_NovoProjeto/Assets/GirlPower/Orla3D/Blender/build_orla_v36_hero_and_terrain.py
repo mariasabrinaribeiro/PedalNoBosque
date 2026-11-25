@@ -181,39 +181,77 @@ def export_fbx(objs, filename):
 
 
 # =========================================================================
-# 1. CONTINUOUS 3-SURFACE COASTAL BASE (Areia Creme Curva + Calçadão + Praça)
-# Spans X = -120 .. +144 (264m wide!) and Z = -36 .. +15 -> ZERO blue gaps or rectangular patches!
+# 1. CONTINUOUS 3-SURFACE COASTAL BASE (Subdivided along X so Horizon Curve
+#    NEVER bends or sinks flat boxes -> ZERO vertical bands, ZERO gaps!)
 # =========================================================================
+def build_subdivided_strip(name, x0, x1, y0, y1, z_top, thickness, segs_x, segs_y, mat, col):
+    """Creates a clean closed slab subdivided along X & Y so vertex horizon curvature stays 100% flush with sand & props."""
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    top_grid = []
+    for ix in range(segs_x + 1):
+        x = x0 + (x1 - x0) * (ix / segs_x)
+        row = []
+        for iy in range(segs_y + 1):
+            y = y0 + (y1 - y0) * (iy / segs_y)
+            row.append(bm.verts.new((x, y, z_top)))
+        top_grid.append(row)
+    for ix in range(segs_x):
+        for iy in range(segs_y):
+            bm.faces.new((top_grid[ix][iy], top_grid[ix + 1][iy], top_grid[ix + 1][iy + 1], top_grid[ix][iy + 1]))
+
+    # Subtle vertical skirt along front/back borders so slight elevation steps read solid and grounded
+    z_bot = z_top - thickness
+    for iy_edge, flip in [(0, True), (segs_y, False)]:
+        bot_row = [bm.verts.new((x0 + (x1 - x0) * (ix / segs_x), y0 if iy_edge == 0 else y1, z_bot)) for ix in range(segs_x + 1)]
+        for ix in range(segs_x):
+            v0 = top_grid[ix][iy_edge]
+            v1 = top_grid[ix + 1][iy_edge]
+            b0 = bot_row[ix]
+            b1 = bot_row[ix + 1]
+            if flip:
+                bm.faces.new((v1, v0, b0, b1))
+            else:
+                bm.faces.new((v0, v1, b1, b0))
+
+    for f in bm.faces:
+        f.smooth = False
+    bm.normal_update()
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    obj.data.materials.append(mat)
+    col.objects.link(obj)
+    return obj
+
+
 def build_continuous_environment(col):
     parts = []
-    cx = 12.0
-    span_x = 264.0
+    x0, x1 = -120.0, 144.0
+    segs_x = 96
 
-    # SURFACE A: Continuous Calçadão Principal (Y = -3.75 .. +3.50 -> Z = -3.75..+3.50 in Unity)
-    parts.append(add_box("Surf_Calcadao", (span_x, 7.25, 0.24), MATS["AC_StoneWhite"], col, loc=(cx, -0.125, -0.12), bevel=0.03))
-    # Subtle continuous beveled edge separating Calçadão from Praça
-    parts.append(add_box("Surf_BordaPraca", (span_x, 0.24, 0.08), MATS["AC_StoneWarm"], col, loc=(cx, -3.78, -0.02), bevel=0.02))
+    # SURFACE A: Continuous Subdivided Calçadão Principal (Y = -3.75 .. +3.50, Z = 0.00)
+    parts.append(build_subdivided_strip("Surf_Calcadao", x0, x1, -3.75, 3.50, 0.0, 0.22, segs_x, 4, MATS["AC_StoneWhite"], col))
+    # Gentle continuous curb lip separating Calçadão & Praça (subdivided so zero height sag!)
+    parts.append(build_subdivided_strip("Surf_BordaPraca", x0, x1, -3.92, -3.72, 0.015, 0.09, segs_x, 1, MATS["AC_StoneWarm"], col))
 
-    # SURFACE B: Continuous Praça Lateral extending ALL THE WAY SOUTH (Y = -36.0 .. -3.75) -> ZERO blue/turquoise gap behind fair!
-    parts.append(add_box("Surf_PracaContinua", (span_x, 32.35, 0.24), MATS["AC_StoneWarm"], col, loc=(cx, -19.92, -0.16), bevel=0.03))
+    # SURFACE B: Continuous Subdivided Praça Lateral extending far south (Y = -36.0 .. -3.75, Z = -0.04)
+    parts.append(build_subdivided_strip("Surf_PracaContinua", x0, x1, -36.0, -3.75, -0.04, 0.22, segs_x, 10, MATS["AC_StoneWarm"], col))
 
-    # Clean 4-segment Coastal Mureta (leaving the 3 wooden beach accesses wide open!)
-    for mname, mx, mw in [
-        ("Mureta_FarWest", -62.0, 109.0),
-        ("Mureta_MidWest",   1.0,   8.6),
-        ("Mureta_MidEast",  13.75,  8.1),
-        ("Mureta_FarEast",  83.0, 121.0),
+    # Low, rounded coastal mureta segments flanking the 3 wide beach accesses (subdivided along long spans!)
+    for mname, mx0, mx1 in [
+        ("Mureta_FarWest", -116.0, -7.2),
+        ("Mureta_MidWest",   -3.3,  5.3),
+        ("Mureta_MidEast",    9.7, 17.8),
+        ("Mureta_FarEast",   22.2, 142.0),
     ]:
-        parts.append(add_box(mname, (mw, 0.36, 0.36), MATS["AC_StoneWhite"], col, loc=(mx, 3.56, 0.08), bevel=0.04))
-        parts.append(add_box(mname + "_Cap", (mw + 0.06, 0.44, 0.08), MATS["AC_StoneWarm"], col, loc=(mx, 3.56, 0.28), bevel=0.02))
+        m_segs = max(4, int((mx1 - mx0) / 3.0))
+        parts.append(build_subdivided_strip(mname, mx0, mx1, 3.38, 3.74, 0.24, 0.30, m_segs, 1, MATS["AC_StoneWhite"], col))
+        parts.append(build_subdivided_strip(mname + "_Cap", mx0 - 0.03, mx1 + 0.03, 3.34, 3.78, 0.30, 0.06, m_segs, 1, MATS["AC_StoneWarm"], col))
 
     # SURFACE C: Continuous Curved Cream Sand Beach sloping seamlessly under the sea (X = -120 .. +144!)
-    # Gentle organic coastal curve along X -> no straight diagonal cutoff!
     mesh_dry = bpy.data.meshes.new("Surf_AreiaCreme")
     bm = bmesh.new()
-    segs_x = 96
-    x0, x1 = -120.0, 144.0
-    # 5 cross-shore profiles: mureta edge (3.40), mid-beach (6.5), upper wet (9.4), water line (10.6+curve), submerged seabed (16.5)
     grid = []
     for ix in range(segs_x + 1):
         u = ix / segs_x
@@ -228,6 +266,7 @@ def build_continuous_environment(col):
             bm.faces.new((grid[ix][r], grid[ix + 1][r], grid[ix + 1][r + 1], grid[ix][r + 1]))
     for f in bm.faces:
         f.smooth = True
+    bm.normal_update()
     bm.to_mesh(mesh_dry)
     bm.free()
     sand_obj = bpy.data.objects.new("Surf_AreiaCreme", mesh_dry)
@@ -357,57 +396,64 @@ def build_botanical_florist(col):
         base_parts.append(add_sphere(f"FLeaf_{i}", 0.18, MATS["AC_BushGreen"] if i % 2 == 0 else MATS["AC_BushLight"], col, loc=(fx, -0.28, 1.25), scale=(1.0, 1.0, 0.85)))
         base_parts.append(add_sphere(f"FBloom_{i}", 0.085, flowers[i % 4], col, loc=(fx, -0.32, 1.37)))
 
-    # Side tiered wooden flower stands flanking the open entrance
-    for s_idx, sx in enumerate((-2.08, 2.08)):
-        base_parts.append(add_box(f"SideRackLow_{s_idx}", (0.68, 0.88, 0.34), MATS["AC_WoodLight"], col, loc=(sx, -0.35, 0.17), bevel=0.02))
-        base_parts.append(add_box(f"SideRackHigh_{s_idx}", (0.58, 0.44, 0.58), MATS["AC_WoodWarm"], col, loc=(sx, -0.10, 0.38), bevel=0.02))
-        for k, (dy, dz) in enumerate([(-0.56, 0.44), (-0.12, 0.78)]):
-            base_parts.append(add_cyl(f"SidePot_{s_idx}_{k}", 0.18, 0.24, MATS["AC_Terracotta"], col, loc=(sx, dy, dz), r_top=0.22, segs=12))
-            base_parts.append(add_sphere(f"SideBush_{s_idx}_{k}", 0.26, MATS["AC_BushGreen"] if k == 0 else MATS["AC_BushLight"], col, loc=(sx, dy, dz + 0.20)))
-            base_parts.append(add_sphere(f"SideBlm_{s_idx}_{k}", 0.095, flowers[(s_idx + k) % 4], col, loc=(sx, dy - 0.12, dz + 0.32)))
+    # Low wooden front flower-pot display bench framing the open entrance toward the promenade!
+    for s_idx, sx in enumerate((-1.95, 1.95)):
+        base_parts.append(add_box(f"SideRackLow_{s_idx}", (0.72, 0.96, 0.34), MATS["AC_WoodLight"], col, loc=(sx, -0.48, 0.17), bevel=0.025))
+        base_parts.append(add_box(f"SideRackHigh_{s_idx}", (0.60, 0.46, 0.56), MATS["AC_WoodWarm"], col, loc=(sx, -0.18, 0.36), bevel=0.025))
+        for k, (dy, dz) in enumerate([(-0.74, 0.45), (-0.22, 0.76)]):
+            base_parts.append(add_cyl(f"SidePot_{s_idx}_{k}", 0.19, 0.24, MATS["AC_Terracotta"], col, loc=(sx, dy, dz), r_top=0.23, segs=14))
+            base_parts.append(add_sphere(f"SideBush_{s_idx}_{k}", 0.27, MATS["AC_BushGreen"] if k == 0 else MATS["AC_BushLight"], col, loc=(sx, dy, dz + 0.20)))
+            base_parts.append(add_sphere(f"SideBlm_{s_idx}_{k}", 0.10, flowers[(s_idx + k) % 4], col, loc=(sx, dy - 0.13, dz + 0.32)))
+
+    # Low front entrance pot step right in front of the counter ends so the Florist silhouette reads without any text!
+    for f_idx, fx in enumerate((-1.32, 1.32)):
+        base_parts.append(add_box(f"FrontPotBench_{f_idx}", (0.64, 0.42, 0.22), MATS["AC_WoodLight"], col, loc=(fx, -1.04, 0.11), bevel=0.022))
+        base_parts.append(add_cyl(f"FrontPot_{f_idx}", 0.15, 0.20, MATS["AC_Terracotta"], col, loc=(fx, -1.04, 0.31), r_top=0.19, segs=14))
+        base_parts.append(add_sphere(f"FrontBush_{f_idx}", 0.22, MATS["AC_BushGreen"], col, loc=(fx, -1.04, 0.49)))
+        base_parts.append(add_sphere(f"FrontBloom_{f_idx}", 0.095, flowers[(f_idx + 2) % 4], col, loc=(fx, -1.16, 0.58)))
 
     base_obj = join_parts(base_parts, "Florist_Base", col)
 
-    # BOTANICAL SAGE-GREEN & CREAM STRIPED AWNING (separate CanopyFade mesh!)
+    # BOTANICAL SAGE-GREEN & CREAM AWNING (restrained height so it never towers over characters!)
     canopy_parts = []
     stripes = 9
-    sw = 4.25 / stripes
+    sw = 4.15 / stripes
     for i in range(stripes):
-        sx = -2.125 + (i + 0.5) * sw
+        sx = -2.075 + (i + 0.5) * sw
         sm = MATS["AC_BushGreen"] if i % 2 == 0 else MATS["AC_Cream"]
-        canopy_parts.append(add_box(f"FAwn_{i}", (sw - 0.015, 2.15, 0.12), sm, col, loc=(sx, -0.05, 2.58), rot=(0.20, 0, 0), bevel=0.025))
-        canopy_parts.append(add_sphere(f"FVal_{i}", sw * 0.46, sm, col, loc=(sx, -1.08, 2.38), scale=(1.0, 0.45, 0.72), u=10, v=6))
+        canopy_parts.append(add_box(f"FAwn_{i}", (sw - 0.012, 2.02, 0.11), sm, col, loc=(sx, -0.02, 2.52), rot=(0.18, 0, 0), bevel=0.028))
+        canopy_parts.append(add_sphere(f"FVal_{i}", sw * 0.45, sm, col, loc=(sx, -1.00, 2.34), scale=(1.0, 0.45, 0.70), u=10, v=6))
     canopy_obj = join_parts(canopy_parts, "Florist_CanopyFade", col)
     export_fbx([base_obj, canopy_obj], "FloristStand")
     return [base_obj, canopy_obj]
 
 
 # =========================================================================
-# 4. CALM COASTAL KIOSK (Cream, Soft Lilac & Sage Green — NO competing pink!)
+# 4. CALM COASTAL KIOSK (Cream, Soft Lilac & Sage Green — proportioned to protagonist!)
 # =========================================================================
 def build_calm_kiosk(col):
     base_parts = [
-        add_box("KDeck", (4.4, 2.3, 0.18), MATS["AC_WoodLight"], col, loc=(0, 0, 0.09), bevel=0.04),
-        add_box("KCounter", (3.6, 1.05, 0.88), MATS["AC_Cream"], col, loc=(0, -0.32, 0.60), bevel=0.04),
-        add_box("KStripe", (3.66, 1.09, 0.14), MATS["AC_Lavender"], col, loc=(0, -0.32, 0.52), bevel=0.02),
-        add_box("KTop", (3.90, 1.24, 0.12), MATS["AC_WoodLight"], col, loc=(0, -0.32, 1.08), bevel=0.03),
-        add_box("KBackWall", (3.60, 0.18, 2.20), MATS["AC_Cream"], col, loc=(0, 0.72, 1.25), bevel=0.03),
-        add_box("KPlaqueFrame", (2.85, 0.14, 0.54), MATS["AC_WoodWarm"], col, loc=(0, -0.68, 2.92), bevel=0.03),
-        add_box("KPlaqueFace", (2.66, 0.16, 0.40), MATS["AC_Cream"], col, loc=(0, -0.70, 2.92), bevel=0.015),
+        add_box("KDeck", (4.2, 2.15, 0.14), MATS["AC_WoodLight"], col, loc=(0, 0, 0.07), bevel=0.035),
+        add_box("KCounter", (3.45, 0.96, 0.78), MATS["AC_Cream"], col, loc=(0, -0.28, 0.51), bevel=0.035),
+        add_box("KStripe", (3.50, 1.00, 0.12), MATS["AC_Lavender"], col, loc=(0, -0.28, 0.46), bevel=0.022),
+        add_box("KTop", (3.70, 1.12, 0.10), MATS["AC_WoodLight"], col, loc=(0, -0.28, 0.94), bevel=0.028),
+        add_box("KBackWall", (3.45, 0.16, 2.04), MATS["AC_Cream"], col, loc=(0, 0.68, 1.15), bevel=0.028),
+        add_box("KPlaqueFrame", (2.78, 0.14, 0.50), MATS["AC_WoodWarm"], col, loc=(0, -0.68, 2.74), bevel=0.028),
+        add_box("KPlaqueFace", (2.60, 0.16, 0.36), MATS["AC_Cream"], col, loc=(0, -0.70, 2.74), bevel=0.015),
     ]
-    for px in (-1.78, 1.78):
-        for py in (-0.72, 0.72):
-            base_parts.append(add_cyl(f"KPost_{px}_{py}", 0.085, 2.55, MATS["AC_WoodWarm"], col, loc=(px, py, 1.38), segs=12))
+    for px in (-1.70, 1.70):
+        for py in (-0.68, 0.68):
+            base_parts.append(add_cyl(f"KPost_{px}_{py}", 0.068, 2.38, MATS["AC_WoodWarm"], col, loc=(px, py, 1.28), segs=12))
     base_obj = join_parts(base_parts, "Kiosk_Base", col)
 
     canopy_parts = []
     stripes = 9
-    sw = 4.50 / stripes
+    sw = 4.25 / stripes
     for i in range(stripes):
-        sx = -2.25 + (i + 0.5) * sw
+        sx = -2.125 + (i + 0.5) * sw
         sm = MATS["AC_Lavender"] if i % 2 == 0 else MATS["AC_Cream"]
-        canopy_parts.append(add_box(f"KAwn_{i}", (sw - 0.015, 2.25, 0.12), sm, col, loc=(sx, -0.02, 2.66), rot=(0.18, 0, 0), bevel=0.025))
-        canopy_parts.append(add_sphere(f"KVal_{i}", sw * 0.46, sm, col, loc=(sx, -1.10, 2.48), scale=(1.0, 0.45, 0.72), u=10, v=6))
+        canopy_parts.append(add_box(f"KAwn_{i}", (sw - 0.012, 2.08, 0.11), sm, col, loc=(sx, 0.0, 2.50), rot=(0.17, 0, 0), bevel=0.028))
+        canopy_parts.append(add_sphere(f"KVal_{i}", sw * 0.45, sm, col, loc=(sx, -1.02, 2.33), scale=(1.0, 0.45, 0.70), u=10, v=6))
     canopy_obj = join_parts(canopy_parts, "Kiosk_CanopyFade", col)
     export_fbx([base_obj, canopy_obj], "KioskGirlPower")
     return [base_obj, canopy_obj]

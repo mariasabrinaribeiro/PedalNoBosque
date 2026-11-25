@@ -461,6 +461,9 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             else if (sliceCursor <= 0f) { sliceCursor = 0f; sliceDir = 1f; }
         }
 
+        if (CurrentModal == ActiveModal.None)
+            SubmitInteractionCandidates();
+
         // Keyboard shortcuts for modals & interactions
         Keyboard keys = Keyboard.current;
         if (keys == null) return;
@@ -474,8 +477,91 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             petDog.PerformTrick();
             OnPipocaTrickNearTables();
         }
-        if (keys.eKey.wasPressedThisFrame && CurrentModal == ActiveModal.None)
+        if (keys.eKey.wasPressedThisFrame && CurrentModal == ActiveModal.None && GirlPowerOrla3DInteractionHub.Instance == null)
             TryWorldStationInteract();
+    }
+
+    private float DistXZ(Transform t)
+    {
+        if (t == null || player == null) return float.MaxValue;
+        return Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(t.position.x, t.position.z));
+    }
+
+    private void SubmitInteractionCandidates()
+    {
+        var hub = GirlPowerOrla3DInteractionHub.Instance;
+        if (hub == null || player == null) return;
+
+        float dGarden = DistXZ(gardenBed);
+        if (dGarden <= 2.8f)
+        {
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "mega_garden", target = gardenBed, buttonLabel = "Horta & Plantação", targetBadgeLabel = "Horta",
+                distance = dGarden, markerHeight = 1.65f, isPrimaryMission = false, onExecute = () => OpenModal(ActiveModal.Garden)
+            });
+        }
+
+        float dPier = DistXZ(fishingPier);
+        if (dPier <= 3.2f)
+        {
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "mega_pier", target = fishingPier, buttonLabel = "Pescar no Píer", targetBadgeLabel = "Píer de Pesca",
+                distance = dPier, markerHeight = 1.95f, isPrimaryMission = false, onExecute = () => OpenModal(ActiveModal.Fishing)
+            });
+        }
+
+        if (IsAtBeachTennisEntrance())
+        {
+            Transform bt = beachTennisEntrance != null ? beachTennisEntrance : beachTennisCourt;
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "mega_tennis", target = bt, buttonLabel = "Beach Tennis", targetBadgeLabel = "Beach Tennis",
+                distance = DistXZ(bt), markerHeight = 1.85f, isPrimaryMission = false, onExecute = () => OpenModal(ActiveModal.BeachTennis)
+            });
+        }
+
+        float dBoard = DistXZ(noticeBoard);
+        if (dBoard <= 2.6f)
+        {
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "mega_board", target = noticeBoard, buttonLabel = "Mural de Avisos", targetBadgeLabel = "Mural",
+                distance = dBoard, markerHeight = 2.05f, isPrimaryMission = false, onExecute = () => OpenModal(ActiveModal.NoticeBoard)
+            });
+        }
+
+        float dKit = DistXZ(restaurantKitchen);
+        if (dKit <= 3.0f)
+        {
+            int ord = FindFirstActiveOrderIndex();
+            string txt = ord >= 0 ? (GetDishPrepVerb(Orders[ord].dishName) + " " + Orders[ord].dishName) : "Batata & Mar";
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "mega_kitchen", target = restaurantKitchen, buttonLabel = txt, targetBadgeLabel = "Batata & Mar",
+                distance = dKit, markerHeight = 2.15f, isPrimaryMission = false, onExecute = () => { if (ord >= 0) StartSliceMixForTable(ord); }
+            });
+        }
+
+        if (CarryingRestaurantTray && restaurantTables != null)
+        {
+            for (int i = 0; i < restaurantTables.Length; i++)
+            {
+                float dtbl = DistXZ(restaurantTables[i]);
+                if (dtbl <= 3.0f && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
+                {
+                    int idx = i;
+                    hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+                    {
+                        id = "mega_table_" + idx, target = restaurantTables[i], buttonLabel = "Servir " + Orders[i].tableName,
+                        targetBadgeLabel = Orders[i].tableName, distance = dtbl, markerHeight = 2.05f,
+                        isPrimaryMission = false, onExecute = () => DeliverTableOrder(idx)
+                    });
+                    break;
+                }
+            }
+        }
     }
 
     private bool IsAtBeachTennisEntrance()
@@ -634,6 +720,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
 
     private void DrawWorldStationPrompts(float s)
     {
+        if (GirlPowerOrla3DInteractionHub.Instance != null) return;
         if (sceneCamera == null) return;
         bool touchPrimary = gameFlow != null && gameFlow.storyController != null && gameFlow.storyController.IsTouchPrimary;
         string sfx = touchPrimary ? "" : "   [E]";

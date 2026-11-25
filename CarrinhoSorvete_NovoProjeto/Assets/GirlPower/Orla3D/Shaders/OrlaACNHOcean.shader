@@ -75,10 +75,10 @@ Shader "GirlPower/OrlaACNHOcean"
             float surfaceEyeDepth = IN.screenPos.w;
             float depthDiff = validDepth ? max(0.0, sceneEyeDepth - surfaceEyeDepth) : 4.0;
 
-            // Soft geometric fallback toward the far horizon so deep bay stays rich vibrant turquoise-teal
-            float shoreCurve = sin(wp.x * 0.18) * 0.45 + cos(wp.x * 0.44) * 0.18;
-            float zFromShore = max(0.0, wp.z - (9.8 + shoreCurve));
-            float geoDepth = smoothstep(0.4, 11.5, zFromShore);
+            // Synced gentle coastal curve matching Surf_AreiaCreme in OrlaEnvironmentBase.fbx!
+            float shoreCurve = sin(wp.x * 0.045) * 0.95 + cos(wp.x * 0.022) * 0.45;
+            float zFromShore = max(0.0, wp.z - (10.15 + shoreCurve * 0.85));
+            float geoDepth = smoothstep(0.35, 11.5, zFromShore);
             float depthT = saturate(validDepth ? max(depthDiff / max(0.05, _DepthDistance), geoDepth * 0.88) : geoDepth);
 
             fixed3 waterCol = lerp(_ShallowColor.rgb, _DeepColor.rgb, depthT);
@@ -86,26 +86,26 @@ Shader "GirlPower/OrlaACNHOcean"
             // Subtle soft caustic shimmer ONLY in very shallow water (no open-ocean white dots!)
             float c1 = sin(wp.x * 1.55 + wp.z * 1.35 + t * 2.2);
             float c2 = cos(wp.x * 1.25 - wp.z * 1.75 - t * 1.8);
-            float shallowCaustic = smoothstep(0.45, 0.95, abs(c1 * c2)) * (1.0 - depthT) * 0.09;
-            waterCol += fixed3(0.14, 0.24, 0.24) * shallowCaustic;
+            float shallowCaustic = smoothstep(0.45, 0.95, abs(c1 * c2)) * (1.0 - depthT) * 0.08;
+            waterCol += fixed3(0.12, 0.22, 0.22) * shallowCaustic;
 
-            // 2. Organic Animated Shoreline-Only Foam (hugging sand, rocks & pier pilings — NEVER covering whole sea!)
-            float nA = sin(wp.x * 1.75 + t * 3.2) * cos(wp.z * 1.95 - t * 2.6);
-            float nB = sin(wp.x * 3.35 - wp.z * 2.65 + t * 4.0) * 0.45;
-            float foamNoise = saturate(0.5 + 0.36 * (nA + nB));
+            // 2. Refined, Thin, Interrupted Shoreline Foam hugging the sand curve cleanly!
+            float nA = sin(wp.x * 1.55 + t * 2.6) * cos(wp.z * 1.85 - t * 2.1);
+            float nB = sin(wp.x * 3.10 - wp.z * 2.40 + t * 3.4) * 0.38;
+            float foamNoise = saturate(0.5 + 0.34 * (nA + nB));
+            // Natural organic gaps along the coastline so foam never reads as a thick unbroken cream stripe
+            float shoreBreaks = smoothstep(0.16, 0.62, 0.5 + 0.5 * sin(wp.x * 0.48 + sin(wp.x * 0.19) * 1.4 + t * 0.45));
 
-            // Only trust depthShore near the actual shoreline/rocks (zFromShore < 4.5) so unpopulated depth never turns ocean white!
-            float depthShore = (validDepth && zFromShore < 4.5) ? (1.0 - saturate(depthDiff / max(0.05, _FoamDistance))) : 0.0;
-            // Gentle rhythmic swash line right along the wet beach edge
-            float swashWave = sin(t * 3.6 + wp.x * 0.26) * 0.28;
-            float beachEdge = 1.0 - smoothstep(0.0, 0.58, abs(zFromShore - (0.42 + swashWave)));
+            float depthShore = (validDepth && zFromShore < 2.6) ? (1.0 - saturate(depthDiff / max(0.05, _FoamDistance * 0.62))) : 0.0;
+            float swashWave = sin(t * 3.1 + wp.x * 0.22) * 0.18;
+            float beachEdge = (1.0 - smoothstep(0.0, 0.30, abs(zFromShore - (0.24 + swashWave)))) * shoreBreaks;
 
-            float foamDriver = max(depthShore, beachEdge * 0.86) + (foamNoise - 0.5) * 0.34;
-            float foamMask = smoothstep(0.44, 0.58, foamDriver);
+            float foamDriver = max(depthShore * 0.82, beachEdge * 0.92) + (foamNoise - 0.5) * 0.28;
+            float foamMask = smoothstep(0.50, 0.66, foamDriver) * 0.88;
 
-            // Subtle secondary thin foam ribbon just off the shoreline (never covering open sea!)
-            float secondWave = sin(zFromShore * 2.1 - t * 4.4 + sin(wp.x * 0.32) * 1.1);
-            float secondRibbon = smoothstep(0.84, 0.95, secondWave) * (1.0 - smoothstep(0.8, 3.6, zFromShore)) * 0.55;
+            // Delicate thin secondary wave line just off the sand curve
+            float secondWave = sin(zFromShore * 2.4 - t * 3.8 + sin(wp.x * 0.28) * 1.0);
+            float secondRibbon = smoothstep(0.89, 0.97, secondWave) * (1.0 - smoothstep(0.6, 2.8, zFromShore)) * shoreBreaks * 0.42;
             foamMask = saturate(max(foamMask, secondRibbon));
 
             // 3. Calm Perturbed Tangent Normal & Soft Sky Fresnel

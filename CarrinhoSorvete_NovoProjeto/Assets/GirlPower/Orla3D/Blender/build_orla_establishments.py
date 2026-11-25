@@ -214,14 +214,14 @@ def build_stall_shell(col, width, depth, body_mat, stripe_a, stripe_b, extra_cou
         # Open back shelf for depth & establishment feel (NOT a closed opaque wall!)
         add_box("BackLowWall", (width - 0.20, 0.12, 0.62), MATS["AC_WoodLight"], col, loc=(0, hd - 0.10, 1.24), bevel=0.015),
         add_box("BackShelf", (width - 0.30, 0.26, 0.05), MATS["AC_Cream"], col, loc=(0, hd - 0.18, 1.56), bevel=0.01),
-        # 4 Slim matte wooden corner posts
-        add_cyl("PostFL", 0.046, 2.28, MATS["AC_WoodWarm"], col, loc=(-hw + 0.10, -hd + 0.12, 1.14), segs=10),
-        add_cyl("PostFR", 0.046, 2.28, MATS["AC_WoodWarm"], col, loc=( hw - 0.10, -hd + 0.12, 1.14), segs=10),
-        add_cyl("PostBL", 0.046, 2.48, MATS["AC_WoodWarm"], col, loc=(-hw + 0.10,  hd - 0.12, 1.24), segs=10),
-        add_cyl("PostBR", 0.046, 2.48, MATS["AC_WoodWarm"], col, loc=( hw - 0.10,  hd - 0.12, 1.24), segs=10),
-        # UNIFORM SOLID CREAM SIGNBOARD framed in warm wood at z = 2.42m (for crisp dark espresso text!)
-        add_box("FasciaFrame", (width - 0.12, 0.10, 0.44), MATS["AC_WoodWarm"], col, loc=(0, -hd + 0.02, 2.42), bevel=0.02),
-        add_box("FasciaBoard", (width - 0.24, 0.08, 0.34), MATS["AC_Cream"], col, loc=(0, -hd - 0.015, 2.42), bevel=0.01),
+        # 4 Standardized matte wooden corner posts (consistent thickness across all stalls!)
+        add_cyl("PostFL", 0.055, 2.20, MATS["AC_WoodWarm"], col, loc=(-hw + 0.10, -hd + 0.12, 1.10), segs=12),
+        add_cyl("PostFR", 0.055, 2.20, MATS["AC_WoodWarm"], col, loc=( hw - 0.10, -hd + 0.12, 1.10), segs=12),
+        add_cyl("PostBL", 0.055, 2.38, MATS["AC_WoodWarm"], col, loc=(-hw + 0.10,  hd - 0.12, 1.19), segs=12),
+        add_cyl("PostBR", 0.055, 2.38, MATS["AC_WoodWarm"], col, loc=( hw - 0.10,  hd - 0.12, 1.19), segs=12),
+        # UNIFORM SOLID CREAM SIGNBOARD framed in warm wood at z = 2.34m (for crisp dark espresso text!)
+        add_box("FasciaFrame", (width - 0.12, 0.10, 0.44), MATS["AC_WoodWarm"], col, loc=(0, -hd + 0.02, 2.34), bevel=0.025),
+        add_box("FasciaBoard", (width - 0.24, 0.08, 0.34), MATS["AC_Cream"], col, loc=(0, -hd - 0.015, 2.34), bevel=0.014),
     ]
 
     if extra_counter_fn is not None:
@@ -229,18 +229,18 @@ def build_stall_shell(col, width, depth, body_mat, stripe_a, stripe_b, extra_cou
 
     base_obj = join_around_pivot(base_parts, "Estab_Base", (0, 0, 0), col)
 
-    # 2. LIGHTWEIGHT CANOPY (Separate sibling mesh *_CanopyFade so ONLY the awning fades when blocking the protagonist!)
+    # 2. LIGHTWEIGHT CANOPY (Restrained height + soft beveled edges; fades ONLY when blocking the protagonist!)
     canopy_parts = []
     stripes = 7
-    sw = (width + 0.28) / stripes
+    sw = (width + 0.24) / stripes
     for i in range(stripes):
-        sx = -(width + 0.28) * 0.5 + (i + 0.5) * sw
+        sx = -(width + 0.24) * 0.5 + (i + 0.5) * sw
         sm = stripe_a if i % 2 == 0 else stripe_b
-        canopy_parts.append(add_box(f"Awning_{i}", (sw - 0.015, depth + 0.42, 0.075), sm, col,
-                                    loc=(sx, -0.04, 2.54), rot=(math.radians(11), 0, 0), bevel=0.018))
+        canopy_parts.append(add_box(f"Awning_{i}", (sw - 0.012, depth + 0.36, 0.075), sm, col,
+                                    loc=(sx, -0.02, 2.46), rot=(math.radians(10), 0, 0), bevel=0.024))
         canopy_parts.append(add_sphere(f"Valance_{i}", sw * 0.44, sm, col,
-                                       loc=(sx, -hd - 0.22, 2.38), scale=(1.0, 0.42, 0.72), u=10, v=6))
-    canopy_obj = join_around_pivot(canopy_parts, "Estab_CanopyFade", (0, 0, 2.54), col)
+                                       loc=(sx, -hd - 0.18, 2.31), scale=(1.0, 0.42, 0.70), u=10, v=6))
+    canopy_obj = join_around_pivot(canopy_parts, "Estab_CanopyFade", (0, 0, 2.46), col)
     return [base_obj, canopy_obj]
 
 
@@ -412,38 +412,114 @@ def build_pet_water_station(col):
 
 
 # =========================================================================
-# 6. RESTAURANT KIOSK TABLE (Crisp 4-legged matte table + stools + elevated Table_CanopyFade umbrella!)
+# 6. RESTAURANT / CAFE ROUND TABLE (Standardized wood + smooth DOMED umbrella,
+#    replacing propeller-like radial boxes with a continuous scalloped canopy!)
 # =========================================================================
+def build_smooth_umbrella_dome(name, radius, base_z, dome_height, segs, mat_a, mat_b, col):
+    """Builds a continuous, gently domed umbrella canopy with alternating pie-wedge panels (zero propeller gaps!)."""
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    rings = [
+        (0.0, dome_height),
+        (radius * 0.38, dome_height * 0.84),
+        (radius * 0.76, dome_height * 0.46),
+        (radius * 1.00, 0.0),
+        (radius * 1.02, -0.085),  # Subtle downward fabric valence rim
+    ]
+    apex_top = bm.verts.new((0.0, 0.0, base_z + rings[0][1]))
+    apex_bot = bm.verts.new((0.0, 0.0, base_z + rings[0][1] - 0.045))
+
+    top_rings = []
+    bot_rings = []
+    for r, dz in rings[1:]:
+        tr = []
+        br = []
+        for i in range(segs):
+            ang = (i / segs) * math.pi * 2.0
+            cx, cy = math.cos(ang) * r, math.sin(ang) * r
+            tr.append(bm.verts.new((cx, cy, base_z + dz)))
+            br.append(bm.verts.new((cx * 0.992, cy * 0.992, base_z + dz - 0.042)))
+        top_rings.append(tr)
+        bot_rings.append(br)
+
+    # Top dome triangles + quads with alternating material indices (0 = accent, 1 = cream)
+    for i in range(segs):
+        ni = (i + 1) % segs
+        mi = (i // 2) % 2
+        f_apex = bm.faces.new((apex_top, top_rings[0][i], top_rings[0][ni]))
+        f_apex.material_index = mi
+        f_apex.smooth = True
+
+        fb_apex = bm.faces.new((apex_bot, bot_rings[0][ni], bot_rings[0][i]))
+        fb_apex.material_index = 1
+        fb_apex.smooth = True
+
+        for r_idx in range(len(top_rings) - 1):
+            ft = bm.faces.new((top_rings[r_idx][i], top_rings[r_idx + 1][i], top_rings[r_idx + 1][ni], top_rings[r_idx][ni]))
+            ft.material_index = mi
+            ft.smooth = True
+
+            fb = bm.faces.new((bot_rings[r_idx][ni], bot_rings[r_idx + 1][ni], bot_rings[r_idx + 1][i], bot_rings[r_idx][i]))
+            fb.material_index = 1
+            fb.smooth = True
+
+        # Close rim edge cleanly
+        last = len(top_rings) - 1
+        fr = bm.faces.new((top_rings[last][i], bot_rings[last][i], bot_rings[last][ni], top_rings[last][ni]))
+        fr.material_index = mi
+        fr.smooth = True
+
+    bm.normal_update()
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    obj.data.materials.append(mat_a)
+    obj.data.materials.append(mat_b)
+    col.objects.link(obj)
+    return obj
+
+
 def build_restaurant_table(col):
     base_parts = [
-        # Matte round wooden table top + 4 clear legs (grounds solidly with contact shadow!)
-        add_cyl("TableTop", 0.64, 0.075, MATS["AC_Cream"], col, loc=(0, 0, 0.78), segs=18),
-        add_cyl("TableRim", 0.66, 0.045, MATS["AC_WoodWarm"], col, loc=(0, 0, 0.76), segs=18),
-        add_cyl("TableLeg1", 0.042, 0.76, MATS["AC_WoodWarm"], col, loc=(-0.34, -0.34, 0.38), segs=10),
-        add_cyl("TableLeg2", 0.042, 0.76, MATS["AC_WoodWarm"], col, loc=( 0.34, -0.34, 0.38), segs=10),
-        add_cyl("TableLeg3", 0.042, 0.76, MATS["AC_WoodWarm"], col, loc=(-0.34,  0.34, 0.38), segs=10),
-        add_cyl("TableLeg4", 0.042, 0.76, MATS["AC_WoodWarm"], col, loc=( 0.34,  0.34, 0.38), segs=10),
-        # 2 Compact wooden stools
-        add_cyl("StoolL_Seat", 0.22, 0.06, MATS["AC_WoodLight"], col, loc=(-0.92, 0, 0.48), segs=14),
-        add_cyl("StoolL_Leg", 0.048, 0.46, MATS["AC_WoodWarm"], col, loc=(-0.92, 0, 0.23), segs=10),
-        add_cyl("StoolR_Seat", 0.22, 0.06, MATS["AC_WoodLight"], col, loc=( 0.92, 0, 0.48), segs=14),
-        add_cyl("StoolR_Leg", 0.048, 0.46, MATS["AC_WoodWarm"], col, loc=( 0.92, 0, 0.23), segs=10),
-        # Slim center umbrella pole (tall so umbrella never hides protagonist's body!)
-        add_cyl("UmbPole", 0.032, 2.60, MATS["AC_WoodDark"], col, loc=(0, 0, 1.30), segs=10),
+        # Signature round café table (r = 0.68m, h = 0.76m) + 4 standardized matte wooden legs
+        add_cyl("TableTop", 0.68, 0.075, MATS["AC_Cream"], col, loc=(0, 0, 0.76), segs=22),
+        add_cyl("TableRim", 0.70, 0.045, MATS["AC_WoodWarm"], col, loc=(0, 0, 0.74), segs=22),
+        add_cyl("TableLeg1", 0.046, 0.74, MATS["AC_WoodWarm"], col, loc=(-0.34, -0.34, 0.37), segs=12),
+        add_cyl("TableLeg2", 0.046, 0.74, MATS["AC_WoodWarm"], col, loc=( 0.34, -0.34, 0.37), segs=12),
+        add_cyl("TableLeg3", 0.046, 0.74, MATS["AC_WoodWarm"], col, loc=(-0.34,  0.34, 0.37), segs=12),
+        add_cyl("TableLeg4", 0.046, 0.74, MATS["AC_WoodWarm"], col, loc=( 0.34,  0.34, 0.37), segs=12),
+        # 2 Compact wooden café chairs (seat at 0.46m aligned to protagonist scale!)
+        add_cyl("StoolL_Seat", 0.23, 0.06, MATS["AC_WoodLight"], col, loc=(-0.94, 0, 0.46), segs=16),
+        add_cyl("StoolL_Leg", 0.050, 0.44, MATS["AC_WoodWarm"], col, loc=(-0.94, 0, 0.22), segs=12),
+        add_box("StoolL_Back", (0.06, 0.36, 0.34), MATS["AC_WoodWarm"], col, loc=(-1.12, 0, 0.64), bevel=0.018),
+        add_cyl("StoolR_Seat", 0.23, 0.06, MATS["AC_WoodLight"], col, loc=( 0.94, 0, 0.46), segs=16),
+        add_cyl("StoolR_Leg", 0.050, 0.44, MATS["AC_WoodWarm"], col, loc=( 0.94, 0, 0.22), segs=12),
+        add_box("StoolR_Back", (0.06, 0.36, 0.34), MATS["AC_WoodWarm"], col, loc=( 1.12, 0, 0.64), bevel=0.018),
+        # Slim center umbrella pole
+        add_cyl("UmbPole", 0.036, 2.52, MATS["AC_WoodDark"], col, loc=(0, 0, 1.26), segs=12),
     ]
     base = join_around_pivot(base_parts, "Table_Base", (0, 0, 0), col)
 
-    # Lightweight elevated umbrella exported as separate sibling mesh Table_CanopyFade!
-    canopy_parts = [add_sphere("UmbCap", 0.16, MATS["AC_Gold"], col, loc=(0, 0, 2.74), scale=(1, 1, 0.5))]
-    segs = 8
-    for i in range(segs):
-        ang = (i / segs) * math.pi * 2.0
-        um = MATS["AC_MintTeal"] if i % 2 == 0 else MATS["AC_Cream"]
-        px = math.cos(ang) * 0.48
-        py = math.sin(ang) * 0.48
-        canopy_parts.append(add_box(f"TUmb_{i}", (0.84, 0.44, 0.055), um, col, loc=(px, py, 2.62), rot=(0, 0.20, ang), bevel=0.015))
-    canopy = join_around_pivot(canopy_parts, "Table_CanopyFade", (0, 0, 2.62), col)
+    # Smooth continuous domed canopy (ZERO propeller gaps from top-down camera!) exported as Table_CanopyFade
+    canopy_parts = [
+        build_smooth_umbrella_dome("TUmbDome", 1.18, 2.40, 0.34, 16, MATS["AC_MintTeal"], MATS["AC_Cream"], col),
+        add_sphere("UmbCap", 0.10, MATS["AC_Gold"], col, loc=(0, 0, 2.75), scale=(1, 1, 0.65), u=12, v=8),
+    ]
+    canopy = join_around_pivot(canopy_parts, "Table_CanopyFade", (0, 0, 2.48), col)
     export_establishment_fbx([base, canopy], "RestaurantKioskTable")
+
+
+def build_beach_umbrella(col):
+    """Continuous smooth domed beach umbrella (matching café umbrella finish, zero propeller gaps!)."""
+    pole = join_around_pivot([
+        add_cyl("SandAnchor", 0.14, 0.08, MATS["AC_WoodDark"], col, loc=(0, 0, 0.04), segs=12),
+        add_cyl("BeachUmbPole", 0.040, 2.38, MATS["AC_WoodLight"], col, loc=(0, 0, 1.19), segs=12),
+    ], "BeachUmb_Base", (0, 0, 0), col)
+    dome = join_around_pivot([
+        build_smooth_umbrella_dome("BeachUmbDome", 1.32, 2.18, 0.38, 16, MATS["AC_SkyBlue"], MATS["AC_Cream"], col),
+        add_sphere("BeachUmbFinial", 0.09, MATS["AC_Gold"], col, loc=(0, 0, 2.58), scale=(1, 1, 0.7), u=10, v=8),
+    ], "BeachUmb_CanopyFade", (0, 0, 2.25), col)
+    export_establishment_fbx([pole, dome], "BeachUmbrella")
 
 
 def main():
@@ -459,6 +535,7 @@ def main():
         build_stall_sucos,
         build_pet_water_station,
         build_restaurant_table,
+        build_beach_umbrella,
     ]
     for fn in builders:
         clear_scene()

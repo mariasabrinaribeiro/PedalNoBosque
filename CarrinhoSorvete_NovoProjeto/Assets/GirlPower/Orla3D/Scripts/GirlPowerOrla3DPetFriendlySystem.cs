@@ -196,10 +196,67 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         UpdateCamponesaHarvester(dt, t);
         UpdateWaterBowls(dt, t);
         UpdateArchetypeGuestsAndPets(dt, t);
+        SubmitPetFriendlyCandidates();
 
         Keyboard keys = Keyboard.current;
-        if (keys != null && keys.eKey.wasPressedThisFrame)
+        if (keys != null && keys.eKey.wasPressedThisFrame && GirlPowerOrla3DInteractionHub.Instance == null)
             TryInteractNearPlayer();
+    }
+
+    private void SubmitPetFriendlyCandidates()
+    {
+        var hub = GirlPowerOrla3DInteractionHub.Instance;
+        if (hub == null || player == null) return;
+        Vector2 pXZ = new Vector2(player.position.x, player.position.z);
+
+        int bestBowl = -1;
+        float bestBowlD = 3.1f;
+        for (int i = 0; i < bowls.Count; i++)
+        {
+            if (bowls[i].level > 0.55f || bowls[i].cfg.bowlRoot == null) continue;
+            float d = Vector2.Distance(pXZ, new Vector2(bowls[i].cfg.bowlRoot.position.x, bowls[i].cfg.bowlRoot.position.z));
+            if (d < bestBowlD) { bestBowlD = d; bestBowl = i; }
+        }
+        if (bestBowl >= 0)
+        {
+            int idx = bestBowl;
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "pet_bowl_" + idx,
+                target = bowls[idx].cfg.bowlRoot,
+                buttonLabel = GirlPowerOrla3DLocalization.T("Encher pote", "Refill bowl", "Llenar pote"),
+                targetBadgeLabel = GirlPowerOrla3DLocalization.T("Pote de Água", "Water Bowl", "Agua"),
+                distance = bestBowlD,
+                markerHeight = 1.30f,
+                isPrimaryMission = false,
+                onExecute = () => RefillBowl(idx, false)
+            });
+        }
+
+        GuestRuntime bestGuest = null;
+        float bestGuestD = 3.4f;
+        for (int i = 0; i < guests.Count; i++)
+        {
+            GuestRuntime g = guests[i];
+            if (!g.waitingForOrder || g.cfg.actor == null) continue;
+            float d = Vector2.Distance(pXZ, new Vector2(g.cfg.actor.position.x, g.cfg.actor.position.z));
+            if (d < bestGuestD) { bestGuestD = d; bestGuest = g; }
+        }
+        if (bestGuest != null)
+        {
+            GuestRuntime captured = bestGuest;
+            hub.SubmitCandidate(new GirlPowerOrla3DInteractionHub.Candidate
+            {
+                id = "pet_guest_" + captured.assignedTable,
+                target = captured.cfg.actor,
+                buttonLabel = GirlPowerOrla3DLocalization.T("Servir mesa", "Serve table", "Servir mesa"),
+                targetBadgeLabel = GirlPowerOrla3DLocalization.T("Pedido da Mesa", "Table Order", "Pedido"),
+                distance = bestGuestD,
+                markerHeight = 2.05f,
+                isPrimaryMission = false,
+                onExecute = () => ServePetFriendlyGuest(captured)
+            });
+        }
     }
 
     // ------------------------------------------------------------------
@@ -722,7 +779,8 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
             }
         }
 
-        // 2. Show primary action pill ONLY when the protagonist is actually within reach of the visible target!
+        // 2. When GirlPowerOrla3DInteractionHub is present, it owns the single bottom-right action button & active marker!
+        if (GirlPowerOrla3DInteractionHub.Instance != null) return;
         bool storyBusy = storyController != null && storyController.HasNearbyStoryInteractable;
         if (!storyBusy)
         {
