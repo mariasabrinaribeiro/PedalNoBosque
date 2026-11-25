@@ -7,16 +7,16 @@ Shader "GirlPower/OrlaACNHCozyFade"
         _ShadowColor ("Cozy Shadow Tint", Color) = (0.38, 0.34, 0.52, 1)
         _RimColor ("Sun Rim Color", Color) = (1.0, 0.90, 0.72, 1)
         _RimPower ("Rim Sharpness", Range(1.0, 8.0)) = 4.2
-        _RimStrength ("Rim Strength", Range(0.0, 1.0)) = 0.14
+        _RimStrength ("Rim Strength", Range(0.0, 1.0)) = 0.06
         _WrapAmount ("Soft Wrap Diffuse", Range(0.0, 1.0)) = 0.28
-        _Glossiness ("Softness Specular", Range(0.0, 1.0)) = 0.22
+        _Glossiness ("Softness Specular", Range(0.0, 1.0)) = 0.10
         _GroundAO ("Ground Contact AO", Range(0.0, 1.0)) = 0.34
         _GroundAOHeight ("Ground AO Height", Range(0.1, 2.5)) = 0.72
         [HDR] _EmissionColor ("Emission Color", Color) = (0, 0, 0, 1)
         _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0008
         _OccluderEnabled ("Smooth House Occlusion", Range(0.0, 1.0)) = 1.0
-        _OccluderRadius ("Fade Radius", Range(0.5, 2.5)) = 1.15
-        _FadeStartHeight ("Fade Only Above Roofline", Range(0.5, 4.0)) = 1.65
+        _OccluderRadius ("Fade Radius", Range(0.5, 2.5)) = 1.35
+        _FadeStartHeight ("Fade Only Above Roofline", Range(0.5, 4.0)) = 1.70
         _UseWorldUV ("World Space Tiling", Range(0.0, 1.0)) = 0.0
         _TileScale ("World Tile Scale", Range(0.05, 4.0)) = 0.35
     }
@@ -83,7 +83,7 @@ Shader "GirlPower/OrlaACNHCozyFade"
             half3 finalDiffuse = lerp(shadowCol, litCol, lit);
             half3 halfVec = normalize(lightDir + viewDir);
             half NdotH = saturate(dot(s.Normal, halfVec));
-            half spec = pow(NdotH, 32.0) * _Glossiness * lit * 0.26;
+            half spec = pow(NdotH, 36.0) * _Glossiness * lit * 0.14;
             return half4(finalDiffuse + _LightColor0.rgb * spec, s.Alpha);
         }
 
@@ -97,11 +97,11 @@ Shader "GirlPower/OrlaACNHCozyFade"
                 float3 rayDir = camToPlayer / camToPlayerLen;
                 float proj = dot(IN.worldPos - _BaiaCamPos.xyz, rayDir);
 
-                if (proj > 1.5 && proj < camToPlayerLen - 0.45)
+                if (proj > 1.5 && proj < camToPlayerLen - 0.35)
                 {
                     float3 closest = _BaiaCamPos.xyz + rayDir * proj;
                     float distToRay = length(IN.worldPos - closest);
-                    alphaFade = smoothstep(_OccluderRadius * 0.18, _OccluderRadius, distToRay);
+                    alphaFade = lerp(0.22, 1.0, smoothstep(_OccluderRadius * 0.18, _OccluderRadius, distToRay));
                 }
             }
 
@@ -112,8 +112,7 @@ Shader "GirlPower/OrlaACNHCozyFade"
 
             float aoH = saturate((IN.worldPos.y + 0.16) / max(0.1, _GroundAOHeight));
             float groundAO = lerp(1.0 - _GroundAO * 0.55, 1.0, smoothstep(0.0, 1.0, aoH));
-            float grain = sin(IN.worldPos.x * 3.7 + IN.worldPos.z * 2.9) * 0.018;
-            o.Albedo = saturate(c.rgb * groundAO + grain);
+            o.Albedo = saturate(c.rgb * groundAO);
             o.Alpha = c.a * alphaFade;
 
             half rim = 1.0 - saturate(dot(normalize(IN.viewDir), o.Normal));

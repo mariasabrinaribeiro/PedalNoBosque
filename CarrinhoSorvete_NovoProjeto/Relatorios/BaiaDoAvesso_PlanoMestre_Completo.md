@@ -277,3 +277,24 @@
   - **Botão `▶ IR` / `▶ OK` no Cartão de Objetivo:** 1 toque leva a protagonista automaticamente pela rota A\* até o objetivo atual e executa a ação na chegada.
   - **Carrinho pré-selecionado em 1 clique:** ao abrir o painel do carrinho, `◆ Limão + ♣ Manjericão` já vem selecionado e pronto para confirmar em 1 toque (com preparo rápido de `0.65s` e raio generoso `3.8 m`).
   - **Balões de Pedido e Gota d'Água Clicáveis:** tocar direto no balão da mesa ou na gota azul do pote serve/enche instantaneamente (até `5.0 m` / `4.4 m`) ou despacha a Fada Garçonete automaticamente se estiver longe; mesas do *Batata & Mar* também aceitam serviço direto em 1 toque (`TryQuickServeTable`).
+
+
+---
+
+## Etapa 20 (v31) — Estabelecimentos Legíveis, Passagem Contínua, Alvo Visível e Materiais Foscos (Revisão Visual por Captura)
+
+- **1. Protagonista inteira em quadro + Fade apenas na cobertura (`Estab_CanopyFade` / `Table_CanopyFade`):**
+  - Barracas alinhadas e recuadas na praça lateral (`z = -11.8`), câmera ajustada para `offset = (0, 11.4, -15.6)`, `pitch = 34.5°` e `lookAheadZ = +0.35f` (`GirlPowerOrla3DSceneBuilder.cs`, `GirlPowerOrla3DFirstDelivery.cs`), exibindo sempre os pés da protagonista e o caminho à frente.
+  - `ApplyFadeMaterials(root, roofOnly: true)` atualizado para aplicar `OrlaACNHCozyFade` **somente** nas sub-malhas aéreas (`*CanopyFade`, `*RoofFade`, `Umb`, `HouseRoof`), com todas as barracas, mesas, carrinho, quiosque, florista e casas conectados ao `GirlPowerOrla3DOcclusionFader` — o balcão nunca desaparece quando apenas o toldo cruza a linha de visão.
+- **2. Passagem contínua entre calçadão e feira (`>= 3.0 m` livres):**
+  - Mesas `RestaurantKioskTable` reposicionadas em `z = -7.1` (`x = -15.2, -9.0, 14.2`, espaçamento mínimo de `4.7 m` entre mesas e `3.3 m` diante da fileira de barracas em `z = -11.8`), mantendo faixa livre contínua mesmo com moradores cruzando em sentido contrário e abertura de `7.0 m` para o *Café das Fadas*.
+- **3. Alvo físico visível para abastecimento de água e ação somente ao alcance:**
+  - `PetWaterBowl.fbx` remodelado no Blender 5.3 (`build_orla_establishments.py`) como **Bica Costeira Pet** (poste de madeira, selo de pata, torneira metálica e tigela turquesa), ancorada junto ao Banco #1 (`(-6.35, 0, -3.55)`) e à lateral do balcão do *Batata & Mar* (`(-12.2, 0, -10.85)`).
+  - Gota azul ancorada diretamente acima da bica (`+1.18 m`); botão **Encher pote** (no celular sem `[E]`, no teclado `[E] Encher pote`) exibido **somente** ao alcance real (`<= 3.4 m`), e **Servir mesa** somente em `<= 3.8 m`.
+- **4. Estabelecimentos com leitura imediata (Blender 5.3 — `build_orla_establishments.py`):**
+  - Balcões baixos e abertos (`0.94 m`) com produtos reconhecíveis à distância: *Batata & Mar* (cones de batata frita + peixe grelhado com limão), *Pastel & Caldo* (vitrine com bandejas metálicas de pastéis dourados + jarras), *Doces* (potes de vidro coloridos + cupcakes/brigadeiros), além de Frutas, Sushi, Artesanato, Plantas, Roupas, Sucos e mesas de 4 pés com guarda-sóis de cores distintas (`AC_MintTeal`, `AC_Terracotta`, `AC_SunnyYellow`).
+- **5. Materiais foscos coerentes, iluminação equilibrada e fim das faixas de cor no chão:**
+  - Removido o termo senoidal `grain` em `OrlaACNHCozy.shader` e `OrlaACNHCozyFade.shader` (eliminando as faixas periódicas no piso), reduzidos `_Glossiness` (`0.04–0.08`) e `_RimStrength` (`0.05`) para acabamento fosco em madeira/tecido, suavizadas as luzes âmbar diurnas (`0.55–0.62`) e adicionadas sombras de contato sob barracas, mesas, bicas, quiosque e florista.
+- **6. Hierarquia de letreiros e ícones flutuantes:**
+  - Cada letreiro (`TextMeshPro`) fixado como filho direto sobre a placa escura fosca integrada de sua barraca na altura uniforme `y = 2.42 m` sem cortes ou sobreposições.
+  - `GirlPowerOrla3DPetFriendlySystem.cs` limitado a exibir o ícone flutuante **apenas sobre o único alvo acionável mais próximo** (`<= 7.0 m`), impedindo que ícones cubram a protagonista ou poluam a cena.

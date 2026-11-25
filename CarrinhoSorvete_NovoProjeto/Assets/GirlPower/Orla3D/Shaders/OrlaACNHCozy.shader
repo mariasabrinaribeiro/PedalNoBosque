@@ -7,9 +7,9 @@ Shader "GirlPower/OrlaACNHCozy"
         _ShadowColor ("Cozy Shadow Tint", Color) = (0.38, 0.34, 0.52, 1)
         _RimColor ("Sun Rim Color", Color) = (1.0, 0.90, 0.72, 1)
         _RimPower ("Rim Sharpness", Range(1.0, 8.0)) = 4.2
-        _RimStrength ("Rim Strength", Range(0.0, 1.0)) = 0.14
+        _RimStrength ("Rim Strength", Range(0.0, 1.0)) = 0.06
         _WrapAmount ("Soft Wrap Diffuse", Range(0.0, 1.0)) = 0.28
-        _Glossiness ("Softness Specular", Range(0.0, 1.0)) = 0.22
+        _Glossiness ("Softness Specular", Range(0.0, 1.0)) = 0.10
         _GroundAO ("Ground Contact AO", Range(0.0, 1.0)) = 0.34
         _GroundAOHeight ("Ground AO Height", Range(0.1, 2.5)) = 0.72
         [HDR] _EmissionColor ("Emission Color", Color) = (0, 0, 0, 1)
@@ -77,10 +77,10 @@ Shader "GirlPower/OrlaACNHCozy"
             half3 litCol = s.Albedo * (_LightColor0.rgb * 0.94 + ambientTint * 0.22);
             half3 finalDiffuse = lerp(shadowCol, litCol, lit);
 
-            // Controlled velvety specular
+            // Controlled matte-velvety specular (no shiny plastic glare on wood/fabric)
             half3 halfVec = normalize(lightDir + viewDir);
             half NdotH = saturate(dot(s.Normal, halfVec));
-            half spec = pow(NdotH, 32.0) * _Glossiness * lit * 0.26;
+            half spec = pow(NdotH, 36.0) * _Glossiness * lit * 0.14;
 
             half4 c;
             c.rgb = finalDiffuse + _LightColor0.rgb * spec;
@@ -98,10 +98,9 @@ Shader "GirlPower/OrlaACNHCozy"
             // Ground-contact Ambient Occlusion: gently darkens bases where objects meet ground
             float aoH = saturate((IN.worldPos.y + 0.16) / max(0.1, _GroundAOHeight));
             float groundAO = lerp(1.0 - _GroundAO * 0.55, 1.0, smoothstep(0.0, 1.0, aoH));
-            // Subtle micro-variation so large flat pastel surfaces feel tactile instead of plastic
-            float grain = sin(IN.worldPos.x * 3.7 + IN.worldPos.z * 2.9) * 0.018;
 
-            o.Albedo = saturate(c.rgb * groundAO + grain);
+            // Clean, band-free matte surface (no periodic sine striping)
+            o.Albedo = saturate(c.rgb * groundAO);
             o.Alpha = c.a;
 
             half rim = 1.0 - saturate(dot(normalize(IN.viewDir), o.Normal));

@@ -242,6 +242,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         return topLeftHudRect.Contains(guiPos) || topRightHudRect.Contains(guiPos) || bottomPanelHudRect.Contains(guiPos);
     }
 
+    public bool IsTouchPrimary => touchDetected && !keyboardUsedRecently;
+
     private static Rect GetGuiSafeArea()
     {
         Rect sa = Screen.safeArea;
@@ -822,9 +824,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         }
 
         Vector3 scaledOffset = baseOff * zoomFactor;
-        float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.26f, -1.5f, 1.5f);
-        // Slightly bias camera forward (+0.55f Z) on land so the protagonist sees more path ahead!
-        float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.18f, -0.9f, 0.9f) + (inWater ? -0.4f : 0.55f);
+        float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.24f, -1.4f, 1.4f);
+        // Balanced forward bias (+0.35f Z) on land so the protagonist's feet AND the walkway ahead stay clearly framed!
+        float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.16f, -0.8f, 0.8f) + (inWater ? -0.4f : 0.35f);
         float focusX = Mathf.Clamp(player.position.x + lookAheadX + servicePullXZ.x + cameraPanOffsetXZ.x, minWorldX + 2.5f, maxWorldX - 2.5f);
         float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + servicePullXZ.y + cameraPanOffsetXZ.y, minWorldZ + 1.2f, maxWorldZ - 2.0f);
         float desiredX = focusX;
@@ -2014,7 +2016,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 cartOpen = false;
 
             string confirmTxt = matchesOrder
-                ? GirlPowerOrla3DLocalization.T("✓  CONFIRMAR PEDIDO [E]", "✓  CONFIRM ORDER [E]", "✓  CONFIRMAR PEDIDO [E]")
+                ? (IsTouchPrimary
+                    ? GirlPowerOrla3DLocalization.T("✓  CONFIRMAR PEDIDO", "✓  CONFIRM ORDER", "✓  CONFIRMAR PEDIDO")
+                    : GirlPowerOrla3DLocalization.T("✓  CONFIRMAR PEDIDO [E]", "✓  CONFIRM ORDER [E]", "✓  CONFIRMAR PEDIDO [E]"))
                 : GirlPowerOrla3DLocalization.T("CONFIRMAR PEDIDO", "CONFIRM ORDER", "CONFIRMAR PEDIDO");
             Rect confirmRect = new Rect(box.x + 14f * s + closeW + 8f * s, btnY, confirmW, btnH);
             if (GUI.Button(confirmRect, confirmTxt, matchesOrder ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnTileStyle))
@@ -2065,11 +2069,11 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (target == null) return;
 
         Rect safe = GetGuiSafeArea();
-        string text = "[E]  " + actionLabel;
-        float w = Mathf.Clamp(92f * s + text.Length * 7.8f * s, 215f * s, Mathf.Min(360f * s, safe.width - 28f * s));
-        float h = 48f * s;
+        string text = IsTouchPrimary ? actionLabel : ("[E]  " + actionLabel);
+        float w = Mathf.Clamp(86f * s + text.Length * 7.8f * s, 200f * s, Mathf.Min(340f * s, safe.width - 28f * s));
+        float h = 46f * s;
         float x = safe.x + (safe.width - w) * 0.5f;
-        float y = safe.yMax - 64f * s;
+        float y = safe.yMax - 60f * s;
 
         Rect pill = new Rect(x, y, w, h);
         bottomPanelHudRect = pill;
