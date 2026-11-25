@@ -446,7 +446,9 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
                 GirlPowerOrla3DUITheme.DrawProgressBar(new Rect(alert.x + 18f * s, alert.y + 38f * s, aw - 36f * s, 12f * s), stealProgress, barCol);
 
                 // Big glowing Call Police button!
-                if (GUI.Button(new Rect(alert.x + (aw - 280f * s) * 0.5f, alert.y + 56f * s, 280f * s, 40f * s), "🚓  CHAMAR POLÍCIA (190)  [L]", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+                if (GUI.Button(new Rect(alert.x + (aw - 280f * s) * 0.5f, alert.y + 56f * s, 280f * s, 40f * s),
+                    GirlPowerOrla3DLocalization.T("🚓  CHAMAR POLÍCIA (190)  [L]", "🚓  CALL POLICE (911)  [L]", "🚓  LLAMAR POLICÍA  [L]"),
+                    GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                     CallPoliceNow();
 
                 // Floating world alert directly above the Street Thief!

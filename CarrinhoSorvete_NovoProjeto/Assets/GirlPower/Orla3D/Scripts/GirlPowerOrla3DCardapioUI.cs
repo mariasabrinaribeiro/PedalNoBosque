@@ -27,7 +27,8 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         public string name;
         public int price;
         public Color iconBg;
-        public int iconKind; // 0=fries, 1=drink, 2=icecream, 3=sushi, 4=shirt, 5=craft, 6=sweet, 7=mobility
+        public int iconKind;
+        public string iconRes; // Loads unique 128x128 custom icon from Resources/CardapioIcons/<iconRes>
         public Action onSelect;
     }
 
@@ -41,6 +42,7 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
     public bool IsOpen { get; private set; }
     private Tab currentTab = Tab.Comidas;
     private readonly System.Collections.Generic.Dictionary<string, int> ownedCounts = new System.Collections.Generic.Dictionary<string, int>();
+    private readonly System.Collections.Generic.Dictionary<string, Texture2D> customIconCache = new System.Collections.Generic.Dictionary<string, Texture2D>();
     private string lastBoughtName = "";
     private float buyFeedbackTimer;
     private string buyFeedbackBanner = "";
@@ -131,8 +133,8 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             normal = { textColor = new Color(0.18f, 0.44f, 0.34f) }
         };
         string headerTitle = currentTab == Tab.RoupasPets
-            ? ("Moda Praia & Esportes  •  " + coins + " moedas")
-            : ("Feira da Baía — " + GetTabDisplayName(currentTab) + "  •  " + coins + " moedas");
+            ? (GirlPowerOrla3DLocalization.T("Moda Praia & Esportes", "Beach Fashion & Sports", "Moda Playa y Deportes") + "  •  " + GirlPowerOrla3DLocalization.CoinsLabel(coins))
+            : (GirlPowerOrla3DLocalization.T("Feira da Baía — ", "Bay Market — ", "Feria de la Bahía — ") + GetTabDisplayName(currentTab) + "  •  " + GirlPowerOrla3DLocalization.CoinsLabel(coins));
         GUI.Label(new Rect(modal.x + 28f * s, modal.y + 14f * s, mw - 120f * s, 36f * s), headerTitle, headSt);
 
         float xSz = 40f * s;
@@ -189,9 +191,9 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             GUI.color = items[i].iconBg;
             GUI.DrawTexture(emRect, GirlPowerOrla3DUITheme.CircleWhiteTex);
             GUI.color = Color.white;
-            Texture2D ic = ResolveItemIcon(items[i].iconKind);
+            Texture2D ic = ResolveItemIcon(items[i]);
             if (ic != null)
-                GUI.DrawTexture(new Rect(emRect.x + 8f * s, emRect.y + 8f * s, emSz - 16f * s, emSz - 16f * s), ic);
+                GUI.DrawTexture(new Rect(emRect.x + 6f * s, emRect.y + 6f * s, emSz - 12f * s, emSz - 12f * s), ic);
 
             // Owned quantity badge (x1, x2...) on top-right corner
             if (ownedCounts.TryGetValue(items[i].name, out int qty) && qty > 0)
@@ -204,7 +206,9 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             float textX = emRect.xMax + 12f * s;
             float textW = cr.xMax - textX - 12f * s;
             GUI.Label(new Rect(textX, cr.y + 20f * s, textW, 48f * s), items[i].name, lblSt);
-            string pTxt = items[i].price > 0 ? (items[i].price + " moedas") : "Equipar agora";
+            string pTxt = items[i].price > 0
+                ? GirlPowerOrla3DLocalization.CoinsLabel(items[i].price)
+                : GirlPowerOrla3DLocalization.T("Equipar agora", "Equip now", "Equipar ahora");
             GUI.Label(new Rect(textX, cr.yMax - 36f * s, textW, 24f * s), pTxt, priceSt);
         }
 
@@ -214,14 +218,14 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         float pillW = (mw - padX * 2f - pillGap * 2f) / 3f;
         float pillH = 40f * s;
 
-        DrawCategoryTab(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY, pillW, pillH), "Comidas & Batata", Tab.Comidas);
-        DrawCategoryTab(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY, pillW, pillH), "Água, Refri & Sucos", Tab.Bebidas);
-        DrawCategoryTab(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY, pillW, pillH), "Sorvetes & Doces", Tab.SorvetesDoces);
+        DrawCategoryTab(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY, pillW, pillH), GirlPowerOrla3DLocalization.T("Comidas & Batata", "Food & Fries", "Comidas y Papas"), Tab.Comidas);
+        DrawCategoryTab(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY, pillW, pillH), GirlPowerOrla3DLocalization.T("Água, Refri & Sucos", "Water, Soda & Juice", "Agua, Refresco y Jugos"), Tab.Bebidas);
+        DrawCategoryTab(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY, pillW, pillH), GirlPowerOrla3DLocalization.T("Sorvetes & Doces", "Ice Cream & Sweets", "Helados y Dulces"), Tab.SorvetesDoces);
 
         float pillY2 = pillY + pillH + 10f * s;
-        DrawCategoryTab(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY2, pillW, pillH), "Sushi & Mar", Tab.SushiMar);
-        DrawCategoryTab(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY2, pillW, pillH), "Artesanatos", Tab.Artesanatos);
-        DrawCategoryTab(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY2, pillW, pillH), "Moda & Esportes", Tab.RoupasPets);
+        DrawCategoryTab(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY2, pillW, pillH), GirlPowerOrla3DLocalization.T("Sushi & Mar", "Sushi & Seafood", "Sushi y Mar"), Tab.SushiMar);
+        DrawCategoryTab(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY2, pillW, pillH), GirlPowerOrla3DLocalization.T("Artesanatos", "Crafts & Gifts", "Artesanías"), Tab.Artesanatos);
+        DrawCategoryTab(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY2, pillW, pillH), GirlPowerOrla3DLocalization.T("Moda & Esportes", "Fashion & Sports", "Moda y Deportes"), Tab.RoupasPets);
 
         // Live purchase confirmation banner OR cozy hint at bottom!
         GUIStyle footSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
@@ -232,7 +236,10 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         };
         string footTxt = buyFeedbackTimer > 0f && !string.IsNullOrEmpty(buyFeedbackBanner)
             ? buyFeedbackBanner
-            : "Compre insumos e presentes da feira para presentear vizinhos [G] ou equipe roupas e esportes!";
+            : GirlPowerOrla3DLocalization.T(
+                "Compre insumos e presentes da feira para presentear vizinhos [G] ou equipe roupas e esportes!",
+                "Buy market treats & gifts for neighbors [G], or equip coastal outfits & sports!",
+                "¡Compra dulces y regalos de la feria para vecinos [G], o equipa ropa y deportes!");
         GUI.Label(new Rect(modal.x + 20f * s, modal.yMax - 36f * s, mw - 40f * s, 26f * s), footTxt, footSt);
     }
 
@@ -297,55 +304,55 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             case Tab.Comidas:
                 return new[]
                 {
-                    new MenuItem { name = "Batata Frita", price = 6, iconBg = warm, iconKind = 0 },
-                    new MenuItem { name = "Batata Cheddar", price = 8, iconBg = warm, iconKind = 0 },
-                    new MenuItem { name = "Pastel Dourado", price = 5, iconBg = warm, iconKind = 0 },
-                    new MenuItem { name = "Tigela de Açaí", price = 7, iconBg = pink, iconKind = 2 },
-                    new MenuItem { name = "Peixe Grelhado", price = 9, iconBg = sky, iconKind = 3 },
-                    new MenuItem { name = "Hambúrguer", price = 8, iconBg = mint, iconKind = 0 }
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Batata Frita", "French Fries", "Papas Fritas"), price = 6, iconBg = warm, iconKind = 0, iconRes = "icon_fries" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Batata Cheddar", "Cheddar Fries", "Papas Cheddar"), price = 8, iconBg = warm, iconKind = 0, iconRes = "icon_fries_cheddar" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Pastel Dourado", "Crispy Pastel", "Empanada Dorada"), price = 5, iconBg = warm, iconKind = 0, iconRes = "icon_pastel" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Tigela de Açaí", "Acai Bowl", "Tazón de Açaí"), price = 7, iconBg = pink, iconKind = 2, iconRes = "icon_acai" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Peixe Grelhado", "Grilled Fish", "Pescado Asado"), price = 9, iconBg = sky, iconKind = 3, iconRes = "icon_fish" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Hambúrguer", "Beach Burger", "Hamburguesa"), price = 8, iconBg = mint, iconKind = 0, iconRes = "icon_burger" }
                 };
 
             case Tab.Bebidas:
                 return new[]
                 {
-                    new MenuItem { name = "Água Mineral", price = 3, iconBg = sky, iconKind = 1 },
-                    new MenuItem { name = "Água de Coco", price = 4, iconBg = mint, iconKind = 1 },
-                    new MenuItem { name = "Refri Guaraná", price = 5, iconBg = mint, iconKind = 1 },
-                    new MenuItem { name = "Suco de Limão", price = 5, iconBg = mint, iconKind = 1 },
-                    new MenuItem { name = "Suco Morango", price = 6, iconBg = pink, iconKind = 1 },
-                    new MenuItem { name = "Limonada Suíça", price = 6, iconBg = sky, iconKind = 1 }
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Água Mineral", "Mineral Water", "Agua Mineral"), price = 3, iconBg = sky, iconKind = 1, iconRes = "icon_water" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Água de Coco", "Coconut Water", "Agua de Coco"), price = 4, iconBg = mint, iconKind = 1, iconRes = "icon_coconut" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Refri Guaraná", "Guarana Soda", "Refresco Guaraná"), price = 5, iconBg = mint, iconKind = 1, iconRes = "icon_guarana" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Suco de Limão", "Lime Juice", "Jugo de Limón"), price = 5, iconBg = mint, iconKind = 1, iconRes = "icon_juice_lemon" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Suco Morango", "Berry Juice", "Jugo de Fresa"), price = 6, iconBg = pink, iconKind = 1, iconRes = "icon_juice_berry" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Limonada Suíça", "Creamy Lemonade", "Limonada Suiza"), price = 6, iconBg = sky, iconKind = 1, iconRes = "icon_lemonade" }
                 };
 
             case Tab.SorvetesDoces:
                 return new[]
                 {
-                    new MenuItem { name = "Limão Manjericão", price = 6, iconBg = mint, iconKind = 2 },
-                    new MenuItem { name = "Morango Hortelã", price = 6, iconBg = pink, iconKind = 2 },
-                    new MenuItem { name = "Trio da Festa", price = 9, iconBg = pink, iconKind = 2 },
-                    new MenuItem { name = "Brigadeiro", price = 4, iconBg = warm, iconKind = 6 },
-                    new MenuItem { name = "Cocada Cremosa", price = 5, iconBg = warm, iconKind = 6 },
-                    new MenuItem { name = "Cupcake Berry", price = 6, iconBg = pink, iconKind = 6 }
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Limão Manjericão", "Lemon & Basil", "Limón y Albahaca"), price = 6, iconBg = mint, iconKind = 2, iconRes = "icon_ice_lemon" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Morango Hortelã", "Berry & Mint", "Fresa y Menta"), price = 6, iconBg = pink, iconKind = 2, iconRes = "icon_ice_berry" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Trio da Festa", "Festival Trio", "Trío del Festival"), price = 9, iconBg = pink, iconKind = 2, iconRes = "icon_ice_trio" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Brigadeiro", "Choco Truffle", "Brigadeiro"), price = 4, iconBg = warm, iconKind = 6, iconRes = "icon_brigadeiro" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Cocada Cremosa", "Coconut Sweet", "Cocada Cremosa"), price = 5, iconBg = warm, iconKind = 6, iconRes = "icon_cocada" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Cupcake Berry", "Berry Cupcake", "Cupcake Fresa"), price = 6, iconBg = pink, iconKind = 6, iconRes = "icon_cupcake" }
                 };
 
             case Tab.SushiMar:
                 return new[]
                 {
-                    new MenuItem { name = "Combo Salmão", price = 10, iconBg = pink, iconKind = 3 },
-                    new MenuItem { name = "Hot Roll Praia", price = 9, iconBg = warm, iconKind = 3 },
-                    new MenuItem { name = "Temaki Especial", price = 9, iconBg = mint, iconKind = 3 },
-                    new MenuItem { name = "Ceviche Baía", price = 10, iconBg = sky, iconKind = 3 },
-                    new MenuItem { name = "Sunomono", price = 5, iconBg = mint, iconKind = 3 },
-                    new MenuItem { name = "Barca Família", price = 16, iconBg = pink, iconKind = 3 }
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Combo Salmão", "Salmon Combo", "Combo Salmón"), price = 10, iconBg = pink, iconKind = 3, iconRes = "icon_sushi_combo" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Hot Roll Praia", "Beach Hot Roll", "Hot Roll Playa"), price = 9, iconBg = warm, iconKind = 3, iconRes = "icon_hotroll" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Temaki Especial", "Special Temaki", "Temaki Especial"), price = 9, iconBg = mint, iconKind = 3, iconRes = "icon_temaki" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Ceviche Baía", "Bay Ceviche", "Ceviche Bahía"), price = 10, iconBg = sky, iconKind = 3, iconRes = "icon_ceviche" },
+                    new MenuItem { name = "Sunomono", price = 5, iconBg = mint, iconKind = 3, iconRes = "icon_sunomono" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Barca Família", "Family Sushi Boat", "Barco Familiar"), price = 16, iconBg = pink, iconKind = 3, iconRes = "icon_sushi_boat" }
                 };
 
             case Tab.RoupasPets:
                 return new[]
                 {
-                    MakeOutfitItem("Blusa Rosa Berry", 6, 0, pink),
-                    MakeOutfitItem("Blusa Menta Praia", 6, 1, mint),
+                    MakeOutfitItem(GirlPowerOrla3DLocalization.T("Blusa Rosa Berry", "Berry Pink Top", "Blusa Rosa Berry"), 6, 0, pink, "icon_shirt_pink"),
+                    MakeOutfitItem(GirlPowerOrla3DLocalization.T("Blusa Menta Praia", "Beach Mint Top", "Blusa Menta Playa"), 6, 1, mint, "icon_shirt_mint"),
                     new MenuItem
                     {
-                        name = "Chapéu + Óculos", price = 10, iconBg = warm, iconKind = 4,
+                        name = GirlPowerOrla3DLocalization.T("Chapéu + Óculos", "Sun Hat & Shades", "Sombrero y Gafas"), price = 10, iconBg = warm, iconKind = 4, iconRes = "icon_hat",
                         onSelect = () =>
                         {
                             if (characterAnimator != null) characterAnimator.SetWardrobeHatVisible(!characterAnimator.HasHatEquipped);
@@ -355,7 +362,7 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
                     },
                     new MenuItem
                     {
-                        name = "Bandana Pipoca", price = 8, iconBg = pink, iconKind = 6,
+                        name = GirlPowerOrla3DLocalization.T("Bandana Pipoca", "Pipoca Bandana", "Pañuelo Pipoca"), price = 8, iconBg = pink, iconKind = 6, iconRes = "icon_bandana",
                         onSelect = () =>
                         {
                             if (petDog != null) petDog.SetBandanaVisible(!petDog.HasBandanaEquipped);
@@ -363,24 +370,24 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
                             if (audioController != null) audioController.PlayPetSound(false);
                         }
                     },
-                    MakeMobilityItem("Skate / Patins", GirlPowerOrla3DCharacterAnimator.LandMode.Skate, pink),
-                    MakeMobilityItem("Patinete da Orla", GirlPowerOrla3DCharacterAnimator.LandMode.Scooter, mint)
+                    MakeMobilityItem(GirlPowerOrla3DLocalization.T("Skate / Patins", "Skate / Rollers", "Skate / Patines"), GirlPowerOrla3DCharacterAnimator.LandMode.Skate, pink, "icon_skate"),
+                    MakeMobilityItem(GirlPowerOrla3DLocalization.T("Patinete da Orla", "Beach Scooter", "Patinete Costero"), GirlPowerOrla3DCharacterAnimator.LandMode.Scooter, mint, "icon_scooter")
                 };
 
             default: // Artesanatos
                 return new[]
                 {
-                    new MenuItem { name = "Colar Conchas", price = 6, iconBg = sky, iconKind = 5 },
-                    new MenuItem { name = "Pulseira Baía", price = 5, iconBg = pink, iconKind = 5 },
-                    new MenuItem { name = "Mini Quadro", price = 8, iconBg = warm, iconKind = 5 },
-                    new MenuItem { name = "Filtro Sonhos", price = 9, iconBg = mint, iconKind = 5 },
-                    new MenuItem { name = "Vela Aromática", price = 6, iconBg = pink, iconKind = 5 },
-                    new MenuItem { name = "Kit Presente", price = 12, iconBg = pink, iconKind = 5 }
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Colar Conchas", "Shell Necklace", "Collar Conchas"), price = 6, iconBg = sky, iconKind = 5, iconRes = "icon_necklace" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Pulseira Baía", "Bay Bracelet", "Pulsera Bahía"), price = 5, iconBg = pink, iconKind = 5, iconRes = "icon_bracelet" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Mini Quadro", "Coastal Art", "Mini Cuadro"), price = 8, iconBg = warm, iconKind = 5, iconRes = "icon_painting" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Filtro Sonhos", "Dreamcatcher", "Atrapasueños"), price = 9, iconBg = mint, iconKind = 5, iconRes = "icon_dreamcatcher" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Vela Aromática", "Scented Candle", "Vela Aromática"), price = 6, iconBg = pink, iconKind = 5, iconRes = "icon_candle" },
+                    new MenuItem { name = GirlPowerOrla3DLocalization.T("Kit Presente", "Gift Box", "Caja Regalo"), price = 12, iconBg = pink, iconKind = 5, iconRes = "icon_gift" }
                 };
         }
     }
 
-    private MenuItem MakeOutfitItem(string label, int price, int paletteIdx, Color bg)
+    private MenuItem MakeOutfitItem(string label, int price, int paletteIdx, Color bg, string iconRes)
     {
         return new MenuItem
         {
@@ -388,6 +395,7 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             price = price,
             iconBg = bg,
             iconKind = 4,
+            iconRes = iconRes,
             onSelect = () =>
             {
                 if (characterAnimator != null) characterAnimator.SetOutfitColor(ShirtPalette[paletteIdx % ShirtPalette.Length]);
@@ -396,7 +404,7 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         };
     }
 
-    private MenuItem MakeMobilityItem(string label, GirlPowerOrla3DCharacterAnimator.LandMode mode, Color bg)
+    private MenuItem MakeMobilityItem(string label, GirlPowerOrla3DCharacterAnimator.LandMode mode, Color bg, string iconRes)
     {
         return new MenuItem
         {
@@ -404,6 +412,7 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             price = 0,
             iconBg = bg,
             iconKind = 7,
+            iconRes = iconRes,
             onSelect = () =>
             {
                 if (characterAnimator != null) characterAnimator.SetLandMode(mode);
@@ -413,9 +422,18 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         };
     }
 
-    private static Texture2D ResolveItemIcon(int kind)
+    private Texture2D ResolveItemIcon(MenuItem item)
     {
-        switch (kind)
+        if (!string.IsNullOrEmpty(item.iconRes))
+        {
+            if (!customIconCache.TryGetValue(item.iconRes, out Texture2D cached))
+            {
+                cached = Resources.Load<Texture2D>("CardapioIcons/" + item.iconRes);
+                customIconCache[item.iconRes] = cached;
+            }
+            if (cached != null) return cached;
+        }
+        switch (item.iconKind)
         {
             case 0: return GirlPowerOrla3DUITheme.IconFestivalTrio;
             case 1: return GirlPowerOrla3DUITheme.IconWaveLow;
@@ -432,12 +450,12 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
     {
         switch (t)
         {
-            case Tab.Bebidas: return "Água, Refri & Sucos";
-            case Tab.SorvetesDoces: return "Sorvetes & Doces";
-            case Tab.SushiMar: return "Sushi & Frutos do Mar";
-            case Tab.RoupasPets: return "Roupas, Pets & Esportes";
-            case Tab.Artesanatos: return "Artesanatos da Baía";
-            default: return "Restaurante & Batata Frita";
+            case Tab.Bebidas: return GirlPowerOrla3DLocalization.T("Água, Refri & Sucos", "Water, Soda & Juice", "Agua, Refresco y Jugos");
+            case Tab.SorvetesDoces: return GirlPowerOrla3DLocalization.T("Sorvetes & Doces", "Ice Cream & Sweets", "Helados y Dulces");
+            case Tab.SushiMar: return GirlPowerOrla3DLocalization.T("Sushi & Frutos do Mar", "Sushi & Seafood", "Sushi y Mariscos");
+            case Tab.RoupasPets: return GirlPowerOrla3DLocalization.T("Roupas, Pets & Esportes", "Fashion, Pets & Sports", "Ropa, Mascotas y Deportes");
+            case Tab.Artesanatos: return GirlPowerOrla3DLocalization.T("Artesanatos da Baía", "Coastal Crafts", "Artesanías de la Bahía");
+            default: return GirlPowerOrla3DLocalization.T("Restaurante & Batata Frita", "Restaurant & Fries", "Restaurante y Papas");
         }
     }
 

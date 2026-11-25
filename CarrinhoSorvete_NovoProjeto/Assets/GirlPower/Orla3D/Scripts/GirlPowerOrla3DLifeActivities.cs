@@ -379,7 +379,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
 
         // 3. Cardápio Ilustrado Button (calm cream style — strong accent reserved strictly for primary [E] action!)
         Rect cardapioBtn = new Rect(x, y, 134f * s, btnH);
-        if (GUI.Button(cardapioBtn, "[TAB] Cardápio", GirlPowerOrla3DUITheme.BtnTileStyle))
+        if (GUI.Button(cardapioBtn, GirlPowerOrla3DLocalization.T("[TAB] Cardápio", "[TAB] Menu", "[TAB] Menú"), GirlPowerOrla3DUITheme.BtnTileStyle))
             if (cardapioUI != null) cardapioUI.Toggle();
         x += 134f * s + gap;
 
