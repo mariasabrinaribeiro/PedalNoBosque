@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -48,6 +49,9 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         public float serveWait;
         public float phase;
         public float sparkleClock;
+        public bool hasDispatchOrder;
+        public Vector3 dispatchPos;
+        public Action onDispatchArrive;
     }
 
     private sealed class SparkleDust
@@ -289,6 +293,43 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         w.tr.position = new Vector3(w.tr.position.x, w.baseY + bob, w.tr.position.z);
     }
 
+    /// <summary>
+    /// Direct mobile Drag & Drop dispatch: immediately sends the selected Fairy Waitress
+    /// gliding straight to a Table or Empty Water Bowl with fairy sparkles!
+    /// </summary>
+    public bool DispatchFairyTo(Transform fairyRoot, Vector3 destination, Action onArrive)
+    {
+        FairyAgent chosen = null;
+        for (int i = 0; i < fairies.Count; i++)
+        {
+            if (fairies[i].root == fairyRoot)
+            {
+                chosen = fairies[i];
+                break;
+            }
+        }
+        if (chosen == null && fairies.Count > 0)
+        {
+            float bestD = float.MaxValue;
+            for (int i = 0; i < fairies.Count; i++)
+            {
+                if (fairies[i].root == null) continue;
+                float d = Vector3.Distance(fairies[i].root.position, destination);
+                if (d < bestD) { bestD = d; chosen = fairies[i]; }
+            }
+        }
+        if (chosen == null) return false;
+
+        chosen.hasDispatchOrder = true;
+        chosen.dispatchPos = new Vector3(destination.x, 0.72f, destination.z);
+        chosen.onDispatchArrive = onArrive;
+        chosen.serveWait = 0f;
+        GirlPowerOrla3DJuice.PopScale(chosen.root, 1.22f, 0.28f);
+        for (int s = 0; s < 5; s++)
+            SpawnFairySparkle(chosen.root.position + new Vector3(UnityEngine.Random.Range(-0.35f, 0.35f), UnityEngine.Random.Range(0.2f, 0.9f), UnityEngine.Random.Range(-0.35f, 0.35f)));
+        return true;
+    }
+
     private void UpdateFairyWaitresses(float t, float dt)
     {
         for (int i = 0; i < fairies.Count; i++)
@@ -297,18 +338,45 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
             if (f.root == null || !f.root.gameObject.activeInHierarchy) continue;
 
             // Rapid magical butterfly/fairy wing flutter!
-            float flap = Mathf.Sin(t * 23f + f.phase) * 34f;
+            float flap = Mathf.Sin(t * (f.hasDispatchOrder ? 30f : 23f) + f.phase) * 34f;
             if (f.wingL != null) f.wingL.localRotation = Quaternion.Euler(0f, flap, 0f);
             if (f.wingR != null) f.wingR.localRotation = Quaternion.Euler(0f, -flap, 0f);
 
             float hover = Mathf.Sin(t * 3.2f + f.phase) * 0.16f;
             Vector3 cur = f.root.position;
 
-            if (f.serveWait > 0f)
+            if (f.hasDispatchOrder)
+            {
+                Vector3 target = f.dispatchPos;
+                Vector2 dXZ = new Vector2(target.x - cur.x, target.z - cur.z);
+                float dist = dXZ.magnitude;
+                if (dist < 0.72f)
+                {
+                    Action cb = f.onDispatchArrive;
+                    f.hasDispatchOrder = false;
+                    f.onDispatchArrive = null;
+                    f.serveWait = 1.65f;
+                    GirlPowerOrla3DJuice.PopScale(f.root, 1.20f, 0.28f);
+                    for (int s = 0; s < 6; s++)
+                        SpawnFairySparkle(cur + new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), UnityEngine.Random.Range(0.15f, 0.9f), UnityEngine.Random.Range(-0.4f, 0.4f)));
+                    cb?.Invoke();
+                }
+                else
+                {
+                    Vector2 dir = dXZ / dist;
+                    float spd = 5.2f;
+                    float step = Mathf.Min(dist, spd * dt);
+                    float nextY = Mathf.Lerp(cur.y, target.y + hover, dt * 6f);
+                    f.root.position = new Vector3(cur.x + dir.x * step, nextY, cur.z + dir.y * step);
+                    Quaternion look = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up);
+                    f.root.rotation = Quaternion.Slerp(f.root.rotation, look * Quaternion.Euler(-12f, 0f, Mathf.Sin(t * 4.5f) * 6f), dt * 8f);
+                }
+            }
+            else if (f.serveWait > 0f)
             {
                 f.serveWait -= dt;
                 Vector3 stop = f.stops[f.stopIdx];
-                f.root.position = Vector3.Lerp(cur, new Vector3(stop.x, stop.y + hover, stop.z), dt * 4f);
+                f.root.position = Vector3.Lerp(cur, new Vector3(stop.x, stop.y + hover, stop.z), dt * 3.5f);
                 // Gentle graceful serve spin/bob
                 f.root.Rotate(0f, Mathf.Sin(t * 2.2f + f.phase) * 24f * dt, 0f, Space.World);
             }
@@ -336,10 +404,10 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
 
             // Soft glowing fairy-dust trail!
             f.sparkleClock += dt;
-            if (f.sparkleClock >= 0.16f)
+            if (f.sparkleClock >= (f.hasDispatchOrder ? 0.08f : 0.16f))
             {
                 f.sparkleClock = 0f;
-                SpawnFairySparkle(f.root.position + new Vector3(Random.Range(-0.22f, 0.22f), Random.Range(0.2f, 0.7f), Random.Range(-0.22f, 0.22f)));
+                SpawnFairySparkle(f.root.position + new Vector3(UnityEngine.Random.Range(-0.22f, 0.22f), UnityEngine.Random.Range(0.2f, 0.7f), UnityEngine.Random.Range(-0.22f, 0.22f)));
             }
         }
     }
@@ -369,7 +437,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         s.go.transform.localScale = Vector3.one * 0.085f;
         s.age = 0f;
         s.life = 0.75f;
-        s.vel = new Vector3(Random.Range(-0.2f, 0.2f), Random.Range(-0.25f, 0.15f), Random.Range(-0.2f, 0.2f));
+        s.vel = new Vector3(UnityEngine.Random.Range(-0.2f, 0.2f), UnityEngine.Random.Range(-0.25f, 0.15f), UnityEngine.Random.Range(-0.2f, 0.2f));
         sparkles.Add(s);
     }
 

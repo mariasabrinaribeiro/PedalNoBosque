@@ -44,7 +44,8 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private Vector3 prevWorldPos;
     private bool hasPrevWorldPos;
 
-    // Articulated Blender 5.3 limb & face joints (auto-discovered at Start!)
+    // Articulated Blender 5.3 limb, torso & face joints (auto-discovered at Start!)
+    private Transform jointTorso;
     private Transform jointHead;
     private Transform jointEyeL;
     private Transform jointEyeR;
@@ -52,6 +53,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private Transform jointArmR;
     private Transform jointLegL;
     private Transform jointLegR;
+    private Quaternion baseTorsoRot = Quaternion.identity;
     private Quaternion baseHeadRot = Quaternion.identity;
     private Quaternion baseArmLRot = Quaternion.identity;
     private Quaternion baseArmRRot = Quaternion.identity;
@@ -91,6 +93,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private void CacheArticulatedJoints()
     {
         if (visualRoot == null) return;
+        jointTorso = FindRecursive(visualRoot, "Protag_Torso");
         jointHead = FindRecursive(visualRoot, "Protag_Head");
         jointEyeL = FindRecursive(visualRoot, "Protag_EyeL");
         jointEyeR = FindRecursive(visualRoot, "Protag_EyeR");
@@ -99,6 +102,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         jointLegL = FindRecursive(visualRoot, "Protag_LegL");
         jointLegR = FindRecursive(visualRoot, "Protag_LegR");
 
+        if (jointTorso != null) baseTorsoRot = jointTorso.localRotation;
         if (jointHead != null)
         {
             if (jointEyeL != null && jointEyeL.parent != jointHead) jointEyeL.SetParent(jointHead, true);
@@ -140,8 +144,9 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             jointEyeR.localScale = es;
         }
 
-        float armL = 0f, armR = 0f, legL = 0f, legR = 0f, headPitch = 0f;
+        float armL = 0f, armR = 0f, legL = 0f, legR = 0f, headPitch = 0f, headYaw = 0f;
         float armLRoll = 0f, armRRoll = 0f;
+        float torsoPitch = 0f, torsoYaw = 0f, torsoRoll = 0f;
 
         if (celebrating)
         {
@@ -205,28 +210,35 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
         else if (moving)
         {
-            float amp = running ? 42f : 26f;
+            float amp = running ? 42f : 27f;
             float s = Mathf.Sin(walkPhase);
             legL = s * amp;
             legR = -s * amp;
             armL = -s * (amp * 0.85f);
             armR = holdingCone ? -52f : (s * (amp * 0.85f));
-            headPitch = running ? -5f : -2f;
+            // Natural Secondary Motion: counter-rotating shoulders/torso opposite to leg swing + gentle weight shift!
+            torsoYaw = -s * (running ? 11.5f : 7.5f);
+            torsoRoll = s * (running ? 3.8f : 2.4f);
+            torsoPitch = running ? -5.5f : -2.0f;
+            headPitch = running ? -4f : -1.5f;
+            headYaw = s * (running ? 5.0f : 3.2f);
         }
         else
         {
             float idle = Mathf.Sin(t * 2.4f) * 3.5f;
             armL = idle;
             armR = holdingCone ? -50f : -idle;
+            torsoRoll = Mathf.Sin(t * 1.4f) * 1.2f;
             headPitch = Mathf.Sin(t * 1.6f) * 2.5f;
         }
 
         float k = 1f - Mathf.Exp(-14f * dt);
+        if (jointTorso != null) jointTorso.localRotation = Quaternion.Slerp(jointTorso.localRotation, baseTorsoRot * Quaternion.Euler(torsoPitch, torsoYaw, torsoRoll), k);
         if (jointArmL != null) jointArmL.localRotation = Quaternion.Slerp(jointArmL.localRotation, baseArmLRot * Quaternion.Euler(armL, 0f, armLRoll), k);
         if (jointArmR != null) jointArmR.localRotation = Quaternion.Slerp(jointArmR.localRotation, baseArmRRot * Quaternion.Euler(armR, 0f, armRRoll), k);
         if (jointLegL != null) jointLegL.localRotation = Quaternion.Slerp(jointLegL.localRotation, baseLegLRot * Quaternion.Euler(legL, 0f, 0f), k);
         if (jointLegR != null) jointLegR.localRotation = Quaternion.Slerp(jointLegR.localRotation, baseLegRRot * Quaternion.Euler(legR, 0f, 0f), k);
-        if (jointHead != null) jointHead.localRotation = Quaternion.Slerp(jointHead.localRotation, baseHeadRot * Quaternion.Euler(headPitch, 0f, 0f), k);
+        if (jointHead != null) jointHead.localRotation = Quaternion.Slerp(jointHead.localRotation, baseHeadRot * Quaternion.Euler(headPitch, headYaw, 0f), k);
     }
 
     private void SetupProps()

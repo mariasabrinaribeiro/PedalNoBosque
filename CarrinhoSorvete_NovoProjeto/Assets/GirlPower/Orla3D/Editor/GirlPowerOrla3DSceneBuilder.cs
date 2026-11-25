@@ -21,7 +21,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v17_ArchetypesPetsAndWaterBowls";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v19_MobileTouchDiegeticSlice";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -78,11 +78,11 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 4. Quiosque Sorvetes da Baía (Cohesive pastel coastal branding — zero clashing "GIRL POWER"!)
         List<BoxCollider> obstacles = new List<BoxCollider>();
-        GameObject kiosk = PlaceModel(root.transform, "KioskGirlPower", "Quiosque Sorvetes da Baia", new Vector3(0f, 0f, 2.35f), 0f, 1f, cozyMats);
+        GameObject kiosk = PlaceModel(root.transform, "KioskGirlPower", "Quiosque Sorvetes da Baia", new Vector3(0f, 0f, -9.1f), 0f, 1f, cozyMats);
         if (kiosk != null) AddBlockingBox(kiosk, new Vector3(0f, 2.0f, 0f), new Vector3(4.6f, 4.0f, 2.2f), obstacles);
         Make3DText(root.transform, "Titulo Quiosque", new Vector3(0f, 3.55f, 1.65f), "SORVETES DA BAÍA", 1.72f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.48f));
 
-        GameObject customSign = PlaceModel(root.transform, "SignboardNew", "Placa Personalizada - Sorveteria", new Vector3(0f, 3.56f, 1.54f), 0f, 0.96f, cozyMats);
+        GameObject customSign = PlaceModel(root.transform, "SignboardNew", "Placa Personalizada - Sorveteria", new Vector3(0f, 3.56f, -7.5f), 0f, 0.96f, cozyMats);
         TextMeshPro customSignLabel = null;
         if (customSign != null)
         {
@@ -91,51 +91,51 @@ public static class GirlPowerOrla3DSceneBuilder
         }
 
         // Choice Upgrade 1: Volumetric Striped Fabric Awning (Blender FBX, hidden until chosen!)
-        GameObject kioskAwningUpgrade = PlaceModel(root.transform, "KioskAwningUpgrade", "Melhoria - Toldo Listrado", new Vector3(0f, 0f, 2.35f), 0f, 1f, cozyMats);
+        GameObject kioskAwningUpgrade = PlaceModel(root.transform, "KioskAwningUpgrade", "Melhoria - Toldo Listrado", new Vector3(0f, 0f, -9.1f), 0f, 1f, cozyMats);
         if (kioskAwningUpgrade != null) kioskAwningUpgrade.SetActive(false);
 
         // 5. Banca da Florista + Swaying Breeze Curtains + Standardized Fascia Sign
-        GameObject floristStand = PlaceModel(root.transform, "FloristStand", "Banca da Florista - Baia do Avesso", new Vector3(24f, 0f, 2.35f), 0f, 1f, cozyMats);
+        GameObject floristStand = PlaceModel(root.transform, "FloristStand", "Banca da Florista - Baia do Avesso", new Vector3(24f, 0f, -5.6f), 0f, 1f, cozyMats);
         if (floristStand != null) AddBlockingBox(floristStand, new Vector3(0f, 2.0f, 0f), new Vector3(4.3f, 4.0f, 2.1f), obstacles);
         Make3DText(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, 1.62f), "FLORES DA BAÍA", 1.65f, new Color32(255, 246, 224, 255), new Vector2(2.50f, 0.45f));
 
         List<Transform> breezeCurtains = new List<Transform>();
-        GameObject curtL = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Esq", new Vector3(22.35f, 2.46f, 1.48f), 0f, 0.92f, cozyMats);
-        GameObject curtR = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Dir", new Vector3(25.65f, 2.46f, 1.48f), 0f, 0.92f, cozyMats);
+        GameObject curtL = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Esq", new Vector3(22.35f, 2.46f, -6.47f), 0f, 0.92f, cozyMats);
+        GameObject curtR = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Dir", new Vector3(25.65f, 2.46f, -6.47f), 0f, 0.92f, cozyMats);
         if (curtL != null) breezeCurtains.Add(curtL.transform);
         if (curtR != null) breezeCurtains.Add(curtR.transform);
 
         // 5b. Pavilhão da Baía do Avesso & Acesso à Areia + Chapter 3/Finale Restoration Props!
-        GameObject pavilion = PlaceModel(root.transform, "PavilionBay", "Pavilhao da Baia do Avesso", new Vector3(15.6f, -0.02f, 5.45f), 0f, 1f, cozyMats);
+        GameObject pavilion = PlaceModel(root.transform, "PavilionBay", "Pavilhao da Baia do Avesso", new Vector3(26.0f, -0.02f, -10.0f), 0f, 1f, cozyMats);
         TextMeshPro pavilionFadedText = Make3DText(root.transform, "Letreiro Apagado Pavilhao", new Vector3(15.6f, 3.34f, 3.40f), "BAÍA DO AVESSO", 1.55f, new Color32(198, 186, 166, 175), new Vector2(2.8f, 0.45f));
 
         // Festival restoration props (hidden until Chapter 3/Finale restores the Pavilion!)
-        GameObject pavilionFestivalTable = PlaceModel(root.transform, "PavilionFestivalTable", "Pavilhao - Mesa Comprida", new Vector3(15.6f, 0.36f, 5.45f), 0f, 1f, cozyMats);
+        GameObject pavilionFestivalTable = PlaceModel(root.transform, "PavilionFestivalTable", "Pavilhao - Mesa Comprida", new Vector3(26.0f, 0.36f, -10.0f), 0f, 1f, cozyMats);
         if (pavilionFestivalTable != null) pavilionFestivalTable.SetActive(false);
 
-        GameObject pavilionFestivalLights = PlaceModel(root.transform, "PavilionFestivalLights", "Pavilhao - Luzes e Letreiro Restaurado", new Vector3(15.6f, -0.02f, 5.45f), 0f, 1f, cozyMats);
+        GameObject pavilionFestivalLights = PlaceModel(root.transform, "PavilionFestivalLights", "Pavilhao - Luzes e Letreiro Restaurado", new Vector3(26.0f, -0.02f, -10.0f), 0f, 1f, cozyMats);
         if (pavilionFestivalLights != null) pavilionFestivalLights.SetActive(false);
 
-        GameObject pavilionFestivalDishes = PlaceModel(root.transform, "FestivalDishesProp", "Pavilhao - Pratos e Vasinhos da Festa", new Vector3(15.6f, 0.36f, 5.45f), 0f, 1f, cozyMats);
+        GameObject pavilionFestivalDishes = PlaceModel(root.transform, "FestivalDishesProp", "Pavilhao - Pratos e Vasinhos da Festa", new Vector3(26.0f, 0.36f, -10.0f), 0f, 1f, cozyMats);
         if (pavilionFestivalDishes != null) pavilionFestivalDishes.SetActive(false);
 
         TextMeshPro pavilionRestoredText = Make3DText(root.transform, "Letreiro Restaurado Pavilhao", new Vector3(15.6f, 3.36f, 3.32f), "BAÍA DO AVESSO", 1.75f, new Color32(255, 245, 205, 255), new Vector2(3.0f, 0.50f));
         pavilionRestoredText.gameObject.SetActive(false);
 
         List<Light> pavilionPointLights = new List<Light>();
-        pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Centro", new Vector3(15.6f, 2.5f, 5.45f), 2.1f, 11.5f));
-        pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Frente", new Vector3(15.6f, 2.9f, 3.4f), 1.6f, 9.0f));
+        pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Centro", new Vector3(26.0f, 2.5f, -10.0f), 2.1f, 11.5f));
+        pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Frente", new Vector3(26.0f, 2.9f, -7.95f), 1.6f, 9.0f));
         foreach (Light pl in pavilionPointLights) pl.enabled = false;
 
         // 6. Feirinha da Orla & 6 Barracas Temáticas (Água de Coco, Artesanato, Plantas, Sushi, Comida e Roupas!)
-        GameObject stallCoco = PlaceModel(root.transform, "MarketStall_Coco", "Barraca - Agua de Coco", new Vector3(11.1f, 0f, 2.85f), 0f, 1f, cozyMats);
-        GameObject stallArt = PlaceModel(root.transform, "MarketStall_Artesanato", "Barraca - Artesanato", new Vector3(15.6f, 0f, 2.85f), 0f, 1f, cozyMats);
-        GameObject stallPlantas = PlaceModel(root.transform, "MarketStall_Plantas", "Barraca - Plantas Naturais", new Vector3(20.1f, 0f, 2.85f), 0f, 1f, cozyMats);
-        GameObject stallSushi = PlaceModel(root.transform, "MarketStall_Sushi", "Barraca - Sushi da Baia", new Vector3(-7.4f, 0f, 2.55f), 0f, 1f, cozyMats);
-        GameObject stallComida = PlaceModel(root.transform, "MarketStall_Comida", "Barraca - Comida e Acai", new Vector3(-11.8f, 0f, 2.55f), 0f, 1f, cozyMats);
-        GameObject stallRoupas = PlaceModel(root.transform, "MarketStall_Roupas", "Barraca - Roupas da Orla", new Vector3(29.8f, 0f, 2.55f), 0f, 1f, cozyMats);
-        GameObject stallDoces = PlaceModel(root.transform, "MarketStall_Doces", "Barraca - Doces e Cupcakes", new Vector3(-16.0f, 0f, 2.55f), 0f, 1f, cozyMats);
-        GameObject stallSucos = PlaceModel(root.transform, "MarketStall_SucosRefri", "Barraca - Sucos, Agua e Refri", new Vector3(34.0f, 0f, 2.55f), 0f, 1f, cozyMats);
+        GameObject stallCoco = PlaceModel(root.transform, "MarketStall_Frutas", "Barraca - Frutas e Sucos", new Vector3(11.1f, 0f, -5.6f), 0f, 1f, cozyMats);
+        GameObject stallArt = PlaceModel(root.transform, "MarketStall_Artesanato", "Barraca - Artesanato", new Vector3(15.6f, 0f, -5.6f), 0f, 1f, cozyMats);
+        GameObject stallPlantas = PlaceModel(root.transform, "MarketStall_Plantas", "Barraca - Plantas Naturais", new Vector3(20.1f, 0f, -5.6f), 0f, 1f, cozyMats);
+        GameObject stallSushi = PlaceModel(root.transform, "MarketStall_Sushi", "Barraca - Sushi da Baia", new Vector3(-7.4f, 0f, -5.6f), 0f, 1f, cozyMats);
+        GameObject stallComida = PlaceModel(root.transform, "MarketStall_Comida", "Barraca - Comida e Acai", new Vector3(-11.8f, 0f, -5.6f), 0f, 1f, cozyMats);
+        GameObject stallRoupas = PlaceModel(root.transform, "MarketStall_Roupas", "Barraca - Roupas da Orla", new Vector3(29.8f, 0f, -5.6f), 0f, 1f, cozyMats);
+        GameObject stallDoces = PlaceModel(root.transform, "MarketStall_Doces", "Barraca - Doces e Cupcakes", new Vector3(-16.0f, 0f, -8.55f), 0f, 1f, cozyMats);
+        GameObject stallSucos = PlaceModel(root.transform, "MarketStall_SucosRefri", "Barraca - Sucos, Agua e Refri", new Vector3(34.0f, 0f, -8.55f), 0f, 1f, cozyMats);
         foreach (GameObject st in new[] { stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
             if (st != null) AddBlockingBox(st, new Vector3(0f, 2.0f, 0f), new Vector3(2.7f, 4.0f, 1.15f), obstacles);
 
@@ -212,7 +212,7 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fl != null) floatingLanterns.Add(fl.transform);
         }
 
-        Vector3[] flowerLampSpots = { new Vector3(1.8f, 0f, -3.35f), new Vector3(9.4f, 0f, -3.35f), new Vector3(22.6f, 0f, -3.35f) };
+        Vector3[] flowerLampSpots = { new Vector3(1.8f, 0f, -3.85f), new Vector3(9.4f, 0f, -3.85f), new Vector3(22.6f, 0f, -3.85f) };
         for (int i = 0; i < flowerLampSpots.Length; i++)
         {
             GameObject flp = PlaceModel(root.transform, "FlowerLampPost", "Poste com Flores " + (i + 1), flowerLampSpots[i], i == 1 ? 180f : 0f, 1.0f, cozyMats);
@@ -223,9 +223,9 @@ public static class GirlPowerOrla3DSceneBuilder
         List<GameObject> restaurantCustomers = new List<GameObject>();
         Vector3[] tableCoords =
         {
-            new Vector3(-11.2f, 0f, -1.6f),
-            new Vector3(-15.2f, 0f, -1.6f),
-            new Vector3(31.8f, 0f, -1.5f)
+            new Vector3(-10.8f, 0f, -4.7f),
+            new Vector3(-15.0f, 0f, -4.7f),
+            new Vector3(23.0f, 0f, -4.7f)
         };
         for (int i = 0; i < tableCoords.Length; i++)
         {
@@ -247,7 +247,7 @@ public static class GirlPowerOrla3DSceneBuilder
             }
         }
 
-        GameObject gardenBed = PlaceModel(root.transform, "GardenPlanterBed", "Horta da Baia - Canteiros", new Vector3(-3.8f, 0f, -6.4f), 0f, 1f, cozyMats);
+        GameObject gardenBed = PlaceModel(root.transform, "GardenPlanterBed", "Horta da Baia - Canteiros", new Vector3(-5.0f, 0f, -18.1f), 0f, 1f, cozyMats);
         if (gardenBed != null) AddBlockingBox(gardenBed, new Vector3(0f, 0.4f, 0f), new Vector3(2.6f, 0.8f, 1.4f), obstacles);
 
         GameObject fishingPier = PlaceModel(root.transform, "FishingPierDock", "Pier de Pesca da Baia", new Vector3(31.0f, -0.20f, 8.8f), 0f, 1f, cozyMats);
@@ -255,7 +255,7 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject campingZone = PlaceModel(root.transform, "CampingTent", "Acampamento Familiar da Praia", new Vector3(34.5f, -0.14f, 6.2f), 168f, 1f, cozyMats);
         if (campingZone != null) AddBlockingBox(campingZone, new Vector3(0f, 0.8f, 0f), new Vector3(2.3f, 1.6f, 2.3f), obstacles);
 
-        GameObject noticeBoard = PlaceModel(root.transform, "VillageNoticeBoard", "Mural de Avisos da Vila", new Vector3(3.6f, 0f, 2.35f), 0f, 1f, cozyMats);
+        GameObject noticeBoard = PlaceModel(root.transform, "VillageNoticeBoard", "Mural de Avisos da Vila", new Vector3(3.6f, 0f, -3.85f), 0f, 1f, cozyMats);
         if (noticeBoard != null) AddBlockingBox(noticeBoard, new Vector3(0f, 1.1f, 0f), new Vector3(2.1f, 2.2f, 0.45f), obstacles);
 
         // Moored decorative Hawaiian Canoe on the beach
@@ -317,13 +317,13 @@ public static class GirlPowerOrla3DSceneBuilder
 
         var vegSpecs = new (string model, Vector3 pos, float rotY, float scale, bool blocks)[]
         {
-            ("CoastalVegetationB", new Vector3(-4.4f, 0f, -0.22f), 4f, 1.0f, true),
-            ("CoastalVegetationA", new Vector3(7.4f, 0f, -0.35f), 22f, 1.05f, false),
-            ("CoastalVegetationB", new Vector3(11.4f, 0f, -0.22f), -6f, 0.96f, true),
-            ("CoastalVegetationA", new Vector3(15.6f, 0f, -0.40f), 145f, 0.92f, false),
-            ("CoastalVegetationB", new Vector3(19.8f, 0f, -0.22f), 8f, 1.02f, true),
-            ("CoastalVegetationA", new Vector3(26.8f, 0f, -0.32f), -35f, 1.08f, false),
-            ("CoastalVegetationA", new Vector3(-8.4f, 0f, -0.35f), 68f, 1.0f, false)
+            ("CoastalVegetationB", new Vector3(-16.0f, 0f, -3.9f), 4f, 1.0f, true),
+            ("CoastalVegetationA", new Vector3(37.0f, 0f, -3.9f), 22f, 1.05f, false),
+            ("CoastalVegetationB", new Vector3(-16.0f, 0f, -8.1f), -6f, 0.96f, true),
+            ("CoastalVegetationA", new Vector3(37.0f, 0f, -8.1f), 145f, 0.92f, false),
+            ("CoastalVegetationB", new Vector3(-12.0f, 0f, -11.2f), 8f, 1.02f, true),
+            ("CoastalVegetationA", new Vector3(33.0f, 0f, -11.2f), -35f, 1.08f, false),
+            ("CoastalVegetationA", new Vector3(9.0f, 0f, -11.2f), 68f, 1.0f, false)
         };
         for (int i = 0; i < vegSpecs.Length; i++)
         {
@@ -334,12 +334,12 @@ public static class GirlPowerOrla3DSceneBuilder
 
         Vector2[] lampCoords =
         {
-            new Vector2(-3.0f, 1.85f),
-            new Vector2(3.0f, 1.85f),
-            new Vector2(12.2f, -0.35f),
-            new Vector2(18.6f, -0.35f),
-            new Vector2(21.2f, 1.85f),
-            new Vector2(26.8f, 1.85f)
+            new Vector2(-14.0f, -3.85f),
+            new Vector2(-4.0f, -3.85f),
+            new Vector2(6.0f, -3.85f),
+            new Vector2(16.0f, -3.85f),
+            new Vector2(26.0f, -3.85f),
+            new Vector2(35.0f, -3.85f)
         };
         for (int i = 0; i < lampCoords.Length; i++)
         {
@@ -350,18 +350,18 @@ public static class GirlPowerOrla3DSceneBuilder
             warmLights.Add(CreateWarmLight(root.transform, "Luz Poste " + (i + 1), new Vector3(lampCoords[i].x + lightOffsetX, 2.75f, lampCoords[i].y), 1.45f, 7.5f));
         }
         // Cozy kiosk & florist awning glow
-        warmLights.Add(CreateWarmLight(root.transform, "Luz Quiosque", new Vector3(0f, 2.4f, 1.35f), 1.7f, 8.5f));
-        warmLights.Add(CreateWarmLight(root.transform, "Luz Florista", new Vector3(24f, 2.4f, 1.35f), 1.6f, 8.5f));
+        warmLights.Add(CreateWarmLight(root.transform, "Luz Quiosque", new Vector3(0f, 2.4f, -8.0f), 1.7f, 8.5f));
+        warmLights.Add(CreateWarmLight(root.transform, "Luz Florista", new Vector3(24f, 2.4f, -4.85f), 1.6f, 8.5f));
 
         float[] benchXs = { -1.6f, 4.0f, 9.2f, 14.4f, 19.6f, 25.0f };
         for (int i = 0; i < benchXs.Length; i++)
         {
-            GameObject bench = PlaceModel(root.transform, "CoastalBench", "Banco da Orla " + (i + 1), new Vector3(benchXs[i], 0f, -3.10f), 180f, 1f, cozyMats);
+            GameObject bench = PlaceModel(root.transform, "CoastalBench", "Banco da Orla " + (i + 1), new Vector3(benchXs[i], 0f, -4.05f), 180f, 1f, cozyMats);
             if (bench != null) AddBlockingBox(bench, new Vector3(0f, 0.48f, 0f), new Vector3(2.0f, 0.96f, 0.82f), obstacles);
         }
 
         // Route Signpost at Bifurcation
-        GameObject signpost = PlaceModel(root.transform, "RouteSignpost", "Placa da Bifurcacao", new Vector3(6.4f, 0f, 0.35f), 10f, 1f, cozyMats);
+        GameObject signpost = PlaceModel(root.transform, "RouteSignpost", "Placa da Bifurcacao", new Vector3(6.4f, 0f, -3.85f), 10f, 1f, cozyMats);
         if (signpost != null)
         {
             AddBlockingBox(signpost, new Vector3(0f, 0.8f, 0f), new Vector3(0.62f, 1.6f, 0.62f), obstacles);
@@ -384,20 +384,20 @@ public static class GirlPowerOrla3DSceneBuilder
         if (towerB != null) AddBlockingBox(towerB, new Vector3(0f, 1.25f, 0f), new Vector3(1.8f, 2.5f, 1.8f), obstacles);
 
         // 10. Feira Obstacles (Crates & Chibi Pedestrians)
-        GameObject crateOr = PlaceModel(root.transform, "CrateOranges", "Caixa de Laranjas", new Vector3(10.2f, 0f, 1.35f), -12f, 1f, cozyMats);
+        GameObject crateOr = PlaceModel(root.transform, "CrateOranges", "Caixa de Laranjas", new Vector3(10.2f, 0f, -6.8f), -12f, 1f, cozyMats);
         if (crateOr != null) AddBlockingBox(crateOr, new Vector3(0f, 0.4f, 0f), new Vector3(0.95f, 0.8f, 0.95f), obstacles);
 
-        GameObject crateFl = PlaceModel(root.transform, "CrateFlowers", "Caixa de Flores", new Vector3(14.2f, 0f, 1.15f), 8f, 1f, cozyMats);
+        GameObject crateFl = PlaceModel(root.transform, "CrateFlowers", "Caixa de Flores", new Vector3(14.2f, 0f, -6.8f), 8f, 1f, cozyMats);
         if (crateFl != null) AddBlockingBox(crateFl, new Vector3(0f, 0.4f, 0f), new Vector3(0.95f, 0.8f, 0.95f), obstacles);
 
-        GameObject pedBlue = PlaceModel(root.transform, "Char_PedestrianBlue", "Beto Praiano", new Vector3(17.2f, 0f, 1.55f), 25f, 1f, cozyMats);
+        GameObject pedBlue = PlaceModel(root.transform, "Char_PedestrianBlue", "Beto Praiano", new Vector3(17.2f, 0f, -3.3f), 25f, 1f, cozyMats);
         if (pedBlue != null)
         {
             AddBlockingBox(pedBlue, new Vector3(0f, 0.75f, 0f), new Vector3(0.75f, 1.5f, 0.75f), obstacles);
             idleCharacters.Add(pedBlue.transform);
         }
 
-        GameObject pedCoral = PlaceModel(root.transform, "Char_PedestrianCoral", "Clara da Feira", new Vector3(19.6f, 0f, 1.15f), -22f, 1f, cozyMats);
+        GameObject pedCoral = PlaceModel(root.transform, "Char_PedestrianCoral", "Clara da Feira", new Vector3(19.6f, 0f, -3.3f), -22f, 1f, cozyMats);
         if (pedCoral != null)
         {
             AddBlockingBox(pedCoral, new Vector3(0f, 0.75f, 0f), new Vector3(0.75f, 1.5f, 0.75f), obstacles);
@@ -487,7 +487,7 @@ public static class GirlPowerOrla3DSceneBuilder
             petCat.followOffset = new Vector3(1.15f, 0f, -0.80f);
         }
 
-        GameObject florist = PlaceModel(root.transform, "Char_Florist", "Florista Luna", new Vector3(24.0f, 0f, 0.25f), 15f, 1f, cozyMats);
+        GameObject florist = PlaceModel(root.transform, "Char_Florist", "Florista Luna", new Vector3(24.0f, 0f, -4.35f), 15f, 1f, cozyMats);
         if (florist != null) idleCharacters.Add(florist.transform);
 
         // 11b. Living Sky & Coastal Wildlife (Clouds, Seagulls, Butterflies, Beach Crabs, Fireflies!)
@@ -766,7 +766,7 @@ public static class GirlPowerOrla3DSceneBuilder
         // 11h. 4 LOGICAL HARMONIZED ZONES: Orchard Camponesa, 10 Modular Archetypes, Pets (Dog/Cat/Calopsita) & 5 Water Bowls!
         // Zone 1: Fenced Orchard & Garden (Fundo/Lateral Verde) -> Camponesa harvesting Laranja, Limão, Manjericão & Maçã!
         List<Transform> orchardTrees = new List<Transform>();
-        Vector3[] orchardCoords = { new Vector3(-5.8f, -0.05f, -8.4f), new Vector3(-2.0f, -0.05f, -8.8f), new Vector3(-8.2f, -0.05f, -7.8f) };
+        Vector3[] orchardCoords = { new Vector3(-8.0f, -0.05f, -16.5f), new Vector3(-3.0f, -0.05f, -20.1f), new Vector3(-8.0f, -0.05f, -21.0f) };
         for (int i = 0; i < orchardCoords.Length; i++)
         {
             GameObject ot = PlaceModel(root.transform, "OrchardFruitTree", "Arvore Pomar Horta " + (i + 1), orchardCoords[i], i * 55f, 0.92f + i * 0.08f, cozyMats);
@@ -776,20 +776,29 @@ public static class GirlPowerOrla3DSceneBuilder
                 orchardTrees.Add(ot.transform);
             }
         }
-        GameObject camponesaObj = PlaceModel(root.transform, "Char_Camponesa", "Camponesa Colhedora da Horta", new Vector3(-4.6f, 0f, -7.2f), 20f, 1.0f, cozyMats);
+        GameObject camponesaObj = PlaceModel(root.transform, "Char_Camponesa", "Camponesa Colhedora da Horta", new Vector3(-4.6f, 0f, -16.2f), 20f, 1.0f, cozyMats);
         if (camponesaObj != null) AddShadow(shadowEntries, camponesaObj.transform, new Vector2(1.0f, 1.0f), true);
+
+        // A baixa cerca delimita o pomar sem cortar a circulação: o vão de 2,6 m é um portão permanentemente aberto.
+        Material gardenFenceMat = cozyMats.TryGetValue("AC_WoodWarm", out Material gardenWood) ? gardenWood : null;
+        CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Fundo", new Vector3(-5.0f, 0.42f, -22.8f), new Vector3(11.2f, 0.84f, 0.14f));
+        CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Lateral_Oeste", new Vector3(-10.6f, 0.42f, -18.0f), new Vector3(0.14f, 0.84f, 9.6f));
+        CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Lateral_Leste", new Vector3(0.6f, 0.42f, -18.0f), new Vector3(0.14f, 0.84f, 9.6f));
+        CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Entrada_Oeste", new Vector3(-8.65f, 0.42f, -13.2f), new Vector3(3.9f, 0.84f, 0.14f));
+        CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Entrada_Leste", new Vector3(-1.35f, 0.42f, -13.2f), new Vector3(3.9f, 0.84f, 0.14f));
+        Make3DText(root.transform, "Placa Horta e Pomar", new Vector3(-5.0f, 1.65f, -12.95f), "HORTA & POMAR", 1.15f, new Color32(255, 246, 224, 255), new Vector2(2.4f, 0.38f));
 
         // Zone 2 & 3 & 4: Modular Harmonized Archetypes + Pet Companions (Dog, Cat, Flying Calopsita!)
         var guestSpecs = new (GirlPowerOrla3DArchetypeConfig.ArchetypeKind kind, string fbx, string name, Vector3 pos, GirlPowerOrla3DArchetypeConfig.PetKind pet)[]
         {
             // Zone 2 (Central Promenade & Pet Restaurant guests)
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Gaucho,           "Char_Gaucho",           "Cliente - Gaucho do Sul",        new Vector3(-8.2f, 0f, -2.2f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Espia,            "Char_Espia",            "Cliente - Espia Estilosa",       new Vector3(1.4f, 0f, -2.5f),    GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Barbie,           "Char_Barbie",           "Cliente - Estilo Barbie",        new Vector3(7.6f, 0f, -2.1f),    GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Princesa,         "Char_Princesa",         "Cliente - Princesa da Orla",     new Vector3(13.8f, 0f, -2.3f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Vovo,             "Char_Vovo",             "Cliente - Vovo Carinhosa",       new Vector3(18.6f, 0f, -2.1f),   GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.KungFu,           "Char_KungFu",           "Cliente - Mestre Kung Fu",       new Vector3(23.0f, 0f, -2.4f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Japones,          "Char_Japones",          "Cliente - Estilo Japones",       new Vector3(-3.8f, 0f, -2.4f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Gaucho,           "Char_Gaucho",           "Cliente - Gaucho do Sul",        new Vector3(-8.2f, 0f, -6.6f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Espia,            "Char_Espia",            "Cliente - Espia Estilosa",       new Vector3(1.4f, 0f, -7.1f),    GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Barbie,           "Char_Barbie",           "Cliente - Estilo Barbie",        new Vector3(7.6f, 0f, -6.4f),    GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Princesa,         "Char_Princesa",         "Cliente - Princesa da Orla",     new Vector3(13.8f, 0f, -7.0f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Vovo,             "Char_Vovo",             "Cliente - Vovo Carinhosa",       new Vector3(18.6f, 0f, -6.3f),   GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.KungFu,           "Char_KungFu",           "Cliente - Mestre Kung Fu",       new Vector3(23.0f, 0f, -7.0f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Japones,          "Char_Japones",          "Cliente - Estilo Japones",       new Vector3(-3.8f, 0f, -6.8f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato),
             // Zone 4 (Beach Sand & Sea strictly for Beach/Sports outfits!)
             (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.PraiaFutebol,     "Char_FutebolPraia",     "Praiano - Futebol de Areia",     new Vector3(6.8f, -0.14f, 6.0f), GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro),
             (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.FutebolAmericano, "Char_FutebolAmericano", "Praiano - Futebol Americano",    new Vector3(19.2f, -0.14f, 6.2f),GirlPowerOrla3DArchetypeConfig.PetKind.None)
@@ -829,11 +838,11 @@ public static class GirlPowerOrla3DSceneBuilder
         // 5 Interactive Pet Water Bowls along the Central Promenade & Restaurant/Cafe entrances!
         var bowlSpecs = new (string label, Vector3 pos)[]
         {
-            ("Pote Agua - Quiosque",      new Vector3(-2.6f, 0f, -0.85f)),
-            ("Pote Agua - Cafe Fadas",    new Vector3(3.4f, -0.05f, -5.8f)),
-            ("Pote Agua - Batata e Mar",  new Vector3(-11.4f, -0.05f, -4.4f)),
-            ("Pote Agua - Feira Central", new Vector3(13.0f, 0f, -0.85f)),
-            ("Pote Agua - Florista",      new Vector3(22.2f, 0f, -0.85f))
+            ("Pote Agua - Quiosque",      new Vector3(-2.65f, 0f, -4.35f)),
+            ("Pote Agua - Cafe Fadas",    new Vector3(3.0f, -0.05f, -4.35f)),
+            ("Pote Agua - Batata e Mar",  new Vector3(-11.4f, -0.05f, -4.35f)),
+            ("Pote Agua - Feira Central", new Vector3(8.2f, 0f, -4.35f)),
+            ("Pote Agua - Florista",      new Vector3(24.95f, 0f, -4.35f))
         };
         List<GirlPowerOrla3DPetFriendlySystem.WaterBowlEntry> bowlEntries = new List<GirlPowerOrla3DPetFriendlySystem.WaterBowlEntry>();
         for (int i = 0; i < bowlSpecs.Length; i++)
@@ -1030,9 +1039,9 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject missionObj = new GameObject("Historia Baia do Avesso - 4 Capitulos");
         missionObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DFirstDelivery mission = missionObj.AddComponent<GirlPowerOrla3DFirstDelivery>();
-        // Bring the player closer to the camera while preserving enough route visibility.
-        mission.cameraOffset = new Vector3(0f, 7.25f, -8.1f);
-        mission.cameraPitch = 42f;
+        // Open spacious coastal horizon camera (wide beach, fair plaza, fairies & town backdrop!)
+        mission.cameraOffset = new Vector3(0f, 9.2f, -14.2f);
+        mission.cameraPitch = 32.5f;
         mission.player = playerRoot.transform;
         mission.playerVisual = playerVisual != null ? playerVisual.transform : playerRoot.transform;
         mission.characterAnimator = charAnim;
@@ -1140,10 +1149,68 @@ public static class GirlPowerOrla3DSceneBuilder
         mission.gameFlow = gameFlow;
         mission.megaSystems = megaSys;
         mission.cardapioUI = cardapio;
+        mission.petFriendlySystem = petFriendlySys;
         lifeAct.gameFlow = gameFlow;
         lifeAct.storyController = mission;
         lifeAct.megaSystems = megaSys;
         lifeAct.cardapioUI = cardapio;
+
+        // 13. MOBILE GOLDEN RULE (+40% Oversized Touch Hitboxes) & Exclusive 3-Layer Touch Controller!
+        for (int i = 0; i < fairyList.Count; i++)
+            GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(fairyList[i].gameObject, GirlPowerOrla3DTouchTarget.TargetRole.FairyWaitress, i, new Vector3(0f, 0.85f, 0f), 0.88f, "Fada");
+        for (int i = 0; i < bowlEntries.Count; i++)
+            if (bowlEntries[i].bowlRoot != null)
+                GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(bowlEntries[i].bowlRoot.gameObject, GirlPowerOrla3DTouchTarget.TargetRole.WaterBowl, i, new Vector3(0f, 0.35f, 0f), 0.68f, "Agua");
+        for (int i = 0; i < restaurantTables.Count; i++)
+            if (restaurantTables[i] != null)
+                GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(restaurantTables[i].gameObject, GirlPowerOrla3DTouchTarget.TargetRole.PetTable, i, new Vector3(0f, 0.75f, 0f), 1.18f, "Mesa");
+        if (cart != null)
+            GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(cart, GirlPowerOrla3DTouchTarget.TargetRole.CartOrKitchen, 0, new Vector3(0f, 0.95f, 0f), 1.25f, "Carrinho");
+        if (restKitchen != null)
+            GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(restKitchen, GirlPowerOrla3DTouchTarget.TargetRole.CartOrKitchen, 1, new Vector3(0f, 1.1f, 0f), 1.55f, "Cozinha");
+        if (basilPot != null)
+            GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(basilPot, GirlPowerOrla3DTouchTarget.TargetRole.GardenOrchard, 0, new Vector3(0f, 0.55f, 0f), 0.80f, "Manjericao");
+        for (int i = 0; i < orchardTrees.Count; i++)
+            GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(orchardTrees[i].gameObject, GirlPowerOrla3DTouchTarget.TargetRole.GardenOrchard, i + 1, new Vector3(0f, 1.1f, 0f), 1.05f, "Pomar");
+        if (lifeAct.shops != null)
+        {
+            for (int i = 0; i < lifeAct.shops.Length; i++)
+                if (lifeAct.shops[i].stallTransform != null)
+                    GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(lifeAct.shops[i].stallTransform.gameObject, GirlPowerOrla3DTouchTarget.TargetRole.ShopStall, i, new Vector3(0f, 1.0f, 0f), 1.22f, lifeAct.shops[i].shopName);
+        }
+        foreach (GameObject storyNpc in new[] { friendNina, florist, sisterMarina, friendBia })
+            if (storyNpc != null)
+                GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(storyNpc, GirlPowerOrla3DTouchTarget.TargetRole.StoryNpc, 0, new Vector3(0f, 0.95f, 0f), 0.85f, storyNpc.name);
+
+        GameObject mobileTouchObj = new GameObject("Controle_Toque_Mobile_3Camadas");
+        mobileTouchObj.transform.SetParent(root.transform, false);
+        GirlPowerOrla3DMobileTouchController mobileTouch = mobileTouchObj.AddComponent<GirlPowerOrla3DMobileTouchController>();
+        mobileTouch.sceneCamera = mainCam;
+        mobileTouch.storyController = mission;
+        mobileTouch.gameFlow = gameFlow;
+        mobileTouch.dialogueController = dialogueCtrl;
+        mobileTouch.photoOverlay = photoCtrl;
+        mobileTouch.cardapioUI = cardapio;
+        mobileTouch.megaSystems = megaSys;
+        mobileTouch.lifeActivities = lifeAct;
+        mobileTouch.petFriendlySystem = petFriendlySys;
+        mobileTouch.npcAI = npcAi;
+
+        // Align every sign and entrance with the new market coordinates after all scene systems are wired.
+        if (kioskAwningUpgrade != null) kioskAwningUpgrade.transform.position = kiosk.transform.position;
+        if (customSign != null) customSign.transform.position = new Vector3(0f, 3.56f, -9.91f);
+        SetNamedChildPosition(root.transform, "Titulo Quiosque", new Vector3(0f, 3.55f, -9.80f));
+        SetNamedChildPosition(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, -6.33f));
+        SetNamedChildPosition(root.transform, "Placa Sushi", new Vector3(-7.4f, 2.48f, -6.43f));
+        SetNamedChildPosition(root.transform, "Placa Comida", new Vector3(-11.8f, 2.48f, -6.43f));
+        SetNamedChildPosition(root.transform, "Placa Doces", new Vector3(-16.0f, 2.48f, -9.38f));
+        SetNamedChildPosition(root.transform, "Placa Plantas", new Vector3(20.1f, 2.48f, -6.43f));
+        SetNamedChildPosition(root.transform, "Placa Roupas", new Vector3(29.8f, 2.48f, -6.43f));
+        SetNamedChildPosition(root.transform, "Placa Sucos", new Vector3(34.0f, 2.48f, -9.38f));
+        SetNamedChildText(root.transform, "Placa Comida", "PASTEL & CALDO");
+        SetNamedChildText(root.transform, "Placa Sucos", "SUCOS");
+        Make3DText(root.transform, "Placa Frutas e Sucos", new Vector3(11.1f, 2.48f, -6.43f), "FRUTAS & SUCOS", 1.25f, new Color32(255, 246, 224, 255), new Vector2(2.5f, 0.40f));
+        Make3DText(root.transform, "Placa Artesanato", new Vector3(15.6f, 2.48f, -6.43f), "ARTESANATO", 1.28f, new Color32(255, 246, 224, 255), new Vector2(2.5f, 0.40f));
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -1342,6 +1409,44 @@ public static class GirlPowerOrla3DSceneBuilder
         return raw.Trim();
     }
 
+    private static void CreateGardenFencePart(Transform parent, List<BoxCollider> obstacles, Material material, string name, Vector3 position, Vector3 size)
+    {
+        GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        part.name = name;
+        part.transform.SetParent(parent, false);
+        part.transform.position = position;
+        part.transform.localScale = size;
+        Renderer renderer = part.GetComponent<Renderer>();
+        if (renderer != null && material != null) renderer.sharedMaterial = material;
+        BoxCollider collider = part.GetComponent<BoxCollider>();
+        if (collider != null) obstacles.Add(collider);
+    }
+
+    private static void SetNamedChildPosition(Transform root, string objectName, Vector3 worldPosition)
+    {
+        Transform target = FindDescendant(root, objectName);
+        if (target != null) target.position = worldPosition;
+    }
+
+    private static void SetNamedChildText(Transform root, string objectName, string value)
+    {
+        Transform target = FindDescendant(root, objectName);
+        TextMeshPro label = target != null ? target.GetComponent<TextMeshPro>() : null;
+        if (label != null) label.text = value;
+    }
+
+    private static Transform FindDescendant(Transform root, string objectName)
+    {
+        if (root == null) return null;
+        if (root.name == objectName) return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform found = FindDescendant(root.GetChild(i), objectName);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
     private static void AddBlockingBox(GameObject go, Vector3 center, Vector3 size, List<BoxCollider> list)
     {
         BoxCollider box = go.AddComponent<BoxCollider>();
@@ -1491,88 +1596,89 @@ public static class GirlPowerOrla3DSceneBuilder
             cozyShader = Shader.Find("Standard");
         }
 
-        // Calm, cohesive coastal palette: soft cream stone, light wood, desaturated coastal greens,
-        // toned-down secondary reds/oranges, reserving vibrant Hero Berry Pink for Cart & Protagonist!
+        // Fixed 3-Color Cohesive Coastal Palette:
+        // 1. Dominant: Coastal Turquoise (#2AC6CC)   2. Warm Secondary: Golden Sand & Light Wood (#EED2A4 / #C9996B)
+        // 3. Magical Accent: Fairy Pink-Lilac (#EC6FA4 / #C68CE0) — unified saturation across the vertical slice!
         var palette = new (string name, string hex, float gloss, string emitHex, float emitStr)[]
         {
-            ("AC_Sand", "#F0CFA4", 0.10f, null, 0f),          // Golden-rose sunset beach sand!
-            ("AC_SandWet", "#D6AA7E", 0.24f, null, 0f),
-            ("AC_Grass", "#6AA676", 0.10f, null, 0f),
-            ("AC_GrassLight", "#84BA8A", 0.12f, null, 0f),
-            ("AC_Ocean", "#188BA3", 0.52f, null, 0f),          // Vibrant tropical turquoise sea!
-            ("AC_OceanShallow", "#38D4D2", 0.48f, null, 0f),
+            ("AC_Sand", "#EED2A4", 0.10f, null, 0f),          // Warm Secondary: Golden Sand!
+            ("AC_SandWet", "#D5B184", 0.24f, null, 0f),
+            ("AC_Grass", "#6AA688", 0.10f, null, 0f),         // Harmonized coastal sage-teal green
+            ("AC_GrassLight", "#84BA9C", 0.12f, null, 0f),
+            ("AC_Ocean", "#1FA6B2", 0.52f, null, 0f),         // Dominant: Vibrant Coastal Turquoise!
+            ("AC_OceanShallow", "#2AC6CC", 0.48f, null, 0f),
             ("AC_Foam", "#F4FBFE", 0.20f, "#E2F4FA", 0.12f),
-            ("AC_HillDistant", "#689488", 0.08f, null, 0f),
-            ("AC_HillFar", "#7A98AA", 0.08f, null, 0f),
+            ("AC_HillDistant", "#68989A", 0.08f, null, 0f),
+            ("AC_HillFar", "#7A9EB0", 0.08f, null, 0f),
 
-            ("AC_StoneWhite", "#EFE5D2", 0.14f, null, 0f),
-            ("AC_StoneWarm", "#DDD0BA", 0.14f, null, 0f),
-            ("AC_StoneDark", "#9E9382", 0.12f, null, 0f),
-            ("AC_CobbleA", "#D8C2A8", 0.14f, null, 0f),
-            ("AC_CobbleB", "#C5AC92", 0.14f, null, 0f),
-            ("AC_PlazaTile", "#EAE0CC", 0.14f, null, 0f),
-            ("AC_PlazaAccent", "#DEC7A8", 0.14f, null, 0f),
-            ("AC_Asphalt", "#6D7682", 0.10f, null, 0f),
-            ("AC_RoadLine", "#F0DFA8", 0.14f, null, 0f),
+            ("AC_StoneWhite", "#F2E9D6", 0.14f, null, 0f),
+            ("AC_StoneWarm", "#E2D4BC", 0.14f, null, 0f),
+            ("AC_StoneDark", "#A29584", 0.12f, null, 0f),
+            ("AC_CobbleA", "#DCC6A8", 0.14f, null, 0f),
+            ("AC_CobbleB", "#C8B092", 0.14f, null, 0f),
+            ("AC_PlazaTile", "#EFE4CE", 0.14f, null, 0f),
+            ("AC_PlazaAccent", "#E2CBAA", 0.14f, null, 0f),
+            ("AC_Asphalt", "#6E7884", 0.10f, null, 0f),
+            ("AC_RoadLine", "#EED2A4", 0.14f, null, 0f),
 
-            ("AC_WoodWarm", "#9E6945", 0.18f, null, 0f),      // Richer tropical teak wood decks!
-            ("AC_WoodLight", "#CFA074", 0.20f, null, 0f),
-            ("AC_WoodDark", "#6E442A", 0.16f, null, 0f),
+            ("AC_WoodWarm", "#A6764E", 0.18f, null, 0f),      // Warm Secondary: Coastal Light Wood!
+            ("AC_WoodLight", "#C9996B", 0.20f, null, 0f),
+            ("AC_WoodDark", "#744C30", 0.16f, null, 0f),
             ("AC_Cream", "#FAF2E4", 0.24f, null, 0f),
-            ("AC_PinkBerry", "#F26392", 0.30f, null, 0f),     // Hero focal accent!
-            ("AC_PinkSoft", "#F6A8C0", 0.28f, null, 0f),
-            ("AC_MintTeal", "#4CC6B8", 0.30f, null, 0f),      // Hero cart body turquoise!
-            ("AC_MintSoft", "#98DBD1", 0.26f, null, 0f),
-            ("AC_PurplePlum", "#4A8C8B", 0.26f, null, 0f),    // Calm coastal teal fascia
-            ("AC_Lavender", "#B3A0D4", 0.24f, null, 0f),
-            ("AC_Coral", "#D68E7E", 0.24f, null, 0f),         // Toned-down coastal terracotta-coral
-            ("AC_SunnyYellow", "#EED286", 0.26f, null, 0f),
-            ("AC_SkyBlue", "#7BBAD8", 0.26f, null, 0f),
+            ("AC_PinkBerry", "#EC6FA4", 0.30f, null, 0f),     // Magical Accent: Fairy Pink!
+            ("AC_PinkSoft", "#F4AECB", 0.28f, null, 0f),
+            ("AC_MintTeal", "#2AC6CC", 0.30f, null, 0f),      // Dominant Turquoise Accent!
+            ("AC_MintSoft", "#8EDFE2", 0.26f, null, 0f),
+            ("AC_PurplePlum", "#3A949A", 0.26f, null, 0f),    // Harmonized Coastal Teal fascia
+            ("AC_Lavender", "#C68CE0", 0.24f, null, 0f),      // Magical Accent: Fairy Lilac!
+            ("AC_Coral", "#D89886", 0.24f, null, 0f),         // Softened sand-terracotta secondary
+            ("AC_SunnyYellow", "#EED2A4", 0.26f, null, 0f),   // Harmonized Golden Sand yellow!
+            ("AC_SkyBlue", "#68C4D6", 0.26f, null, 0f),
             ("AC_Glass", "#CBEFF7", 0.62f, "#B4E6F2", 0.18f),
             ("AC_MetalDark", "#475160", 0.42f, null, 0f),
             ("AC_MetalSilver", "#D6DDE6", 0.52f, null, 0f),
-            ("AC_Gold", "#E8BE62", 0.48f, null, 0f),
+            ("AC_Gold", "#E8C374", 0.48f, null, 0f),
 
             ("AC_LanternGlow", "#FFE69C", 0.20f, "#FFD26B", 1.35f),
             ("AC_BulbWarm", "#FFF0B3", 0.20f, "#FFE082", 1.25f),
 
-            ("AC_PalmTrunk", "#C6966B", 0.14f, null, 0f),
-            ("AC_PalmRing", "#A47852", 0.14f, null, 0f),
-            ("AC_PalmLeaf", "#5B9B67", 0.22f, null, 0f),
-            ("AC_PalmLeafTip", "#7BB57E", 0.24f, null, 0f),
-            ("AC_Coconut", "#734B32", 0.26f, null, 0f),
-            ("AC_CoconutGreen", "#6DA968", 0.30f, null, 0f),
-            ("AC_BushGreen", "#639A6C", 0.16f, null, 0f),
-            ("AC_BushLight", "#7FB182", 0.18f, null, 0f),
-            ("AC_Terracotta", "#C97D60", 0.16f, null, 0f),
-            ("AC_Orange", "#DF9F68", 0.30f, null, 0f),
-            ("AC_Strawberry", "#F27B96", 0.32f, null, 0f),
+            ("AC_PalmTrunk", "#C9996B", 0.14f, null, 0f),
+            ("AC_PalmRing", "#A67A54", 0.14f, null, 0f),
+            ("AC_PalmLeaf", "#5B9E7E", 0.22f, null, 0f),
+            ("AC_PalmLeafTip", "#7BB896", 0.24f, null, 0f),
+            ("AC_Coconut", "#764E34", 0.26f, null, 0f),
+            ("AC_CoconutGreen", "#6BA884", 0.30f, null, 0f),
+            ("AC_BushGreen", "#629C80", 0.16f, null, 0f),
+            ("AC_BushLight", "#7EB496", 0.18f, null, 0f),
+            ("AC_Terracotta", "#C98868", 0.16f, null, 0f),
+            ("AC_Orange", "#DFA46E", 0.30f, null, 0f),
+            ("AC_Strawberry", "#EC6FA4", 0.32f, null, 0f),
             ("AC_Chocolate", "#724934", 0.30f, null, 0f),
             ("AC_Vanilla", "#FBF0D4", 0.28f, null, 0f),
             ("AC_Waffle", "#DFAA68", 0.20f, null, 0f),
-            ("AC_FlowerPink", "#F290B2", 0.26f, null, 0f),
-            ("AC_FlowerYellow", "#F2DA7A", 0.26f, null, 0f),
-            ("AC_FlowerBlue", "#88C2E8", 0.26f, null, 0f),
+            ("AC_FlowerPink", "#EC6FA4", 0.26f, null, 0f),
+            ("AC_FlowerYellow", "#EED286", 0.26f, null, 0f),
+            ("AC_FlowerBlue", "#68C4D6", 0.26f, null, 0f),
             ("AC_FlowerWhite", "#FBF8F0", 0.26f, null, 0f),
-            ("AC_Starfish", "#E28E76", 0.24f, null, 0f),
+            ("AC_Starfish", "#E09282", 0.24f, null, 0f),
             ("AC_Shell", "#F8E8DA", 0.32f, null, 0f),
 
             ("AC_SkinWarm", "#C9855E", 0.24f, null, 0f),
             ("AC_SkinLight", "#F4C29F", 0.24f, null, 0f),
             ("AC_SkinTan", "#DF9F73", 0.24f, null, 0f),
-            ("AC_CheekBlush", "#F694AA", 0.24f, null, 0f),
+            ("AC_CheekBlush", "#F494B4", 0.24f, null, 0f),
             ("AC_EyeDark", "#251D29", 0.65f, null, 0f),
             ("AC_EyeShine", "#FFFFFF", 0.40f, "#FFFFFF", 0.65f),
-            ("AC_HairPlum", "#723678", 0.30f, null, 0f),
+            ("AC_HairPlum", "#8A4A98", 0.30f, null, 0f),
             ("AC_HairBrown", "#6B442A", 0.26f, null, 0f),
             ("AC_HairDark", "#332A38", 0.28f, null, 0f),
             ("AC_HairAuburn", "#B45C42", 0.28f, null, 0f),
-            ("AC_Denim", "#567EA8", 0.16f, null, 0f),
-            ("AC_StrawHat", "#ECCE86", 0.16f, null, 0f),
+            ("AC_Denim", "#4694A8", 0.16f, null, 0f),
+            ("AC_StrawHat", "#EED2A4", 0.16f, null, 0f),
             ("AC_ShoeDark", "#4E3A4C", 0.24f, null, 0f),
             ("AC_HouseWall", "#F7ECDC", 0.14f, null, 0f),
-            ("AC_HouseRoof", "#D98D74", 0.20f, null, 0f),
-            ("AC_ProtagShirt", "#F26392", 0.28f, null, 0f),   // Hero focal accent!
+            ("AC_HouseRoof", "#D99678", 0.20f, null, 0f),
+            ("AC_ProtagShirt", "#EC6FA4", 0.28f, null, 0f),   // Magical Accent: Fairy Pink Hero!
             // GPU Vertex-Animated Breeze Hair Materials (upgraded to OrlaACNHHairWind shader below!)
             ("AC_HairWind_Brown", "#6B442A", 0.34f, null, 0f),
             ("AC_HairWind_Blonde", "#EBC772", 0.36f, null, 0f),

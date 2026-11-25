@@ -80,6 +80,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
 
     private readonly List<BowlRuntime> bowls = new List<BowlRuntime>();
     private readonly List<GuestRuntime> guests = new List<GuestRuntime>();
+    private readonly Dictionary<string, Texture2D> orderIconCache = new Dictionary<string, Texture2D>();
     private MaterialPropertyBlock bowlMpb;
 
     // Camponesa harvest cycle state
@@ -484,77 +485,137 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         return best;
     }
 
+    public bool TryServeTableByIndex(int tableIndex, bool byFairy)
+    {
+        for (int i = 0; i < guests.Count; i++)
+        {
+            if (guests[i].assignedTable == tableIndex && guests[i].waitingForOrder)
+            {
+                ServePetFriendlyGuest(guests[i]);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Texture2D GetIllustratedOrderIcon(string orderName)
+    {
+        string key = "icon_juice_lemon";
+        if (!string.IsNullOrEmpty(orderName))
+        {
+            string low = orderName.ToLowerInvariant();
+            if (low.Contains("sushi") || low.Contains("combinado") || low.Contains("salm")) key = "icon_sushi_combo";
+            else if (low.Contains("temaki")) key = "icon_temaki";
+            else if (low.Contains("hot") || low.Contains("roll")) key = "icon_hotroll";
+            else if (low.Contains("churrasc") || low.Contains("espet") || low.Contains("hamb") || low.Contains("prato")) key = "icon_burger";
+            else if (low.Contains("batata")) key = "icon_fries";
+            else if (low.Contains("peixe") || low.Contains("mar")) key = "icon_fish";
+            else if (low.Contains("pastel")) key = "icon_pastel";
+            else if (low.Contains("açaí") || low.Contains("acai")) key = "icon_acai";
+            else if (low.Contains("bolo") || low.Contains("torta") || low.Contains("cupcake") || low.Contains("sobrem")) key = "icon_cupcake";
+            else if (low.Contains("doce") || low.Contains("brigadeiro")) key = "icon_brigadeiro";
+            else if (low.Contains("sorvete") || low.Contains("morango")) key = "icon_ice_berry";
+            else if (low.Contains("rosa") || low.Contains("suco")) key = "icon_juice_berry";
+            else if (low.Contains("coco")) key = "icon_coconut";
+            else if (low.Contains("chá") || low.Contains("cha") || low.Contains("chimarr")) key = "icon_lemonade";
+            else if (low.Contains("café") || low.Contains("cafe") || low.Contains("energ")) key = "icon_guarana";
+            else if (low.Contains("água") || low.Contains("agua")) key = "icon_water";
+        }
+        if (orderIconCache.TryGetValue(key, out Texture2D cached)) return cached;
+        Texture2D loaded = Resources.Load<Texture2D>("CardapioIcons/" + key);
+        if (loaded == null) loaded = GirlPowerOrla3DUITheme.IconIceCreamLemonBasil;
+        orderIconCache[key] = loaded;
+        return loaded;
+    }
+
+    private Texture2D GetPetOrderIcon(GirlPowerOrla3DArchetypeConfig.PetKind petKind)
+    {
+        if (petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Gato)
+        {
+            if (!orderIconCache.TryGetValue("icon_fish", out Texture2D fish))
+            {
+                fish = Resources.Load<Texture2D>("CardapioIcons/icon_fish");
+                orderIconCache["icon_fish"] = fish;
+            }
+            if (fish != null) return fish;
+        }
+        if (petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita)
+            return GirlPowerOrla3DUITheme.IconBasil;
+        return GirlPowerOrla3DUITheme.IconPetTreat;
+    }
+
     // ------------------------------------------------------------------
-    // ONGUI: Dual Human+Pet Order Bubbles, Empty Water Bowl Alerts & Unified [E] Action
+    // ONGUI: Pure Icon-Only Diegetic World Feedback (NO text walls!)
     // ------------------------------------------------------------------
     private void OnGUI()
     {
         if (gameFlow != null && !gameFlow.IsPlaying) return;
         if (sceneCamera == null) return;
         GirlPowerOrla3DUITheme.EnsureInitialized();
-        float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
+        float s = Mathf.Clamp(Screen.width / 1600f, 0.72f, 1.15f);
 
-        // 1. Compact Pet Reputation pill tucked neatly at top-right under the icon bar (never blocks center!)
-        float rw = 192f * s;
-        Rect repRect = new Rect(Screen.width - rw - 16f * s, 186f * s, rw, 30f * s);
-        GUI.Box(repRect, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
-        GUI.Label(repRect, "🐾 Reputação Pet: " + PetReputation + "%",
-            new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(11.5f * s) });
-
-        // 2. Dual Order Bubbles (Human Order + Pet Order!) above seated Pet-Friendly guests
+        // 1. PURE ICON-ONLY Dual Order Bubbles above seated Pet-Friendly guests (NO text labels!)
         for (int i = 0; i < guests.Count; i++)
         {
             GuestRuntime g = guests[i];
             if (!g.waitingForOrder || g.cfg.actor == null) continue;
-            Vector3 sp = sceneCamera.WorldToScreenPoint(g.cfg.actor.position + Vector3.up * 2.1f);
-            if (sp.z <= 0.2f || sp.z > 28f) continue;
+            Vector3 sp = sceneCamera.WorldToScreenPoint(g.cfg.actor.position + Vector3.up * 2.15f);
+            if (sp.z <= 0.2f || sp.z > 30f) continue;
 
             float cx = sp.x;
             float cy = Screen.height - sp.y;
+            float bob = Mathf.Sin(Time.time * 3.2f + i) * 3.5f * s;
             bool hasPet = g.cfg.petKind != GirlPowerOrla3DArchetypeConfig.PetKind.None;
 
-            float bw = 152f * s;
-            float bh = 38f * s;
-            Rect humanBubble = new Rect(hasPet ? (cx - bw - 4f * s) : (cx - bw * 0.5f), cy - bh, bw, bh);
+            float bSz = 54f * s;
+            float pad = 7f * s;
+            Rect humanBubble = new Rect(hasPet ? (cx - bSz - 3f * s) : (cx - bSz * 0.5f), cy - bSz + bob, bSz, bSz);
             GUI.Box(humanBubble, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-            GUI.Label(humanBubble, "🍽 " + g.humanOrder,
-                new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(10.5f * s), alignment = TextAnchor.MiddleCenter });
+            Texture2D foodIcon = GetIllustratedOrderIcon(g.humanOrder);
+            if (foodIcon != null)
+                GUI.DrawTexture(new Rect(humanBubble.x + pad, humanBubble.y + pad, bSz - pad * 2f, bSz - pad * 2f), foodIcon);
 
             if (hasPet)
             {
-                Rect petBubble = new Rect(cx + 4f * s, cy - bh, bw, bh);
+                float pSz = 46f * s;
+                Rect petBubble = new Rect(cx + 3f * s, cy - pSz + bob - 3f * s, pSz, pSz);
                 GUI.Box(petBubble, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-                GUI.Label(petBubble, "🐾 " + g.petOrder,
-                    new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(10.5f * s), alignment = TextAnchor.MiddleCenter, normal = { textColor = new Color(0.16f, 0.48f, 0.42f) } });
+                Texture2D petIcon = GetPetOrderIcon(g.cfg.petKind);
+                if (petIcon != null)
+                    GUI.DrawTexture(new Rect(petBubble.x + pad, petBubble.y + pad, pSz - pad * 2f, pSz - pad * 2f), petIcon);
             }
         }
 
-        // 3. Red Alert Icon above EMPTY street/restaurant Water Bowls!
+        // 2. PURE ICON-ONLY Pulsing Blue Water Drop above EMPTY/LOW Water Bowls (NO text banner!)
         for (int i = 0; i < bowls.Count; i++)
         {
-            if (bowls[i].level > 0.14f || bowls[i].cfg.bowlRoot == null) continue;
-            Vector3 sp = sceneCamera.WorldToScreenPoint(bowls[i].cfg.bowlRoot.position + Vector3.up * 0.85f);
-            if (sp.z <= 0.2f || sp.z > 26f) continue;
-            float pw = 114f * s;
-            Rect al = new Rect(sp.x - pw * 0.5f, (Screen.height - sp.y) - 28f * s, pw, 26f * s);
-            GUI.Box(al, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
-            GUI.Label(al, "💧 Pote Vazio!", new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(10.5f * s) });
+            if (bowls[i].level > 0.22f || bowls[i].cfg.bowlRoot == null) continue;
+            Vector3 sp = sceneCamera.WorldToScreenPoint(bowls[i].cfg.bowlRoot.position + Vector3.up * 0.92f);
+            if (sp.z <= 0.2f || sp.z > 28f) continue;
+
+            float pulse = 1.0f + Mathf.Sin(Time.time * 6.5f + i) * 0.14f;
+            float floatY = Mathf.Sin(Time.time * 3.4f + i) * 4.5f * s;
+            float sz = 44f * s * pulse;
+            Rect badge = new Rect(sp.x - sz * 0.5f, (Screen.height - sp.y) - sz + floatY, sz, sz);
+            GUI.DrawTexture(badge, GirlPowerOrla3DUITheme.CircleGlassTex);
+            float ip = 7f * s * pulse;
+            GUI.DrawTexture(new Rect(badge.x + ip, badge.y + ip, sz - ip * 2f, sz - ip * 2f), GirlPowerOrla3DUITheme.IconWaterDrop);
         }
 
-        // 4. Unified bottom-center [E] Primary Action Pill (only if story isn't showing an [E] prompt!)
+        // 3. Compact contextual bottom-center primary action pill ONLY when standing right next to a bowl/table
         bool storyBusy = storyController != null && storyController.HasNearbyStoryInteractable;
         if (!storyBusy)
         {
             int lowBowl = FindNearestLowBowl(2.8f);
             if (lowBowl >= 0)
             {
-                DrawUnifiedActionPill("[E] Reabastecer Pote de Água", s, () => RefillBowl(lowBowl, false));
+                DrawUnifiedActionPill("[E] Encher Água", s, () => RefillBowl(lowBowl, false));
                 return;
             }
             GuestRuntime waiting = FindNearestWaitingGuest(3.4f);
             if (waiting != null)
             {
-                DrawUnifiedActionPill("[E] Servir " + waiting.profile.displayName + " & Pet", s, () => ServePetFriendlyGuest(waiting));
+                DrawUnifiedActionPill("[E] Servir Mesa", s, () => ServePetFriendlyGuest(waiting));
             }
         }
     }

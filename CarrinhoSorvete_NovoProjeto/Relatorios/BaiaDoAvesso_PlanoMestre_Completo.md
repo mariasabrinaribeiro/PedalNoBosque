@@ -126,3 +126,20 @@
   - **Balões Duplos de Pedido:** Clientes acompanhados de Cachorro, Gato ou **Calopsita voando/pousada** abrem simultaneamente o balão humano + o balão do pet (*Petisco de Carne*, *Sachê de Peixe*, *Semente & Frutas*).
   - **5 Potes de Água & Reputação Pet:** Indicador visual dinâmico (Cheio azul → Metade âmbar → Vazio vermelho pulsante); pet sedento perto de pote vazio desconta `-5 Reputação`; Protagonista (`[E]`) ou Garçonete Fada reabastecem.
 - [x] **4 Zonas Lógicas no Mapa (`GirlPowerOrla3DSceneBuilder.cs`):** Fundo Verde/Pomar (Camponesa), Calçadão Central (Gaúcho, Espiã, Barbie, Princesa, Vovó, Kung Fu, Japonês + 5 Potes de Água), Restaurante Pet Friendly (Mesas largas + Fadas) e Areia/Mar (Praia/Futebol/Futebol Americano).
+
+
+---
+
+### Etapa 13 — Controles Mobile em 3 Camadas Exclusivas, HUD Minimalista 15%, Feedback Diegético por Ícones, Andar com Contrarrotação & Paleta 3 Cores
+- [x] **Sistema de Toque Mobile Exclusivo em 3 Camadas (`GirlPowerOrla3DMobileTouchController.cs` + `GirlPowerOrla3DTouchTarget.cs`):** Funciona em Mobile Touch (`EnhancedTouch`) e Mouse (Editor/WebGL) sem nunca misturar câmera com movimentação ou arraste:
+  - **Camada 1 — Arrastar no Cenário Vazio = Pan Suave da Câmera + Inércia + Pinça com 2 Dedos:** Desliza o mapa suavemente com amortecimento e travas nas bordas da cena; zoom com pinça (ou scroll) limitado entre `0.75–1.62` para nunca encostar no chão.
+  - **Camada 2 — Toque Simples no Chão = Tap-to-Move da Protagonista:** Envia a personagem suavemente ao ponto tocado com anel circular turquesa expansivo confirmando o toque (`Indicador_Toque_Chao`).
+  - **Camada 3 — Drag & Drop Direto em Hitboxes +40% (Regra de Ouro Mobile):** Todos os alvos interativos (3 Fadas Garçonetes, 5 Potes de Água, Mesas Pet Friendly, Carrinho de Sorvete, Cozinha, Horta/Pomar, 8 Barracas e NPCs da História) receberam colliders de toque `isTrigger` `+40%` maiores que a malha visual. Arrastar da **Fada Garçonete** desenha um arco pontilhado rosa-lilás com halo magnético até uma mesa ou pote vazio e despacha a fada imediatamente (`GirlPowerOrla3DNpcAI.DispatchFairyTo`).
+- [x] **HUD Minimalista ≤15% da Tela & Feedback Diegético Puro por Ícones (`GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DLifeActivities.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`, `GirlPowerOrla3DUITheme.cs`):**
+  - Barra inferior removida completamente — mais de **88% do centro e da base da tela** ficam 100% livres para arrastar o dedo.
+  - Canto superior esquerdo compacto: mini-card ilustrado + barra única de ícones e números (Moedas, Reputação Pet %, Ervas, Bolsa).
+  - Canto superior direito compacto: barra de vidro fosco somente com ícones (`Cardápio`, `Mobilidade`, `Pipoca`, `Sol/Lua`, `Maré`, `Foto`, `Pausa`).
+  - **Mundo 100% por Ícones:** Pote de água vazio exibe apenas uma **gota d'água azul-turquesa pulsante** (`IconWaterDrop`); mesas Pet Friendly exibem **bolhas arredondadas apenas com o ícone ilustrado do prato (`CardapioIcons`) e o petisco do pet** — zero paredes de texto.
+- [x] **Ciclo de Andar Natural sem Rigidez & Paleta Fixa de 3 Cores (`GirlPowerOrla3DCharacterAnimator.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Movimento secundário real no `Protag_Torso` e `Protag_Head`: contrarrotação suave de ombros/tronco (`±7.5°` andando / `±11.5°` correndo, oposta ao balanço das pernas), deslocamento lateral de peso e curva de rotação orgânica (`turnSpeed = 7.8`).
+  - Paleta unificada em 3 cores fixas na fatia jogável: **Turquesa Costeiro** (`#2AC6CC`), **Areia Dourada / Madeira Clara** (`#EED2A4` / `#C9996B`) e **Rosa-Lilás Mágico das Fadas** (`#EC6FA4` / `#C68CE0`).

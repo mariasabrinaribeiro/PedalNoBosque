@@ -86,42 +86,46 @@ public static class GirlPowerOrla3DUITheme
     public static Texture2D IconPortraitMarina;
     public static Texture2D IconPortraitBia;
     public static Texture2D IconPortraitPavilion;
+    public static Texture2D IconWaterDrop;
+    public static Texture2D IconMenuBook;
+    public static Texture2D IconMobility;
+    public static Texture2D IconPetTreat;
 
     public static void EnsureInitialized()
     {
         if (initialized && CardCreamTex != null) return;
         initialized = true;
 
-        // 9-slice rounded card & button textures (64x64 with 20px border radius)
-        CardCreamTex = MakeRoundedBox(64, 64, 18, new Color(0.99f, 0.96f, 0.89f, 0.96f), new Color(0.77f, 0.57f, 0.37f, 1f), 3, true);
-        CardWoodTex = MakeRoundedBox(64, 64, 16, new Color(0.54f, 0.35f, 0.22f, 0.96f), new Color(0.86f, 0.69f, 0.48f, 1f), 3, true);
-        CardGlassTex = MakeRoundedBox(64, 64, 18, new Color(0.14f, 0.24f, 0.32f, 0.72f), new Color(0.85f, 0.95f, 0.98f, 0.45f), 2, true);
-        CardTealTex = MakeRoundedBox(64, 64, 16, new Color(0.18f, 0.58f, 0.56f, 0.96f), new Color(0.75f, 0.95f, 0.91f, 0.85f), 2, true);
-        CardCoralTex = MakeRoundedBox(64, 64, 18, new Color(0.91f, 0.40f, 0.48f, 0.98f), new Color(1.0f, 0.84f, 0.82f, 0.90f), 3, true);
-        CardGoldTex = MakeRoundedBox(64, 64, 16, new Color(0.95f, 0.74f, 0.24f, 0.97f), new Color(1.0f, 0.94f, 0.70f, 0.95f), 2, true);
-        CardDarkModalTex = MakeRoundedBox(64, 64, 22, new Color(0.16f, 0.14f, 0.20f, 0.94f), new Color(0.88f, 0.72f, 0.52f, 0.85f), 3, true);
-        PillDarkTex = MakeRoundedBox(64, 40, 18, new Color(0.16f, 0.14f, 0.20f, 0.84f), new Color(1f, 0.94f, 0.84f, 0.35f), 2, false);
-        PillWhiteTex = MakeRoundedBox(64, 40, 18, new Color(1f, 0.98f, 0.93f, 0.96f), new Color(0.82f, 0.68f, 0.50f, 0.90f), 2, true);
-        DimOverlayTex = MakeSolid(new Color(0.08f, 0.09f, 0.15f, 0.62f));
+        // Fixed 3-Color Cohesive Palette (Turquoise #2AC6CC + Warm Sand/Wood #EED2A4/#C9996B + Fairy Pink-Lilac #EC6FA4)
+        CardCreamTex = MakeRoundedBox(64, 64, 18, new Color(0.99f, 0.96f, 0.89f, 0.95f), new Color(0.788f, 0.600f, 0.420f, 1f), 3, true);
+        CardWoodTex = MakeRoundedBox(64, 64, 16, new Color(0.62f, 0.43f, 0.27f, 0.96f), new Color(0.933f, 0.824f, 0.643f, 1f), 3, true);
+        CardGlassTex = MakeRoundedBox(64, 64, 18, new Color(0.11f, 0.30f, 0.36f, 0.72f), new Color(0.68f, 0.94f, 0.95f, 0.55f), 2, true);
+        CardTealTex = MakeRoundedBox(64, 64, 16, new Color(0.165f, 0.776f, 0.800f, 0.96f), new Color(0.84f, 0.98f, 0.97f, 0.90f), 2, true);
+        CardCoralTex = MakeRoundedBox(64, 64, 18, new Color(0.925f, 0.435f, 0.643f, 0.98f), new Color(1.0f, 0.88f, 0.92f, 0.92f), 3, true);
+        CardGoldTex = MakeRoundedBox(64, 64, 16, new Color(0.933f, 0.784f, 0.431f, 0.97f), new Color(1.0f, 0.95f, 0.78f, 0.95f), 2, true);
+        CardDarkModalTex = MakeRoundedBox(64, 64, 22, new Color(0.14f, 0.20f, 0.25f, 0.94f), new Color(0.933f, 0.824f, 0.643f, 0.85f), 3, true);
+        PillDarkTex = MakeRoundedBox(64, 40, 18, new Color(0.12f, 0.22f, 0.27f, 0.84f), new Color(0.933f, 0.824f, 0.643f, 0.40f), 2, false);
+        PillWhiteTex = MakeRoundedBox(64, 40, 18, new Color(1f, 0.98f, 0.93f, 0.96f), new Color(0.788f, 0.600f, 0.420f, 0.90f), 2, true);
+        DimOverlayTex = MakeSolid(new Color(0.08f, 0.12f, 0.16f, 0.58f));
         CircleWhiteTex = MakeCircleTex(64, Color.white, new Color(0.25f, 0.20f, 0.18f, 0.28f), 2);
-        CircleGlassTex = MakeCircleTex(64, new Color(0.15f, 0.24f, 0.32f, 0.62f), new Color(1f, 1f, 1f, 0.45f), 2);
-        CircleCoralTex = MakeCircleTex(64, new Color(0.92f, 0.42f, 0.52f, 0.95f), new Color(1f, 0.90f, 0.85f, 0.90f), 3);
+        CircleGlassTex = MakeCircleTex(64, new Color(0.12f, 0.30f, 0.36f, 0.66f), new Color(0.84f, 0.98f, 0.98f, 0.55f), 2);
+        CircleCoralTex = MakeCircleTex(64, new Color(0.925f, 0.435f, 0.643f, 0.96f), new Color(1f, 0.90f, 0.94f, 0.92f), 3);
 
-        Texture2D btnPrimaryN = MakeRoundedBox(64, 48, 16, new Color(0.92f, 0.40f, 0.50f, 1f), new Color(1.0f, 0.86f, 0.82f, 0.92f), 3, true);
-        Texture2D btnPrimaryH = MakeRoundedBox(64, 48, 16, new Color(0.97f, 0.48f, 0.57f, 1f), Color.white, 3, true);
-        Texture2D btnPrimaryA = MakeRoundedBox(64, 48, 16, new Color(0.78f, 0.32f, 0.42f, 1f), new Color(1f, 0.80f, 0.78f, 1f), 3, false);
+        Texture2D btnPrimaryN = MakeRoundedBox(64, 48, 16, new Color(0.925f, 0.435f, 0.643f, 1f), new Color(1.0f, 0.88f, 0.93f, 0.94f), 3, true);
+        Texture2D btnPrimaryH = MakeRoundedBox(64, 48, 16, new Color(0.96f, 0.52f, 0.72f, 1f), Color.white, 3, true);
+        Texture2D btnPrimaryA = MakeRoundedBox(64, 48, 16, new Color(0.78f, 0.35f, 0.55f, 1f), new Color(1f, 0.84f, 0.90f, 1f), 3, false);
 
-        Texture2D btnSecN = MakeRoundedBox(64, 48, 14, new Color(0.98f, 0.94f, 0.85f, 0.98f), new Color(0.75f, 0.56f, 0.38f, 1f), 2, true);
-        Texture2D btnSecH = MakeRoundedBox(64, 48, 14, new Color(1.0f, 0.98f, 0.92f, 1f), new Color(0.92f, 0.44f, 0.52f, 1f), 3, true);
-        Texture2D btnSecA = MakeRoundedBox(64, 48, 14, new Color(0.90f, 0.84f, 0.73f, 1f), new Color(0.65f, 0.46f, 0.30f, 1f), 2, false);
+        Texture2D btnSecN = MakeRoundedBox(64, 48, 14, new Color(0.98f, 0.94f, 0.86f, 0.98f), new Color(0.788f, 0.600f, 0.420f, 1f), 2, true);
+        Texture2D btnSecH = MakeRoundedBox(64, 48, 14, new Color(1.0f, 0.98f, 0.92f, 1f), new Color(0.165f, 0.776f, 0.800f, 1f), 3, true);
+        Texture2D btnSecA = MakeRoundedBox(64, 48, 14, new Color(0.91f, 0.85f, 0.74f, 1f), new Color(0.65f, 0.47f, 0.31f, 1f), 2, false);
 
-        Texture2D btnGlassN = MakeRoundedBox(64, 48, 16, new Color(0.15f, 0.25f, 0.34f, 0.78f), new Color(0.84f, 0.95f, 0.98f, 0.50f), 2, true);
-        Texture2D btnGlassH = MakeRoundedBox(64, 48, 16, new Color(0.22f, 0.38f, 0.48f, 0.90f), new Color(1f, 0.95f, 0.80f, 0.85f), 2, true);
-        Texture2D btnGlassA = MakeRoundedBox(64, 48, 16, new Color(0.11f, 0.19f, 0.26f, 0.92f), Color.white, 2, false);
+        Texture2D btnGlassN = MakeRoundedBox(64, 48, 16, new Color(0.12f, 0.34f, 0.40f, 0.78f), new Color(0.64f, 0.94f, 0.95f, 0.55f), 2, true);
+        Texture2D btnGlassH = MakeRoundedBox(64, 48, 16, new Color(0.165f, 0.62f, 0.66f, 0.92f), new Color(1f, 0.96f, 0.84f, 0.90f), 2, true);
+        Texture2D btnGlassA = MakeRoundedBox(64, 48, 16, new Color(0.10f, 0.25f, 0.30f, 0.92f), Color.white, 2, false);
 
-        Texture2D btnTileN = MakeRoundedBox(64, 48, 14, new Color(0.97f, 0.93f, 0.84f, 0.95f), new Color(0.45f, 0.68f, 0.66f, 0.95f), 3, true);
-        Texture2D btnTileH = MakeRoundedBox(64, 48, 14, new Color(1.0f, 0.98f, 0.92f, 1f), new Color(0.92f, 0.44f, 0.54f, 1f), 3, true);
-        Texture2D btnTileA = MakeRoundedBox(64, 48, 14, new Color(0.88f, 0.84f, 0.74f, 1f), new Color(0.30f, 0.54f, 0.52f, 1f), 3, false);
+        Texture2D btnTileN = MakeRoundedBox(64, 48, 14, new Color(0.98f, 0.95f, 0.87f, 0.96f), new Color(0.165f, 0.776f, 0.800f, 0.85f), 3, true);
+        Texture2D btnTileH = MakeRoundedBox(64, 48, 14, new Color(1.0f, 0.98f, 0.93f, 1f), new Color(0.925f, 0.435f, 0.643f, 1f), 3, true);
+        Texture2D btnTileA = MakeRoundedBox(64, 48, 14, new Color(0.90f, 0.85f, 0.75f, 1f), new Color(0.14f, 0.58f, 0.60f, 1f), 3, false);
 
         Texture2D btnDangerN = MakeRoundedBox(64, 48, 14, new Color(0.76f, 0.28f, 0.34f, 0.96f), new Color(1f, 0.78f, 0.78f, 0.80f), 2, true);
         Texture2D btnDangerH = MakeRoundedBox(64, 48, 14, new Color(0.86f, 0.34f, 0.40f, 1f), Color.white, 2, true);
@@ -332,6 +336,10 @@ public static class GirlPowerOrla3DUITheme
         IconPortraitMarina = BuildPortraitIcon(64, new Color32(236, 122, 102, 255), new Color32(84, 50, 40, 255), false);
         IconPortraitBia = BuildPortraitIcon(64, new Color32(158, 118, 214, 255), new Color32(58, 42, 66, 255), false);
         IconPortraitPavilion = BuildPavilionIcon(64);
+        IconWaterDrop = BuildWaterDropIcon(64);
+        IconMenuBook = BuildMenuBookIcon(64);
+        IconMobility = BuildMobilityIcon(64);
+        IconPetTreat = BuildPetTreatIcon(64);
     }
 
     private static Texture2D MakeRoundedBox(int w, int h, int radius, Color fill, Color border, int borderW, bool dropShadow)
@@ -780,6 +788,72 @@ public static class GirlPowerOrla3DUITheme
         DrawDisc(px, sz, 84, 28, 10, new Color32(54, 48, 62, 255));
         // "FECHADO" wooden plaque
         DrawRect32(px, sz, 44, 40, 40, 14, new Color32(138, 88, 56, 255));
+        return FinishCanvas(t, px);
+    }
+
+    private static Texture2D BuildWaterDropIcon(int sz)
+    {
+        Texture2D t = NewCanvas(sz, out Color32[] px);
+        // Clean coastal blue-turquoise pulsing water drop (diegetic empty bowl cue!)
+        Color32 rim = new Color32(236, 252, 255, 255);
+        Color32 body = new Color32(42, 198, 204, 255);
+        Color32 deep = new Color32(28, 146, 178, 255);
+        DrawDisc(px, sz, 32, 24, 18, rim);
+        DrawTri(px, sz, new Vector2(15, 28), new Vector2(49, 28), new Vector2(32, 57), rim);
+        DrawDisc(px, sz, 32, 24, 15, body);
+        DrawTri(px, sz, new Vector2(18, 27), new Vector2(46, 27), new Vector2(32, 52), body);
+        DrawDisc(px, sz, 34, 20, 10, deep);
+        DrawDisc(px, sz, 25, 29, 4.5f, new Color32(255, 255, 255, 235));
+        DrawDisc(px, sz, 23, 22, 2.2f, new Color32(255, 255, 255, 210));
+        return FinishCanvas(t, px);
+    }
+
+    private static Texture2D BuildMenuBookIcon(int sz)
+    {
+        Texture2D t = NewCanvas(sz, out Color32[] px);
+        // Cozy warm wood & cream illustrated recipe book icon
+        DrawRect32(px, sz, 11, 12, 42, 40, new Color32(201, 153, 107, 255));
+        DrawRect32(px, sz, 14, 15, 17, 34, new Color32(252, 246, 232, 255));
+        DrawRect32(px, sz, 33, 15, 17, 34, new Color32(248, 240, 222, 255));
+        DrawRect32(px, sz, 30, 14, 4, 36, new Color32(166, 112, 68, 255));
+        // Cute pink-lilac & turquoise dish accents on pages
+        DrawDisc(px, sz, 22, 34, 5, new Color32(236, 111, 164, 255));
+        DrawRect32(px, sz, 17, 22, 11, 3, new Color32(158, 124, 96, 255));
+        DrawDisc(px, sz, 41, 34, 5, new Color32(42, 198, 204, 255));
+        DrawRect32(px, sz, 36, 22, 11, 3, new Color32(158, 124, 96, 255));
+        return FinishCanvas(t, px);
+    }
+
+    private static Texture2D BuildMobilityIcon(int sz)
+    {
+        Texture2D t = NewCanvas(sz, out Color32[] px);
+        // Stylized beach scooter / wheel icon in warm cream & turquoise
+        DrawDisc(px, sz, 19, 20, 8, new Color32(252, 246, 232, 255));
+        DrawDisc(px, sz, 19, 20, 4, new Color32(42, 198, 204, 255));
+        DrawDisc(px, sz, 45, 20, 8, new Color32(252, 246, 232, 255));
+        DrawDisc(px, sz, 45, 20, 4, new Color32(42, 198, 204, 255));
+        DrawRect32(px, sz, 18, 21, 28, 5, new Color32(236, 111, 164, 255));
+        DrawRect32(px, sz, 41, 24, 5, 22, new Color32(252, 246, 232, 255));
+        DrawRect32(px, sz, 36, 44, 13, 5, new Color32(238, 210, 164, 255));
+        return FinishCanvas(t, px);
+    }
+
+    private static Texture2D BuildPetTreatIcon(int sz)
+    {
+        Texture2D t = NewCanvas(sz, out Color32[] px);
+        // Warm golden pet treat / bone icon for pet order bubbles!
+        Color32 bone = new Color32(240, 204, 132, 255);
+        Color32 shade = new Color32(204, 158, 88, 255);
+        DrawDisc(px, sz, 18, 25, 8, shade);
+        DrawDisc(px, sz, 18, 39, 8, shade);
+        DrawDisc(px, sz, 46, 25, 8, shade);
+        DrawDisc(px, sz, 46, 39, 8, shade);
+        DrawRect32(px, sz, 18, 26, 28, 12, shade);
+        DrawDisc(px, sz, 18, 26, 6.5f, bone);
+        DrawDisc(px, sz, 18, 38, 6.5f, bone);
+        DrawDisc(px, sz, 46, 26, 6.5f, bone);
+        DrawDisc(px, sz, 46, 38, 6.5f, bone);
+        DrawRect32(px, sz, 18, 28, 28, 8, bone);
         return FinishCanvas(t, px);
     }
 }

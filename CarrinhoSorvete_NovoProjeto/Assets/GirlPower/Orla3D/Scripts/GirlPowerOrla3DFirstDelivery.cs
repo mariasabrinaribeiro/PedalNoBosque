@@ -59,13 +59,14 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public GirlPowerOrla3DLifeActivities lifeActivities;
     public GirlPowerOrla3DMegaSystems megaSystems;
     public GirlPowerOrla3DCardapioUI cardapioUI;
+    public GirlPowerOrla3DPetFriendlySystem petFriendlySystem;
     public BoxCollider[] blockingObstacles;
 
     [Header("Movement & Feel")]
     public float walkSpeed = 4.0f;
     public float runSpeed = 6.4f;
     public float surfSpeed = 7.9f;
-    public float turnSpeed = 9.5f;
+    public float turnSpeed = 7.8f;
     public float interactionRadius = 2.9f;
 
     [Header("Open Spacious Horizon Camera (Wide Beach, Fairies & Town Horizon)")]
@@ -141,13 +142,58 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private bool ninaIntroShown;
     private float zoomFactor = 1f;
 
-    // Smart multiplatform touch/keyboard detection & floating analog joystick
+    // Smart multiplatform touch/keyboard detection & 3-layer mobile tap-to-move / camera pan
     private bool touchDetected;
     private bool keyboardUsedRecently;
     private bool joyDragging;
     private Vector2 joyCenterGui;
     private Vector2 joyVector;
     private bool touchSprint;
+    private bool hasTapDest;
+    private Vector3 tapDestWorld;
+    private System.Action tapArriveCallback;
+    private Vector2 cameraPanOffsetXZ;
+    private Rect topLeftHudRect;
+    private Rect topRightHudRect;
+
+    public float CurrentZoomFactor => zoomFactor;
+
+    public void SetTapDestination(Vector3 worldPos, System.Action onArrive = null)
+    {
+        hasTapDest = true;
+        tapDestWorld = new Vector3(
+            Mathf.Clamp(worldPos.x, minWorldX + 0.35f, maxWorldX - 0.35f),
+            0f,
+            Mathf.Clamp(worldPos.z, minWorldZ + 0.35f, maxWorldZ - 0.35f));
+        tapArriveCallback = onArrive;
+    }
+
+    public void ClearTapDestination()
+    {
+        hasTapDest = false;
+        tapArriveCallback = null;
+    }
+
+    public void AddCameraPanOffset(Vector2 deltaXZ)
+    {
+        cameraPanOffsetXZ += deltaXZ;
+        if (player != null)
+        {
+            float clampedX = Mathf.Clamp(player.position.x + cameraPanOffsetXZ.x, minWorldX + 2.5f, maxWorldX - 2.5f);
+            float clampedZ = Mathf.Clamp(player.position.z + cameraPanOffsetXZ.y, minWorldZ + 1.2f, maxWorldZ - 2.0f);
+            cameraPanOffsetXZ = new Vector2(clampedX - player.position.x, clampedZ - player.position.z);
+        }
+    }
+
+    public void AdjustCameraZoom(float deltaZoom)
+    {
+        zoomFactor = Mathf.Clamp(zoomFactor + deltaZoom, Mathf.Max(0.75f, minZoom), Mathf.Min(1.62f, maxZoom));
+    }
+
+    public bool IsUiPointBlocked(Vector2 guiPos)
+    {
+        return topLeftHudRect.Contains(guiPos) || topRightHudRect.Contains(guiPos);
+    }
 
     // Diegetic 3D Ground Beacon & Invisible Chapter 1 Onboarding Camera Pan
     private Transform groundBeacon;
@@ -166,6 +212,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (lifeActivities == null) lifeActivities = FindObjectOfType<GirlPowerOrla3DLifeActivities>();
         if (megaSystems == null) megaSystems = FindObjectOfType<GirlPowerOrla3DMegaSystems>();
         if (cardapioUI == null) cardapioUI = FindObjectOfType<GirlPowerOrla3DCardapioUI>();
+        if (petFriendlySystem == null) petFriendlySystem = FindObjectOfType<GirlPowerOrla3DPetFriendlySystem>();
 
         touchDetected = Input.touchSupported && (Application.isMobilePlatform || SystemInfo.deviceType == DeviceType.Handheld);
         CaptureHomePositions();
@@ -404,6 +451,32 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (joyDragging && joyVector.sqrMagnitude > 0.01f && !talking && !viewingPhoto)
             input = joyVector;
 
+        // Direct keyboard/gamepad input immediately takes priority over tap-to-move
+        if (input.sqrMagnitude > 0.01f)
+        {
+            ClearTapDestination();
+            cameraPanOffsetXZ = Vector2.Lerp(cameraPanOffsetXZ, Vector2.zero, 1f - Mathf.Exp(-3.2f * Time.deltaTime));
+        }
+        else if (hasTapDest && !talking && !viewingPhoto && !modalBlocked)
+        {
+            Vector2 delta = new Vector2(tapDestWorld.x - player.position.x, tapDestWorld.z - player.position.z);
+            float dist = delta.magnitude;
+            float arriveRadius = tapArriveCallback != null ? 1.85f : 0.42f;
+            if (dist <= arriveRadius)
+            {
+                System.Action cb = tapArriveCallback;
+                ClearTapDestination();
+                cb?.Invoke();
+            }
+            else
+            {
+                // Gentle deceleration curve as the protagonist reaches the tapped ground circle
+                float ease = Mathf.Clamp01(dist / 1.15f);
+                input = (delta / dist) * Mathf.Max(0.35f, ease);
+                cameraPanOffsetXZ = Vector2.Lerp(cameraPanOffsetXZ, Vector2.zero, 1f - Mathf.Exp(-2.0f * Time.deltaTime));
+            }
+        }
+
         if (input.sqrMagnitude > 1f) input.Normalize();
         bool running = !talking && !viewingPhoto && (
             (keys != null && (keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed))
@@ -623,10 +696,12 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         Vector3 scaledOffset = baseOff * zoomFactor;
         float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.26f, -1.5f, 1.5f);
-        // Slightly bias camera forward (+0.65f Z) on land so the protagonist sees more path ahead!
+        // Slightly bias camera forward (+0.55f Z) on land so the protagonist sees more path ahead!
         float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.18f, -0.9f, 0.9f) + (inWater ? -0.4f : 0.55f);
-        float desiredX = Mathf.Clamp(player.position.x + lookAheadX, minWorldX + 3.0f, maxWorldX - 3.0f);
-        float desiredZ = player.position.z + lookAheadZ + scaledOffset.z;
+        float focusX = Mathf.Clamp(player.position.x + lookAheadX + cameraPanOffsetXZ.x, minWorldX + 2.5f, maxWorldX - 2.5f);
+        float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + cameraPanOffsetXZ.y, minWorldZ + 1.2f, maxWorldZ - 2.0f);
+        float desiredX = focusX;
+        float desiredZ = focusZ + scaledOffset.z;
         float desiredY = player.position.y + scaledOffset.y;
         Vector3 shake = GirlPowerOrla3DJuice.Instance != null ? GirlPowerOrla3DJuice.Instance.GetCameraShakeOffset() : Vector3.zero;
         Vector3 target = new Vector3(desiredX, desiredY, desiredZ) + shake;
@@ -1382,67 +1457,97 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawCompactOrderCard(float s)
     {
-        float cw = 360f * s;
-        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 122f * s : 102f * s;
-        Rect card = new Rect(18f * s, 18f * s, cw, ch);
+        // 15%-SCREEN RULE: Ultra-compact Top-Left illustrated pill (client + item + icon-only resource strip!)
+        float cw = 256f * s;
+        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 74f * s : 62f * s;
+        Rect card = new Rect(14f * s, 14f * s, cw, ch);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         GetOrderVisuals(out Texture2D clientIcon, out Texture2D itemIcon, out string chapterTag, out string shortTask, out string counterBadge);
 
-        // Client portrait badge on left
-        float iconSz = 64f * s;
-        GUI.DrawTexture(new Rect(card.x + 10f * s, card.y + 15f * s, iconSz, iconSz), clientIcon);
+        // Client portrait badge on left + overlapping order item mini-icon
+        float iconSz = 46f * s;
+        GUI.DrawTexture(new Rect(card.x + 8f * s, card.y + 8f * s, iconSz, iconSz), clientIcon);
+        float miniSz = 26f * s;
+        GUI.DrawTexture(new Rect(card.x + 32f * s, card.y + 30f * s, miniSz, miniSz), itemIcon);
 
-        // Order item mini-bubble overlapping bottom-right of portrait
-        float miniSz = 36f * s;
-        GUI.DrawTexture(new Rect(card.x + 42f * s, card.y + 48f * s, miniSz, miniSz), itemIcon);
-
-        // Chapter pill & short visual objective
-        Rect tagRect = new Rect(card.x + 84f * s, card.y + 13f * s, 142f * s, 24f * s);
-        GUI.Box(tagRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-        GUIStyle tagSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(12f * s) };
-        GUI.Label(tagRect, chapterTag, tagSt);
-
-        if (!string.IsNullOrEmpty(counterBadge))
-        {
-            Rect cntRect = new Rect(card.xMax - 82f * s, card.y + 13f * s, 68f * s, 24f * s);
-            GUI.Box(cntRect, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
-            GUI.Label(cntRect, counterBadge, tagSt);
-        }
-
-        // Integrated directional arrow + distance badge inside the Mission Card (no loose floating edge pill!)
+        // Concise directional distance + progress counter (no heavy text walls!)
         Transform objTarget = GetActiveObjectiveTarget();
-        string distSuffix = "";
+        string distStr = "";
         if (objTarget != null && player != null && !NearXZ(objTarget, 3.0f))
         {
             Vector3 d = objTarget.position - player.position;
             float m = new Vector2(d.x, d.z).magnitude;
             string arr = Mathf.Abs(d.x) > Mathf.Abs(d.z) ? (d.x > 0f ? "→" : "←") : (d.z > 0f ? "↑" : "↓");
-            distSuffix = "  (" + arr + " " + Mathf.RoundToInt(m) + "m)";
+            distStr = arr + " " + Mathf.RoundToInt(m) + "m";
         }
 
-        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(15f * s), wordWrap = true };
-        GUI.Label(new Rect(card.x + 84f * s, card.y + 42f * s, cw - 98f * s, 48f * s), shortTask + distSuffix, taskSt);
+        GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(11f * s) };
+        if (!string.IsNullOrEmpty(counterBadge))
+        {
+            Rect cntRect = new Rect(card.x + 64f * s, card.y + 8f * s, 54f * s, 20f * s);
+            GUI.Box(cntRect, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
+            GUI.Label(cntRect, counterBadge, badgeSt);
+        }
+        if (!string.IsNullOrEmpty(distStr))
+        {
+            Rect distRect = new Rect(card.x + 124f * s, card.y + 8f * s, 68f * s, 20f * s);
+            GUI.Box(distRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
+            GUI.Label(distRect, distStr, badgeSt);
+        }
 
-        // Patience / Daylight Timer Bar
+        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(11.5f * s), wordWrap = false };
+        GUI.Label(new Rect(card.x + 64f * s, card.y + 30f * s, cw - 72f * s, 24f * s), shortTask, taskSt);
+
+        // Sleek Daylight/Patience Progress Bar tucked at bottom edge
         if (gameFlow != null && gameFlow.HasActiveTimer)
         {
             float ratio = Mathf.Clamp01(gameFlow.ChapterTimeRemaining / Mathf.Max(1f, gameFlow.ChapterTimeMax));
             Color barCol = ratio > 0.45f
-                ? new Color(0.32f, 0.80f, 0.62f)
-                : (ratio > 0.22f ? new Color(0.98f, 0.74f, 0.26f) : new Color(0.94f, 0.34f, 0.38f));
-
-            Rect barRect = new Rect(card.x + 14f * s, card.yMax - 22f * s, cw - 76f * s, 12f * s);
+                ? new Color(0.165f, 0.776f, 0.80f)
+                : (ratio > 0.22f ? new Color(0.95f, 0.76f, 0.34f) : new Color(0.925f, 0.435f, 0.643f));
+            Rect barRect = new Rect(card.x + 10f * s, card.yMax - 15f * s, cw - 62f * s, 9f * s);
             GirlPowerOrla3DUITheme.DrawProgressBar(barRect, ratio, barCol);
 
             GUIStyle tmSt = new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle)
             {
                 alignment = TextAnchor.MiddleRight,
-                fontSize = Mathf.RoundToInt(12f * s),
-                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.20f, 0.24f) : new Color(0.42f, 0.30f, 0.22f) }
+                fontSize = Mathf.RoundToInt(10.5f * s),
+                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.22f, 0.34f) : new Color(0.42f, 0.30f, 0.22f) }
             };
-            GUI.Label(new Rect(card.xMax - 60f * s, card.yMax - 26f * s, 46f * s, 20f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
+            GUI.Label(new Rect(card.xMax - 50f * s, card.yMax - 19f * s, 40f * s, 16f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
         }
+
+        // Compact Icon-Only Resource Strip directly below (Coins + PetRep% + Herbs + Bag — ZERO text words!)
+        Rect resStrip = new Rect(card.x, card.yMax + 6f * s, cw, 34f * s);
+        GUI.Box(resStrip, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+
+        int coins = lifeActivities != null ? lifeActivities.Coins : 0;
+        int petRep = petFriendlySystem != null ? petFriendlySystem.PetReputation : 100;
+        int herbs = basilLeaves + (megaSystems != null ? megaSystems.Data.organicHerbs : 0);
+        int bagCount = lifeActivities != null ? lifeActivities.BagItemsCount : 0;
+
+        GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(12.5f * s), alignment = TextAnchor.MiddleLeft };
+        float rx = resStrip.x + 8f * s;
+        float ry = resStrip.y + 6f * s;
+        float isz = 22f * s;
+
+        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconCoin);
+        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 36f * s, 30f * s), coins.ToString(), numSt);
+        rx += 62f * s;
+
+        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconPaw);
+        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 42f * s, 30f * s), petRep + "%", numSt);
+        rx += 68f * s;
+
+        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconBasil);
+        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 28f * s, 30f * s), herbs.ToString(), numSt);
+        rx += 56f * s;
+
+        GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconBag);
+        GUI.Label(new Rect(rx + isz + 3f * s, resStrip.y + 2f * s, 28f * s, 30f * s), bagCount.ToString(), numSt);
+
+        topLeftHudRect = new Rect(card.x - 6f, card.y - 6f, cw + 12f, (resStrip.yMax - card.y) + 12f);
     }
 
     private void GetOrderVisuals(out Texture2D client, out Texture2D item, out string tag, out string task, out string counter)
@@ -1527,19 +1632,44 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawTopRightIconBar(float s)
     {
+        // 15%-SCREEN RULE: Single sleek Top-Right frosted-glass icon bar (Cardápio, Mobility, Pipoca, Time, Tide, Photo, Pause!)
         bool hasPhoto = photoOverlay != null && photoOverlay.IsUnlocked;
-        float btnSz = 48f * s;
-        float gap = 10f * s;
-        int count = hasPhoto ? 4 : 3;
-        float barW = count * btnSz + (count - 1) * gap + 18f * s;
-        float barH = btnSz + 14f * s;
-        Rect strip = new Rect(Screen.width - barW - 18f * s, 18f * s, barW, barH);
+        float btnSz = 42f * s;
+        float gap = 7f * s;
+        int count = hasPhoto ? 7 : 6;
+        float barW = count * btnSz + (count - 1) * gap + 14f * s;
+        float barH = btnSz + 12f * s;
+        Rect strip = new Rect(Screen.width - barW - 14f * s, 14f * s, barW, barH);
         GUI.Box(strip, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
+        topRightHudRect = new Rect(strip.x - 6f, strip.y - 6f, strip.width + 12f, strip.height + 64f * s);
 
-        float x = strip.x + 9f * s;
-        float y = strip.y + 7f * s;
+        float x = strip.x + 7f * s;
+        float y = strip.y + 6f * s;
 
-        // Time-of-Day Icon Button (Sun / Sunset / Moon)
+        // 1. Cardápio / Shop Book Icon [TAB]
+        if (DrawIconButton(new Rect(x, y, btnSz, btnSz), GirlPowerOrla3DUITheme.IconMenuBook, s))
+            if (cardapioUI != null) cardapioUI.Toggle();
+        x += btnSz + gap;
+
+        // 2. Mobility / Sports Switcher Icon [V] (Walk/Skate/Scooter/Skates or Surf/Swim/Canoe)
+        if (DrawIconButton(new Rect(x, y, btnSz, btnSz), GirlPowerOrla3DUITheme.IconMobility, s))
+        {
+            if (characterAnimator != null)
+            {
+                if (characterAnimator.IsInWater) characterAnimator.CycleWaterMode();
+                else characterAnimator.CycleLandMode();
+                if (audioController != null) audioController.PlayChime();
+                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(player.position, characterAnimator.GetActiveMobilityName(), new Color(0.165f, 0.776f, 0.80f), 1.1f);
+            }
+        }
+        x += btnSz + gap;
+
+        // 3. Pipoca Companion Paw Icon [B]
+        if (DrawIconButton(new Rect(x, y, btnSz, btnSz), GirlPowerOrla3DUITheme.IconPaw, s))
+            if (lifeActivities != null) lifeActivities.TriggerPetAction();
+        x += btnSz + gap;
+
+        // 4. Time-of-Day Icon Button (Sun / Sunset / Moon)
         Texture2D timeIcon = GirlPowerOrla3DUITheme.IconSunset;
         if (ambientController != null)
         {
@@ -1550,7 +1680,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             if (ambientController != null) ambientController.CycleTimePreset();
         x += btnSz + gap;
 
-        // Tide Wave Icon Button (Low / High)
+        // 5. Tide Wave Icon Button (Low / High)
         Texture2D waveIcon = (ambientController != null && ambientController.isHighTide)
             ? GirlPowerOrla3DUITheme.IconWaveHigh
             : GirlPowerOrla3DUITheme.IconWaveLow;
@@ -1558,7 +1688,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             if (ambientController != null) ambientController.ToggleTide();
         x += btnSz + gap;
 
-        // Polaroid Photo Icon (only when unlocked)
+        // 6. Polaroid Photo Icon (only when unlocked)
         if (hasPhoto)
         {
             if (DrawIconButton(new Rect(x, y, btnSz, btnSz), GirlPowerOrla3DUITheme.IconPhoto, s))
@@ -1566,7 +1696,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             x += btnSz + gap;
         }
 
-        // Pause / System Menu Button (||) — holds Sound, Controls, Restart, Settings!
+        // 7. Pause / System Menu Button (||)
         if (DrawIconButton(new Rect(x, y, btnSz, btnSz), GirlPowerOrla3DUITheme.IconPause, s))
             if (gameFlow != null) gameFlow.TogglePause();
     }
@@ -1713,13 +1843,11 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     // ------------------------------------------------------------------
     private bool ShouldShowVirtualJoystick()
     {
-        if (gameFlow != null)
-        {
-            if (gameFlow.ControlMode == GirlPowerOrla3DGameFlow.TouchControlMode.AlwaysHide) return false;
-            if (gameFlow.ControlMode == GirlPowerOrla3DGameFlow.TouchControlMode.AlwaysShow) return true;
-        }
-        // Auto mode: show only on touch devices when keyboard isn't actively used
-        return touchDetected && !keyboardUsedRecently;
+        // Mobile-first 3-layer touch (Pan + Tap-to-Move + Direct Drag & Drop) keeps the screen 100% clean;
+        // only show the legacy floating joystick if explicitly requested in Settings -> AlwaysShow.
+        return gameFlow != null
+            && gameFlow.ControlMode == GirlPowerOrla3DGameFlow.TouchControlMode.AlwaysShow
+            && (!keyboardUsedRecently || touchDetected);
     }
 
     private void DrawFloatingAnalogJoystick(float s)
