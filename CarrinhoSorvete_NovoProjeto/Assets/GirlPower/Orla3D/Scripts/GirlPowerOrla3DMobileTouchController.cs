@@ -148,6 +148,7 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
 
     private bool IsOverCompactHudCorner(Vector2 screenPos)
     {
+        if (GUIUtility.hotControl != 0) return true;
         // Convert Unity screen coords (bottom-left origin) to GUI coords (top-left origin)
         Vector2 guiPos = new Vector2(screenPos.x, Screen.height - screenPos.y);
         if (storyController != null && storyController.IsUiPointBlocked(guiPos))
@@ -155,9 +156,19 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
 
         // Safe fallback guard around top-left and top-right compact HUD corners (<= 15% screen)
         float s = Mathf.Clamp(Screen.width / 1440f, 0.72f, 1.15f);
-        Rect topLeftGuard = new Rect(0f, 0f, 290f * s, 118f * s);
-        Rect topRightGuard = new Rect(Screen.width - 335f * s, 0f, 335f * s, 118f * s);
-        return topLeftGuard.Contains(guiPos) || topRightGuard.Contains(guiPos);
+        Rect topLeftGuard = new Rect(0f, 0f, 286f * s, 128f * s);
+        Rect topRightGuard = new Rect(Screen.width - 360f * s, 0f, 360f * s, 152f * s);
+        if (topLeftGuard.Contains(guiPos) || topRightGuard.Contains(guiPos))
+            return true;
+
+        // Protect contextual bottom-center [E] action pill when player is next to an interactable
+        if (storyController != null && storyController.HasNearbyStoryInteractable)
+        {
+            Rect actionPillGuard = new Rect((Screen.width - 380f * s) * 0.5f, Screen.height - 130f * s, 380f * s, 68f * s);
+            if (actionPillGuard.Contains(guiPos))
+                return true;
+        }
+        return false;
     }
 
     private void Update()

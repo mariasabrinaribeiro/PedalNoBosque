@@ -10,6 +10,7 @@ public class DriverPro : MonoBehaviour
     [SerializeField] float steerSpeed = 200f;
     [SerializeField] float boostSpeed = 6.0f;
     [SerializeField] float regularSpeed = 3.5f;
+    public float RegularSpeed => regularSpeed;
     [SerializeField] float swipeSpeedMultiplier = 1.2f; 
     [SerializeField] float swipeLerpFactor = 8f; 
     [SerializeField] float bulletSpawnOffset = 0.8f;

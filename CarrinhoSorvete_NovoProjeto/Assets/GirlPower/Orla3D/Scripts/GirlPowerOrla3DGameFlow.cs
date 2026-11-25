@@ -411,8 +411,12 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         Vector3 targetPos = new Vector3(cx, cy, cz);
         Vector3 lookAt = new Vector3(11.5f + Mathf.Sin(menuOrbitClock * 0.5f) * 4.5f, 1.0f, 3.2f);
         sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, targetPos, 1f - Mathf.Exp(-2.2f * dt));
-        Quaternion targetRot = Quaternion.LookRotation((lookAt - sceneCamera.transform.position).normalized, Vector3.up);
-        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRot, 1f - Mathf.Exp(-2.4f * dt));
+        Vector3 toLook = lookAt - sceneCamera.transform.position;
+        if (toLook.sqrMagnitude > 0.0001f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(toLook.normalized, Vector3.up);
+            sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRot, 1f - Mathf.Exp(-2.4f * dt));
+        }
     }
 
     private void UpdateChapterTimer(float dt)

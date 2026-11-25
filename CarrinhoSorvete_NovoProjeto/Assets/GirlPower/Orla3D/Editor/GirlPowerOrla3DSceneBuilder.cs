@@ -21,7 +21,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v20_OrlaDasFadas_Fase1Slice";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v21_OrlaDasFadas_ZeroErrors";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -67,13 +67,13 @@ public static class GirlPowerOrla3DSceneBuilder
         // 2. Golden-Hour Directional Sun Light
         Light sunLight = CreateSunLight(root.transform);
 
-        // 3. Environment Base (+50% Wider Beach, Promenade & Plaza Depth for Effortless Mobile Touch!) + Ocean
+        // 3. Environment Base (1:1 world scale aligned with SampleGroundHeight, shoreline & buildings!) + Ocean
         GameObject envBase = PlaceModel(root.transform, "OrlaEnvironmentBase", "Terreno Costeiro - Orla das Fadas", Vector3.zero, 0f, 1f, cozyMats);
         if (envBase != null)
         {
-            envBase.transform.localScale = new Vector3(1.18f, 1.0f, 1.48f);
+            envBase.transform.localScale = Vector3.one;
             Renderer r = envBase.GetComponentInChildren<Renderer>();
-            if (r != null) Debug.Log("[Orla3D] OrlaEnvironmentBase (+50% Wide) Bounds: " + r.bounds);
+            if (r != null) Debug.Log("[Orla3D] OrlaEnvironmentBase Bounds: " + r.bounds);
         }
         Transform oceanSurface = CreateAnimatedOcean(root.transform, oceanMat);
 
@@ -108,7 +108,7 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 5b. Pavilhão Orla das Fadas & Acesso à Areia + Chapter 3/Finale Restoration Props!
         GameObject pavilion = PlaceModel(root.transform, "PavilionBay", "Pavilhao Orla das Fadas", new Vector3(26.0f, -0.02f, -10.0f), 0f, 1f, cozyMats);
-        TextMeshPro pavilionFadedText = Make3DText(root.transform, "Letreiro Apagado Pavilhao", new Vector3(15.6f, 3.34f, 3.40f), "ORLA DAS FADAS", 1.55f, new Color32(198, 186, 166, 175), new Vector2(2.8f, 0.45f));
+        TextMeshPro pavilionFadedText = Make3DText(root.transform, "Letreiro Apagado Pavilhao", new Vector3(26.0f, 3.34f, -8.35f), "ORLA DAS FADAS", 1.55f, new Color32(198, 186, 166, 175), new Vector2(2.8f, 0.45f));
 
         // Festival restoration props (hidden until Chapter 3/Finale restores the Pavilion!)
         GameObject pavilionFestivalTable = PlaceModel(root.transform, "PavilionFestivalTable", "Pavilhao - Mesa Comprida", new Vector3(26.0f, 0.36f, -10.0f), 0f, 1f, cozyMats);
@@ -120,7 +120,7 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject pavilionFestivalDishes = PlaceModel(root.transform, "FestivalDishesProp", "Pavilhao - Pratos e Vasinhos da Festa", new Vector3(26.0f, 0.36f, -10.0f), 0f, 1f, cozyMats);
         if (pavilionFestivalDishes != null) pavilionFestivalDishes.SetActive(false);
 
-        TextMeshPro pavilionRestoredText = Make3DText(root.transform, "Letreiro Restaurado Pavilhao", new Vector3(15.6f, 3.36f, 3.32f), "ORLA DAS FADAS", 1.75f, new Color32(255, 245, 205, 255), new Vector2(3.0f, 0.50f));
+        TextMeshPro pavilionRestoredText = Make3DText(root.transform, "Letreiro Restaurado Pavilhao", new Vector3(26.0f, 3.36f, -8.42f), "ORLA DAS FADAS", 1.75f, new Color32(255, 245, 205, 255), new Vector2(3.0f, 0.50f));
         pavilionRestoredText.gameObject.SetActive(false);
 
         List<Light> pavilionPointLights = new List<Light>();
@@ -584,10 +584,10 @@ public static class GirlPowerOrla3DSceneBuilder
 
         Vector3[] cardPositions =
         {
-            new Vector3(4.2f, 0.05f, -2.1f),   // Boardwalk near benches
-            new Vector3(7.6f, 0.05f, 0.85f),   // Square near Bia
-            new Vector3(16.4f, 0.05f, 1.35f),  // Feira cobblestone lane
-            new Vector3(15.6f, 0.40f, 4.15f)   // Pavilion entrance steps (the Sister's invitation!)
+            new Vector3(4.2f, 0.05f, -2.1f),    // Boardwalk near benches
+            new Vector3(7.6f, 0.05f, 0.85f),    // Square near Bia
+            new Vector3(16.4f, 0.05f, -3.1f),   // Feira cobblestone lane
+            new Vector3(26.0f, 0.14f, -7.2f)    // Pavilion entrance steps (the Sister's invitation!)
         };
         List<GameObject> scatteredCards = new List<GameObject>();
         List<Transform> cardTransforms = new List<Transform>();
@@ -1070,8 +1070,8 @@ public static class GirlPowerOrla3DSceneBuilder
         ambient.pavilionLights = pavilionPointLights.ToArray();
         ambient.oceanSurface = oceanSurface;
         ambient.floristRoutineTarget = florist != null ? florist.transform : null;
-        ambient.floristMorningPos = new Vector3(24.0f, 0f, 1.35f);
-        ambient.floristEveningPos = new Vector3(24.0f, 0f, 0.20f);
+        ambient.floristMorningPos = new Vector3(24.0f, 0f, -4.15f);
+        ambient.floristEveningPos = new Vector3(24.0f, 0f, -4.60f);
         ambient.sunLight = sunLight;
         ambient.targetCamera = mainCam;
         ambient.playerTransform = playerRoot.transform;

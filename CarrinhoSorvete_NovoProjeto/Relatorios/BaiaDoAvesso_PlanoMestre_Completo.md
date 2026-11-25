@@ -159,3 +159,20 @@
 - [x] **Iluminação Quente, Sombras Móveis de Nuvens & Estrelas Pet (`GirlPowerOrla3DAmbient.cs`, `GirlPowerOrla3DFirstDelivery.cs`):**
   - Sol direcional dourado quente (`#FFD298`) + `Soft Shadows` + `Ambient Trilight` quente + neblina linear costeira (`32m–78m`) e **4 sombras suaves de nuvens deslizando lentamente pela areia e calçadão** (`Sombra_Nuvem_Movel_1..4`).
   - Barra superior minimalista atualizada com **Moedas** + **5 Estrelas Douradas de Reputação Pet** (`★★★★★`) + **Ervas**.
+
+
+---
+
+### Auditoria Completa de Correção de Erros (v21 — `0 Erros / 0 Avisos`)
+- [x] **Correção do erro ao vivo no Console da Unity (`Look rotation viewing vector is zero`):**
+  - [GirlPowerOrla3DAmbient.cs](file:///c:/renato/GitHub/CarrinhoSorvete_Aula1/CarrinhoSorvete_NovoProjeto/Assets/GirlPower/Orla3D/Scripts/GirlPowerOrla3DAmbient.cs): `AnimateButterflies` agora valida o vetor planar `flatDelta = (delta.x, 0, delta.z)` antes de chamar `Quaternion.LookRotation`.
+  - [GirlPowerOrla3DGameFlow.cs](file:///c:/renato/GitHub/CarrinhoSorvete_Aula1/CarrinhoSorvete_NovoProjeto/Assets/GirlPower/Orla3D/Scripts/GirlPowerOrla3DGameFlow.cs): órbita de câmera do menu protegida contra vetor de direção nulo.
+- [x] **Sincronização 1:1 de Terreno, Pavilhão, Placas e Alturas (`GirlPowerOrla3DSceneBuilder.cs` v21 + `GirlPowerOrla3DFirstDelivery.cs`):**
+  - Restaurada a escala `1:1` de `OrlaEnvironmentBase` para alinhar milimetricamente calçadão, areia, linha do mar e `SampleGroundHeight(x, z)`.
+  - Corrigidos os letreiros do Pavilhão (`Letreiro Apagado/Restaurado Pavilhao`) que flutuavam em `(15.6, 3.34, 3.40)` e reposicionados exatamente sobre `PavilionBay` em `(26.0, 3.34, -8.35)`.
+  - Corrigida a altura fantasma (`+0.36m` sobre a areia vazia em `x: 12.6..18.6`) em `SampleGroundHeight` e sincronizados os pontos de palco do Capítulo 3/4 e do 4º cartão postal com `pavilion.position`.
+  - Corrigida a rotina da Florista Luna (`floristMorningPos/EveningPos`) para permanecer em frente à sua banca em `z = -4.15..-4.60`.
+- [x] **Proteção de Clique/Toque sobre HUD (`GirlPowerOrla3DMobileTouchController.cs`):**
+  - Bloqueio via `GUIUtility.hotControl != 0` e proteção da pílula contextual `[E]` na base, evitando andar/arrastar a câmera ao tocar em botões.
+- [x] **Zero Avisos de Compilação em Todo o Projeto (`0 Erros, 0 Avisos`):**
+  - Eliminados todos os `warning CS0414` restantes em `Enemy.cs`, `DriverPro.cs` e `GirlPowerFirstDelivery.cs`.

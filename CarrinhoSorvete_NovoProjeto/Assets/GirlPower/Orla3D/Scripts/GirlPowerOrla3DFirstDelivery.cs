@@ -315,7 +315,11 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 phase = StoryPhase.Ch4_FestivalFinale;
                 if (string.IsNullOrEmpty(chosenUpgrade)) chosenUpgrade = "Toldo Listrado";
                 if (string.IsNullOrEmpty(inviteApproach)) inviteApproach = "Pessoalmente";
-                if (player != null) player.position = new Vector3(15.6f, 0.36f, 3.6f);
+                if (player != null)
+                {
+                    Vector3 pavBase = pavilion != null ? pavilion.position : new Vector3(26.0f, 0f, -10.0f);
+                    player.position = pavBase + new Vector3(0f, 0.36f, 2.2f);
+                }
                 if (ambientController != null) ambientController.ApplyTimePreset(GirlPowerOrla3DAmbient.TimePreset.FimDeTarde);
                 break;
         }
@@ -636,22 +640,22 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             float wave = Mathf.Sin(x * 0.55f + Time.time * 1.6f) * 0.06f + Mathf.Cos(z * 0.8f - Time.time * 1.2f) * 0.05f;
             return -0.24f + wave;
         }
-        if (x >= 12.6f && x <= 18.6f && z >= 2.6f && z <= 9.8f)
+        // Pavilion deck height cleanly synced to PavilionBay at (26.0, -0.02, -10.0)
+        if (x >= 23.2f && x <= 28.8f && z >= -11.9f && z <= -7.6f)
         {
-            if (z < 3.4f) return Mathf.Lerp(0f, 0.36f, (z - 2.6f) / 0.8f);
-            if (z <= 7.4f) return 0.36f;
-            return Mathf.Lerp(0.36f, -0.24f, Mathf.Clamp01((z - 7.4f) / 2.2f));
+            if (z > -8.3f) return Mathf.Lerp(-0.04f, 0.34f, (-7.6f - z) / 0.7f);
+            return 0.34f;
         }
-        if (z < -3.75f) return -0.08f;
-        if (z < -3.45f) return Mathf.Lerp(-0.08f, 0f, (z + 3.75f) / 0.30f);
+        if (z < -3.75f) return -0.05f;
+        if (z < -3.45f) return Mathf.Lerp(-0.05f, 0f, (z + 3.75f) / 0.30f);
         if (z <= 3.35f) return 0f;
         if (z < 4.10f)
         {
             float t = (z - 3.35f) / 0.75f;
-            return Mathf.Sin(t * Mathf.PI) * 0.48f;
+            return Mathf.Sin(t * Mathf.PI) * 0.32f;
         }
         float beachT = Mathf.Clamp01((z - 4.10f) / 5.70f);
-        return Mathf.Lerp(-0.04f, -0.32f, beachT);
+        return Mathf.Lerp(-0.04f, -0.30f, beachT);
     }
 
     private Vector3 TryMoveAxis(Vector3 origin, Vector3 delta)
@@ -1285,6 +1289,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         if (sisterMarina != null)
         {
+            Vector3 pavBase = pavilion != null ? pavilion.position : new Vector3(26.0f, 0f, -10.0f);
             if (phase == StoryPhase.Ch2_DeliverInviteToMarina)
             {
                 sisterMarina.gameObject.SetActive(true);
@@ -1294,13 +1299,13 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             else if (phase == StoryPhase.Ch3_PrepareFestivalTreat || phase == StoryPhase.Ch3_RestorePavilion)
             {
                 sisterMarina.gameObject.SetActive(true);
-                sisterMarina.position = new Vector3(13.8f, 0.36f, 4.4f);
+                sisterMarina.position = pavBase + new Vector3(-1.8f, 0.36f, 1.4f);
                 sisterMarina.rotation = Quaternion.Euler(0f, 15f, 0f);
             }
             else if (phase == StoryPhase.Ch4_FestivalFinale)
             {
                 sisterMarina.gameObject.SetActive(true);
-                sisterMarina.position = new Vector3(14.3f, 0.36f, 4.35f);
+                sisterMarina.position = pavBase + new Vector3(-1.3f, 0.36f, 1.35f);
                 sisterMarina.rotation = Quaternion.Euler(0f, 18f, 0f);
             }
             else
@@ -1319,11 +1324,12 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         if (finale)
         {
-            MoveNpcTo(friendNina, new Vector3(13.5f, 0.36f, 5.55f), -35f);
-            MoveNpcTo(friendBia, new Vector3(17.6f, 0.36f, 5.45f), 38f);
-            MoveNpcTo(florist, new Vector3(16.7f, 0.36f, 4.35f), -18f);
-            MoveNpcTo(pedestrianBlue, new Vector3(14.6f, 0.36f, 6.65f), 175f);
-            MoveNpcTo(pedestrianCoral, new Vector3(16.6f, 0.36f, 6.65f), -170f);
+            Vector3 pavBase = pavilion != null ? pavilion.position : new Vector3(26.0f, 0f, -10.0f);
+            MoveNpcTo(friendNina, pavBase + new Vector3(-2.1f, 0.36f, 1.9f), -35f);
+            MoveNpcTo(friendBia, pavBase + new Vector3(2.0f, 0.36f, 1.8f), 38f);
+            MoveNpcTo(florist, pavBase + new Vector3(1.1f, 0.36f, 1.35f), -18f);
+            MoveNpcTo(pedestrianBlue, pavBase + new Vector3(-1.0f, 0.36f, 2.8f), 175f);
+            MoveNpcTo(pedestrianCoral, pavBase + new Vector3(1.0f, 0.36f, 2.8f), -170f);
             if (ambientController != null)
             {
                 ambientController.SnapIdleBasePositions();

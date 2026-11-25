@@ -42,6 +42,7 @@ public sealed class GirlPowerFirstDelivery : MonoBehaviour
     private bool touchRun;
     private bool keyboardConnected;
     private string lastInput = "";
+    public string LastInput => lastInput;
     private const float DeliveryX = 24f;
     private const float ReturnX = 0.5f;
 

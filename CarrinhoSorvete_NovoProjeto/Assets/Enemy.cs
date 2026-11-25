@@ -14,6 +14,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private int collisionDamage = 10; // Reduzido de 20 para 10 para tornar o jogo mais fácil
     [SerializeField] private int scoreReward = 10;
     [SerializeField] private int healthReward = 15;
+    public int ScoreReward => scoreReward;
 
     private Transform playerTransform;
     private SpriteRenderer sr;

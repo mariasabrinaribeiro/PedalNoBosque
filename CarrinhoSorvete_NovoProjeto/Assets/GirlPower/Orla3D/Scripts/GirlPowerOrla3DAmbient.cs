@@ -559,8 +559,9 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
             Vector3 next = bfBasePos[i] + offset;
             Vector3 delta = next - tr.position;
             tr.position = next;
-            if (delta.sqrMagnitude > 0.00001f)
-                tr.rotation = Quaternion.LookRotation(-new Vector3(delta.x, 0f, delta.z).normalized, Vector3.up);
+            Vector3 flatDelta = new Vector3(delta.x, 0f, delta.z);
+            if (flatDelta.sqrMagnitude > 0.0001f)
+                tr.rotation = Quaternion.LookRotation(-flatDelta.normalized, Vector3.up);
 
             float flutter = Mathf.Sin(t * 22f + i * 2.1f) * 46f;
             if (bfWingL != null && bfWingL[i] != null)
