@@ -30,13 +30,13 @@ Material:
     m_Ints: []
     m_Floats:
     - _CurveStrength: 0.0008
-    - _Glossiness: 0.1
+    - _Glossiness: 0.04
     - _GroundAO: 0.34
     - _GroundAOHeight: 0.72
     - _OccluderEnabled: 0
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
-    - _RimStrength: 0.14
+    - _RimStrength: 0.05
     - _TileScale: 0.28
     - _UseWorldUV: 1
     - _WrapAmount: 0.28

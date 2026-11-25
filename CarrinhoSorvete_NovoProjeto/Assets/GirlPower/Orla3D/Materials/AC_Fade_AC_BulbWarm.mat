@@ -30,20 +30,20 @@ Material:
     m_Ints: []
     m_Floats:
     - _CurveStrength: 0.0008
-    - _FadeStartHeight: 1.65
-    - _Glossiness: 0.2
+    - _FadeStartHeight: 1.7
+    - _Glossiness: 0.1
     - _GroundAO: 0.34
     - _GroundAOHeight: 0.72
     - _OccluderEnabled: 1
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
-    - _RimStrength: 0.14
+    - _RimStrength: 0.05
     - _TileScale: 0.35
     - _UseWorldUV: 0
     - _WrapAmount: 0.28
     m_Colors:
     - _Color: {r: 1, g: 0.9411765, b: 0.7019608, a: 1}
-    - _EmissionColor: {r: 1.25, g: 1.0980393, b: 0.63725495, a: 1.25}
+    - _EmissionColor: {r: 1, g: 0.8784314, b: 0.50980395, a: 1}
     - _RimColor: {r: 1, g: 0.9, b: 0.72, a: 1}
     - _ShadowColor: {r: 0.38, g: 0.34, b: 0.52, a: 1}
   m_BuildTextureStacks: []

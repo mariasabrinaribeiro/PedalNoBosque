@@ -30,14 +30,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _CurveStrength: 0.0008
-    - _Glossiness: 0.34
+    - _Glossiness: 0.18
     - _GroundAO: 0.34
     - _GroundAOHeight: 0.72
     - _HairTopY: 1.28
     - _HairWindAmp: 0.045
     - _HairWindSpeed: 2.4
     - _RimPower: 4.2
-    - _RimStrength: 0.14
+    - _RimStrength: 0.05
     - _WrapAmount: 0.28
     m_Colors:
     - _Color: {r: 0.41960785, g: 0.26666668, b: 0.16470589, a: 1}

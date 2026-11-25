@@ -239,87 +239,88 @@ def export_standardized_unity_fbx(objs, filename):
 
 
 # =========================================================================
-# 1. PROTAGONISTA (+15% longer legs, -8% smaller head, back-readable ponytail+bow,
-#    short crossbody satchel, exclusive hero color combo, +Z forward!)
+# 1. PROTAGONISTA (Discreetly longer legs + slightly taller silhouette for crisp
+#    stride readability on mobile, back-readable ponytail+bow, short satchel, +Z forward!)
 # =========================================================================
 def build_protagonist(col):
     exported = []
+    dz = 0.08  # +8cm taller stride & silhouette lift so walking gait reads instantly on mobile!
 
-    # Torso shifted slightly up to accommodate +15% longer legs (hip pivot z=0.41 -> neck z=0.90)
+    # Torso lifted cleanly over longer legs (hip pivot z=0.49 -> neck z=0.98)
     torso_parts = [
         # Signature Berry-Pink coastal top + Cream sailor-style collar & hem trim
-        add_cyl("T_Shirt", 0.195, 0.42, MATS["AC_ProtagShirt"], col, loc=(0, 0, 0.68), r_top=0.16),
-        add_sphere("T_Collar", 0.135, MATS["AC_Cream"], col, loc=(0, 0, 0.88), scale=(1.08, 1.0, 0.34)),
-        add_cyl("T_ShirtHem", 0.205, 0.045, MATS["AC_Cream"], col, loc=(0, 0, 0.49), r_top=0.20),
+        add_cyl("T_Shirt", 0.195, 0.42, MATS["AC_ProtagShirt"], col, loc=(0, 0, 0.68 + dz), r_top=0.16),
+        add_sphere("T_Collar", 0.138, MATS["AC_Cream"], col, loc=(0, 0, 0.88 + dz), scale=(1.10, 1.02, 0.36)),
+        add_cyl("T_ShirtHem", 0.205, 0.048, MATS["AC_Cream"], col, loc=(0, 0, 0.49 + dz), r_top=0.20),
         # Deep coastal denim shorts
-        add_cyl("T_Shorts", 0.205, 0.17, MATS["AC_Denim"], col, loc=(0, 0, 0.44), r_top=0.195),
+        add_cyl("T_Shorts", 0.205, 0.17, MATS["AC_Denim"], col, loc=(0, 0, 0.44 + dz), r_top=0.195),
         # SHORT CROSSBODY SATCHEL (Bolsa Curta): diagonal strap visible front & back + golden pouch at hip!
         add_box("T_StrapFront", (0.045, 0.028, 0.44), MATS["AC_WoodDark"], col,
-                loc=(0.02, -0.175, 0.67), rot=(0.12, math.radians(-34), 0.0), bevel=0.008),
+                loc=(0.02, -0.175, 0.67 + dz), rot=(0.12, math.radians(-34), 0.0), bevel=0.008),
         add_box("T_StrapBack", (0.045, 0.028, 0.44), MATS["AC_WoodDark"], col,
-                loc=(0.02, 0.175, 0.67), rot=(-0.12, math.radians(-34), 0.0), bevel=0.008),
+                loc=(0.02, 0.175, 0.67 + dz), rot=(-0.12, math.radians(-34), 0.0), bevel=0.008),
         add_box("T_StrapShoulder", (0.06, 0.24, 0.032), MATS["AC_WoodDark"], col,
-                loc=(-0.11, 0.0, 0.865), rot=(0.0, 0.0, 0.0), bevel=0.008),
-        add_box("T_SatchelBody", (0.12, 0.19, 0.16), MATS["AC_Gold"], col,
-                loc=(0.21, 0.04, 0.48), rot=(0.0, math.radians(10), math.radians(-12)), bevel=0.025),
-        add_box("T_SatchelFlap", (0.13, 0.195, 0.065), MATS["AC_Cream"], col,
-                loc=(0.215, 0.04, 0.535), rot=(0.0, math.radians(10), math.radians(-12)), bevel=0.015),
-        add_sphere("T_SatchelClasp", 0.028, MATS["AC_MintTeal"], col, loc=(0.275, 0.03, 0.505)),
+                loc=(-0.11, 0.0, 0.865 + dz), rot=(0.0, 0.0, 0.0), bevel=0.008),
+        add_box("T_SatchelBody", (0.125, 0.195, 0.165), MATS["AC_Gold"], col,
+                loc=(0.215, 0.04, 0.48 + dz), rot=(0.0, math.radians(10), math.radians(-12)), bevel=0.025),
+        add_box("T_SatchelFlap", (0.135, 0.20, 0.068), MATS["AC_Cream"], col,
+                loc=(0.22, 0.04, 0.535 + dz), rot=(0.0, math.radians(10), math.radians(-12)), bevel=0.015),
+        add_sphere("T_SatchelClasp", 0.030, MATS["AC_MintTeal"], col, loc=(0.28, 0.03, 0.505 + dz)),
     ]
-    torso = join_around_pivot(torso_parts, "Protag_Torso", (0, 0, 0.48), col)
+    torso = join_around_pivot(torso_parts, "Protag_Torso", (0, 0, 0.48 + dz), col)
     exported.append(torso)
 
-    # Head ~8% smaller (r=0.266 vs 0.290), still super expressive, with iconic back-readable ponytail & turquoise bow!
+    # Head proportional & expressive, with unmistakable back-readable ponytail & turquoise bow!
     head_parts = [
-        add_sphere("H_Skull", 0.266, MATS["AC_SkinLight"], col, loc=(0, 0, 1.14), scale=(1.01, 0.97, 0.99), u=18, v=14),
-        add_sphere("H_CheekL", 0.048, MATS["AC_CheekBlush"], col, loc=(-0.138, -0.220, 1.085), scale=(1.2, 0.42, 0.82)),
-        add_sphere("H_CheekR", 0.048, MATS["AC_CheekBlush"], col, loc=(0.138, -0.220, 1.085), scale=(1.2, 0.42, 0.82)),
-        add_sphere("H_Nose", 0.028, MATS["AC_SkinLight"], col, loc=(0, -0.265, 1.105)),
-        add_sphere("H_HairMain", 0.288, MATS["AC_HairBrown"], col, loc=(0, 0.035, 1.185), scale=(1.03, 1.01, 0.97), u=16, v=12),
-        add_sphere("H_BangL", 0.118, MATS["AC_HairBrown"], col, loc=(-0.125, -0.195, 1.285), scale=(1.2, 0.72, 0.72)),
-        add_sphere("H_BangR", 0.118, MATS["AC_HairBrown"], col, loc=(0.125, -0.195, 1.285), scale=(1.2, 0.72, 0.72)),
+        add_sphere("H_Skull", 0.264, MATS["AC_SkinLight"], col, loc=(0, 0, 1.14 + dz), scale=(1.01, 0.97, 0.99), u=18, v=14),
+        add_sphere("H_CheekL", 0.048, MATS["AC_CheekBlush"], col, loc=(-0.138, -0.220, 1.085 + dz), scale=(1.2, 0.42, 0.82)),
+        add_sphere("H_CheekR", 0.048, MATS["AC_CheekBlush"], col, loc=(0.138, -0.220, 1.085 + dz), scale=(1.2, 0.42, 0.82)),
+        add_sphere("H_Nose", 0.028, MATS["AC_SkinLight"], col, loc=(0, -0.265, 1.105 + dz)),
+        add_sphere("H_HairMain", 0.288, MATS["AC_HairBrown"], col, loc=(0, 0.035, 1.185 + dz), scale=(1.03, 1.01, 0.97), u=16, v=12),
+        add_sphere("H_BangL", 0.118, MATS["AC_HairBrown"], col, loc=(-0.125, -0.195, 1.285 + dz), scale=(1.2, 0.72, 0.72)),
+        add_sphere("H_BangR", 0.118, MATS["AC_HairBrown"], col, loc=(0.125, -0.195, 1.285 + dz), scale=(1.2, 0.72, 0.72)),
         # Iconic back-readable high double-tier sweeping ponytail + wide MintTeal ribbon bow!
-        add_sphere("H_PonytailUpper", 0.148, MATS["AC_HairBrown"], col, loc=(0, 0.305, 1.22), scale=(0.95, 1.12, 1.15)),
-        add_sphere("H_PonytailTail", 0.132, MATS["AC_HairBrown"], col, loc=(0, 0.365, 1.03), scale=(0.86, 0.92, 1.48), rot=(math.radians(16), 0, 0)),
-        add_sphere("H_RibbonKnot", 0.056, MATS["AC_MintTeal"], col, loc=(0, 0.255, 1.295)),
-        add_sphere("H_RibbonBowL", 0.088, MATS["AC_MintTeal"], col, loc=(-0.11, 0.275, 1.315), scale=(1.25, 0.55, 0.78), rot=(0, 0, math.radians(-18))),
-        add_sphere("H_RibbonBowR", 0.088, MATS["AC_MintTeal"], col, loc=(0.11, 0.275, 1.315), scale=(1.25, 0.55, 0.78), rot=(0, 0, math.radians(18))),
-        add_cyl("H_RibbonTailL", 0.026, 0.15, MATS["AC_Gold"], col, loc=(-0.055, 0.285, 1.20), rot=(math.radians(14), math.radians(12), 0), r_top=0.018),
-        add_cyl("H_RibbonTailR", 0.026, 0.15, MATS["AC_Gold"], col, loc=(0.055, 0.285, 1.20), rot=(math.radians(14), math.radians(-12), 0), r_top=0.018),
-        add_smile("H_Smile", MATS["AC_EyeDark"], col, loc=(0, -0.262, 1.052), width=0.118, dip=0.025),
-        add_sphere("H_Tongue", 0.022, MATS["AC_Coral"], col, loc=(0, -0.276, 1.028), scale=(1.0, 0.36, 0.50), u=10, v=8),
+        add_sphere("H_PonytailUpper", 0.152, MATS["AC_HairBrown"], col, loc=(0, 0.31, 1.22 + dz), scale=(0.95, 1.14, 1.16)),
+        add_sphere("H_PonytailTail", 0.136, MATS["AC_HairBrown"], col, loc=(0, 0.375, 1.02 + dz), scale=(0.86, 0.94, 1.52), rot=(math.radians(16), 0, 0)),
+        add_sphere("H_RibbonKnot", 0.060, MATS["AC_MintTeal"], col, loc=(0, 0.258, 1.298 + dz)),
+        add_sphere("H_RibbonBowL", 0.095, MATS["AC_MintTeal"], col, loc=(-0.118, 0.278, 1.32 + dz), scale=(1.28, 0.56, 0.80), rot=(0, 0, math.radians(-18))),
+        add_sphere("H_RibbonBowR", 0.095, MATS["AC_MintTeal"], col, loc=(0.118, 0.278, 1.32 + dz), scale=(1.28, 0.56, 0.80), rot=(0, 0, math.radians(18))),
+        add_cyl("H_RibbonTailL", 0.028, 0.16, MATS["AC_Gold"], col, loc=(-0.058, 0.288, 1.20 + dz), rot=(math.radians(14), math.radians(12), 0), r_top=0.018),
+        add_cyl("H_RibbonTailR", 0.028, 0.16, MATS["AC_Gold"], col, loc=(0.058, 0.288, 1.20 + dz), rot=(math.radians(14), math.radians(-12), 0), r_top=0.018),
+        add_smile("H_Smile", MATS["AC_EyeDark"], col, loc=(0, -0.262, 1.052 + dz), width=0.118, dip=0.025),
+        add_sphere("H_Tongue", 0.022, MATS["AC_Coral"], col, loc=(0, -0.276, 1.028 + dz), scale=(1.0, 0.36, 0.50), u=10, v=8),
     ]
-    head = join_around_pivot(head_parts, "Protag_Head", (0, 0, 0.89), col)
+    head = join_around_pivot(head_parts, "Protag_Head", (0, 0, 0.89 + dz), col)
     exported.append(head)
 
     # Separate expressive Eyes for natural blinking!
     for side, sx in [("L", -0.095), ("R", 0.095)]:
         ep = [
-            add_sphere(f"EyeBall_{side}", 0.044, MATS["AC_EyeDark"], col, loc=(sx, -0.234, 1.14), scale=(0.90, 0.45, 1.15)),
-            add_sphere(f"EyeShine_{side}", 0.017, MATS["AC_EyeShine"], col, loc=(sx - 0.013, -0.255, 1.158)),
+            add_sphere(f"EyeBall_{side}", 0.044, MATS["AC_EyeDark"], col, loc=(sx, -0.234, 1.14 + dz), scale=(0.90, 0.45, 1.15)),
+            add_sphere(f"EyeShine_{side}", 0.017, MATS["AC_EyeShine"], col, loc=(sx - 0.013, -0.255, 1.158 + dz)),
         ]
-        eye = join_around_pivot(ep, f"Protag_Eye{side}", (sx, -0.234, 1.14), col)
+        eye = join_around_pivot(ep, f"Protag_Eye{side}", (sx, -0.234, 1.14 + dz), col)
         exported.append(eye)
 
-    # Articulated Arms (pivoted at shoulders z=0.82)
+    # Articulated Arms (pivoted at shoulders z=0.82 + dz)
     for side, sx in [("L", -0.235), ("R", 0.235)]:
         ap = [
-            add_sphere(f"Sleeve_{side}", 0.082, MATS["AC_ProtagShirt"], col, loc=(sx, 0, 0.79)),
-            add_cyl(f"ArmTube_{side}", 0.050, 0.25, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.635)),
-            add_sphere(f"Hand_{side}", 0.062, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.50)),
+            add_sphere(f"Sleeve_{side}", 0.082, MATS["AC_ProtagShirt"], col, loc=(sx, 0, 0.79 + dz)),
+            add_cyl(f"ArmTube_{side}", 0.050, 0.26, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.63 + dz)),
+            add_sphere(f"Hand_{side}", 0.062, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.495 + dz)),
         ]
-        arm = join_around_pivot(ap, f"Protag_Arm{side}", (sx, 0, 0.82), col)
+        arm = join_around_pivot(ap, f"Protag_Arm{side}", (sx, 0, 0.82 + dz), col)
         exported.append(arm)
 
-    # Articulated Legs (+15% longer: hip z=0.41, LegTube h=0.30, crisp sneakers!)
+    # Articulated Legs (discreetly longer: hip z=0.49, LegTube h=0.37, crisp sneakers for unmistakable stride!)
     for side, sx in [("L", -0.105), ("R", 0.105)]:
         lp = [
-            add_cyl(f"LegTube_{side}", 0.060, 0.30, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.26)),
-            add_cyl(f"Sock_{side}", 0.065, 0.085, MATS["AC_Cream"], col, loc=(sx, 0, 0.115)),
-            add_sphere(f"Shoe_{side}", 0.084, MATS["AC_ProtagShirt"], col, loc=(sx, -0.04, 0.055), scale=(0.94, 1.40, 0.66)),
-            add_sphere(f"ShoeSole_{side}", 0.086, MATS["AC_Cream"], col, loc=(sx, -0.04, 0.022), scale=(0.96, 1.42, 0.28)),
+            add_cyl(f"LegTube_{side}", 0.058, 0.37, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.305)),
+            add_cyl(f"Sock_{side}", 0.064, 0.095, MATS["AC_Cream"], col, loc=(sx, 0, 0.12)),
+            add_sphere(f"Shoe_{side}", 0.085, MATS["AC_ProtagShirt"], col, loc=(sx, -0.04, 0.056), scale=(0.94, 1.42, 0.66)),
+            add_sphere(f"ShoeSole_{side}", 0.087, MATS["AC_Cream"], col, loc=(sx, -0.04, 0.022), scale=(0.96, 1.44, 0.28)),
         ]
-        leg = join_around_pivot(lp, f"Protag_Leg{side}", (sx, 0, 0.41), col)
+        leg = join_around_pivot(lp, f"Protag_Leg{side}", (sx, 0, 0.49), col)
         exported.append(leg)
 
     export_standardized_unity_fbx(exported, "Char_Protagonist")

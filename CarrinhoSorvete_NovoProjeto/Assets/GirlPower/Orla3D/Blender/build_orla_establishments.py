@@ -383,27 +383,31 @@ def build_stall_sucos(col):
 
 
 # =========================================================================
-# 5. PET WATER SPOUT STATION (Bica + Torneira + Tigela Turquesa — clearly visible target!)
+# 5. PET WATER SPOUT STATION (Bica + Torneira + Tigela Turquesa — clearly visible from afar!)
 # =========================================================================
 def build_pet_water_station(col):
     base_parts = [
-        # Ground stone splash pad
-        add_cyl("SplashPad", 0.42, 0.05, MATS["AC_StoneWarm"], col, loc=(0, 0.02, 0.025), segs=16),
-        # Coastal wooden water post (bica) behind the bowl — makes the water point instantly readable from afar!
-        add_box("SpoutPost", (0.20, 0.18, 0.86), MATS["AC_WoodWarm"], col, loc=(0, 0.26, 0.45), bevel=0.025),
-        add_box("SpoutCap", (0.24, 0.22, 0.06), MATS["AC_Cream"], col, loc=(0, 0.26, 0.90), bevel=0.015),
-        # Cute paw badge on the post
-        add_sphere("PawBadgeBg", 0.085, MATS["AC_MintTeal"], col, loc=(0, 0.16, 0.72), scale=(1.0, 0.35, 1.0)),
-        # Metallic faucet spout curving over the bowl!
-        add_cyl("FaucetPipe", 0.026, 0.24, MATS["AC_MetalSilver"], col, loc=(0, 0.12, 0.56), rot=(math.pi * 0.5, 0, 0), segs=10),
-        add_cyl("FaucetNozzle", 0.024, 0.10, MATS["AC_MetalSilver"], col, loc=(0, 0.01, 0.51), segs=10),
-        add_cyl("FaucetHandle", 0.055, 0.025, MATS["AC_PinkBerry"], col, loc=(0, 0.16, 0.62), segs=10),
-        # Prominent ceramic pet bowl right under the faucet!
-        add_cyl("BowlOuter", 0.30, 0.17, MATS["AC_Cream"], col, loc=(0, -0.02, 0.11), r_top=0.26, segs=16),
-        add_cyl("BowlStripe", 0.306, 0.05, MATS["AC_MintTeal"], col, loc=(0, -0.02, 0.11), r_top=0.29, segs=16),
+        # Wide ground stone splash pad anchoring the station visually along the promenade border
+        add_cyl("SplashPad", 0.52, 0.055, MATS["AC_StoneWarm"], col, loc=(0, 0.04, 0.028), segs=18),
+        # Taller coastal wooden water post (bica) behind the bowl — unmistakably readable from afar!
+        add_box("SpoutPost", (0.24, 0.20, 1.04), MATS["AC_WoodWarm"], col, loc=(0, 0.28, 0.54), bevel=0.028),
+        add_box("SpoutCap", (0.30, 0.26, 0.07), MATS["AC_Cream"], col, loc=(0, 0.28, 1.08), bevel=0.018),
+        # High-contrast turquoise & cream paw badge facing the camera (-Y in Blender = -Z in Unity)
+        add_sphere("PawBadgeBg", 0.115, MATS["AC_MintTeal"], col, loc=(0, 0.17, 0.84), scale=(1.0, 0.32, 1.0)),
+        add_sphere("PawPadMain", 0.052, MATS["AC_Cream"], col, loc=(0, 0.145, 0.82), scale=(1.1, 0.35, 0.9)),
+        add_sphere("PawToe1", 0.022, MATS["AC_Cream"], col, loc=(-0.046, 0.145, 0.885), scale=(1.0, 0.35, 1.0)),
+        add_sphere("PawToe2", 0.022, MATS["AC_Cream"], col, loc=( 0.000, 0.145, 0.902), scale=(1.0, 0.35, 1.0)),
+        add_sphere("PawToe3", 0.022, MATS["AC_Cream"], col, loc=( 0.046, 0.145, 0.885), scale=(1.0, 0.35, 1.0)),
+        # Prominent silver metallic faucet arching over the bowl with berry-pink valve handle!
+        add_cyl("FaucetPipe", 0.032, 0.30, MATS["AC_MetalSilver"], col, loc=(0, 0.10, 0.64), rot=(math.pi * 0.5, 0, 0), segs=12),
+        add_cyl("FaucetNozzle", 0.028, 0.13, MATS["AC_MetalSilver"], col, loc=(0, -0.04, 0.57), segs=12),
+        add_cyl("FaucetHandle", 0.068, 0.032, MATS["AC_PinkBerry"], col, loc=(0, 0.15, 0.71), segs=12),
+        # Wide, unmistakable ceramic pet bowl right beneath the faucet!
+        add_cyl("BowlOuter", 0.36, 0.21, MATS["AC_Cream"], col, loc=(0, -0.05, 0.145), r_top=0.33, segs=18),
+        add_cyl("BowlStripe", 0.368, 0.07, MATS["AC_MintTeal"], col, loc=(0, -0.05, 0.145), r_top=0.35, segs=18),
     ]
     base = join_around_pivot(base_parts, "WaterBowl_Base", (0, 0, 0), col)
-    liq = join_around_pivot([add_cyl("LiquidDisc", 0.23, 0.032, MATS["AC_OceanShallow"], col, loc=(0, -0.02, 0.185), segs=16)], "WaterBowl_Liquid", (0, -0.02, 0.185), col)
+    liq = join_around_pivot([add_cyl("LiquidDisc", 0.295, 0.038, MATS["AC_OceanShallow"], col, loc=(0, -0.05, 0.225), segs=18)], "WaterBowl_Liquid", (0, -0.05, 0.225), col)
     export_establishment_fbx([base, liq], "PetWaterBowl")
 
 
