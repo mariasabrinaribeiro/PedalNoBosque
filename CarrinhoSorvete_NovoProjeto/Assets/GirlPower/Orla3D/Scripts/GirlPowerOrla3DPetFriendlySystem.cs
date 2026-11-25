@@ -74,6 +74,10 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         public string petOrder = "";
         public Transform calopWingL;
         public Transform calopWingR;
+        public Transform petHead;
+        public Transform petTail;
+        public Quaternion petHeadBase;
+        public Quaternion petTailBase;
         public float walkPhase;
         public Vector3 patrolTarget;
         public float faceSign;
@@ -90,7 +94,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
     private int orchardIdx;
     private bool camponesaCarryingToKitchen;
     private float camponesaWait;
-    private float camponesaFaceSign = -1f;
+    private float camponesaFaceSign = 1f;
     private Vector3 camponesaPrevPos;
     private Quaternion camponesaLastRot = Quaternion.identity;
     private static readonly string[] OrchardCrops = { "Laranja", "Limão", "Manjericão", "Maçã" };
@@ -127,7 +131,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         if (camponesaHarvester != null)
         {
             GirlPowerOrla3DCharacterFacing.DisableRootMotion(camponesaHarvester);
-            camponesaFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(camponesaHarvester, -1f);
+            camponesaFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(camponesaHarvester, 1f);
             camponesaPrevPos = camponesaHarvester.position;
             camponesaLastRot = camponesaHarvester.rotation;
         }
@@ -148,14 +152,24 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                     patrolTarget = a.actor.position + new Vector3((i % 2 == 0 ? 3.2f : -3.2f), 0f, 0f),
                     walkPhase = i * 1.4f,
                     stateTimer = 2f + i * 2.5f,
-                    faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(a.actor, -1f),
+                    faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(a.actor, 1f),
                     prevWorldPos = a.actor.position,
                     lastValidRot = a.actor.rotation
                 };
-                if (a.petCompanion != null && a.petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita)
+                if (a.petCompanion != null)
                 {
-                    gr.calopWingL = FindChildRec(a.petCompanion, "Calop_WingL");
-                    gr.calopWingR = FindChildRec(a.petCompanion, "Calop_WingR");
+                    if (a.petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita)
+                    {
+                        gr.calopWingL = FindChildRec(a.petCompanion, "Calop_WingL");
+                        gr.calopWingR = FindChildRec(a.petCompanion, "Calop_WingR");
+                    }
+                    else
+                    {
+                        gr.petHead = FindChildRec(a.petCompanion, a.petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Gato ? "Cat_Head" : "Pipoca_Head");
+                        gr.petTail = FindChildRec(a.petCompanion, a.petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Gato ? "Cat_Tail" : "Pipoca_Tail");
+                        if (gr.petHead != null) gr.petHeadBase = gr.petHead.localRotation;
+                        if (gr.petTail != null) gr.petTailBase = gr.petTail.localRotation;
+                    }
                 }
                 guests.Add(gr);
             }
@@ -435,11 +449,23 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                 }
                 else
                 {
-                    // Dog or Cat sits with clean spacing beside owner (never clipping chair!)
+                    // Dog or Cat sits/trots with distinct pet sniffing & varied gait rhythm beside owner!
+                    float sniffWave = Mathf.Sin(t * 0.9f + i * 2.3f);
+                    bool sniffingGround = sniffWave > 0.55f;
+                    float paceMult = sniffingGround ? 0.45f : (sniffWave < -0.3f ? 1.28f : 0.95f);
                     Vector3 petGoal = ownerPos + new Vector3(-0.78f, 0f, -0.55f);
-                    petGoal.y = g.homePos.y + Mathf.Abs(Mathf.Sin(t * 5.5f + i)) * 0.05f;
-                    g.cfg.petCompanion.position = Vector3.Lerp(g.cfg.petCompanion.position, petGoal, dt * 4.5f);
+                    petGoal.y = g.homePos.y + (sniffingGround ? 0.01f : Mathf.Abs(Mathf.Sin(t * (6.2f * paceMult) + i)) * 0.07f);
+                    g.cfg.petCompanion.position = Vector3.Lerp(g.cfg.petCompanion.position, petGoal, dt * (4.5f * paceMult));
                     g.cfg.petCompanion.rotation = Quaternion.Slerp(g.cfg.petCompanion.rotation, g.cfg.actor.rotation, dt * 6f);
+                    if (g.petHead != null)
+                    {
+                        Quaternion headTarget = sniffingGround
+                            ? g.petHeadBase * Quaternion.Euler(28f + Mathf.Sin(t * 16f) * 4f, Mathf.Sin(t * 20f) * 11f, 0f)
+                            : g.petHeadBase * Quaternion.Euler(Mathf.Sin(t * 2.6f + i) * 4f, 0f, 0f);
+                        g.petHead.localRotation = Quaternion.Slerp(g.petHead.localRotation, headTarget, dt * 10f);
+                    }
+                    if (g.petTail != null)
+                        g.petTail.localRotation = g.petTailBase * Quaternion.Euler(0f, Mathf.Sin(t * (sniffingGround ? 14f : 8f) + i) * 24f, 0f);
                 }
             }
         }

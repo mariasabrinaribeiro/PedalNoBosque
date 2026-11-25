@@ -67,8 +67,12 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private Quaternion baseLegBLRot = Quaternion.identity;
     private Quaternion baseLegBRRot = Quaternion.identity;
     private Vector3 prevFramePos;
-    private float petFaceSign = -1f;
+    private float petFaceSign = 1f;
     private Quaternion lastValidRot = Quaternion.identity;
+    // Pet movement language: lowering head to sniff the ground & changing gait rhythm naturally!
+    private float sniffDipTimer;
+    private float sniffCooldown = 3.2f;
+    private float paceClock;
 
     private static readonly Vector3[] HiddenSpots =
     {
@@ -83,31 +87,33 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private void Start()
     {
         GirlPowerOrla3DCharacterFacing.DisableRootMotion(transform);
-        petFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(transform, -1f);
+        petFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(transform, 1f);
         lastValidRot = transform.rotation;
         homePos = transform.position;
+        float fz = petFaceSign >= 0f ? 1f : -1f;
         if (bandanaProp != null)
         {
             bandanaProp.SetParent(transform, false);
-            bandanaProp.localPosition = new Vector3(0f, 0.36f, -0.14f);
+            bandanaProp.localPosition = new Vector3(0f, 0.36f, 0.16f * fz);
             bandanaProp.localScale = Vector3.one * 0.85f;
             bandanaProp.gameObject.SetActive(HasBandanaEquipped);
         }
         if (detectiveHatProp != null)
         {
             detectiveHatProp.SetParent(transform, false);
-            detectiveHatProp.localPosition = new Vector3(0f, 0.72f, -0.18f);
+            detectiveHatProp.localPosition = new Vector3(0f, 0.72f, 0.20f * fz);
             detectiveHatProp.localScale = Vector3.one * 0.85f;
             detectiveHatProp.gameObject.SetActive(false);
         }
-        pHead = FindChildRec(transform, "Pipoca_Head");
-        pTail = FindChildRec(transform, "Pipoca_Tail");
+        // Discover articulated joints for BOTH Pipoca (Dog) and Mingau (Cat)!
+        pHead = FindChildRec(transform, isCat ? "Cat_Head" : "Pipoca_Head");
+        pTail = FindChildRec(transform, isCat ? "Cat_Tail" : "Pipoca_Tail");
         pEarL = FindChildRec(transform, "Pipoca_EarL");
         pEarR = FindChildRec(transform, "Pipoca_EarR");
-        pLegFL = FindChildRec(transform, "Pipoca_LegFL");
-        pLegFR = FindChildRec(transform, "Pipoca_LegFR");
-        pLegBL = FindChildRec(transform, "Pipoca_LegBL");
-        pLegBR = FindChildRec(transform, "Pipoca_LegBR");
+        pLegFL = FindChildRec(transform, isCat ? "Cat_LegFL" : "Pipoca_LegFL");
+        pLegFR = FindChildRec(transform, isCat ? "Cat_LegFR" : "Pipoca_LegFR");
+        pLegBL = FindChildRec(transform, isCat ? "Cat_LegBL" : "Pipoca_LegBL");
+        pLegBR = FindChildRec(transform, isCat ? "Cat_LegBR" : "Pipoca_LegBR");
         if (pHead != null)
         {
             if (pEarL != null && pEarL.parent != pHead) pEarL.SetParent(pHead, true);
@@ -121,6 +127,7 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
         if (pLegFR != null) baseLegFRRot = pLegFR.localRotation;
         if (pLegBL != null) baseLegBLRot = pLegBL.localRotation;
         if (pLegBR != null) baseLegBRRot = pLegBR.localRotation;
+        sniffCooldown = isCat ? 4.2f : 2.8f;
         prevFramePos = transform.position;
     }
 
@@ -137,29 +144,65 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (isCat) return;
         float t = Time.time;
         float dt = Mathf.Max(0.001f, Time.deltaTime);
         float speed = new Vector2(transform.position.x - prevFramePos.x, transform.position.z - prevFramePos.z).magnitude / dt;
         prevFramePos = transform.position;
 
-        bool excited = happyTimer > 0f || detectiveHappyTimer > 0f || detectiveSuspect != null || trickTimer > 0f;
-        float wagRate = excited ? 20f : 9f;
-        float wagAmp = excited ? 36f : 18f;
-        if (pTail != null)
-            pTail.localRotation = baseTailRot * Quaternion.Euler(excited ? 18f : 0f, Mathf.Sin(t * wagRate) * wagAmp, 0f);
+        // Periodic curious ground-sniffing language when stationary or strolling slowly!
+        if (sniffDipTimer > 0f)
+        {
+            sniffDipTimer = Mathf.Max(0f, sniffDipTimer - dt);
+        }
+        else if (speed < 1.2f && happyTimer <= 0f && trickTimer <= 0f && detectiveSuspect == null)
+        {
+            sniffCooldown -= dt;
+            if (sniffCooldown <= 0f)
+            {
+                sniffDipTimer = isCat ? Random.Range(1.2f, 1.9f) : Random.Range(1.5f, 2.5f);
+                sniffCooldown = isCat ? Random.Range(4.8f, 7.5f) : Random.Range(3.2f, 5.5f);
+            }
+        }
 
-        float earFlop = speed > 0.35f ? Mathf.Abs(Mathf.Sin(t * 14f)) * 22f : Mathf.Sin(t * 3.5f) * 5f;
+        bool isSniffingNow = sniffDipTimer > 0f || sniffingActive;
+        bool excited = happyTimer > 0f || detectiveHappyTimer > 0f || detectiveSuspect != null || trickTimer > 0f;
+        float wagRate = excited ? 20f : (isSniffingNow ? 14f : (isCat ? 4.2f : 9f));
+        float wagAmp = excited ? 36f : (isSniffingNow ? 26f : (isCat ? 22f : 18f));
+        if (pTail != null)
+            pTail.localRotation = baseTailRot * Quaternion.Euler(excited ? 18f : (isCat ? 8f : 0f), Mathf.Sin(t * wagRate) * wagAmp, 0f);
+
+        float earFlop = speed > 0.35f ? Mathf.Abs(Mathf.Sin(t * 14f)) * 22f : (isSniffingNow ? Mathf.Sin(t * 9f) * 10f : Mathf.Sin(t * 3.5f) * 5f);
         if (pEarL != null) pEarL.localRotation = baseEarLRot * Quaternion.Euler(0f, 0f, earFlop);
         if (pEarR != null) pEarR.localRotation = baseEarRRot * Quaternion.Euler(0f, 0f, -earFlop);
 
         if (pHead != null)
         {
-            float headTilt = CurrentDetectiveSignal == DetectiveSignal.Chorar ? 18f : (CurrentDetectiveSignal == DetectiveSignal.Latir ? -14f : Mathf.Sin(t * 2.5f) * 4f);
-            pHead.localRotation = baseHeadRot * Quaternion.Euler(headTilt, 0f, excited ? Mathf.Sin(t * 6f) * 8f : 0f);
+            float pitchSign = petFaceSign >= 0f ? 1f : -1f;
+            float headPitch;
+            float headYaw = 0f;
+            if (CurrentDetectiveSignal == DetectiveSignal.Chorar)
+                headPitch = 18f * pitchSign;
+            else if (CurrentDetectiveSignal == DetectiveSignal.Latir)
+                headPitch = -14f * pitchSign;
+            else if (isSniffingNow)
+            {
+                // Distinct pet sniffing language: dip nose toward the ground + rapid side-to-side scent check!
+                headPitch = (30f + Mathf.Sin(t * 16f) * 4.5f) * pitchSign;
+                headYaw = Mathf.Sin(t * 21f) * 12f;
+            }
+            else
+            {
+                headPitch = Mathf.Sin(t * 2.5f) * 4f;
+                headYaw = speed < 0.25f ? Mathf.Sin(t * 1.4f) * 10f : 0f;
+            }
+            Quaternion targetHead = baseHeadRot * Quaternion.Euler(headPitch, headYaw, excited ? Mathf.Sin(t * 6f) * 8f : 0f);
+            pHead.localRotation = Quaternion.Slerp(pHead.localRotation, targetHead, 1f - Mathf.Exp(-12f * dt));
         }
 
-        float stride = speed > 0.25f ? Mathf.Sin(t * 16f) * 34f : 0f;
+        // Stride leg swing synchronized with the varied pet gait pace!
+        float strideFreq = Mathf.Clamp(10f + speed * 2.0f, 9f, 20f);
+        float strideAmp = speed > 0.20f ? Mathf.Clamp(speed * 8.5f, 16f, 38f) : 0f;
+        float stride = Mathf.Sin(t * strideFreq) * strideAmp;
         if (pLegFL != null) pLegFL.localRotation = baseLegFLRot * Quaternion.Euler(stride, 0f, 0f);
         if (pLegFR != null) pLegFR.localRotation = baseLegFRRot * Quaternion.Euler(-stride, 0f, 0f);
         if (pLegBL != null) pLegBL.localRotation = baseLegBLRot * Quaternion.Euler(-stride, 0f, 0f);
@@ -401,13 +444,19 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
 
         if (dist > stopDistance * 0.55f)
         {
+            // Varied natural pet gait rhythm: alternates lively trot, curious slower pace & brief sniff-check!
+            paceClock += dt;
+            float paceWave = Mathf.Sin(paceClock * (isCat ? 1.45f : 1.95f));
+            float paceMult = sniffingActive ? 1.18f : (paceWave > 0.2f ? 1.18f : (paceWave < -0.55f ? 0.68f : 0.94f));
+            if (sniffDipTimer > 0f && !sniffingActive && dist < 3.5f) paceMult = 0.22f;
+
             Vector2 dir = deltaXZ / Mathf.Max(0.001f, dist);
-            float spd = sniffingActive ? followSpeed * 1.25f : followSpeed;
+            float spd = followSpeed * paceMult;
             float step = Mathf.Min(dist, spd * dt);
             float nx = current.x + dir.x * step;
             float nz = current.z + dir.y * step;
-            hopClock += dt * (isCat ? 10.5f : 13.5f);
-            float hop = Mathf.Abs(Mathf.Sin(hopClock)) * (isCat ? 0.14f : 0.18f);
+            hopClock += dt * (isCat ? 10.5f : 13.5f) * Mathf.Clamp(paceMult, 0.55f, 1.35f);
+            float hop = Mathf.Abs(Mathf.Sin(hopClock)) * (isCat ? 0.12f : 0.17f) * Mathf.Clamp01(paceMult);
             float baseY = SampleCompanionGroundY(nx, nz);
             transform.position = new Vector3(nx, baseY + hop, nz);
 

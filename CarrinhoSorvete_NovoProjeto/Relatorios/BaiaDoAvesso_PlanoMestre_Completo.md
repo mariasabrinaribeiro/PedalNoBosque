@@ -225,3 +225,22 @@
   - **Faixa de areia:** guarda-sóis espaçados (`x = -1.2, 12.2, 24.5` em `z = 6.6`) e **3 acessos diretos abertos** no meio-fio e na restinga (`x = -7.2..-3.5`, `x = 5.5..9.5`, `x = 18.0..22.0`).
   - **Bancos, postes e potes para pets:** recuados nas bordas (`z = -3.4..-3.75`) com colisores compactos que preservam todas as esquinas.
   - **Telhados e câmera:** telhados de primeiro plano reduzidos com `ApplyFadeMaterials` + enquadramento inteligente na chegada ao Carrinho e à Florista (`FollowAnimalCrossingCamera`).
+
+---
+
+### Etapa 17 (v28) — Direção de Arte de Personagens, Silhuetas Contrastantes, Linguagem de Fadas/Pets & Exportação Padronizada (`+Z` Forward)
+- [x] **1. Protagonista (`Char_Protagonist.fbx`, `build_orla_art_direction_characters.py`):**
+  - Pernas **+15% mais longas** (`hip z = 0.41`, `LegTube = 0.30`) e cabeça **~8% menor** (`r = 0.266` vs `0.290`), preservando rosto expressivo e olhos piscantes.
+  - Penteado reconhecível de costas (rabo de cavalo alto em 2 camadas + laço turquesa/dourado), **bolsa curta tiracolo** com alça diagonal visível frente/costas e combinação exclusiva de cores (framboesa, creme, jeans turquesa, bolsa dourada).
+  - Passada calibrada para as novas pernas em `GirlPowerOrla3DCharacterAnimator.cs` (`1.70 m` por ciclo completo + amplitude `31°/46°` + altura da casquinha/chapéu ajustadas).
+- [x] **2. As Duas Amigas — Silhuetas Contrastantes Mesmo Sem Cor (`Char_FriendNina.fbx` e `Char_FriendBia.fbx`):**
+  - **Nina:** silhueta alta e esguia, coque alto vertical esticado e jaqueta reta/quadrada com calça reta.
+  - **Bia:** silhueta ~20% mais baixa e compacta, cabelo volumoso cacheado em nuvem e vestido/mangas balonê arredondadas.
+- [x] **3. Moradores Modulares & Florista Reconhecíveis de Costas (`Char_Florist.fbx`, `Char_PedestrianBlue.fbx`, `Char_PedestrianCoral.fbx`, `Char_SisterMarina.fbx`, `build_baia_modular_archetypes.py`):**
+  - Base modular com variações de altura e largura (`0.90x–1.12x`) + juntas articuladas (`LegL/R`, `ArmL/R`) e acessórios legíveis de costas (mochila costeira, viseira + rabo lateral + pochete, laço solar).
+  - **Florista Luna:** avental botânico verde com alças cruzadas em X e laço nas costas + **cesto de mudas trançado** com brotos e flores visível frente/costas.
+- [x] **4. Fadas e Pets com Contraste e Linguagem Própria (`Char_FairyWaitress.fbx`, `PetDog.fbx`, `PetCat.fbx`, `Pet_Calopsita.fbx`):**
+  - **Fadas (`GirlPowerOrla3DNpcAI.cs`):** asas com moldura luminosa dourada + núcleo lilás/rosa que se destacam sobre o mar e o piso, e movimento aéreo próprio alternando **planar suave** com **pausas breves suspensas no ar**.
+  - **Pets (`GirlPowerOrla3DPetCompanion.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`):** **Pipoca** e **Mingau** (agora também articulado!) com pelagem de alto contraste (manchas chocolate/ameixa + coleiras vibrantes), **baixando a cabeça para farejar o chão** e **variando o ritmo da passada** (trote rápido, passo curioso e pausas farejando).
+- [x] **5. Padronização de Exportação (`+Z` Forward) e Fim do Vetor Invertido:**
+  - Todos os 21+ modelos de personagens, arquétipos, fadas e pets reexportados no Blender 5.3 com `axis_forward='Z', axis_up='Y', bake_space_transform=True` (`det = +1.0`), padronizando a frente real em `+Z` do Unity (`fallbackSign = +1f` em `GirlPowerOrla3DCharacterFacing.cs` e em todos os controladores).

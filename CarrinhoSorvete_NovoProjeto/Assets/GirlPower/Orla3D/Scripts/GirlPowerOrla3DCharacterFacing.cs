@@ -17,13 +17,14 @@ public static class GirlPowerOrla3DCharacterFacing
 
     private static readonly string[] HeadCandidates =
     {
-        "Protag_Head", "Head", "Pipoca_Head", "Protag_Torso", "Torso"
+        "Protag_Head", "Head", "Pipoca_Head", "Cat_Head", "Protag_Torso", "Torso"
     };
 
     /// <summary>
-    /// Measures whether the character's face points along local +Z (+1f) or local -Z (-1f).
+    /// Measures whether the character's face points along local +Z (+1f, Unity standard) or local -Z (-1f).
+    /// All Orla das Fadas models are standardized to +Z forward on export; runtime verification preserves safety.
     /// </summary>
-    public static float DetectFaceForwardSign(Transform visualRoot, float fallbackSign = -1f)
+    public static float DetectFaceForwardSign(Transform visualRoot, float fallbackSign = 1f)
     {
         if (visualRoot == null) return fallbackSign;
 

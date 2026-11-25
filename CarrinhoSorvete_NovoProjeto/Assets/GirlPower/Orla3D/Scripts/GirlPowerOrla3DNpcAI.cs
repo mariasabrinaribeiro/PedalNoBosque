@@ -60,6 +60,8 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         public float faceSign;
         public Vector3 prevWorldPos;
         public Quaternion lastValidRot;
+        public float glideTimer;
+        public float hoverPauseTimer;
     }
 
     private sealed class SparkleDust
@@ -155,16 +157,16 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
             walkers.Add(new WaypointWalker
             {
                 tr = npc,
-                legL = FindNamedJoint(npc, "Protag_LegL", "Leg_L", "LeftLeg", "LegLeft", "leg.l"),
-                legR = FindNamedJoint(npc, "Protag_LegR", "Leg_R", "RightLeg", "LegRight", "leg.r"),
-                armL = FindNamedJoint(npc, "Protag_ArmL", "Arm_L", "LeftArm", "ArmLeft", "arm.l"),
-                armR = FindNamedJoint(npc, "Protag_ArmR", "Arm_R", "RightArm", "ArmRight", "arm.r"),
+                legL = FindNamedJoint(npc, "LegL", "Protag_LegL", "Leg_L", "LeftLeg", "LegLeft", "leg.l"),
+                legR = FindNamedJoint(npc, "LegR", "Protag_LegR", "Leg_R", "RightLeg", "LegRight", "leg.r"),
+                armL = FindNamedJoint(npc, "ArmL", "Protag_ArmL", "Arm_L", "LeftArm", "ArmLeft", "arm.l"),
+                armR = FindNamedJoint(npc, "ArmR", "Protag_ArmR", "Arm_R", "RightArm", "ArmRight", "arm.r"),
                 route = routes[i % routes.Length],
                 wpIdx = 0,
                 waitTimer = 1.5f + i * 1.2f,
                 speed = 1.15f + (i % 3) * 0.12f,
                 baseY = npc.position.y,
-                faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(npc, -1f),
+                faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(npc, 1f),
                 prevWorldPos = npc.position,
                 lastValidRot = npc.rotation,
                 subPath = new List<Vector3>(16),
@@ -216,9 +218,11 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 stopIdx = 0,
                 serveWait = 1.0f + i * 0.8f,
                 phase = i * 2.1f,
-                faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(f, -1f),
+                faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(f, 1f),
                 prevWorldPos = f.position,
-                lastValidRot = f.rotation
+                lastValidRot = f.rotation,
+                glideTimer = 1.8f + i * 0.6f,
+                hoverPauseTimer = 0f
             });
         }
     }
@@ -397,12 +401,16 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
             FairyAgent f = fairies[i];
             if (f.root == null || !f.root.gameObject.activeInHierarchy) continue;
 
-            // Rapid magical butterfly/fairy wing flutter!
-            float flap = Mathf.Sin(t * (f.hasDispatchOrder ? 30f : 23f) + f.phase) * 34f;
+            // Fairy aerial movement language: soft flutter while gliding, rapid bright flutter during mid-air hover pauses!
+            bool midAirPause = !f.hasDispatchOrder && f.serveWait <= 0f && f.hoverPauseTimer > 0f;
+            float wingRate = f.hasDispatchOrder ? 30f : (midAirPause ? 32f : 19f);
+            float wingAmp = midAirPause ? 40f : 30f;
+            float flap = Mathf.Sin(t * wingRate + f.phase) * wingAmp;
             if (f.wingL != null) f.wingL.localRotation = Quaternion.Euler(0f, flap, 0f);
             if (f.wingR != null) f.wingR.localRotation = Quaternion.Euler(0f, -flap, 0f);
 
-            float hover = Mathf.Sin(t * 3.2f + f.phase) * 0.16f;
+            float hover = Mathf.Sin(t * (midAirPause ? 4.8f : 3.0f) + f.phase) * (midAirPause ? 0.12f : 0.17f);
+            float leanSign = f.faceSign >= 0f ? 1f : -1f;
             Vector3 cur = f.root.position;
 
             if (f.hasDispatchOrder)
@@ -433,7 +441,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                     f.prevWorldPos = nextPos;
                     if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, f.faceSign, 0.0001f, out Quaternion look))
                         f.lastValidRot = look;
-                    f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(-12f, 0f, Mathf.Sin(t * 4.5f) * 6f), dt * 8f);
+                    f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(12f * leanSign, 0f, Mathf.Sin(t * 4.5f) * 6f), dt * 8f);
                 }
             }
             else if (f.serveWait > 0f)
@@ -442,8 +450,17 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 Vector3 stop = f.stops[f.stopIdx];
                 f.root.position = Vector3.Lerp(cur, new Vector3(stop.x, stop.y + hover, stop.z), dt * 3.5f);
                 f.prevWorldPos = f.root.position;
-                // Gentle graceful serve spin/bob
-                f.root.Rotate(0f, Mathf.Sin(t * 2.2f + f.phase) * 24f * dt, 0f, Space.World);
+                // Gentle graceful serve hover
+                f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(0f, Mathf.Sin(t * 1.8f + f.phase) * 18f, Mathf.Sin(t * 2.4f) * 4f), dt * 4f);
+            }
+            else if (f.hoverPauseTimer > 0f)
+            {
+                // Brief poised mid-air hover pause between graceful glides!
+                f.hoverPauseTimer -= dt;
+                float poisedY = Mathf.Lerp(cur.y, f.stops[f.stopIdx].y + 0.16f + hover, dt * 4.2f);
+                f.root.position = new Vector3(cur.x, poisedY, cur.z);
+                f.prevWorldPos = f.root.position;
+                f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(-4f * leanSign, Mathf.Sin(t * 3.0f) * 10f, 0f), dt * 5f);
             }
             else
             {
@@ -452,14 +469,24 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 float dist = dXZ.magnitude;
                 if (dist < 0.45f)
                 {
-                    f.serveWait = 3.2f; // Pause gracefully to serve a table or pick up drinks!
+                    f.serveWait = 2.8f; // Pause gracefully to serve a table or pick up drinks!
                     f.stopIdx = (f.stopIdx + 1) % f.stops.Length;
+                    f.glideTimer = UnityEngine.Random.Range(1.8f, 2.8f);
                     f.prevWorldPos = f.root.position;
                 }
                 else
                 {
+                    // Glide smoothly, then pause briefly mid-air every ~2.2 seconds!
+                    f.glideTimer -= dt;
+                    if (f.glideTimer <= 0f && dist > 1.4f)
+                    {
+                        f.hoverPauseTimer = UnityEngine.Random.Range(0.55f, 0.85f);
+                        f.glideTimer = UnityEngine.Random.Range(2.0f, 3.0f);
+                        SpawnFairySparkle(cur + Vector3.up * 0.45f);
+                        continue;
+                    }
                     Vector2 dir = dXZ / dist;
-                    float spd = 2.65f;
+                    float spd = 2.85f;
                     float step = Mathf.Min(dist, spd * dt);
                     float nextY = Mathf.Lerp(cur.y, target.y + hover, dt * 4.5f);
                     Vector3 nextPos = new Vector3(cur.x + dir.x * step, nextY, cur.z + dir.y * step);
@@ -468,7 +495,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                     f.prevWorldPos = nextPos;
                     if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, f.faceSign, 0.0001f, out Quaternion look))
                         f.lastValidRot = look;
-                    f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(-8f, 0f, Mathf.Sin(t * 3f) * 5f), dt * 6f);
+                    f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(10f * leanSign, 0f, Mathf.Sin(t * 3.2f) * 6f), dt * 6f);
                 }
             }
 

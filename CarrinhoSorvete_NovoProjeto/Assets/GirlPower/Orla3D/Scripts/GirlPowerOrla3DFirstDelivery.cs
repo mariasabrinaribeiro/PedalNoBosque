@@ -691,7 +691,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 hasValidFacingYaw = true;
             }
 
-            float faceSign = characterAnimator != null ? characterAnimator.FaceForwardSign : -1f;
+            float faceSign = characterAnimator != null ? characterAnimator.FaceForwardSign : 1f;
             if (input.sqrMagnitude > 0.04f && actualPlanarSpeed > 0.35f
                 && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realDisp, faceSign, 0.00001f, out Quaternion targetRot))
             {

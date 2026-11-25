@@ -51,7 +51,7 @@ public static class GirlPowerOrla3DPropsBuilder
         BuildFloatingBuoys(propsRoot.transform, mats, res.floatingBuoys);
         BuildPromenadeTrashBins(propsRoot.transform, mats, obstacles, res.extraShadows);
         BuildBeachSigns(propsRoot.transform, mats, obstacles, res.extraShadows);
-        BuildLampPowerLines(propsRoot.transform, mats, lampCoords);
+        // Keep the player and route destinations readable: coastal lamps remain, overhead wires do not cross the play space.
         BuildBeachTowelsAndBalls(propsRoot.transform, mats, res.extraShadows);
         BuildCoastalGrassAndShrubs(propsRoot.transform, mats, obstacles);
         BuildAmbientLeavesAndSparkles(propsRoot.transform, mats, res.ambientLeaves, res.waterSparkles);
@@ -100,6 +100,11 @@ public static class GirlPowerOrla3DPropsBuilder
             new Vector3(12f, -0.135f, -11.4f), new Vector3(104f, 0.16f, 7.0f), Quaternion.identity, stoneWarm, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "Gramado_Bairro_Sul",
             new Vector3(12f, -0.22f, -22.5f), new Vector3(118f, 0.20f, 22.0f), Quaternion.identity, grass, false);
+
+        // A single paved market court joins the promenade to the recessed stalls without creating another narrow strip.
+        Material plaza = GetMat(mats, "AC_CobbleA");
+        MakePrim(grp.transform, PrimitiveType.Cube, "Praca_Lateral_Feira_Piso_Continuo",
+            new Vector3(10f, -0.075f, -17.25f), new Vector3(58f, 0.10f, 9.5f), Quaternion.identity, plaza, false);
 
         // Low coastal wooden fence pushed far south to z = -23.6f so +50% circulation corridor & Orchard stay 100% open!
         for (float x = -18f; x <= 38f; x += 4.0f)
@@ -267,8 +272,7 @@ public static class GirlPowerOrla3DPropsBuilder
 
         var specs = new (Vector3 pos, float rotY, Material trim, Material sailMat, bool hasSail)[]
         {
-            (new Vector3(-6.2f, -0.26f, 13.8f), 28f, trimA, sail, true),
-            (new Vector3(6.8f, -0.26f, 16.5f), -18f, trimB, sailPink, true),
+            (new Vector3(-8.0f, -0.26f, 14.8f), 28f, trimA, sail, false),
             (new Vector3(25.6f, -0.26f, 14.4f), -32f, trimC, sail, false)
         };
 
@@ -676,22 +680,22 @@ public static class GirlPowerOrla3DPropsBuilder
         // LAYER 2: 5 Stylized Mid-Sea Sailboats (30% apparent camera speed + continuous sailing!)
         Material[] sailCols = { cream, pink, teal, lilac, cream };
         Material[] trimCols = { teal, cream, pink, teal, lilac };
-        for (int i = 0; i < 5; i++)
+        float[] boatXs = { -14f, 8f, 30f };
+        float[] boatZs = { 25f, 32f, 27f };
+        float[] boatScales = { 0.74f, 0.62f, 0.82f };
+        for (int i = 0; i < boatXs.Length; i++)
         {
             GameObject sb = new GameObject("Parallax_Veleiro_MarMedio_" + (i + 1));
             sb.transform.SetParent(pxRoot.transform, false);
-            float zRow = 20.5f + (i % 3) * 4.4f;
-            float xStart = -18f + i * 13.5f;
-            sb.transform.position = new Vector3(xStart, -0.22f, zRow);
+            sb.transform.position = new Vector3(boatXs[i], -0.22f, boatZs[i]);
             sb.transform.rotation = Quaternion.Euler(0f, (i % 2 == 0) ? 90f : -90f, 0f);
-            float sc = 1.05f + (i % 2) * 0.25f;
-            sb.transform.localScale = Vector3.one * sc;
+            sb.transform.localScale = Vector3.one * boatScales[i];
 
             MakePrim(sb.transform, PrimitiveType.Cube, "Casco", new Vector3(0f, 0.22f, 0f), new Vector3(1.1f, 0.45f, 2.8f), Quaternion.identity, cream, false);
             MakePrim(sb.transform, PrimitiveType.Cube, "Faixa", new Vector3(0f, 0.34f, 0f), new Vector3(1.16f, 0.16f, 2.86f), Quaternion.identity, trimCols[i], false);
             MakePrim(sb.transform, PrimitiveType.Cylinder, "Mastro", new Vector3(0f, 1.55f, 0.1f), new Vector3(0.10f, 1.35f, 0.10f), Quaternion.identity, woodDark, false);
             // Main billowing sail + jib sail
-            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Principal", new Vector3(0.06f, 1.65f, -0.45f), new Vector3(0.08f, 1.75f, 1.25f), Quaternion.Euler(0f, 10f, 0f), sailCols[i], false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Principal", new Vector3(0.06f, 1.65f, -0.45f), new Vector3(0.08f, 1.75f, 1.25f), Quaternion.Euler(0f, 10f, 0f), cream, false);
             MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Proa", new Vector3(-0.04f, 1.32f, 0.65f), new Vector3(0.07f, 1.25f, 0.85f), Quaternion.Euler(0f, -12f, 0f), cream, false);
             midSailboats.Add(sb.transform);
         }
