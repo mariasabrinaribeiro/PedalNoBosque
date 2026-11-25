@@ -40,6 +40,10 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
 
     public bool IsOpen { get; private set; }
     private Tab currentTab = Tab.Comidas;
+    private readonly System.Collections.Generic.Dictionary<string, int> ownedCounts = new System.Collections.Generic.Dictionary<string, int>();
+    private string lastBoughtName = "";
+    private float buyFeedbackTimer;
+    private string buyFeedbackBanner = "";
 
     private GUIStyle cardMintStyle;
     private GUIStyle cardWarmStyle;
@@ -47,10 +51,8 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
     private GUIStyle pillRoseStyle;
     private GUIStyle pillGreenStyle;
     private GUIStyle pillLavenderStyle;
-    private GUIStyle pillAmberStyle;
     private GUIStyle pillPlumStyle;
     private GUIStyle pillTealStyle;
-    private GUIStyle pillForestStyle;
     private bool stylesReady;
 
     private static readonly Color[] ShirtPalette =
@@ -90,6 +92,9 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
 
     private void Update()
     {
+        if (buyFeedbackTimer > 0f)
+            buyFeedbackTimer = Mathf.Max(0f, buyFeedbackTimer - Time.unscaledDeltaTime);
+
         if (gameFlow != null && !gameFlow.IsPlaying)
         {
             IsOpen = false;
@@ -112,24 +117,27 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         EnsureCardapioStyles();
 
         GUI.depth = -24;
+        GUI.color = Color.white;
         float s = Mathf.Clamp(Screen.width / 1600f, 0.66f, 1.15f);
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), GirlPowerOrla3DUITheme.DimOverlayTex);
 
-        float mw = 740f * s;
-        float mh = 510f * s;
+        float mw = 820f * s;
+        float mh = 524f * s;
         Rect modal = new Rect((Screen.width - mw) * 0.5f, (Screen.height - mh) * 0.5f, mw, mh);
         GUI.Box(modal, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
-        // Header: Left-aligned dark-teal title + Right-aligned coral circular X (Cozinha do Bosque!)
+        // Header: Clean, coherent economic title (Feira de Insumos & Presentes vs Moda & Esportes)
         int coins = lifeActivities != null ? lifeActivities.Coins : 0;
         GUIStyle headSt = new GUIStyle(GirlPowerOrla3DUITheme.HeadingStyle)
         {
             alignment = TextAnchor.MiddleLeft,
-            fontSize = Mathf.RoundToInt(23f * s),
+            fontSize = Mathf.RoundToInt(22f * s),
             normal = { textColor = new Color(0.18f, 0.44f, 0.34f) }
         };
-        GUI.Label(new Rect(modal.x + 28f * s, modal.y + 14f * s, mw - 120f * s, 36f * s),
-            "Cardápio da Baía  •  " + GetTabDisplayName(currentTab) + "  (" + coins + " moedas)", headSt);
+        string headerTitle = currentTab == Tab.RoupasPets
+            ? ("Moda Praia & Esportes  •  " + coins + " moedas")
+            : ("Feira da Baía — " + GetTabDisplayName(currentTab) + "  •  " + coins + " moedas");
+        GUI.Label(new Rect(modal.x + 28f * s, modal.y + 14f * s, mw - 120f * s, 36f * s), headerTitle, headSt);
 
         float xSz = 40f * s;
         Rect closeRect = new Rect(modal.xMax - xSz - 14f * s, modal.y + 12f * s, xSz, xSz);
@@ -143,10 +151,10 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         // 2x6 Grid of Illustrated Rounded Square Cards (Top Row Mint, Bottom Row Warm Cream)
         MenuItem[] items = GetItemsForTab(currentTab);
         int cols = 6;
-        float padX = 26f * s;
+        float padX = 24f * s;
         float gap = 10f * s;
         float cardW = (mw - padX * 2f - gap * (cols - 1)) / cols;
-        float cardH = 114f * s;
+        float cardH = 118f * s;
         float gridY = modal.y + 64f * s;
 
         GUIStyle lblSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
@@ -158,8 +166,8 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         GUIStyle priceSt = new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle)
         {
             alignment = TextAnchor.LowerCenter,
-            fontSize = Mathf.RoundToInt(10.5f * s),
-            normal = { textColor = new Color(0.20f, 0.46f, 0.36f) }
+            fontSize = Mathf.RoundToInt(11f * s),
+            normal = { textColor = new Color(0.18f, 0.44f, 0.34f) }
         };
 
         for (int i = 0; i < items.Length && i < 12; i++)
@@ -167,67 +175,74 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             int r = i / cols;
             int c = i % cols;
             Rect cr = new Rect(modal.x + padX + c * (cardW + gap), gridY + r * (cardH + gap), cardW, cardH);
-            GUIStyle st = r == 0 ? cardMintStyle : cardWarmStyle;
 
+            // Brief pop-glow scale animation on the card just clicked!
+            bool justBought = buyFeedbackTimer > 0.7f && lastBoughtName == items[i].name;
+            if (justBought)
+            {
+                float expand = 4f * s;
+                cr = new Rect(cr.x - expand, cr.y - expand, cr.width + expand * 2f, cr.height + expand * 2f);
+            }
+
+            GUIStyle st = r == 0 ? cardMintStyle : cardWarmStyle;
             if (GUI.Button(cr, GUIContent.none, st))
                 HandleItemPurchase(items[i]);
 
             // Illustrated circular emblem + crisp icon inside card
             float emSz = 42f * s;
-            Rect emRect = new Rect(cr.x + (cardW - emSz) * 0.5f, cr.y + 8f * s, emSz, emSz);
-            Color prev = GUI.color;
+            Rect emRect = new Rect(cr.x + (cr.width - emSz) * 0.5f, cr.y + 8f * s, emSz, emSz);
             GUI.color = items[i].iconBg;
             GUI.DrawTexture(emRect, GirlPowerOrla3DUITheme.CircleWhiteTex);
             GUI.color = Color.white;
             Texture2D ic = ResolveItemIcon(items[i].iconKind);
             if (ic != null)
                 GUI.DrawTexture(new Rect(emRect.x + 6f * s, emRect.y + 6f * s, emSz - 12f * s, emSz - 12f * s), ic);
-            GUI.color = prev;
 
-            GUI.Label(new Rect(cr.x + 4f * s, cr.y + 52f * s, cardW - 8f * s, 38f * s), items[i].name, lblSt);
+            // Owned quantity badge (x1, x2...) on top-right corner of card!
+            if (ownedCounts.TryGetValue(items[i].name, out int qty) && qty > 0)
+            {
+                Rect qBadge = new Rect(cr.xMax - 30f * s, cr.y + 4f * s, 26f * s, 20f * s);
+                GUI.Box(qBadge, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
+                GUI.Label(qBadge, "x" + qty, new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(10f * s) });
+            }
+
+            GUI.Label(new Rect(cr.x + 4f * s, cr.y + 52f * s, cr.width - 8f * s, 38f * s), items[i].name, lblSt);
             string pTxt = items[i].price > 0 ? (items[i].price + " m") : "Equipar";
-            GUI.Label(new Rect(cr.x + 4f * s, cr.yMax - 22f * s, cardW - 8f * s, 18f * s), pTxt, priceSt);
+            GUI.Label(new Rect(cr.x + 4f * s, cr.yMax - 22f * s, cr.width - 8f * s, 18f * s), pTxt, priceSt);
         }
 
-        // 2 Rows of 4 Colorful Pill Buttons Underneath (Matching Cozinha do Bosque!)
-        float pillY = gridY + 2f * (cardH + gap) + 12f * s;
-        float pillGap = 12f * s;
-        float pillW = (mw - padX * 2f - pillGap * 3f) / 4f;
+        // Wide, clean, NON-TRUNCATED category pill buttons (2 rows of 3 = plenty of width!)
+        float pillY = gridY + 2f * (cardH + gap) + 14f * s;
+        float pillGap = 14f * s;
+        float pillW = (mw - padX * 2f - pillGap * 2f) / 3f;
         float pillH = 42f * s;
 
         if (GUI.Button(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY, pillW, pillH), "Comidas & Batata", pillOrangeStyle))
             SelectTab(Tab.Comidas);
-        if (GUI.Button(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY, pillW, pillH), "Bebidas & Sucos", pillRoseStyle))
+        if (GUI.Button(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY, pillW, pillH), "Água, Refri & Sucos", pillRoseStyle))
             SelectTab(Tab.Bebidas);
         if (GUI.Button(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY, pillW, pillH), "Sorvetes & Doces", pillGreenStyle))
             SelectTab(Tab.SorvetesDoces);
-        if (GUI.Button(new Rect(modal.x + padX + 3f * (pillW + pillGap), pillY, pillW, pillH), "Sushi & Mar", pillLavenderStyle))
-            SelectTab(Tab.SushiMar);
 
         float pillY2 = pillY + pillH + 10f * s;
-        if (GUI.Button(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY2, pillW, pillH), "Roupas & Pets", pillAmberStyle))
-            SelectTab(Tab.RoupasPets);
-        if (GUI.Button(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY2, pillW, pillH), "Artesanatos", pillPlumStyle))
+        if (GUI.Button(new Rect(modal.x + padX + 0f * (pillW + pillGap), pillY2, pillW, pillH), "Sushi & Mar", pillLavenderStyle))
+            SelectTab(Tab.SushiMar);
+        if (GUI.Button(new Rect(modal.x + padX + 1f * (pillW + pillGap), pillY2, pillW, pillH), "Artesanatos & Presentes", pillPlumStyle))
             SelectTab(Tab.Artesanatos);
-        if (GUI.Button(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY2, pillW, pillH), "Horta & Plantar", pillTealStyle))
-        {
-            Close();
-            if (megaSystems != null) megaSystems.OpenModal(GirlPowerOrla3DMegaSystems.ActiveModal.Garden);
-        }
-        if (GUI.Button(new Rect(modal.x + padX + 3f * (pillW + pillGap), pillY2, pillW, pillH), "Upgrades & Receitas", pillForestStyle))
-        {
-            Close();
-            if (megaSystems != null) megaSystems.OpenModal(GirlPowerOrla3DMegaSystems.ActiveModal.Restoration);
-        }
+        if (GUI.Button(new Rect(modal.x + padX + 2f * (pillW + pillGap), pillY2, pillW, pillH), "Moda Praia & Esportes", pillTealStyle))
+            SelectTab(Tab.RoupasPets);
 
-        // Bottom cozy hint line (just like "Toque em um cartao para pegar na cesta!")
+        // Live purchase confirmation banner OR cozy hint at bottom!
         GUIStyle footSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.RoundToInt(13f * s)
+            fontSize = Mathf.RoundToInt(13.5f * s),
+            normal = { textColor = buyFeedbackTimer > 0f ? new Color(0.14f, 0.48f, 0.28f) : new Color(0.32f, 0.24f, 0.18f) }
         };
-        GUI.Label(new Rect(modal.x + 20f * s, modal.yMax - 36f * s, mw - 40f * s, 26f * s),
-            "Toque em um cartão para comprar, vestir ou adicionar à cesta!  [TAB fecha]", footSt);
+        string footTxt = buyFeedbackTimer > 0f && !string.IsNullOrEmpty(buyFeedbackBanner)
+            ? buyFeedbackBanner
+            : "Compre insumos e presentes da feira para presentear vizinhos [G] ou equipe roupas e esportes!";
+        GUI.Label(new Rect(modal.x + 20f * s, modal.yMax - 36f * s, mw - 40f * s, 26f * s), footTxt, footSt);
     }
 
     private void SelectTab(Tab t)
@@ -243,24 +258,32 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
             if (lifeActivities == null || lifeActivities.Coins < item.price)
             {
                 if (audioController != null) audioController.PlayFailChime();
-                if (lifeActivities != null && lifeActivities.player != null)
-                    GirlPowerOrla3DUITheme.SpawnFloatingFeedback(lifeActivities.player.position, "Faltam moedas (" + item.price + ")!", new Color(1f, 0.64f, 0.44f));
+                buyFeedbackBanner = "Moedas insuficientes (" + item.price + "m necessários)!";
+                buyFeedbackTimer = 2.0f;
                 return;
             }
             lifeActivities.AddCoins(-item.price);
             if (megaSystems != null) megaSystems.SaveJson();
         }
 
+        lastBoughtName = item.name;
+        buyFeedbackTimer = 1.6f;
+
         if (item.onSelect != null)
         {
             item.onSelect.Invoke();
+            buyFeedbackBanner = "✓ " + item.name + (item.price > 0 ? (" (-" + item.price + "m)") : " equipado!");
+            if (audioController != null) audioController.PlayCoinClink(1.15f);
         }
         else if (lifeActivities != null)
         {
             lifeActivities.AddItemToBag(item.name);
-            if (audioController != null) audioController.PlayFanfare();
+            int nextQty = ownedCounts.TryGetValue(item.name, out int cur) ? cur + 1 : 1;
+            ownedCounts[item.name] = nextQty;
+            buyFeedbackBanner = "✓ Adquirido: " + item.name + " (x" + nextQty + ")  -" + item.price + "m";
+            if (audioController != null) audioController.PlayCoinClink(1.05f + Mathf.Min(0.4f, nextQty * 0.05f));
             if (lifeActivities.player != null)
-                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(lifeActivities.player.position, "+1 " + item.name + " na cesta!", new Color(0.58f, 0.96f, 0.86f));
+                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(lifeActivities.player.position, "+1 " + item.name + " (-" + item.price + "m)", new Color(0.58f, 0.96f, 0.86f));
         }
     }
 
@@ -486,10 +509,8 @@ public sealed class GirlPowerOrla3DCardapioUI : MonoBehaviour
         pillRoseStyle = MakeColoredStyle(new Color(0.82f, 0.34f, 0.44f, 1f), new Color(0.95f, 0.62f, 0.68f, 1f), Color.white, 13);
         pillGreenStyle = MakeColoredStyle(new Color(0.36f, 0.66f, 0.36f, 1f), new Color(0.62f, 0.86f, 0.60f, 1f), Color.white, 13);
         pillLavenderStyle = MakeColoredStyle(new Color(0.62f, 0.52f, 0.78f, 1f), new Color(0.82f, 0.76f, 0.92f, 1f), Color.white, 13);
-        pillAmberStyle = MakeColoredStyle(new Color(0.80f, 0.56f, 0.28f, 1f), new Color(0.94f, 0.76f, 0.50f, 1f), Color.white, 13);
         pillPlumStyle = MakeColoredStyle(new Color(0.58f, 0.32f, 0.66f, 1f), new Color(0.80f, 0.60f, 0.86f, 1f), Color.white, 13);
         pillTealStyle = MakeColoredStyle(new Color(0.28f, 0.56f, 0.48f, 1f), new Color(0.56f, 0.80f, 0.72f, 1f), Color.white, 13);
-        pillForestStyle = MakeColoredStyle(new Color(0.26f, 0.54f, 0.32f, 1f), new Color(0.52f, 0.78f, 0.56f, 1f), Color.white, 13);
     }
 
     private static GUIStyle MakeColoredStyle(Color fill, Color border, Color txt, int fontSize)

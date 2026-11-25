@@ -2,9 +2,9 @@ Shader "GirlPower/OrlaBlobShadow"
 {
     Properties
     {
-        _Color ("Shadow Tint", Color) = (0.15, 0.11, 0.24, 0.46)
+        _Color ("Shadow Tint", Color) = (0.15, 0.11, 0.24, 0.42)
         _Softness ("Edge Softness", Range(0.1, 1.0)) = 0.65
-        _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0016
+        _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0008
     }
 
     SubShader

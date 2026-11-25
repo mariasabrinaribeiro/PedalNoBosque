@@ -78,3 +78,13 @@
 - [x] **5 Sinais Expressivos do Detetive Pipoca:** Pipoca veste o chapéu de detetive, corre até o suspeito e dá os sinais progressivos: **Latir**, **Rolar no chão**, **Morder o ladrão** (atrasando o furto em 45%), **Se Chacoalhar** e **Chorar/Ganir** quando o roubo está prestes a acontecer.
 - [x] **Ação dos Trabalhadores + Chamar a Polícia com Antecedência (`[L]` / `🚓 Chamar Polícia 190`):** Os trabalhadores alertam a orla, a Viatura e o Policial chegam com som de sirene, prendem o ladrão antes do furto, concedem **Pontos de Detetive + Moedas + Prestígio** e deixam o **Pipoca super feliz** dançando!
 - [x] **Vitória & Derrota:** Evitar **3 furtos com antecedência** consagra o jogador e o Pipoca como **Vencedores da Baía do Avesso** (tela de vitória com confetes e 3 estrelas); deixar **3 furtos** ocorrerem dispara **Game Over** com tentativa imediata.
+
+---
+
+### Etapa 8 — Correções da Auditoria Quadro a Quadro de Vídeo (QA Final)
+- [x] **Eliminação do retângulo branco translúcido e Z-fighting:** Maré alta limitada à linha da areia úmida (`+0.06` Y, `-0.95` Z), `Offset 1, 1` no oceano, `_CurveStrength` unificado (`0.0008`), e `AC_BlobShadow.mat` serializado diretamente.
+- [x] **Fim do vazio cinza e limites físicos do mapa:** Extensão de calçada/gramado sul (`z = -8..-26`) com cercas de madeira, arbustos e pedras costeiras nas bordas laterais + bounds ajustados.
+- [x] **Textos de diálogo e tela de Derrota blindados + Retrato 2D:** `GUI.color = Color.white` explícito, guarda de frame ao abrir diálogo (`openedFrame`), retrato ilustrado 2D da Florista/Nina/Marina/Bia/Pavilhão, texto de Derrota sempre legível e alinhado à fase atual.
+- [x] **Inventário da Horta sincronizado + Retry íntegro:** Contador de folhas do HUD unificado (`BasilLeavesCount + Data.organicHerbs`) e `RestartCurrentChapter` restaurando moedas iniciais do capítulo.
+- [x] **Locomoção suave, animação do patinete e câmera com horizonte:** Aceleração/desaceleração suaves, arrasto de 46% do patinete/skate na areia fofa, desmontagem automática na linha do mar, animação de impulso com o pé + inclinação do guidão nas curvas, e `Vector3.SmoothDamp` a `31.5°` (FOV `44°`) exibindo céu e horizonte.
+- [x] **HUD limpo, Cardápio sem cortes, Horta praiana e letreiros padronizados:** Removidos slots vazios e `GIRL POWER` roxo (trocado para `SORVETES DA BAÍA` em verde-mar pastel), alinhados `BATATA & MAR` e `FLORES DA BAÍA`, abas largas no Cardápio com feedback de compra (`x1`, `-Xm`, som), botão `Regar` e verbo dinâmico de preparo (nunca mais "Fritar Sorvete"), além da barra de progresso visual ao montar o sorvete.

@@ -101,7 +101,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         if (puffMat.HasProperty("_ShadowColor"))
             puffMat.SetColor("_ShadowColor", new Color(0.55f, 0.52f, 0.68f, 1f));
         if (puffMat.HasProperty("_CurveStrength"))
-            puffMat.SetFloat("_CurveStrength", 0.0016f);
+            puffMat.SetFloat("_CurveStrength", 0.0008f);
     }
 
     public void SetHoldingCone(bool holding)
@@ -288,28 +288,52 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             return;
         }
 
-        // Wheeled land sports (Skateboard, Scooter, RollerSkates)
+        // Wheeled land sports (Skateboard, Scooter, RollerSkates) with push-off kick, turn banking & wheel particles!
         if (CurrentLandMode != LandMode.Walk)
         {
             float lift = CurrentLandMode == LandMode.RollerSkates ? 0.08f : 0.14f;
-            float stride = moving ? Mathf.Sin(t * (CurrentLandMode == LandMode.RollerSkates ? 11f : 7f)) * (CurrentLandMode == LandMode.RollerSkates ? 9f : 4f) : 0f;
-            float bob = moving ? Mathf.Abs(Mathf.Sin(t * 7f)) * 0.04f : Mathf.Sin(t * 2.5f) * 0.02f;
-            float leanPitch = moving ? (running ? -8f : -4f) : 0f;
+            float speedMag = Mathf.Clamp01(moveInput.magnitude);
+            // Rhythmic foot push-off kick every ~1.25s while accelerating on Scooter or Skateboard!
+            float kickCycle = moving ? Mathf.Repeat(t * 0.85f, 1f) : 0f;
+            float kickPulse = (moving && CurrentLandMode != LandMode.RollerSkates && kickCycle < 0.28f)
+                ? Mathf.Sin((kickCycle / 0.28f) * Mathf.PI)
+                : 0f;
+
+            float stride = moving
+                ? (CurrentLandMode == LandMode.RollerSkates
+                    ? Mathf.Sin(t * 10.5f) * 11f
+                    : kickPulse * 8.5f + Mathf.Sin(t * 5.2f) * 2.5f)
+                : 0f;
+            float bob = moving
+                ? (kickPulse * 0.085f + Mathf.Abs(Mathf.Sin(t * 6.5f)) * 0.03f)
+                : Mathf.Sin(t * 2.4f) * 0.02f;
+            float leanPitch = moving ? (-5.5f * speedMag - kickPulse * 7.5f - (running ? 4f : 0f)) : 0f;
+            float carveBank = Mathf.Clamp(turnTilt * 1.45f, -20f, 20f);
+
             visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, lift + bob, 0f), dt * 12f);
-            visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(leanPitch, yaw, turnTilt + stride), dt * 10f);
+            visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(leanPitch, yaw, carveBank + stride), dt * 11f);
+
+            // Subtle dynamic handlebar/board banking lean on the prop itself!
+            if (scooterProp != null && scooterProp.gameObject.activeSelf)
+                scooterProp.localRotation = Quaternion.Slerp(scooterProp.localRotation, Quaternion.Euler(kickPulse * -4f, Mathf.Clamp(-turnTilt * 0.9f, -18f, 18f), carveBank * 0.45f), dt * 12f);
+            if (skateboardProp != null && skateboardProp.gameObject.activeSelf)
+                skateboardProp.localRotation = Quaternion.Slerp(skateboardProp.localRotation, Quaternion.Euler(kickPulse * -6f, 0f, carveBank * 0.55f), dt * 12f);
 
             if (moving)
             {
                 effectClock += dt;
-                if (effectClock >= (running ? 0.09f : 0.16f))
+                if (effectClock >= (running ? 0.08f : 0.14f))
                 {
                     effectClock = 0f;
                     if (audioController != null) audioController.PlayWheelGlide();
-                    Color trailCol = CurrentLandMode == LandMode.RollerSkates
-                        ? new Color(1.0f, 0.80f, 0.94f)
-                        : (CurrentLandMode == LandMode.Scooter ? new Color(0.64f, 0.96f, 0.90f) : new Color(1.0f, 0.92f, 0.72f));
-                    Vector3 vel = new Vector3(Random.Range(-0.5f, 0.5f), Random.Range(0.45f, 0.95f), Random.Range(-0.5f, 0.5f));
-                    SpawnPuff(worldPos + Vector3.up * 0.08f, vel, 0.10f, 0.22f, 0.36f, trailCol, false);
+                    bool onSand = worldPos.z >= 3.95f;
+                    Color trailCol = onSand
+                        ? new Color(0.92f, 0.80f, 0.58f)
+                        : (CurrentLandMode == LandMode.RollerSkates
+                            ? new Color(1.0f, 0.80f, 0.94f)
+                            : (CurrentLandMode == LandMode.Scooter ? new Color(0.72f, 0.96f, 0.90f) : new Color(1.0f, 0.92f, 0.72f)));
+                    Vector3 vel = new Vector3(Random.Range(-0.55f, 0.55f), Random.Range(0.45f, 1.05f), Random.Range(-0.55f, 0.55f));
+                    SpawnPuff(worldPos + Vector3.up * 0.08f, vel, 0.11f, 0.24f, 0.40f, trailCol, false);
                 }
             }
             UpdateVfx(dt);

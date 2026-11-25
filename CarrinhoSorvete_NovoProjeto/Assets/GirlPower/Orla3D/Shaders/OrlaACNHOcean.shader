@@ -8,15 +8,16 @@ Shader "GirlPower/OrlaACNHOcean"
         _FoamColor ("Surf Foam", Color) = (0.94, 0.98, 0.99, 1)
         _SunColor ("Sun Reflection", Color) = (1.0, 0.88, 0.64, 1)
         _SkyReflectColor ("Sky Reflection Tint", Color) = (0.64, 0.82, 0.95, 1)
-        _WaveSpeed ("Wave Speed", Range(0.1, 3.0)) = 1.2
-        _WaveHeight ("Wave Height", Range(0.0, 0.4)) = 0.11
-        _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0016
+        _WaveSpeed ("Wave Speed", Range(0.1, 3.0)) = 1.15
+        _WaveHeight ("Wave Height", Range(0.0, 0.4)) = 0.06
+        _CurveStrength ("ACNH Horizon Curve", Range(0.0, 0.01)) = 0.0008
     }
 
     SubShader
     {
         Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
         LOD 200
+        Offset 1, 1
 
         CGPROGRAM
         #pragma surface surf Lambert vertex:vert noambient

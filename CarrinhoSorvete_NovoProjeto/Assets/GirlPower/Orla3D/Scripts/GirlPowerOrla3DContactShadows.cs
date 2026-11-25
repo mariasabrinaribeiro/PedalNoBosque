@@ -18,7 +18,8 @@ public sealed class GirlPowerOrla3DContactShadows : MonoBehaviour
     }
 
     public ShadowEntry[] entries;
-    public Color shadowColor = new Color(0.14f, 0.10f, 0.24f, 0.44f);
+    public Material serializedBlobMat;
+    public Color shadowColor = new Color(0.14f, 0.10f, 0.24f, 0.42f);
 
     private sealed class ShadowInstance
     {
@@ -35,11 +36,18 @@ public sealed class GirlPowerOrla3DContactShadows : MonoBehaviour
 
     private void Start()
     {
-        Shader sh = Shader.Find("GirlPower/OrlaBlobShadow");
-        if (sh == null) sh = Shader.Find("Sprites/Default");
-        blobMat = new Material(sh);
+        if (serializedBlobMat != null)
+        {
+            blobMat = serializedBlobMat;
+        }
+        else
+        {
+            Shader sh = Shader.Find("GirlPower/OrlaBlobShadow");
+            if (sh == null) return; // Never fall back to flat opaque white quad!
+            blobMat = new Material(sh);
+        }
         if (blobMat.HasProperty("_Color")) blobMat.SetColor("_Color", shadowColor);
-        if (blobMat.HasProperty("_CurveStrength")) blobMat.SetFloat("_CurveStrength", 0.0016f);
+        if (blobMat.HasProperty("_CurveStrength")) blobMat.SetFloat("_CurveStrength", 0.0008f);
 
         quadMesh = CreateGroundQuadMesh();
 

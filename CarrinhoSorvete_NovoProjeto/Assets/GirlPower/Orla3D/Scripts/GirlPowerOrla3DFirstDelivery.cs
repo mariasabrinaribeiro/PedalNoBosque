@@ -62,27 +62,68 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public BoxCollider[] blockingObstacles;
 
     [Header("Movement & Feel")]
-    public float walkSpeed = 3.9f;
+    public float walkSpeed = 4.0f;
     public float runSpeed = 6.4f;
     public float surfSpeed = 7.9f;
-    public float turnSpeed = 12f;
+    public float turnSpeed = 9.5f;
     public float interactionRadius = 2.9f;
 
-    [Header("Balanced Diorama Camera")]
-    public Vector3 cameraOffset = new Vector3(0f, 8.1f, -9.6f);
-    public float cameraPitch = 38.5f;
-    public float cameraSmooth = 5.5f;
-    public float minZoom = 0.68f;
-    public float maxZoom = 1.55f;
+    [Header("Balanced Horizon Diorama Camera")]
+    public Vector3 cameraOffset = new Vector3(0f, 6.7f, -11.5f);
+    public float cameraPitch = 31.5f;
+    public float cameraSmoothTime = 0.22f;
+    public float minZoom = 0.72f;
+    public float maxZoom = 1.48f;
 
-    [Header("World Exploration Bounds")]
-    public float minWorldX = -22.0f;
-    public float maxWorldX = 44.0f;
-    public float minWorldZ = -8.4f;
-    public float maxWorldZ = 22.0f;
+    [Header("World Exploration Bounds (Safe Scenic Play Area — Zero Gray Void!)")]
+    public float minWorldX = -17.5f;
+    public float maxWorldX = 36.8f;
+    public float minWorldZ = -6.9f;
+    public float maxWorldZ = 20.5f;
+
+    private Vector2 currentMoveVel;
+    private Vector3 cameraVelRef;
+    private float craftProgressTimer;
+    private float craftProgressDuration;
+    private string craftProgressLabel = "";
+    private System.Action onCraftComplete;
 
     public int BasilLeavesCount => basilLeaves;
     public bool HasChoiceMenuOpen => cartOpen || inviteMenuOpen;
+
+    public void AddBasilLeaves(int amount)
+    {
+        basilLeaves = Mathf.Max(0, basilLeaves + amount);
+        SaveProgress();
+    }
+
+    public string GetMatchingTimeoutFailReason(bool english)
+    {
+        switch (phase)
+        {
+            case StoryPhase.Ch1_AtCart:
+            case StoryPhase.Ch1_Delivering:
+                return english
+                    ? "Sunset arrived and the ice cream melted before you delivered it to Florist Luna!"
+                    : "O expediente acabou e o sorvete derreteu antes de você entregar para a Florista Luna!";
+            case StoryPhase.Ch1_ReturningForUpgrade:
+            case StoryPhase.Ch1_ChooseUpgrade:
+                return english
+                    ? "Sunset arrived before you chose your kiosk upgrade with Nina!"
+                    : "O expediente acabou antes de você escolher a melhoria do seu quiosque com a Nina!";
+            case StoryPhase.Ch2_HarvestBasil:
+            case StoryPhase.Ch2_CollectCards:
+            case StoryPhase.Ch2_InviteChoice:
+            case StoryPhase.Ch2_DeliverInviteToMarina:
+                return english
+                    ? "The coastal gust blew the florist's postcards away before the sisters reunited!"
+                    : "A ventania levou os cartões da florista antes do reencontro das irmãs!";
+            default:
+                return english
+                    ? "Night fell over the bay before the Pavilion lights could be restored!"
+                    : "A noite chegou sobre a baía antes de você acender o Pavilhão da Baía!";
+        }
+    }
 
     private StoryPhase phase = StoryPhase.Ch1_AtCart;
     private string selectedFlavor = "";
@@ -153,7 +194,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         Material mat = new Material(sh);
         mat.SetColor("_Color", new Color(1.0f, 0.85f, 0.32f, 1f));
         if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", new Color(1.0f, 0.78f, 0.25f, 1f) * 0.65f);
-        if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0016f);
+        if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
 
         groundBeaconRend = ring.GetComponent<Renderer>();
         groundBeaconRend.sharedMaterial = mat;
@@ -245,6 +286,20 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         bool modalBlocked = (cardapioUI != null && cardapioUI.IsOpen) || (megaSystems != null && megaSystems.IsAnyModalOpen);
         Keyboard keys = Keyboard.current;
         Vector2 input = Vector2.zero;
+
+        // Crafting progress bar update (smooth visual prep before cone appears in hand!)
+        if (craftProgressTimer > 0f)
+        {
+            craftProgressTimer = Mathf.Max(0f, craftProgressTimer - Time.deltaTime);
+            if (craftProgressTimer <= 0f)
+            {
+                System.Action cb = onCraftComplete;
+                onCraftComplete = null;
+                cb?.Invoke();
+            }
+            FollowAnimalCrossingCamera(Vector2.zero);
+            return;
+        }
 
         // Invisible Onboarding Camera Pan (2.3s silent focus on Florista Luna -> Cart)
         if (onboardingTimer > 0f)
@@ -421,11 +476,28 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void MovePlayer(Vector2 input, bool running)
     {
-        bool isSurfingNow = player.position.z >= 9.8f;
+        float dt = Time.deltaTime;
+        bool isWheeled = characterAnimator != null && characterAnimator.CurrentLandMode != GirlPowerOrla3DCharacterAnimator.LandMode.Walk;
+        bool isSurfingNow = player.position.z >= 9.6f;
+
         if (characterAnimator != null)
             characterAnimator.SetSurfing(isSurfingNow);
 
-        if (input.sqrMagnitude < 0.001f)
+        float mobMult = characterAnimator != null ? characterAnimator.GetMobilitySpeedMultiplier() : 1f;
+        float upgMult = megaSystems != null ? megaSystems.GetSpeedUpgradeMultiplier() : 1f;
+
+        // Terrain physics: Scooter/Skate/Patins are faster on paved promenade/street & drag realistically on soft beach sand!
+        bool onSoftSand = player.position.z >= 3.95f && player.position.z < 9.6f;
+        float terrainMult = (onSoftSand && isWheeled) ? 0.54f : 1.0f;
+
+        float maxSpeed = (isSurfingNow ? surfSpeed : (running ? runSpeed : walkSpeed)) * mobMult * upgMult * terrainMult;
+        Vector2 desiredVel = input * maxSpeed;
+
+        // Smooth acceleration & natural deceleration (no rigid snapping!)
+        float accelRate = input.sqrMagnitude > 0.01f ? (isWheeled ? 10.5f : 15f) : (isWheeled ? 6.5f : 14f);
+        currentMoveVel = Vector2.MoveTowards(currentMoveVel, desiredVel, maxSpeed * accelRate * dt);
+
+        if (currentMoveVel.sqrMagnitude < 0.0005f)
         {
             if (isSurfingNow)
             {
@@ -436,31 +508,36 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             return;
         }
 
-        float mobMult = characterAnimator != null ? characterAnimator.GetMobilitySpeedMultiplier() : 1f;
-        float upgMult = megaSystems != null ? megaSystems.GetSpeedUpgradeMultiplier() : 1f;
-        float speed = (isSurfingNow ? surfSpeed : (running ? runSpeed : walkSpeed)) * mobMult * upgMult;
         Vector3 current = player.position;
-        Vector3 move = new Vector3(input.x, 0f, input.y) * (speed * Time.deltaTime);
+        Vector3 move = new Vector3(currentMoveVel.x, 0f, currentMoveVel.y) * dt;
 
         Vector3 next = TryMoveAxis(current, new Vector3(move.x, 0f, 0f));
         next = TryMoveAxis(next, new Vector3(0f, 0f, move.z));
 
+        // Keep player safely inside scenic bounds; wheeled vehicles smoothly switch off at the ocean's edge!
         next.x = Mathf.Clamp(next.x, minWorldX, maxWorldX);
         next.z = Mathf.Clamp(next.z, minWorldZ, maxWorldZ);
+        if (isWheeled && next.z >= 9.4f)
+        {
+            // Auto-dismount scooter/skate cleanly at the water's edge when entering the ocean!
+            characterAnimator.SetLandMode(GirlPowerOrla3DCharacterAnimator.LandMode.Walk);
+            GirlPowerOrla3DUITheme.SpawnFloatingFeedback(next, "Entrando no mar! [V: Surf / Nadar / Canoa]", new Color(0.58f, 0.94f, 1f), 1.4f);
+        }
+
         next.y = SampleGroundHeight(next.x, next.z);
         player.position = next;
 
         if (characterAnimator != null)
-            characterAnimator.SetSurfing(next.z >= 9.8f);
+            characterAnimator.SetSurfing(next.z >= 9.6f);
 
-        Vector3 dir = new Vector3(input.x, 0f, input.y);
-        if (dir.sqrMagnitude > 0.01f && playerVisual != null)
+        Vector3 dir = new Vector3(currentMoveVel.x, 0f, currentMoveVel.y);
+        if (dir.sqrMagnitude > 0.05f && playerVisual != null)
         {
             Quaternion targetRot = Quaternion.LookRotation(-dir.normalized, Vector3.up);
             Vector3 curE = playerVisual.localEulerAngles;
             Quaternion flatTarget = Quaternion.Euler(0f, targetRot.eulerAngles.y, 0f);
             Quaternion currentFlat = Quaternion.Euler(0f, curE.y, 0f);
-            Quaternion nextFlat = Quaternion.Slerp(currentFlat, flatTarget, 1f - Mathf.Exp(-turnSpeed * Time.deltaTime));
+            Quaternion nextFlat = Quaternion.Slerp(currentFlat, flatTarget, 1f - Mathf.Exp(-turnSpeed * dt));
             playerVisual.localRotation = Quaternion.Euler(curE.x, nextFlat.eulerAngles.y, curE.z);
         }
     }
@@ -527,15 +604,15 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     {
         if (sceneCamera == null) return;
         Vector3 scaledOffset = cameraOffset * zoomFactor;
-        float lookAheadX = Mathf.Clamp(input.x, -1f, 1f) * 1.15f;
-        float lookAheadZ = Mathf.Clamp(input.y, -1f, 1f) * 0.75f;
-        float desiredX = Mathf.Clamp(player.position.x + lookAheadX, minWorldX + 2.0f, maxWorldX - 2.0f);
+        float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.25f, -1.4f, 1.4f);
+        float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.18f, -0.9f, 0.9f);
+        float desiredX = Mathf.Clamp(player.position.x + lookAheadX, minWorldX + 3.0f, maxWorldX - 3.0f);
         float desiredZ = player.position.z + lookAheadZ + scaledOffset.z;
         float desiredY = player.position.y + scaledOffset.y;
         Vector3 shake = GirlPowerOrla3DJuice.Instance != null ? GirlPowerOrla3DJuice.Instance.GetCameraShakeOffset() : Vector3.zero;
         Vector3 target = new Vector3(desiredX, desiredY, desiredZ) + shake;
-        sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, target, 1f - Mathf.Exp(-cameraSmooth * Time.deltaTime));
-        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, Quaternion.Euler(cameraPitch, 0f, 0f), 1f - Mathf.Exp(-cameraSmooth * Time.deltaTime));
+        sceneCamera.transform.position = Vector3.SmoothDamp(sceneCamera.transform.position, target, ref cameraVelRef, cameraSmoothTime);
+        sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, Quaternion.Euler(cameraPitch, 0f, 0f), 1f - Mathf.Exp(-5.5f * Time.deltaTime));
     }
 
     private void TryAutoPickupNearbyCard()
@@ -684,15 +761,24 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 else if (selectedFlavor == "Limão com Manjericão")
                 {
                     cartOpen = false;
-                    phase = StoryPhase.Ch1_Delivering;
-                    SaveProgress();
-                    if (characterAnimator != null)
+                    craftProgressDuration = 1.15f;
+                    craftProgressTimer = craftProgressDuration;
+                    craftProgressLabel = "Montando Limão com Manjericão...";
+                    if (audioController != null) audioController.PlayChime();
+                    if (characterAnimator != null) characterAnimator.SpawnLeafBurst(cart.position);
+                    onCraftComplete = () =>
                     {
-                        characterAnimator.SetHoldingCone(true);
-                        characterAnimator.TriggerCelebration();
-                    }
-                    if (audioController != null) audioController.PlayFanfare();
-                    GirlPowerOrla3DUITheme.SpawnFloatingFeedback(cart.position, "★ Limão com Manjericão pronto!", new Color(0.84f, 0.98f, 0.54f));
+                        phase = StoryPhase.Ch1_Delivering;
+                        SaveProgress();
+                        if (characterAnimator != null)
+                        {
+                            characterAnimator.SetHoldingCone(true);
+                            characterAnimator.TriggerCelebration();
+                        }
+                        if (audioController != null) audioController.PlayFanfare();
+                        GirlPowerOrla3DJuice.PopScale(cart, 1.16f, 0.34f);
+                        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(cart.position, "★ Limão com Manjericão pronto!", new Color(0.84f, 0.98f, 0.54f));
+                    };
                 }
                 else
                 {
@@ -1248,13 +1334,28 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         if (!dialogueOpen && !photoShowing && !shopOpen && !megaOpen)
         {
-            // 4. DIEGETIC FLOATING [E] PROMPT ABOVE NEARBY OBJECT
-            DrawWorldSpaceInteractPrompt(s);
+            // Preparation progress bar above player while crafting ice cream!
+            if (craftProgressTimer > 0f && sceneCamera != null)
+            {
+                Vector3 sp = sceneCamera.WorldToScreenPoint(player.position + Vector3.up * 2.25f);
+                if (sp.z > 0.1f)
+                {
+                    float pw = 240f * s;
+                    float ph = 46f * s;
+                    Rect cr = new Rect(Mathf.Clamp(sp.x - pw * 0.5f, 16f, Screen.width - pw - 16f), Mathf.Clamp((Screen.height - sp.y) - ph, 80f, Screen.height - 140f), pw, ph);
+                    GUI.Box(cr, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+                    GUI.Label(new Rect(cr.x + 10f * s, cr.y + 4f * s, pw - 20f * s, 20f * s), craftProgressLabel, new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle) { alignment = TextAnchor.MiddleCenter });
+                    float prog = 1f - (craftProgressTimer / Mathf.Max(0.01f, craftProgressDuration));
+                    GirlPowerOrla3DUITheme.DrawProgressBar(new Rect(cr.x + 14f * s, cr.y + 26f * s, pw - 28f * s, 12f * s), prog, new Color(0.32f, 0.84f, 0.62f));
+                }
+            }
+            else
+            {
+                // 4. DIEGETIC FLOATING [E] PROMPT ABOVE NEARBY OBJECT
+                DrawWorldSpaceInteractPrompt(s);
+            }
 
-            // 5. OFF-SCREEN / DISTANCE WAYPOINT INDICATOR
-            DrawDirectionalObjectiveIndicator(s);
-
-            // 6. SMART FLOATING ANALOG JOYSTICK (Hidden on PC/WebGL with Keyboard!)
+            // 5. SMART FLOATING ANALOG JOYSTICK (Hidden on PC/WebGL with Keyboard!)
             if (ShouldShowVirtualJoystick())
                 DrawFloatingAnalogJoystick(s);
         }
@@ -1290,8 +1391,19 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             GUI.Label(cntRect, counterBadge, tagSt);
         }
 
-        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(14f * s) };
-        GUI.Label(new Rect(card.x + 82f * s, card.y + 38f * s, cw - 94f * s, 40f * s), shortTask, taskSt);
+        // Integrated directional arrow + distance badge inside the Mission Card (no loose floating edge pill!)
+        Transform objTarget = GetActiveObjectiveTarget();
+        string distSuffix = "";
+        if (objTarget != null && player != null && !NearXZ(objTarget, 3.0f))
+        {
+            Vector3 d = objTarget.position - player.position;
+            float m = new Vector2(d.x, d.z).magnitude;
+            string arr = Mathf.Abs(d.x) > Mathf.Abs(d.z) ? (d.x > 0f ? "→" : "←") : (d.z > 0f ? "↑" : "↓");
+            distSuffix = "  (" + arr + " " + Mathf.RoundToInt(m) + "m)";
+        }
+
+        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(13.5f * s) };
+        GUI.Label(new Rect(card.x + 82f * s, card.y + 38f * s, cw - 94f * s, 42f * s), shortTask + distSuffix, taskSt);
 
         // Patience / Daylight Timer Bar
         if (gameFlow != null && gameFlow.HasActiveTimer)

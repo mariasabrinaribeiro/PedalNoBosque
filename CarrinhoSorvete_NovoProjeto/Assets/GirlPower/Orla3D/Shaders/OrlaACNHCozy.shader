@@ -108,8 +108,8 @@ Shader "GirlPower/OrlaACNHCozy"
 
         void surf(Input IN, inout SurfaceOutput o)
         {
-            // Screen-space dither fade when a building/roof sits between camera and player
-            if (_OccluderEnabled > 0.5 && _BaiaOccluderActive > 0.5)
+            // Smooth roof-only screen-space fade when upper building sits between camera and player
+            if (_OccluderEnabled > 0.5 && _BaiaOccluderActive > 0.5 && IN.worldPos.y > 1.35)
             {
                 float3 camToPlayer = _BaiaPlayerPos.xyz - _BaiaCamPos.xyz;
                 float camToPlayerLen = max(0.01, length(camToPlayer));
@@ -118,15 +118,14 @@ Shader "GirlPower/OrlaACNHCozy"
                 float3 camToFrag = IN.worldPos - _BaiaCamPos.xyz;
                 float proj = dot(camToFrag, rayDir);
 
-                // Only dither geometry strictly between camera and player (with a small margin near the player)
-                if (proj > 1.2 && proj < camToPlayerLen - 0.35)
+                if (proj > 1.5 && proj < camToPlayerLen - 0.45)
                 {
                     float3 closest = _BaiaCamPos.xyz + rayDir * proj;
                     float distToRay = length(IN.worldPos - closest);
                     if (distToRay < _OccluderRadius)
                     {
-                        float fade = saturate(distToRay / max(0.01, _OccluderRadius));
-                        float alphaKeep = lerp(0.14, 1.0, fade * fade);
+                        float fade = smoothstep(0.18, 1.0, saturate(distToRay / max(0.01, _OccluderRadius)));
+                        float alphaKeep = lerp(0.30, 1.0, fade);
                         float2 screenUV = IN.screenPos.xy / max(0.0001, IN.screenPos.w);
                         float2 pixelPos = screenUV * _ScreenParams.xy;
                         clip(alphaKeep - BayerDither4x4(pixelPos));

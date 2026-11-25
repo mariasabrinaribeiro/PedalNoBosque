@@ -46,7 +46,7 @@ public sealed class GirlPowerOrla3DPaintSystem : MonoBehaviour
         if (paintBaseMat.HasProperty("_ShadowColor"))
             paintBaseMat.SetColor("_ShadowColor", new Color(0.58f, 0.56f, 0.70f, 1f));
         if (paintBaseMat.HasProperty("_CurveStrength"))
-            paintBaseMat.SetFloat("_CurveStrength", 0.0016f);
+            paintBaseMat.SetFloat("_CurveStrength", 0.0008f);
 
         int n = paintableHouses != null ? paintableHouses.Length : 0;
         nextIsRoof = new bool[n];

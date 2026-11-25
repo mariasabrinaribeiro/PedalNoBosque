@@ -36,6 +36,7 @@ public static class GirlPowerOrla3DPropsBuilder
         propsRoot.transform.SetParent(root, false);
 
         BuildCoastalRocks(propsRoot.transform, mats);
+        BuildSouthNeighborhoodGroundAndBoundaries(propsRoot.transform, mats, obstacles);
         BuildWoodenPier(propsRoot.transform, mats, obstacles);
         BuildAnchoredBoats(propsRoot.transform, mats, res.floatingBoats);
         BuildFloatingBuoys(propsRoot.transform, mats, res.floatingBuoys);
@@ -47,6 +48,56 @@ public static class GirlPowerOrla3DPropsBuilder
         BuildAmbientLeavesAndSparkles(propsRoot.transform, mats, res.ambientLeaves, res.waterSparkles);
 
         return res;
+    }
+
+    /// <summary>
+    /// Extends the south coastal neighborhood ground behind the street/houses (eliminating the gray void!)
+    /// and places natural wooden coastal fences, hedges, and edge boulders as visible physical boundaries.
+    /// </summary>
+    private static void BuildSouthNeighborhoodGroundAndBoundaries(
+        Transform parent,
+        Dictionary<string, Material> mats,
+        List<BoxCollider> obstacles)
+    {
+        GameObject grp = new GameObject("Limites_Mapa_e_Extensao_Sul");
+        grp.transform.SetParent(parent, false);
+
+        Material grass = GetMat(mats, "AC_Grass");
+        Material stoneWarm = GetMat(mats, "AC_StoneWarm");
+        Material woodWarm = GetMat(mats, "AC_WoodWarm");
+        Material woodLight = GetMat(mats, "AC_WoodLight");
+        Material bush = GetMat(mats, "AC_BushGreen");
+        Material stoneDark = GetMat(mats, "AC_StoneDark");
+
+        // Continuous south sidewalk & coastal garden ground behind the road (z = -8.0 .. -26.0, zero gray void!)
+        MakePrim(grp.transform, PrimitiveType.Cube, "Calcada_Sul",
+            new Vector3(12f, -0.14f, -8.85f), new Vector3(96f, 0.16f, 1.8f), Quaternion.identity, stoneWarm, false);
+        MakePrim(grp.transform, PrimitiveType.Cube, "Gramado_Bairro_Sul",
+            new Vector3(12f, -0.20f, -18.5f), new Vector3(106f, 0.20f, 18.0f), Quaternion.identity, grass, false);
+
+        // Low coastal wooden fence & hedge along the far south & side map borders
+        for (float x = -18f; x <= 38f; x += 4.0f)
+        {
+            MakePrim(grp.transform, PrimitiveType.Cube, "Cerca_Sul_Poste_" + x,
+                new Vector3(x, 0.34f, -7.85f), new Vector3(0.14f, 0.78f, 0.14f), Quaternion.identity, woodWarm, true);
+            MakePrim(grp.transform, PrimitiveType.Cube, "Cerca_Sul_Barra_" + x,
+                new Vector3(x + 2.0f, 0.50f, -7.85f), new Vector3(4.0f, 0.10f, 0.08f), Quaternion.identity, woodLight, false);
+            MakePrim(grp.transform, PrimitiveType.Sphere, "Arbusto_Sul_" + x,
+                new Vector3(x + 1.2f, 0.22f, -8.25f), new Vector3(1.1f, 0.52f, 0.85f), Quaternion.identity, bush, false);
+        }
+
+        // West & East map edge natural boulder/hedge borders so player stays smoothly inside the scenic bay!
+        foreach (float edgeX in new[] { -18.8f, 38.2f })
+        {
+            for (float z = -7.0f; z <= 9.5f; z += 2.6f)
+            {
+                bool onBeach = z > 3.8f;
+                MakePrim(grp.transform, PrimitiveType.Sphere, "Limite_Lateral_" + edgeX + "_" + z,
+                    new Vector3(edgeX, onBeach ? 0.18f : 0.42f, z),
+                    onBeach ? new Vector3(1.4f, 0.85f, 1.4f) : new Vector3(1.2f, 0.95f, 1.3f),
+                    Quaternion.identity, onBeach ? stoneDark : bush, true);
+            }
+        }
     }
 
     private static void BuildCoastalRocks(Transform parent, Dictionary<string, Material> mats)

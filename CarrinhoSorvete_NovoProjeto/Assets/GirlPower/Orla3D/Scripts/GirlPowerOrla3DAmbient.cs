@@ -41,6 +41,8 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
     public Transform[] collectibleCards;
     public Light[] pavilionLights;
 
+    public Transform playerTransform;
+
     [Header("Lighting & Atmosphere")]
     public Light sunLight;
     public Camera targetCamera;
@@ -204,7 +206,8 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         tideBlend = Mathf.MoveTowards(tideBlend, target, dt * 0.45f);
         if (oceanSurface != null)
         {
-            Vector3 highPos = oceanLowTidePos + new Vector3(0f, 0.24f, -2.35f);
+            // Keep high tide strictly within the wet shoreline (never invading dry sand, sidewalk, or street!)
+            Vector3 highPos = oceanLowTidePos + new Vector3(0f, 0.06f, -0.95f);
             oceanSurface.position = Vector3.Lerp(oceanLowTidePos, highPos, Mathf.SmoothStep(0f, 1f, tideBlend));
         }
     }
@@ -440,11 +443,29 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
     private void AnimateIdleCharacters(float t)
     {
         if (idleCharacters == null || charBasePos == null) return;
+        float dt = Time.deltaTime;
         for (int i = 0; i < idleCharacters.Length; i++)
         {
-            if (idleCharacters[i] == null) continue;
-            float bob = Mathf.Abs(Mathf.Sin(t * 2.4f + i * 1.5f)) * 0.045f;
-            idleCharacters[i].position = charBasePos[i] + new Vector3(0f, bob, 0f);
+            Transform npc = idleCharacters[i];
+            if (npc == null) continue;
+
+            // Gentle cozy breathing + subtle idle sway
+            float bob = Mathf.Abs(Mathf.Sin(t * 2.2f + i * 1.5f)) * 0.04f;
+            npc.position = charBasePos[i] + new Vector3(0f, bob, 0f);
+            float breath = 1f + Mathf.Sin(t * 2.6f + i) * 0.022f;
+            npc.localScale = new Vector3(1f, breath, 1f);
+
+            // Smoothly look toward the player when the player approaches!
+            if (playerTransform != null)
+            {
+                Vector3 toPlayer = playerTransform.position - npc.position;
+                toPlayer.y = 0f;
+                if (toPlayer.sqrMagnitude < 16f && toPlayer.sqrMagnitude > 0.05f)
+                {
+                    Quaternion look = Quaternion.LookRotation(-toPlayer.normalized, Vector3.up);
+                    npc.rotation = Quaternion.Slerp(npc.rotation, look, dt * 4.5f);
+                }
+            }
         }
     }
 

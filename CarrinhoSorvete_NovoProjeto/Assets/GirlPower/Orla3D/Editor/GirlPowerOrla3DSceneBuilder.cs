@@ -20,7 +20,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string CozyShaderName = "GirlPower/OrlaACNHCozy";
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v8_DetectivePipoca";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v9_VideoAuditPolish";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -75,17 +75,17 @@ public static class GirlPowerOrla3DSceneBuilder
         }
         Transform oceanSurface = CreateAnimatedOcean(root.transform, oceanMat);
 
-        // 4. Quiosque Girl Power + Volumetric Striped Awning Upgrade + 3D Signs
+        // 4. Quiosque Sorvetes da Baía (Cohesive pastel coastal branding — zero clashing "GIRL POWER"!)
         List<BoxCollider> obstacles = new List<BoxCollider>();
-        GameObject kiosk = PlaceModel(root.transform, "KioskGirlPower", "Quiosque Girl Power", new Vector3(0f, 0f, 2.35f), 0f, 1f, cozyMats);
+        GameObject kiosk = PlaceModel(root.transform, "KioskGirlPower", "Quiosque Sorvetes da Baia", new Vector3(0f, 0f, 2.35f), 0f, 1f, cozyMats);
         if (kiosk != null) AddBlockingBox(kiosk, new Vector3(0f, 1.2f, 0f), new Vector3(4.6f, 2.4f, 2.2f), obstacles);
-        Make3DText(root.transform, "Titulo Quiosque", new Vector3(0f, 3.55f, 1.66f), "GIRL POWER", 2.35f, new Color32(255, 244, 218, 255), new Vector2(2.4f, 0.55f));
+        Make3DText(root.transform, "Titulo Quiosque", new Vector3(0f, 3.55f, 1.65f), "SORVETES DA BAÍA", 1.72f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.48f));
 
         GameObject customSign = PlaceModel(root.transform, "SignboardNew", "Placa Personalizada - Sorveteria", new Vector3(0f, 3.56f, 1.54f), 0f, 0.96f, cozyMats);
         TextMeshPro customSignLabel = null;
         if (customSign != null)
         {
-            customSignLabel = Make3DText(customSign.transform, "Nome Instalado", new Vector3(0f, 0f, -0.17f), "BAÍA DO AVESSO", 2.15f, new Color32(255, 244, 214, 255), new Vector2(2.85f, 0.55f));
+            customSignLabel = Make3DText(customSign.transform, "Nome Instalado", new Vector3(0f, 0f, -0.17f), "BAÍA DO AVESSO", 1.72f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.48f));
             customSign.SetActive(false);
         }
 
@@ -93,10 +93,10 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject kioskAwningUpgrade = PlaceModel(root.transform, "KioskAwningUpgrade", "Melhoria - Toldo Listrado", new Vector3(0f, 0f, 2.35f), 0f, 1f, cozyMats);
         if (kioskAwningUpgrade != null) kioskAwningUpgrade.SetActive(false);
 
-        // 5. Banca da Florista + Swaying Breeze Curtains + 3D Sign
+        // 5. Banca da Florista + Swaying Breeze Curtains + Standardized Fascia Sign
         GameObject floristStand = PlaceModel(root.transform, "FloristStand", "Banca da Florista - Baia do Avesso", new Vector3(24f, 0f, 2.35f), 0f, 1f, cozyMats);
         if (floristStand != null) AddBlockingBox(floristStand, new Vector3(0f, 1.2f, 0f), new Vector3(4.3f, 2.4f, 2.1f), obstacles);
-        Make3DText(root.transform, "Titulo Florista", new Vector3(24f, 3.44f, 1.72f), "FLORES DA BAÍA", 2.0f, new Color32(255, 245, 220, 255), new Vector2(2.6f, 0.50f));
+        Make3DText(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, 1.62f), "FLORES DA BAÍA", 1.65f, new Color32(255, 246, 224, 255), new Vector2(2.50f, 0.45f));
 
         List<Transform> breezeCurtains = new List<Transform>();
         GameObject curtL = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Esq", new Vector3(22.35f, 2.46f, 1.48f), 0f, 0.92f, cozyMats);
@@ -138,18 +138,18 @@ public static class GirlPowerOrla3DSceneBuilder
         foreach (GameObject st in new[] { stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
             if (st != null) AddBlockingBox(st, new Vector3(0f, 1.0f, 0f), new Vector3(2.7f, 2.0f, 1.15f), obstacles);
 
-        // 3D labels above the new specialty stalls
-        Make3DText(root.transform, "Placa Sushi", new Vector3(-7.4f, 2.58f, 1.72f), "SUSHI", 1.45f, new Color32(255, 245, 224, 255), new Vector2(2.2f, 0.40f));
-        Make3DText(root.transform, "Placa Comida", new Vector3(-11.8f, 2.58f, 1.72f), "COMIDAS", 1.45f, new Color32(255, 245, 224, 255), new Vector2(2.2f, 0.40f));
-        Make3DText(root.transform, "Placa Doces", new Vector3(-16.0f, 2.58f, 1.72f), "DOCES", 1.45f, new Color32(255, 245, 224, 255), new Vector2(2.2f, 0.40f));
-        Make3DText(root.transform, "Placa Plantas", new Vector3(20.1f, 2.58f, 2.02f), "PLANTAS", 1.45f, new Color32(255, 245, 224, 255), new Vector2(2.2f, 0.40f));
-        Make3DText(root.transform, "Placa Roupas", new Vector3(29.8f, 2.58f, 1.72f), "ROUPAS", 1.45f, new Color32(255, 245, 224, 255), new Vector2(2.2f, 0.40f));
-        Make3DText(root.transform, "Placa Sucos", new Vector3(34.0f, 2.58f, 1.72f), "SUCOS & REFRI", 1.30f, new Color32(255, 245, 224, 255), new Vector2(2.6f, 0.40f));
+        // Uniform, clean fascia signage across all stalls (consistent height, typography & alignment!)
+        Make3DText(root.transform, "Placa Sushi", new Vector3(-7.4f, 2.48f, 1.72f), "SUSHI", 1.48f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
+        Make3DText(root.transform, "Placa Comida", new Vector3(-11.8f, 2.48f, 1.72f), "COMIDAS", 1.48f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
+        Make3DText(root.transform, "Placa Doces", new Vector3(-16.0f, 2.48f, 1.72f), "DOCES", 1.48f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
+        Make3DText(root.transform, "Placa Plantas", new Vector3(20.1f, 2.48f, 2.02f), "PLANTAS", 1.48f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
+        Make3DText(root.transform, "Placa Roupas", new Vector3(29.8f, 2.48f, 1.72f), "ROUPAS", 1.48f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
+        Make3DText(root.transform, "Placa Sucos", new Vector3(34.0f, 2.48f, 1.72f), "SUCOS & REFRI", 1.42f, new Color32(255, 246, 224, 255), new Vector2(2.5f, 0.40f));
 
-        // 6a. Mega Life Blender Landmarks: Restaurant "Batata & Mar" + 3 Seated Tables, Garden Bed, Fishing Pier, Beach Tennis, Camping, Notice Board!
+        // 6a. Mega Life Blender Landmarks: Restaurant "Batata & Mar" facing the promenade cleanly (no buried sign!)
         GameObject restKitchen = PlaceModel(root.transform, "RestaurantFriesKitchen", "Restaurante Batata e Mar", new Vector3(-14.2f, 0f, -6.2f), 180f, 1f, cozyMats);
         if (restKitchen != null) AddBlockingBox(restKitchen, new Vector3(0f, 1.3f, 0f), new Vector3(4.0f, 2.6f, 2.1f), obstacles);
-        Make3DText(root.transform, "Placa Restaurante", new Vector3(-14.2f, 3.05f, -5.15f), "BATATA & MAR", 1.75f, new Color32(255, 246, 218, 255), new Vector2(2.8f, 0.48f));
+        Make3DText(root.transform, "Placa Restaurante", new Vector3(-14.2f, 3.22f, -5.08f), "BATATA & MAR", 1.62f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.45f));
 
         List<Transform> restaurantTables = new List<Transform>();
         Vector3[] tableCoords =
@@ -611,6 +611,7 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject shadowObj = new GameObject("Sombras_de_Contato_Orla");
         shadowObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DContactShadows contactShadows = shadowObj.AddComponent<GirlPowerOrla3DContactShadows>();
+        contactShadows.serializedBlobMat = BuildBlobShadowMaterial();
         contactShadows.entries = shadowEntries.ToArray();
 
         // 12. Audio, Dialogue, Polaroid Photo Overlay, Character Animator, Ambient, Story & GameFlow Controllers
@@ -758,6 +759,7 @@ public static class GirlPowerOrla3DSceneBuilder
         ambient.floristEveningPos = new Vector3(24.0f, 0f, 0.20f);
         ambient.sunLight = sunLight;
         ambient.targetCamera = mainCam;
+        ambient.playerTransform = playerRoot.transform;
         ambient.cameraPost = mainCam != null ? mainCam.GetComponent<GirlPowerOrla3DCameraPost>() : null;
         ambient.currentPreset = GirlPowerOrla3DAmbient.TimePreset.FimDeTarde;
 
@@ -907,11 +909,11 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject camObj = new GameObject("ACNH Diorama Camera");
         camObj.transform.SetParent(parent, false);
-        camObj.transform.position = new Vector3(10.5f, 8.1f, -9.8f);
-        camObj.transform.rotation = Quaternion.Euler(38.5f, 0f, 0f);
+        camObj.transform.position = new Vector3(10.5f, 6.7f, -11.5f);
+        camObj.transform.rotation = Quaternion.Euler(31.5f, 0f, 0f);
         Camera cam = camObj.AddComponent<Camera>();
         cam.tag = "MainCamera";
-        cam.fieldOfView = 40f;
+        cam.fieldOfView = 44f;
         cam.nearClipPlane = 0.2f;
         cam.farClipPlane = 140f;
         cam.clearFlags = CameraClearFlags.SolidColor;
@@ -1094,6 +1096,27 @@ public static class GirlPowerOrla3DSceneBuilder
         return tmp;
     }
 
+    private static Material BuildBlobShadowMaterial()
+    {
+        Shader sh = Shader.Find("GirlPower/OrlaBlobShadow");
+        if (sh == null) sh = Shader.Find("Unlit/Transparent");
+        string matPath = MaterialsFolder + "/AC_BlobShadow.mat";
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+        if (mat == null)
+        {
+            mat = new Material(sh);
+            AssetDatabase.CreateAsset(mat, matPath);
+        }
+        else
+        {
+            mat.shader = sh;
+        }
+        if (mat.HasProperty("_Color")) mat.SetColor("_Color", new Color(0.14f, 0.10f, 0.24f, 0.42f));
+        if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
+        EditorUtility.SetDirty(mat);
+        return mat;
+    }
+
     private static Material BuildOceanMaterial()
     {
         Shader oceanShader = Shader.Find(OceanShaderName);
@@ -1109,6 +1132,8 @@ public static class GirlPowerOrla3DSceneBuilder
         {
             mat.shader = oceanShader;
         }
+        if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
+        if (mat.HasProperty("_WaveHeight")) mat.SetFloat("_WaveHeight", 0.06f);
         EditorUtility.SetDirty(mat);
         return mat;
     }
@@ -1153,7 +1178,7 @@ public static class GirlPowerOrla3DSceneBuilder
             ("AC_PinkSoft", "#FFA9C2", 0.30f, null, 0f),
             ("AC_MintTeal", "#4EC7B6", 0.32f, null, 0f),
             ("AC_MintSoft", "#8FE3D6", 0.30f, null, 0f),
-            ("AC_PurplePlum", "#5B3B6E", 0.28f, null, 0f),
+            ("AC_PurplePlum", "#488E8C", 0.28f, null, 0f), // Cohesive coastal teal replacing jarring purple kiosk header!
             ("AC_Lavender", "#B89CE0", 0.28f, null, 0f),
             ("AC_Coral", "#F27B66", 0.28f, null, 0f),
             ("AC_SunnyYellow", "#FFD45E", 0.30f, null, 0f),
@@ -1237,7 +1262,7 @@ public static class GirlPowerOrla3DSceneBuilder
             if (mat.HasProperty("_GroundAO"))
                 mat.SetFloat("_GroundAO", 0.34f);
             if (mat.HasProperty("_CurveStrength"))
-                mat.SetFloat("_CurveStrength", 0.0016f);
+                mat.SetFloat("_CurveStrength", 0.0008f);
 
             if (!string.IsNullOrEmpty(item.emitHex) && ColorUtility.TryParseHtmlString(item.emitHex, out Color emCol))
             {

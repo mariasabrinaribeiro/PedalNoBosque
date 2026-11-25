@@ -22,6 +22,7 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
     private float charTimer;
     private int visibleChars;
     private int lastBlipChar = -1;
+    private int openedFrame = -1;
     private Action onCompleteCallback;
 
     private GUIStyle bubbleTextStyle;
@@ -35,14 +36,17 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
     public void ShowDialogue(string speaker, Color tagColor, float pitch, string[] dialogueLines, Action onComplete = null)
     {
         if (dialogueLines == null || dialogueLines.Length == 0) return;
-        speakerName = speaker;
+        speakerName = speaker ?? "";
         speakerColor = tagColor;
         voicePitch = pitch;
         lines = dialogueLines;
         lineIndex = 0;
-        charTimer = 0f;
-        visibleChars = 0;
+        charTimer = 3f;
+        // Start with at least a few characters immediately visible so the box NEVER flashes empty!
+        string first = lines[0] ?? "";
+        visibleChars = Mathf.Min(first.Length, 3);
         lastBlipChar = -1;
+        openedFrame = Time.frameCount;
         onCompleteCallback = onComplete;
         IsOpen = true;
     }
@@ -58,15 +62,14 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
     {
         if (!IsOpen || lines == null || Time.timeScale <= 0.01f) return;
 
-        string current = lines[lineIndex];
+        string current = lines[lineIndex] ?? "";
         if (visibleChars < current.Length)
         {
             charTimer += Time.deltaTime * charsPerSecond;
-            int target = Mathf.Min(current.Length, Mathf.FloorToInt(charTimer));
+            int target = Mathf.Min(current.Length, Mathf.Max(3, Mathf.FloorToInt(charTimer)));
             if (target > visibleChars)
             {
                 visibleChars = target;
-                // Cute Animalese blip every 3 visible letters
                 if (visibleChars - lastBlipChar >= 3)
                 {
                     char c = current[Mathf.Clamp(visibleChars - 1, 0, current.Length - 1)];
@@ -76,6 +79,9 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
                 }
             }
         }
+
+        // Ignore the same frame that opened the dialogue so [E] never immediately skips/blanks it!
+        if (Time.frameCount == openedFrame) return;
 
         Keyboard keys = Keyboard.current;
         if (keys != null)
@@ -121,39 +127,46 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
 
     private void OnGUI()
     {
-        if (!IsOpen || lines == null || Time.timeScale <= 0.01f) return;
+        if (!IsOpen || lines == null || lineIndex < 0 || lineIndex >= lines.Length || Time.timeScale <= 0.01f) return;
         EnsureStyles();
         GirlPowerOrla3DUITheme.EnsureInitialized();
         GUI.depth = -10;
+        GUI.color = Color.white;
 
         float s = Mathf.Clamp(Screen.width / 1600f, 0.70f, 1.15f);
-        float bw = 780f * s;
-        float bh = 152f * s;
+        float bw = 790f * s;
+        float bh = 154f * s;
         float bx = (Screen.width - bw) * 0.5f;
         float by = Screen.height - bh - 28f * s;
 
-        // Rounded cozy Animal Crossing speech box with soft shadow
         Rect boxRect = new Rect(bx, by, bw, bh);
         GUI.Box(boxRect, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
+        // 2D Illustrated Speaker Portrait on left side of dialogue bubble!
+        Texture2D portrait = ResolveSpeakerPortrait(speakerName);
+        float portSz = 96f * s;
+        GUI.DrawTexture(new Rect(bx + 20f * s, by + (bh - portSz) * 0.5f + 4f * s, portSz, portSz), portrait);
+
         // Rounded speaker badge overlapping top-left corner
-        Rect tagRect = new Rect(bx + 24f * s, by - 22f * s, 275f * s, 40f * s);
-        Color prev = GUI.color;
+        Rect tagRect = new Rect(bx + 128f * s, by - 22f * s, 290f * s, 40f * s);
         GUI.color = speakerColor;
         GUI.DrawTexture(tagRect, GirlPowerOrla3DUITheme.PillWhiteTex);
-        GUI.color = prev;
+        GUI.color = Color.white;
+        nameTagStyle.fontSize = Mathf.RoundToInt(17f * s);
         GUI.Label(tagRect, speakerName, nameTagStyle);
 
-        // Typewriter dialogue line
-        string shown = lines[lineIndex].Substring(0, Mathf.Clamp(visibleChars, 0, lines[lineIndex].Length));
-        bubbleTextStyle.fontSize = Mathf.RoundToInt(21f * s);
-        GUI.Label(new Rect(bx + 32f * s, by + 28f * s, bw - 64f * s, bh - 54f * s), shown, bubbleTextStyle);
+        // Always guarantee visible, high-contrast dark brown text!
+        string fullLine = lines[lineIndex] ?? "";
+        int shownLen = Mathf.Clamp(visibleChars, Mathf.Min(fullLine.Length, 3), fullLine.Length);
+        string shown = fullLine.Substring(0, shownLen);
+        bubbleTextStyle.fontSize = Mathf.RoundToInt(20f * s);
+        bubbleTextStyle.normal.textColor = new Color(0.24f, 0.16f, 0.12f, 1f);
+        GUI.Label(new Rect(bx + 132f * s, by + 26f * s, bw - 178f * s, bh - 48f * s), shown, bubbleTextStyle);
 
-        // Bouncing continue triangle
-        if (visibleChars >= lines[lineIndex].Length)
+        if (shownLen >= fullLine.Length)
         {
             float bounce = Mathf.Sin(Time.time * 7.5f) * 4f * s;
-            Rect arrowRect = new Rect(bx + bw - 52f * s, by + bh - 42f * s + bounce, 34f * s, 30f * s);
+            Rect arrowRect = new Rect(bx + bw - 50f * s, by + bh - 40f * s + bounce, 32f * s, 28f * s);
             GUI.Label(arrowRect, "▼", arrowStyle);
         }
 
@@ -162,6 +175,17 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
             AdvanceOrComplete();
             Event.current.Use();
         }
+    }
+
+    private static Texture2D ResolveSpeakerPortrait(string speaker)
+    {
+        if (string.IsNullOrEmpty(speaker)) return GirlPowerOrla3DUITheme.IconPortraitNina;
+        string low = speaker.ToLowerInvariant();
+        if (low.Contains("luna") || low.Contains("florista") || low.Contains("cartão")) return GirlPowerOrla3DUITheme.IconPortraitLuna;
+        if (low.Contains("marina") || low.Contains("irmã")) return GirlPowerOrla3DUITheme.IconPortraitMarina;
+        if (low.Contains("bia")) return GirlPowerOrla3DUITheme.IconPortraitBia;
+        if (low.Contains("pavilh") || low.Contains("festa")) return GirlPowerOrla3DUITheme.IconPortraitPavilion;
+        return GirlPowerOrla3DUITheme.IconPortraitNina;
     }
 
     private void EnsureStyles()

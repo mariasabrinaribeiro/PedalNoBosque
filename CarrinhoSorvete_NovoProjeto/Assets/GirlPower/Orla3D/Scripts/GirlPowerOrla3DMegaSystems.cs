@@ -127,16 +127,25 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     public TableOrder[] Orders { get; private set; }
 
     private static readonly string[] FestivalNames = { "Luau na Praia", "Feira de Artesanato", "Torneio de Pesca" };
-    private static readonly string[] CropChoices = { "Manjericão", "Hortelã", "Alecrim", "Morango" };
+    private static readonly string[] CropChoices = { "Manjericão", "Hortelã", "Limão", "Morango" };
     private static readonly string[] DishPool =
     {
         "Batata Frita Crocante",
         "Combo Batata + Refri",
-        "Peixe Grelhado c/ Alecrim",
+        "Peixe Grelhado c/ Ervas",
         "Sushi Especial da Baía",
         "Sorvete Limão c/ Manjericão",
         "Suco Tropical + Pastel"
     };
+
+    private static string GetDishPrepVerb(string dishName)
+    {
+        if (string.IsNullOrEmpty(dishName)) return "Preparar";
+        string low = dishName.ToLowerInvariant();
+        if (low.Contains("batata") || low.Contains("pastel")) return "Fritar";
+        if (low.Contains("sorvete")) return "Montar";
+        return "Preparar";
+    }
 
     // Minigame states
     private float fishCursor;
@@ -591,7 +600,9 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         else if (Near(restaurantKitchen, 3.4f))
         {
             int ord = FindFirstActiveOrderIndex();
-            string txt = ord >= 0 ? ("[E] Fritar/Preparar " + Orders[ord].dishName) : "[E] Restaurante Batata & Mar";
+            string txt = ord >= 0
+                ? ("[E] " + GetDishPrepVerb(Orders[ord].dishName) + " " + Orders[ord].dishName)
+                : "[E] Restaurante Batata & Mar";
             DrawFloatingStationBtn(restaurantKitchen, txt, s, () => { if (ord >= 0) StartSliceMixForTable(ord); });
         }
         else if (CarryingRestaurantTray && restaurantTables != null)
@@ -698,7 +709,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             }
             else if (p.growth < 1f)
             {
-                if (GUI.Button(new Rect(row.xMax - 175f * s, row.y + 18f * s, 160f * s, 38f * s), p.watered ? "Adubar (+40%)" : "Regar (Orgânico)", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+                if (GUI.Button(new Rect(row.xMax - 175f * s, row.y + 18f * s, 160f * s, 38f * s), p.watered ? "Adubar (+40%)" : "Regar", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
                 {
                     p.watered = true;
                     p.organic = true;
@@ -1058,7 +1069,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             {
                 new CropPlot { cropName = "Manjericão", planted = true, growth = 0.85f, watered = true, organic = true },
                 new CropPlot { cropName = "Hortelã", planted = true, growth = 0.55f, watered = false, organic = false },
-                new CropPlot { cropName = "Alecrim", planted = false, growth = 0f },
+                new CropPlot { cropName = "Limão", planted = false, growth = 0f },
                 new CropPlot { cropName = "Morango", planted = false, growth = 0f }
             };
         }

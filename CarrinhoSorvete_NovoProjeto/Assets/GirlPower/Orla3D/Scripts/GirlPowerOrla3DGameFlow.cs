@@ -180,6 +180,13 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
 
     public void RestartCurrentChapter()
     {
+        // Restore coins cleanly to what the player had at the start of the chapter attempt!
+        if (lifeActivities != null) lifeActivities.SetCoinsDirect(chapterCoinsStart);
+        if (megaSystems != null)
+        {
+            megaSystems.Data.coins = chapterCoinsStart;
+            megaSystems.SaveJson();
+        }
         int chap = storyController != null ? storyController.GetCurrentChapterNumber() : summaryChapter;
         StartChapter(Mathf.Clamp(chap, 1, 4));
     }
@@ -374,20 +381,11 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         if (ChapterTimeRemaining <= 0f)
         {
             ChapterTimeRemaining = 0f;
-            int chap = storyController != null ? storyController.GetCurrentChapterNumber() : 1;
-            string reason;
-            if (chap == 1)
-                reason = IsEnglish
-                    ? "Sunset arrived and the ice cream melted before you finished the florist's order!"
-                    : "O movimento acabou e o sorvete derreteu antes de você concluir a entrega da florista!";
-            else if (chap == 2)
-                reason = IsEnglish
-                    ? "The coastal gust blew the florist's postcards away before the sisters reunited!"
-                    : "A ventania levou os cartões da florista antes do reencontro das irmãs!";
-            else
-                reason = IsEnglish
-                    ? "Night fell over the bay before the Pavilion lights could be restored!"
-                    : "A noite chegou e a maré virou antes de você iluminar o Pavilhão da Baía!";
+            string reason = storyController != null
+                ? storyController.GetMatchingTimeoutFailReason(IsEnglish)
+                : (IsEnglish
+                    ? "Sunset arrived before you completed the current objective!"
+                    : "O expediente acabou antes de você concluir o objetivo atual!");
 
             TriggerGameOver(reason);
         }
@@ -772,10 +770,11 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     // ------------------------------------------------------------------
     private void DrawGameOverScreen(float s)
     {
+        GUI.color = Color.white;
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), GirlPowerOrla3DUITheme.DimOverlayTex);
 
-        float w = 500f * s;
-        float h = 420f * s;
+        float w = 520f * s;
+        float h = 440f * s;
         Rect card = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
@@ -784,23 +783,29 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         GUI.Label(ribbon, IsEnglish ? "DAY ENDED" : "FIM DO EXPEDIENTE", GirlPowerOrla3DUITheme.BadgeTextStyle);
 
         // Closed cart twilight illustration
-        float illuSz = 112f * s;
-        GUI.DrawTexture(new Rect(card.x + (w - illuSz) * 0.5f, card.y + 38f * s, illuSz, illuSz), GirlPowerOrla3DUITheme.IconCartClosedFail);
+        float illuSz = 104f * s;
+        GUI.DrawTexture(new Rect(card.x + (w - illuSz) * 0.5f, card.y + 36f * s, illuSz, illuSz), GirlPowerOrla3DUITheme.IconCartClosedFail);
 
-        // Clear one-sentence reason for failure
-        GUIStyle centerBody = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+        // Always non-empty, high-contrast failure reason inside dedicated readable area
+        string safeReason = string.IsNullOrEmpty(summaryFailReason)
+            ? (IsEnglish ? "Time ran out before completing the chapter objective!" : "O tempo acabou antes de concluir o objetivo do capítulo!")
+            : summaryFailReason;
+        GUIStyle centerBody = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.RoundToInt(17f * s)
+            wordWrap = true,
+            fontStyle = FontStyle.Bold,
+            fontSize = Mathf.RoundToInt(17f * s),
+            normal = { textColor = new Color(0.24f, 0.16f, 0.12f, 1f) }
         };
-        GUI.Label(new Rect(card.x + 36f * s, card.y + 162f * s, w - 72f * s, 82f * s), summaryFailReason, centerBody);
+        GUI.Label(new Rect(card.x + 32f * s, card.y + 150f * s, w - 64f * s, 96f * s), safeReason, centerBody);
 
         float bx = card.x + 42f * s;
         float bw = w - 84f * s;
-        if (GUI.Button(new Rect(bx, card.y + 266f * s, bw, 56f * s), IsEnglish ? "↻  TRY AGAIN NOW" : "↻  TENTAR NOVAMENTE", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        if (GUI.Button(new Rect(bx, card.y + 272f * s, bw, 56f * s), IsEnglish ? "↻  TRY AGAIN NOW" : "↻  TENTAR NOVAMENTE", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             RestartCurrentChapter();
 
-        if (GUI.Button(new Rect(bx, card.y + 336f * s, bw, 46f * s), IsEnglish ? "BACK TO MENU" : "VOLTAR AO MENU", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+        if (GUI.Button(new Rect(bx, card.y + 342f * s, bw, 46f * s), IsEnglish ? "BACK TO MENU" : "VOLTAR AO MENU", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
             EnterTitleMenu();
     }
 

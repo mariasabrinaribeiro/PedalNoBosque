@@ -346,81 +346,47 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         if (dialogueController != null && dialogueController.IsOpen) return;
 
         GirlPowerOrla3DUITheme.EnsureInitialized();
+        GUI.color = Color.white;
         float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
 
         // ------------------------------------------------------------------
-        // BOTTOM-LEFT: Illustrated Coin Counter + Visual Quick Inventory + Coastal Activity Tiles
+        // BOTTOM-LEFT: Crisp Illustrated Coins + Synced Inventory + Clear Labeled Controls (ZERO empty gray slots!)
         // ------------------------------------------------------------------
-        float y = Screen.height - 72f * s;
+        float y = Screen.height - 68f * s;
         float x = 18f * s;
 
         // 1. Golden Coin Pill
-        Rect coinBox = new Rect(x, y, 108f * s, 52f * s);
+        Rect coinBox = new Rect(x, y, 108f * s, 50f * s);
         GUI.Box(coinBox, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-        GUI.DrawTexture(new Rect(coinBox.x + 10f * s, coinBox.y + 10f * s, 32f * s, 32f * s), GirlPowerOrla3DUITheme.IconCoin);
+        GUI.DrawTexture(new Rect(coinBox.x + 10f * s, coinBox.y + 9f * s, 32f * s, 32f * s), GirlPowerOrla3DUITheme.IconCoin);
         GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(17f * s), alignment = TextAnchor.MiddleCenter };
-        GUI.Label(new Rect(coinBox.x + 42f * s, coinBox.y + 6f * s, 58f * s, 40f * s), Coins.ToString(), numSt);
+        GUI.Label(new Rect(coinBox.x + 42f * s, coinBox.y + 5f * s, 58f * s, 40f * s), Coins.ToString(), numSt);
         x += 116f * s;
 
-        // 2. Quick Visual Inventory Slots (Basil Leaf + Satchel Items)
-        Rect invBox = new Rect(x, y, 148f * s, 52f * s);
+        // 2. Synced Visual Inventory (Garden + Pot Herbs unified + Satchel Bag count)
+        int herbCount = (storyController != null ? storyController.BasilLeavesCount : 0)
+                      + (megaSystems != null ? megaSystems.Data.organicHerbs : 0);
+        Rect invBox = new Rect(x, y, 146f * s, 50f * s);
         GUI.Box(invBox, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-        int basilCount = storyController != null ? storyController.BasilLeavesCount : 0;
-        GUI.DrawTexture(new Rect(invBox.x + 10f * s, invBox.y + 10f * s, 30f * s, 30f * s), GirlPowerOrla3DUITheme.IconBasil);
-        GUI.Label(new Rect(invBox.x + 40f * s, invBox.y + 8f * s, 32f * s, 36f * s), basilCount.ToString(), numSt);
+        GUI.DrawTexture(new Rect(invBox.x + 10f * s, invBox.y + 10f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconBasil);
+        GUI.Label(new Rect(invBox.x + 38f * s, invBox.y + 6f * s, 34f * s, 38f * s), herbCount.ToString(), numSt);
+        GUI.DrawTexture(new Rect(invBox.x + 74f * s, invBox.y + 10f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconBag);
+        GUI.Label(new Rect(invBox.x + 102f * s, invBox.y + 6f * s, 36f * s, 38f * s), bagItems.Count.ToString(), numSt);
+        x += 154f * s;
 
-        GUI.DrawTexture(new Rect(invBox.x + 76f * s, invBox.y + 10f * s, 30f * s, 30f * s), GirlPowerOrla3DUITheme.IconBag);
-        GUI.Label(new Rect(invBox.x + 106f * s, invBox.y + 8f * s, 34f * s, 36f * s), bagItems.Count.ToString(), numSt);
-        x += 158f * s;
-
-        // 3. Illustrated Coastal Activity Tiles (Brush [P], Color Swatch [C], Pet Paw [B], Contextual Heart [G])
-        float tileSz = 52f * s;
+        float btnH = 50f * s;
         float gap = 8f * s;
 
-        // Paint Brush Tile
-        Rect brushRect = new Rect(x, y, tileSz, tileSz);
-        if (GUI.Button(brushRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnTileStyle))
-            TriggerPaintAction();
-        GUI.DrawTexture(new Rect(brushRect.x + 9f * s, brushRect.y + 7f * s, 34f * s, 34f * s), GirlPowerOrla3DUITheme.IconBrush);
-        DrawKeyCornerBadge(brushRect, "P", s);
-        x += tileSz + gap;
-
-        // Paint Swatch Color Circle Tile
-        Rect swatchRect = new Rect(x, y, tileSz, tileSz);
-        if (GUI.Button(swatchRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnTileStyle))
-        {
-            if (paintSystem != null)
-            {
-                paintSystem.CycleColor();
-                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(player.position, "Tinta: " + paintSystem.CurrentColorName, paintSystem.CurrentColor, 1.2f);
-            }
-        }
-        Color prev = GUI.color;
-        GUI.color = paintSystem != null ? paintSystem.CurrentColor : new Color(0.95f, 0.43f, 0.59f);
-        GUI.DrawTexture(new Rect(swatchRect.x + 12f * s, swatchRect.y + 10f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.CircleWhiteTex);
-        GUI.color = prev;
-        DrawKeyCornerBadge(swatchRect, "C", s);
-        x += tileSz + gap;
-
-        // Pet Companion Paw Tile ([B] Call / Sniff)
-        Rect pawRect = new Rect(x, y, tileSz, tileSz);
-        if (GUI.Button(pawRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnTileStyle))
-            TriggerPetAction();
-        GUI.DrawTexture(new Rect(pawRect.x + 10f * s, pawRect.y + 8f * s, 32f * s, 32f * s), GirlPowerOrla3DUITheme.IconPaw);
-        DrawKeyCornerBadge(pawRect, "B", s);
-        x += tileSz + gap;
-
-        // Cardápio Ilustrado Button ([TAB])
-        Rect cardapioBtn = new Rect(x, y, 114f * s, tileSz);
-        if (GUI.Button(cardapioBtn, "Cardápio", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        // 3. Cardápio Ilustrado Button with clear [TAB] key tag
+        Rect cardapioBtn = new Rect(x, y, 134f * s, btnH);
+        if (GUI.Button(cardapioBtn, "[TAB] Cardápio", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             if (cardapioUI != null) cardapioUI.Toggle();
-        DrawKeyCornerBadge(cardapioBtn, "TAB", s);
-        x += 114f * s + gap;
+        x += 134f * s + gap;
 
-        // Mobility / Sports Switcher Pill ([V] A Pé / Skate / Patinete / Patins / Surf / Nadar / Canoa)
+        // 4. Mobility / Sports Switcher Pill with clear [V] key tag
         string mobName = characterAnimator != null ? characterAnimator.GetActiveMobilityName() : "A Pé";
-        Rect mobBtn = new Rect(x, y, 126f * s, tileSz);
-        if (GUI.Button(mobBtn, mobName, GirlPowerOrla3DUITheme.BtnTileStyle))
+        Rect mobBtn = new Rect(x, y, 140f * s, btnH);
+        if (GUI.Button(mobBtn, "[V] " + mobName, GirlPowerOrla3DUITheme.BtnTileStyle))
         {
             if (characterAnimator != null)
             {
@@ -429,21 +395,49 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
                 if (audioController != null) audioController.PlayChime();
             }
         }
-        DrawKeyCornerBadge(mobBtn, "V", s);
-        x += 126f * s + gap;
+        x += 140f * s + gap;
 
-        // Contextual Friendship / Gift Heart Tile (only appears near a neighbor!)
+        // 5. Pipoca Companion Button with clear [B] tag + Paw icon
+        Rect pawBtn = new Rect(x, y, 118f * s, btnH);
+        if (GUI.Button(pawBtn, GUIContent.none, GirlPowerOrla3DUITheme.BtnTileStyle))
+            TriggerPetAction();
+        GUI.DrawTexture(new Rect(pawBtn.x + 8f * s, pawBtn.y + 10f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconPaw);
+        GUI.Label(new Rect(pawBtn.x + 38f * s, pawBtn.y + 6f * s, 74f * s, 38f * s), "[B] Pipoca", new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(12.5f * s) });
+        x += 118f * s + gap;
+
+        // 6. Contextual Paint Button + Color Dot ONLY when near a paintable house (keeps bar clean!)
+        int nearHouse = paintSystem != null ? paintSystem.FindNearestHouse(player.position, 5.8f) : -1;
+        if (nearHouse >= 0)
+        {
+            Rect paintBtn = new Rect(x, y, 114f * s, btnH);
+            if (GUI.Button(paintBtn, "[P] Pintar", GirlPowerOrla3DUITheme.BtnTileStyle))
+                TriggerPaintAction();
+            x += 114f * s + gap;
+
+            Rect swatchRect = new Rect(x, y, 48f * s, btnH);
+            if (GUI.Button(swatchRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnTileStyle))
+            {
+                paintSystem.CycleColor();
+                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(player.position, "Cor: " + paintSystem.CurrentColorName, paintSystem.CurrentColor, 1.2f);
+            }
+            GUI.color = paintSystem.CurrentColor;
+            GUI.DrawTexture(new Rect(swatchRect.x + 11f * s, swatchRect.y + 11f * s, 26f * s, 26f * s), GirlPowerOrla3DUITheme.CircleWhiteTex);
+            GUI.color = Color.white;
+            DrawKeyCornerBadge(swatchRect, "C", s);
+            x += 48f * s + gap;
+        }
+
+        // 7. Contextual Friendship / Gift Heart Pill when near a neighbor!
         int nearFriend = FindNearestFriend(3.5f);
         if (nearFriend >= 0)
         {
-            Rect heartRect = new Rect(x, y, 128f * s, tileSz);
+            Rect heartRect = new Rect(x, y, 134f * s, btnH);
             if (GUI.Button(heartRect, GUIContent.none, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 TriggerFriendAction();
-            GUI.DrawTexture(new Rect(heartRect.x + 10f * s, heartRect.y + 11f * s, 30f * s, 30f * s), GirlPowerOrla3DUITheme.IconHeart);
-            GUI.Label(new Rect(heartRect.x + 44f * s, heartRect.y + 8f * s, 78f * s, 36f * s),
-                bagItems.Count > 0 ? "Presente" : "Amizade",
-                new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(12.5f * s), alignment = TextAnchor.MiddleLeft });
-            DrawKeyCornerBadge(heartRect, "G", s);
+            GUI.DrawTexture(new Rect(heartRect.x + 10f * s, heartRect.y + 10f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.IconHeart);
+            GUI.Label(new Rect(heartRect.x + 42f * s, heartRect.y + 6f * s, 86f * s, 38f * s),
+                bagItems.Count > 0 ? "[G] Presente" : "[G] Amizade",
+                new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(12f * s), alignment = TextAnchor.MiddleLeft });
         }
 
         // World-space [E] prompt above nearby Market Stall
