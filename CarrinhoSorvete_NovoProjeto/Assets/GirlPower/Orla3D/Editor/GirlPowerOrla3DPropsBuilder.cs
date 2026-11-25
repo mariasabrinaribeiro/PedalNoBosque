@@ -97,10 +97,10 @@ public static class GirlPowerOrla3DPropsBuilder
         MakePrim(grp.transform, PrimitiveType.Cube, "Gramado_Bairro_Sul",
             new Vector3(12f, -0.14f, -25.9f), new Vector3(120f, 0.18f, 20.4f), Quaternion.identity, grass, false);
 
-        // A single paved market court joins the promenade to the recessed stalls without creating another narrow strip.
+        // Paved market court starting cleanly south of ContinuousBoardwalk (z = -15.65 -> ZERO coplanar Z-fighting!)
         Material plaza = GetMat(mats, "AC_CobbleA");
         MakePrim(grp.transform, PrimitiveType.Cube, "Praca_Lateral_Feira_Piso_Continuo",
-            new Vector3(10f, -0.075f, -17.25f), new Vector3(58f, 0.10f, 9.5f), Quaternion.identity, plaza, false);
+            new Vector3(10f, -0.105f, -19.8f), new Vector3(58f, 0.10f, 8.2f), Quaternion.identity, plaza, false);
 
         // Low coastal wooden fence pushed far south to z = -23.6f so +50% circulation corridor & Orchard stay 100% open!
         for (float x = -18f; x <= 38f; x += 4.0f)
@@ -351,10 +351,10 @@ public static class GirlPowerOrla3DPropsBuilder
 
         Vector3[] coords =
         {
-            new Vector3(-4.2f, 0f, -2.95f),
-            new Vector3(6.8f, 0f, -2.95f),
-            new Vector3(17.2f, 0f, -2.95f),
-            new Vector3(27.2f, 0f, -2.95f)
+            new Vector3(-9.2f, 0f, -3.55f),
+            new Vector3(16.6f, 0f, -3.55f),
+            new Vector3(21.4f, 0f, -3.55f),
+            new Vector3(27.2f, 0f, -3.55f)
         };
         Material[] bodyMats = { binMint, binCoral, binBlue, binMint };
 

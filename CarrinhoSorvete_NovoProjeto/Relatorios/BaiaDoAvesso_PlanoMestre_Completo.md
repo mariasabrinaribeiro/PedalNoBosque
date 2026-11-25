@@ -315,3 +315,40 @@
   - Em `GirlPowerOrla3DPetFriendlySystem.cs` e `GirlPowerOrla3DFirstDelivery.cs`: ao se aproximar, exibe apenas uma indicação pequena (`34 px`) acima da tigela e uma **única ação no canto inferior direito (alcance do polegar)**. Ao acionar **Encher pote**, a malha `WaterBowl_Liquid` sobe visivelmente dentro da tigela ao longo de `0.78 s` com brilho turquesa enquanto a jogadora mantém controle imediato sem nenhum travamento.
 - **4. Silhueta da protagonista para câmera real em celular (`build_orla_art_direction_characters.py`):**
   - Pernas discretamente mais longas (`+8 cm` no pivô do quadril `z = 0.49`, tubo de perna `0.37 m`) e altura levemente ampliada (`scale = 1.16` na cena), destacando a passada, o rabo de cavalo com laço turquesa e a bolsa curta mesmo de costas e entre outros moradores.
+
+
+---
+
+## Etapa 22 (v33) — Eliminação de Artefatos Translúcidos, Enquadramento Heroico, Horizonte Definido, Sombras Suaves e HUD Enxuto
+
+### Registro da Correção (P0 -> P1 -> P2)
+- **Data:** 2026-11-25 (`v33`, Unity Built-in Render Pipeline 2022.3.62f3)
+- **Problemas reproduzidos e causas-raiz encontradas no código/cena:**
+  1. **Retângulos translúcidos e faixas semitransparentes (P0 — Renderização):**
+     - `ApplyFadeMaterials` atribuía `OrlaACNHCozyFade` (`Queue=Transparent`, `alpha:fade` com `ZWrite Off`) de forma permanente em quiosque, florista, carrinho, toldos, mesas, casas e teto do café — fazendo faces internas e planos se sobreporem sem buffer de profundidade mesmo sem oclusão.
+     - `Sombra_Nuvem_Movel_1..4` eram 4 `Quad`s gigantes (`13.5–16.5 m × 8.8–10.6 m`) semitransparentes em `y = 0.06` atravessando o chão e o mobiliário.
+     - **Correção:** Removido `ApplyFadeMaterials` da montagem estática da cena e removidos os 4 quads `Sombra_Nuvem_Movel`. Todos os prédios, barracas, mesas, carrinho e telhados agora permanecem **100% opacos (`OrlaACNHCozy`, `ZWrite On`)**. `GirlPowerOrla3DOcclusionFader.cs` e `GirlPowerOrla3DCafeRoofFade.cs` trocam dinamicamente para material translúcido **apenas o único renderer de cobertura aérea que realmente interceptar o raio câmera -> protagonista** (ou o teto do Café ao entrar no interior), restaurando o material opaco assim que libera a linha de visão.
+  2. **Protagonista e carrinho pequenos + céu vazio com névoa excessiva + telhados cortados no primeiro plano (P0 — Câmera e Cenário):**
+     - Câmera aproximada de `(0, 11.8, -14.8)` / `FOV 50°` para **`(0, 8.6, -10.8)`**, **`pitch = 39.5°`** e **`FOV = 44°`** (protagonista e carrinho ~38% maiores em tela de celular, menos céu vazio e primeiro plano inferior limpo).
+     - Fachadas (`z = -29.0`, `yScale = 0.62`) e casas (`z = -23.2..-24.2`, `yScale = 0.60`) recuadas para nunca cortarem a borda inferior da câmera; lixeiras retiradas da passagem central (`GirlPowerOrla3DPropsBuilder.cs`) e piso `Praca_Lateral_Feira_Piso_Continuo` ajustado para `z = -19.8` sem sobreposição coplanar com o calçadão.
+     - Névoa afastada (`58 m .. 135 m`, antes `32 m .. 78 m`) e céu ajustado para azul costeiro definido (`#5CADDE` / `#4DA8E6`) em `GirlPowerOrla3DSceneBuilder.cs` e `GirlPowerOrla3DAmbient.cs`, devolvendo contraste nítido entre céu e mar.
+  3. **Sombras longas e pesadas cruzando a rota + vegetação repetida (P1 — Iluminação e Cenário):**
+     - Sol elevado de `33°–34°` para **`52°–54°`** e `shadowStrength` reduzido de `0.64–0.70` para **`0.34–0.36`** (sombras curtas, suaves e coerentes que preservam o contraste da protagonista).
+     - Coqueiros diferenciados com escalas (`0.84–1.18`), rotações e inclinações próprias.
+  4. **HUD competindo com a cena e ponto de interação pouco evidente (P0 — Interface e Missão):**
+     - Em `GirlPowerOrla3DFirstDelivery.cs`: painel de missão reduzido para um único cartão compacto (`292 px`) unindo objetivo, progresso, moedas e barra de tempo (removida a segunda faixa inferior de recursos); barra superior direita reduzida de `6–7` ícones para **3 botões essenciais** (`Cardápio`, `Pipoca`, `Pausa/Opções`).
+     - Adicionado marcador explícito `DrawActiveMissionTargetBadge` diretamente sobre o ponto ativo da missão (`🍦 Montar aqui` / `✓ Montar Sorvete` no Carrinho; `💐 Florista Luna` / `✓ Entregar para Luna`), mudando para turquesa ao entrar no alcance real de interação.
+
+### Checklist de Acompanhamento
+- **P0 — Bloqueios (Código/Cena prontos em `v33`; conferir visualmente em Play Mode e aparelho):**
+  - [x] Artefatos de retângulos translúcidos eliminados (`ZWrite On` padrão + remoção de quads `Sombra_Nuvem_Movel`).
+  - [x] Câmera aproximada com protagonista e carrinho em destaque e sem telhados cortados no primeiro plano.
+  - [x] Passagem central aberta entre pastelaria (esquerda) e mesas (direita), sem lixeiras ou barracas no meio.
+  - [x] Colisores OBB orientados, movimento por toque com A* e moradores com autoridade única de movimento.
+  - [x] HUD compacto com hierarquia clara (missão + tempo + 3 botões) e marcador explícito no ponto de montagem/entrega.
+- **P1 — Apresentação:**
+  - [x] Horizonte definido (névoa afastada para `58–135 m`) e sombras suaves (`52°–54°`, `shadowStrength 0.34–0.36`).
+  - [x] Materiais foscos coerentes, sem faixas senoidais no chão e sem sobreposição coplanar na praça.
+  - [x] Coqueiros com variação de altura, rotação e inclinação.
+- **P2 — Mobile e Estabilidade:**
+  - [ ] Validar build Android em aparelho físico (registrar aparelho, resolução, FPS >= 30, memória e folga real de colisores em Play Mode).

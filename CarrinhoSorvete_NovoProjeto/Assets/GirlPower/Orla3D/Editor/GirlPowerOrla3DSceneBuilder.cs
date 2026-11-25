@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v32_PastelariaEsq_MesasDir_Passagem";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v33_ZeroArtefatos_CameraHeroi_HUDLimpo";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -56,9 +56,9 @@ public static class GirlPowerOrla3DSceneBuilder
         RenderSettings.ambientGroundColor = new Color(0.26f, 0.22f, 0.26f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.74f, 0.82f, 0.86f);
-        RenderSettings.fogStartDistance = 32f;
-        RenderSettings.fogEndDistance = 78f;
+        RenderSettings.fogColor = new Color(0.46f, 0.74f, 0.88f);
+        RenderSettings.fogStartDistance = 58f;
+        RenderSettings.fogEndDistance = 135f;
 
         GameObject root = new GameObject("Orla das Fadas 3D - Resort Magico Pet Friendly");
 
@@ -84,7 +84,6 @@ public static class GirlPowerOrla3DSceneBuilder
         if (kiosk != null)
         {
             AddBlockingBox(kiosk, new Vector3(0f, 2.0f, 0f), new Vector3(4.4f, 4.0f, 2.0f), obstacles);
-            ApplyFadeMaterials(kiosk, false);
         }
         Make3DText(root.transform, "Titulo Quiosque", new Vector3(-2.2f, 3.55f, -17.45f), "ORLA DAS FADAS", 1.55f, new Color32(255, 248, 234, 255), new Vector2(2.85f, 0.48f));
 
@@ -105,7 +104,6 @@ public static class GirlPowerOrla3DSceneBuilder
         if (floristStand != null)
         {
             AddBlockingBox(floristStand, new Vector3(0f, 2.0f, 0f), new Vector3(4.2f, 4.0f, 2.0f), obstacles);
-            ApplyFadeMaterials(floristStand, false);
         }
         Make3DText(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, -7.42f), "FLORES DAS FADAS", 1.60f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.45f));
 
@@ -162,8 +160,7 @@ public static class GirlPowerOrla3DSceneBuilder
         {
             if (entry.stall == null) continue;
             AddBlockingBox(entry.stall, new Vector3(0f, 1.25f, 0.04f), new Vector3(2.45f, 2.5f, 1.12f), obstacles);
-            // Fade ONLY the elevated Estab_CanopyFade awning when it crosses the camera-to-player ray!
-            ApplyFadeMaterials(entry.stall, true);
+            // Keep 100% opaque (ZWrite On) by default; GirlPowerOrla3DOcclusionFader fades ONLY Estab_CanopyFade when blocking the camera ray!
             // Mount each sign flush onto the built-in dark matte fascia board at uniform y = 2.42m!
             Make3DText(entry.stall.transform, entry.signName, new Vector3(0f, 2.42f, -0.68f), entry.label, 1.04f, new Color32(255, 248, 234, 255), new Vector2(2.15f, 0.34f));
         }
@@ -173,7 +170,6 @@ public static class GirlPowerOrla3DSceneBuilder
         if (restKitchen != null)
         {
             AddBlockingBox(restKitchen, new Vector3(0f, 1.3f, 0.05f), new Vector3(3.45f, 2.6f, 1.35f), obstacles);
-            ApplyFadeMaterials(restKitchen, true);
             Make3DText(restKitchen.transform, "Placa Restaurante", new Vector3(0f, 2.42f, -0.82f), "BATATA & MAR", 1.14f, new Color32(255, 248, 234, 255), new Vector2(2.85f, 0.36f));
         }
         // Pavilion: 4 solid corner pillars so stairs & interior festival table remain 100% walkable!
@@ -199,15 +195,15 @@ public static class GirlPowerOrla3DSceneBuilder
             AddBlockingBox(cafeBase, new Vector3( 2.12f, 1.8f, 2.05f), new Vector3(1.85f, 3.6f, 0.35f), obstacles);
             AddBlockingBox(cafeBase, new Vector3(0f, 0.7f, -1.25f), new Vector3(3.6f, 1.4f, 0.85f), obstacles); // Pastry counter
         }
-        if (cafeRoof != null) ApplyFadeMaterials(cafeRoof, false);
+        // Keep cafeRoof 100% opaque (ZWrite On) until the player actually enters Café das Fadas!
         Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.55f, new Color32(255, 246, 224, 255), new Vector2(2.8f, 0.44f));
 
-        // 6a3. Colorful Low Coastal Town Facades pushed far south (z = -26.5f, low profile) so roofs NEVER cover gameplay!
+        // 6a3. Colorful Low Coastal Town Facades pushed far south (z = -29.0f, low profile) so cut-off roofs NEVER invade bottom foreground!
         float[] facadeXs = { -11.5f, 11.5f, 34.0f };
         for (int i = 0; i < facadeXs.Length; i++)
         {
-            GameObject fac = PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.16f, -26.5f), 0f, 1.0f, cozyMats);
-            if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.72f, 1.0f);
+            GameObject fac = PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.16f, -29.0f), 0f, 1.0f, cozyMats);
+            if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.62f, 1.0f);
         }
 
         // 6a4. Original Tropical-Magical Props (Glowing Beach Mushrooms, Floating Lanterns & Flower Lamp Posts!)
@@ -259,8 +255,7 @@ public static class GirlPowerOrla3DSceneBuilder
                 if (cozyMats.TryGetValue(umbrellaAccentMatNames[i % umbrellaAccentMatNames.Length], out Material umbTint))
                     TintTableUmbrellaAccent(tbl, umbTint);
                 AddBlockingBox(tbl, new Vector3(0f, 0.65f, 0f), new Vector3(1.38f, 1.3f, 1.38f), obstacles);
-                // Fade ONLY the elevated Table_CanopyFade umbrella if it crosses the camera-to-player ray!
-                ApplyFadeMaterials(tbl, true);
+                // Keep 100% opaque (ZWrite On) by default; GirlPowerOrla3DOcclusionFader fades Table_CanopyFade ONLY when crossing the camera ray!
                 restaurantTables.Add(tbl.transform);
 
                 // Each restaurant order is represented by a visible guest beside its table.
@@ -290,28 +285,24 @@ public static class GirlPowerOrla3DSceneBuilder
         // Moored decorative Hawaiian Canoe on the beach
         PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.16f, 8.2f), 22f, 1.0f, cozyMats);
 
-        // 6b. 3 Low-Profile Paintable Coastal Houses pushed far south (z = -20.0..-21.2, low roof + smooth fade!)
+        // 6b. 3 Low-Profile Paintable Coastal Houses pushed well south (z = -23.2..-24.2, opaque ZWrite On!) so no cut-off roof blocks bottom screen!
         List<Transform> paintableHouses = new List<Transform>();
-        GameObject mainHouse = null;
         Vector3[] housePositions =
         {
-            new Vector3(-14.8f, -0.10f, -20.0f),
-            new Vector3(9.5f, -0.10f, -21.2f),
-            new Vector3(34.2f, -0.10f, -20.0f)
+            new Vector3(-14.8f, -0.10f, -23.2f),
+            new Vector3(9.5f, -0.10f, -24.2f),
+            new Vector3(34.2f, -0.10f, -23.2f)
         };
         for (int i = 0; i < housePositions.Length; i++)
         {
-            GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), housePositions[i], 0f, 0.84f, cozyMats);
+            GameObject house = PlaceModel(root.transform, "CoastalHouse", "Casa Costeira Pintavel " + (i + 1), housePositions[i], 0f, 0.82f, cozyMats);
             if (house != null)
             {
-                house.transform.localScale = new Vector3(0.84f, 0.68f, 0.84f);
+                house.transform.localScale = new Vector3(0.82f, 0.60f, 0.82f);
                 AddBlockingBox(house, new Vector3(0f, 2.0f, 0f), new Vector3(3.8f, 4.0f, 3.1f), obstacles);
-                ApplyFadeMaterials(house, true);
                 paintableHouses.Add(house.transform);
-                if (i == 1) mainHouse = house;
             }
         }
-        if (mainHouse != null) ApplyFadeMaterials(mainHouse, true);
 
         List<Transform> swayingFestoons = new List<Transform>();
         float[] festoonXs = { 12.2f, 16.8f, 21.2f };
@@ -321,22 +312,24 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fest != null) swayingFestoons.Add(fest.transform);
         }
 
-        // 7. Arched Coconut Palms framed cleanly away from the Pavilion stairs & Fishing Pier entrance!
+        // 7. Varied Arched Coconut Palms (distinct heights, lean angles & rotations -> natural silhouette variety!)
         List<Transform> swayingPalms = new List<Transform>();
         Vector4[] palmSpecs =
         {
-            new Vector4(-9.6f, 3.35f, -14f, 1.02f),
-            new Vector4(4.4f, 3.35f, 18f, 0.96f),
-            new Vector4(9.2f, 3.35f, -162f, 0.94f),
-            new Vector4(22.4f, 3.35f, 16f, 1.02f),
-            new Vector4(35.4f, 3.35f, -152f, 1.04f)
+            new Vector4(-9.6f, 3.45f, -24f, 1.14f),
+            new Vector4(4.4f, 3.40f, 32f, 0.88f),
+            new Vector4(9.8f, 3.55f, -152f, 1.06f),
+            new Vector4(22.4f, 3.40f, 48f, 0.92f),
+            new Vector4(35.4f, 3.50f, -138f, 1.18f)
         };
+        float[] palmTilts = { -4.5f, 3.5f, -2.5f, 5.0f, -3.5f };
         for (int i = 0; i < palmSpecs.Length; i++)
         {
             Vector4 p = palmSpecs[i];
             GameObject palm = PlaceModel(root.transform, "PalmTree", "Coqueiro da Orla " + (i + 1), new Vector3(p.x, 0f, p.y), p.z, p.w, cozyMats);
             if (palm != null)
             {
+                palm.transform.localRotation = Quaternion.Euler(palmTilts[i] * 0.5f, p.z, palmTilts[i]);
                 swayingPalms.Add(palm.transform);
                 AddBlockingBox(palm, new Vector3(0f, 2.3f, 0f), new Vector3(0.58f, 4.6f, 0.58f), obstacles);
             }
@@ -436,9 +429,8 @@ public static class GirlPowerOrla3DSceneBuilder
             idleCharacters.Add(pedCoral.transform);
         }
 
-        // 11. Hero Ice Cream Cart in dedicated open recess (raised & offset umbrella + smooth occlusion fade if player walks behind it!)
-        GameObject cart = PlaceModel(root.transform, "IceCreamCart", "Carrinho de Sorvete", new Vector3(0.4f, 0f, -3.45f), 0f, 1.06f, cozyMats);
-        if (cart != null) ApplyFadeMaterials(cart, false);
+        // 11. Hero Ice Cream Cart in dedicated open recess (100% opaque ZWrite On -> zero translucent rendering artifacts!)
+        GameObject cart = PlaceModel(root.transform, "IceCreamCart", "Carrinho de Sorvete", new Vector3(0.4f, 0f, -3.45f), 0f, 1.08f, cozyMats);
 
         // Clean front plaque typography on the Hero Ice Cream Cart + Choice Upgrade 2
         GameObject cartPaintedSignUpgrade = null;
@@ -471,8 +463,8 @@ public static class GirlPowerOrla3DSceneBuilder
 
         GameObject playerRoot = new GameObject("Protagonista 3D");
         playerRoot.transform.SetParent(root.transform, false);
-        // Start right in the open central passage between Pastelaria (left), Water Spout+Bench (edge), and Tables (right)!
-        playerRoot.transform.position = new Vector3(-2.6f, 0f, -4.4f);
+        // Start in the focal hero triangle right between the Ice Cream Cart (right) and Border Water Spout (left)!
+        playerRoot.transform.position = new Vector3(-1.6f, 0f, -3.9f);
         GameObject playerVisual = PlaceModel(playerRoot.transform, "Char_Protagonist", "Visual Protagonista", Vector3.zero, 160f, 1.16f, cozyMats);
         GameObject heldCone = PlaceModel(playerRoot.transform, "IceCreamConeLemonBasil", "Casquinha Limao Manjericao na Mao", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerSurfboard = PlaceModel(playerRoot.transform, "Surfboard", "Prancha de Surf da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
@@ -902,32 +894,8 @@ public static class GirlPowerOrla3DSceneBuilder
             }
         }
 
-        // Living Atmosphere: 4 Soft Drifting Cloud Shadows gliding slowly across sand & promenade!
-        Material cloudShadowMat = BuildCloudShadowMaterial();
+        // Cloud shadow quads intentionally removed to eliminate giant semi-transparent ground rectangles & Z-overlap!
         List<Transform> cloudShadows = new List<Transform>();
-        Vector3[] cloudShadowCoords =
-        {
-            new Vector3(-12f, 0.06f, 3.5f),
-            new Vector3(6f, 0.06f, -3.5f),
-            new Vector3(22f, 0.06f, 4.8f),
-            new Vector3(-4f, 0.06f, -11.5f)
-        };
-        for (int i = 0; i < cloudShadowCoords.Length; i++)
-        {
-            GameObject cs = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            cs.name = "Sombra_Nuvem_Movel_" + (i + 1);
-            cs.transform.SetParent(root.transform, false);
-            cs.transform.position = cloudShadowCoords[i];
-            cs.transform.rotation = Quaternion.Euler(90f, i * 18f, 0f);
-            cs.transform.localScale = new Vector3(13.5f + (i % 2) * 3.0f, 8.8f + (i % 2) * 1.8f, 1f);
-            Collider col = cs.GetComponent<Collider>();
-            if (col != null) Object.DestroyImmediate(col);
-            Renderer r = cs.GetComponent<Renderer>();
-            r.sharedMaterial = cloudShadowMat;
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            r.receiveShadows = false;
-            cloudShadows.Add(cs.transform);
-        }
 
         GameObject petSysObj = new GameObject("Sistema_PetFriendly_PotesAgua_e_Arquetipos");
         petSysObj.transform.SetParent(root.transform, false);
@@ -1110,9 +1078,9 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject missionObj = new GameObject("Historia Baia do Avesso - 4 Capitulos");
         missionObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DFirstDelivery mission = missionObj.AddComponent<GirlPowerOrla3DFirstDelivery>();
-        // Clear full-body mobile framing: higher clean angle showing protagonist head-to-feet, open central passage & border water spout!
-        mission.cameraOffset = new Vector3(0f, 11.8f, -14.8f);
-        mission.cameraPitch = 37.5f;
+        // Closer hero diorama framing: protagonist & cart read prominently in <2s on phone screens with crisp ocean horizon & zero foreground roofs!
+        mission.cameraOffset = new Vector3(0f, 8.6f, -10.8f);
+        mission.cameraPitch = 39.5f;
         mission.minWorldZ = -22.2f;
         mission.maxWorldZ = 22.5f;
         mission.player = playerRoot.transform;
@@ -1373,23 +1341,23 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject camObj = new GameObject("ACNH Diorama Camera");
         camObj.transform.SetParent(parent, false);
-        camObj.transform.position = new Vector3(-2.6f, 11.8f, -19.2f);
-        camObj.transform.rotation = Quaternion.Euler(37.5f, 0f, 0f);
+        camObj.transform.position = new Vector3(-1.6f, 8.6f, -14.7f);
+        camObj.transform.rotation = Quaternion.Euler(39.5f, 0f, 0f);
         Camera cam = camObj.AddComponent<Camera>();
         cam.tag = "MainCamera";
-        cam.fieldOfView = 50f;
-        cam.nearClipPlane = 0.2f;
+        cam.fieldOfView = 44f;
+        cam.nearClipPlane = 0.25f;
         cam.farClipPlane = 185f;
         cam.allowMSAA = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.74f, 0.87f, 0.95f);
+        cam.backgroundColor = new Color(0.36f, 0.68f, 0.88f);
         cam.depthTextureMode |= DepthTextureMode.Depth;
         camObj.AddComponent<AudioListener>();
         GirlPowerOrla3DCameraPost post = camObj.AddComponent<GirlPowerOrla3DCameraPost>();
-        post.exposure = 0.90f;
+        post.exposure = 0.92f;
         post.contrast = 1.07f;
         post.saturation = 1.10f;
-        post.vignetteStrength = 0.10f;
+        post.vignetteStrength = 0.08f;
         return cam;
     }
 
@@ -1397,16 +1365,17 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject sunObj = new GameObject("Sol Fim de Tarde - Matinhos");
         sunObj.transform.SetParent(parent, false);
-        sunObj.transform.rotation = Quaternion.Euler(33f, -38f, 0f);
+        // Elevated sun (52°) casts short, breezy soft shadows instead of long dark streaks across the walkway!
+        sunObj.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
         Light l = sunObj.AddComponent<Light>();
         l.type = LightType.Directional;
-        l.color = new Color(1.0f, 0.80f, 0.56f);
-        l.intensity = 0.78f;
+        l.color = new Color(1.0f, 0.88f, 0.72f);
+        l.intensity = 0.84f;
         l.shadows = LightShadows.Soft;
         l.shadowResolution = UnityEngine.Rendering.LightShadowResolution.VeryHigh;
-        l.shadowStrength = 0.70f;
-        l.shadowBias = 0.03f;
-        l.shadowNormalBias = 0.24f;
+        l.shadowStrength = 0.36f;
+        l.shadowBias = 0.04f;
+        l.shadowNormalBias = 0.28f;
         return l;
     }
 

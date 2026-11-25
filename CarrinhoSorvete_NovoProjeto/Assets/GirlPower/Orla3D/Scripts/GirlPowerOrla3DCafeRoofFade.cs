@@ -1,22 +1,32 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Strictly-interior smooth roof fade controller for enterable buildings (Café das Fadas, Batata & Mar):
-/// - Places an internal isTrigger BoxCollider inset by 0.5m from every exterior wall so walking along
-///   the outside sidewalk or brushing an outer wall NEVER triggers roof fade!
-/// - Uses smooth Mathf.Lerp alpha blending + hysteresis so the roof never flickers or pops.
+/// Strictly-interior smooth roof fade controller for enterable buildings (Café das Fadas):
+/// - Keeps the roof 100% OPAQUE (ZWrite On) whenever the player is outside — ZERO translucent artifacts!
+/// - Uses an internal isTrigger BoxCollider inset by 0.5m from every exterior wall so walking along
+///   the outside sidewalk never triggers roof fade, and swaps to fade materials ONLY during interior entry.
 /// </summary>
 public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
 {
     public Transform player;
     public Transform roofObject;
-    public Vector3 buildingCenter = new Vector3(5.6f, 0f, -8.2f);
+    public Vector3 buildingCenter = new Vector3(6.4f, 0f, -14.2f);
     public Vector2 halfBoundsXZ = new Vector2(3.05f, 2.05f);
     [Tooltip("Strict interior inset margin from exterior walls (minimum 0.5m) so outer sidewalk never triggers fade.")]
     public float interiorWallMargin = 0.50f;
-    public float fadeSpeed = 7.5f;
+    public float fadeSpeed = 8.0f;
 
-    private MeshRenderer[] roofRenderers;
+    private sealed class RoofSlot
+    {
+        public MeshRenderer renderer;
+        public Material[] opaqueMats;
+        public Material[] fadeMats;
+        public bool usingFade;
+    }
+
+    private readonly List<RoofSlot> slots = new List<RoofSlot>();
+    private readonly Dictionary<Material, Material> fadeCache = new Dictionary<Material, Material>();
     private BoxCollider interiorTrigger;
     private float currentAlpha = 1f;
     private bool isInsideInterior;
@@ -25,10 +35,45 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
     private void Start()
     {
         mpb = new MaterialPropertyBlock();
+        Shader fadeShader = Shader.Find("GirlPower/OrlaACNHCozyFade");
         if (roofObject != null)
-            roofRenderers = roofObject.GetComponentsInChildren<MeshRenderer>(true);
+        {
+            foreach (MeshRenderer mr in roofObject.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (mr == null) continue;
+                Material[] opaque = mr.sharedMaterials;
+                Material[] fade = new Material[opaque.Length];
+                for (int i = 0; i < opaque.Length; i++)
+                {
+                    if (opaque[i] == null) continue;
+                    if (fadeShader != null && fadeShader.isSupported)
+                    {
+                        if (!fadeCache.TryGetValue(opaque[i], out Material fm))
+                        {
+                            fm = new Material(opaque[i]);
+                            fm.shader = fadeShader;
+                            if (fm.HasProperty("_OccluderEnabled")) fm.SetFloat("_OccluderEnabled", 0f);
+                            fadeCache[opaque[i]] = fm;
+                        }
+                        fade[i] = fm;
+                    }
+                    else
+                    {
+                        fade[i] = opaque[i];
+                    }
+                }
+                slots.Add(new RoofSlot { renderer = mr, opaqueMats = opaque, fadeMats = fade, usingFade = false });
+            }
+        }
 
         EnsureStrictInteriorTrigger();
+    }
+
+    private void OnDestroy()
+    {
+        foreach (var kv in fadeCache)
+            if (kv.Value != null) Destroy(kv.Value);
+        fadeCache.Clear();
     }
 
     private void EnsureStrictInteriorTrigger()
@@ -48,40 +93,53 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
 
     private void Update()
     {
-        if (player == null || roofRenderers == null || roofRenderers.Length == 0) return;
+        if (player == null || slots.Count == 0) return;
 
         float margin = Mathf.Max(0.50f, interiorWallMargin);
         float innerHalfX = Mathf.Max(0.40f, halfBoundsXZ.x - margin);
         float innerHalfZ = Mathf.Max(0.40f, halfBoundsXZ.y - margin);
 
-        // Hysteresis (0.14m) prevents rapid on/off flickering right at the interior threshold
         float hyst = isInsideInterior ? 0.14f : 0f;
         Vector3 p = player.position;
         isInsideInterior = Mathf.Abs(p.x - buildingCenter.x) <= (innerHalfX + hyst)
                         && Mathf.Abs(p.z - buildingCenter.z) <= (innerHalfZ + hyst);
 
         float targetAlpha = isInsideInterior ? 0.0f : 1.0f;
-        // Smooth exponential Mathf.Lerp alpha transition (zero popping or flickering!)
         float t = 1f - Mathf.Exp(-fadeSpeed * Time.deltaTime);
         currentAlpha = Mathf.Lerp(currentAlpha, targetAlpha, t);
-        if (Mathf.Abs(currentAlpha - targetAlpha) < 0.005f)
+        if (Mathf.Abs(currentAlpha - targetAlpha) < 0.01f)
             currentAlpha = targetAlpha;
 
         bool visible = currentAlpha > 0.02f;
-        for (int i = 0; i < roofRenderers.Length; i++)
+        bool needFade = currentAlpha < 0.985f;
+
+        for (int i = 0; i < slots.Count; i++)
         {
-            MeshRenderer mr = roofRenderers[i];
-            if (mr == null) continue;
-            if (mr.enabled != visible) mr.enabled = visible;
-            if (visible)
+            RoofSlot s = slots[i];
+            if (s.renderer == null) continue;
+            if (s.renderer.enabled != visible) s.renderer.enabled = visible;
+            if (!visible) continue;
+
+            if (needFade)
             {
-                mr.GetPropertyBlock(mpb);
-                Color col = mr.sharedMaterial != null && mr.sharedMaterial.HasProperty("_Color")
-                    ? mr.sharedMaterial.GetColor("_Color")
+                if (!s.usingFade)
+                {
+                    s.renderer.sharedMaterials = s.fadeMats;
+                    s.usingFade = true;
+                }
+                s.renderer.GetPropertyBlock(mpb);
+                Color col = s.opaqueMats.Length > 0 && s.opaqueMats[0] != null && s.opaqueMats[0].HasProperty("_Color")
+                    ? s.opaqueMats[0].GetColor("_Color")
                     : Color.white;
                 col.a = currentAlpha;
                 mpb.SetColor("_Color", col);
-                mr.SetPropertyBlock(mpb);
+                s.renderer.SetPropertyBlock(mpb);
+            }
+            else if (s.usingFade)
+            {
+                s.renderer.sharedMaterials = s.opaqueMats;
+                s.renderer.SetPropertyBlock(null);
+                s.usingFade = false;
             }
         }
     }

@@ -255,27 +255,28 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         currentPreset = preset;
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 32f;
-        RenderSettings.fogEndDistance = 78f;
+        // Distant gentle horizon mist only (58m..135m) so ocean & sky stay crisp and clearly separated!
+        RenderSettings.fogStartDistance = 58f;
+        RenderSettings.fogEndDistance = 135f;
 
-        // Warm golden coastal lighting hierarchy (soft shadows + warm ambient + light horizon fog, zero plastic flatness!)
+        // Warm coastal lighting hierarchy: elevated soft shadows (zero long dark streaks across the walkway!)
         switch (preset)
         {
             case TimePreset.ManhaTropical:
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(1.0f, 0.92f, 0.78f);
+                    sunLight.color = new Color(1.0f, 0.94f, 0.82f);
                     sunLight.intensity = 0.88f;
-                    sunLight.shadowStrength = 0.62f;
-                    sunLight.transform.rotation = Quaternion.Euler(46f, -30f, 0f);
+                    sunLight.shadowStrength = 0.34f;
+                    sunLight.transform.rotation = Quaternion.Euler(54f, -28f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.42f, 0.62f, 0.76f);
-                RenderSettings.ambientEquatorColor = new Color(0.62f, 0.58f, 0.52f);
-                RenderSettings.ambientGroundColor = new Color(0.32f, 0.28f, 0.26f);
-                RenderSettings.fogColor = new Color(0.66f, 0.84f, 0.92f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.60f, 0.80f, 0.90f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.94f, 1.09f, 0.12f, new Color(1.02f, 1.0f, 0.96f, 1f));
-                lanternScale = 0.25f;
+                RenderSettings.ambientSkyColor = new Color(0.46f, 0.66f, 0.82f);
+                RenderSettings.ambientEquatorColor = new Color(0.64f, 0.60f, 0.54f);
+                RenderSettings.ambientGroundColor = new Color(0.36f, 0.32f, 0.28f);
+                RenderSettings.fogColor = new Color(0.46f, 0.76f, 0.92f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.30f, 0.66f, 0.90f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.94f, 1.09f, 0.08f, new Color(1.01f, 1.0f, 0.97f, 1f));
+                lanternScale = 0.22f;
                 SetArrayActive(butterflies, true);
                 SetArrayActive(fireflies, true);
                 break;
@@ -285,35 +286,35 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 {
                     sunLight.color = new Color(0.54f, 0.68f, 0.96f);
                     sunLight.intensity = 0.44f;
-                    sunLight.shadowStrength = 0.58f;
-                    sunLight.transform.rotation = Quaternion.Euler(38f, 34f, 0f);
+                    sunLight.shadowStrength = 0.38f;
+                    sunLight.transform.rotation = Quaternion.Euler(46f, 32f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.13f, 0.18f, 0.35f);
+                RenderSettings.ambientSkyColor = new Color(0.14f, 0.20f, 0.38f);
                 RenderSettings.ambientEquatorColor = new Color(0.18f, 0.22f, 0.38f);
-                RenderSettings.ambientGroundColor = new Color(0.09f, 0.11f, 0.20f);
-                RenderSettings.fogColor = new Color(0.12f, 0.18f, 0.31f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.10f, 0.15f, 0.29f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.95f, 1.12f, 0.20f, new Color(0.94f, 0.97f, 1.05f, 1f));
+                RenderSettings.ambientGroundColor = new Color(0.10f, 0.12f, 0.22f);
+                RenderSettings.fogColor = new Color(0.11f, 0.17f, 0.30f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.09f, 0.15f, 0.30f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.95f, 1.12f, 0.16f, new Color(0.94f, 0.97f, 1.05f, 1f));
                 lanternScale = 1.65f;
                 SetArrayActive(butterflies, false);
                 SetArrayActive(fireflies, true);
                 break;
 
-            default: // FimDeTarde (Warm Golden Sunset Resort Light + Soft Atmospheric Horizon Mist!)
+            default: // FimDeTarde (Bright Golden Coastal Afternoon + Defined Azure Sky & Deep Turquoise Sea!)
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(1.0f, 0.82f, 0.58f);
+                    sunLight.color = new Color(1.0f, 0.88f, 0.72f);
                     sunLight.intensity = 0.86f;
-                    sunLight.shadowStrength = 0.64f;
-                    sunLight.transform.rotation = Quaternion.Euler(34f, -38f, 0f);
+                    sunLight.shadowStrength = 0.36f;
+                    sunLight.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.48f, 0.60f, 0.72f);
-                RenderSettings.ambientEquatorColor = new Color(0.66f, 0.56f, 0.48f);
-                RenderSettings.ambientGroundColor = new Color(0.32f, 0.26f, 0.28f);
-                RenderSettings.fogColor = new Color(0.74f, 0.82f, 0.86f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.66f, 0.79f, 0.88f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.93f, 1.09f, 0.12f, new Color(1.03f, 0.98f, 0.92f, 1f));
-                lanternScale = 1.10f;
+                RenderSettings.ambientSkyColor = new Color(0.46f, 0.62f, 0.78f);
+                RenderSettings.ambientEquatorColor = new Color(0.68f, 0.60f, 0.52f);
+                RenderSettings.ambientGroundColor = new Color(0.36f, 0.30f, 0.30f);
+                RenderSettings.fogColor = new Color(0.48f, 0.74f, 0.88f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.36f, 0.68f, 0.88f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.93f, 1.09f, 0.08f, new Color(1.02f, 0.99f, 0.94f, 1f));
+                lanternScale = 0.85f;
                 SetArrayActive(butterflies, true);
                 SetArrayActive(fireflies, true);
                 break;
