@@ -143,3 +143,19 @@
 - [x] **Ciclo de Andar Natural sem Rigidez & Paleta Fixa de 3 Cores (`GirlPowerOrla3DCharacterAnimator.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
   - Movimento secundário real no `Protag_Torso` e `Protag_Head`: contrarrotação suave de ombros/tronco (`±7.5°` andando / `±11.5°` correndo, oposta ao balanço das pernas), deslocamento lateral de peso e curva de rotação orgânica (`turnSpeed = 7.8`).
   - Paleta unificada em 3 cores fixas na fatia jogável: **Turquesa Costeiro** (`#2AC6CC`), **Areia Dourada / Madeira Clara** (`#EED2A4` / `#C9996B`) e **Rosa-Lilás Mágico das Fadas** (`#EC6FA4` / `#C68CE0`).
+
+
+---
+
+### Etapa 14 — Orla das Fadas: Rebrand Unificador, Direção de Arte Cozy, Fatia Vertical Fase 1 (+50% Larga) & Atmosfera Viva
+- [x] **Rebrand & Premissa Unificadora — `"ORLA DAS FADAS"` (`GirlPowerOrla3DGameFlow.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Tela inicial, subtítulo multilíngue e todos os letreiros 3D da cena atualizados para **ORLA DAS FADAS** (*Resort mágico à beira-mar • Culinária das Fadas & Pets*), unificando todos os turistas sob a premissa de hóspedes visitando o mesmo resort mágico pet friendly.
+- [x] **Fim do Botão Administrativo "CHAMAR POLÍCIA (190)" → Fada Guardiã (`GirlPowerOrla3DThiefDetective.cs`):**
+  - Removidos o botão vermelho/policial, a viatura policial e a sirene dissonante; re-tematizado para **Fada Guardiã / Guarda-Vidas da Orla** com pílula creme discreta no canto superior direito (`✨ Fada Guardiã [L]`) e ritmo calmo e acolhedor.
+- [x] **Fatia Vertical Fase 1 Focada, +50% Mais Larga & Proporções Mobile Robustas (`GirlPowerOrla3DSceneBuilder.cs` v20):**
+  - Terreno da praia, calçadão e praça alargado em **~+50% no eixo profundidade** (`localScale = (1.18, 1.0, 1.48)`, limites `minWorldZ = -21.5`, `maxWorldZ = 24.5`) para arrastar o dedo sem claustrofobia.
+  - Cercas do pomar engrossadas para `0.36m` (sem serrilhado fino no celular) e mesas/postes reforçados com silhuetas arredondadas legíveis de longe.
+  - **Ciclo Completo Fase 1 (60 FPS limpo):** `1 Horta` com `1 Camponesa` → `1 Quiosque/Restaurante` → `1 Fada Garçonete` → `2 Potes de Água` → `3 Turistas com Pets` (**Barbie + Cachorro**, **Japonês + Gato**, **Vovó + Calopsita**). Todos os demais arquétipos, fadas e potes extras permanecem preservados em `Fase2_Expansao_Conteudo` para ativação na Etapa 5.
+- [x] **Iluminação Quente, Sombras Móveis de Nuvens & Estrelas Pet (`GirlPowerOrla3DAmbient.cs`, `GirlPowerOrla3DFirstDelivery.cs`):**
+  - Sol direcional dourado quente (`#FFD298`) + `Soft Shadows` + `Ambient Trilight` quente + neblina linear costeira (`32m–78m`) e **4 sombras suaves de nuvens deslizando lentamente pela areia e calçadão** (`Sombra_Nuvem_Movel_1..4`).
+  - Barra superior minimalista atualizada com **Moedas** + **5 Estrelas Douradas de Reputação Pet** (`★★★★★`) + **Ervas**.

@@ -1171,7 +1171,9 @@ public static class GirlPowerOrla3DSceneBuilder
         thiefDet.sceneCamera = mainCam;
         thiefDet.thiefActor = thiefObj != null ? thiefObj.transform : null;
         thiefDet.policeOfficer = policeOfficerObj != null ? policeOfficerObj.transform : null;
-        thiefDet.policeCar = policeCarObj != null ? policeCarObj.transform : null;
+        // Hide police car permanently — replaced by magical Fairy Guardian / Coastal Lifeguard theme!
+        if (policeCarObj != null) policeCarObj.SetActive(false);
+        thiefDet.policeCar = null;
         thiefDet.pipocaDog = petDog;
         List<Transform> raidList = new List<Transform>();
         foreach (GameObject rt in new[] { kiosk, floristStand, restKitchen, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
@@ -1531,6 +1533,27 @@ public static class GirlPowerOrla3DSceneBuilder
             mat.shader = sh;
         }
         if (mat.HasProperty("_Color")) mat.SetColor("_Color", new Color(0.14f, 0.10f, 0.24f, 0.42f));
+        if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
+        EditorUtility.SetDirty(mat);
+        return mat;
+    }
+
+    private static Material BuildCloudShadowMaterial()
+    {
+        Shader sh = Shader.Find("GirlPower/OrlaBlobShadow");
+        if (sh == null) sh = Shader.Find("Unlit/Transparent");
+        string matPath = MaterialsFolder + "/AC_CloudShadow.mat";
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+        if (mat == null)
+        {
+            mat = new Material(sh);
+            AssetDatabase.CreateAsset(mat, matPath);
+        }
+        else
+        {
+            mat.shader = sh;
+        }
+        if (mat.HasProperty("_Color")) mat.SetColor("_Color", new Color(0.16f, 0.24f, 0.36f, 0.14f));
         if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
         EditorUtility.SetDirty(mat);
         return mat;
