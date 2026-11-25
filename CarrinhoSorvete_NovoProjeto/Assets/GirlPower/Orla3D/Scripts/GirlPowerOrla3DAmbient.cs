@@ -579,11 +579,18 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         {
             Transform tr = beachCrabs[i];
             if (tr == null) continue;
-            float cycle = Mathf.Sin(t * (0.95f + i * 0.18f) + i * 2.0f);
-            float scuttleX = cycle * 1.85f;
-            float hop = Mathf.Abs(Mathf.Sin(t * 9.5f + i)) * 0.04f * Mathf.Abs(Mathf.Cos(t * (0.95f + i * 0.18f) + i * 2.0f));
-            tr.position = crabBasePos[i] + new Vector3(scuttleX, hop, Mathf.Sin(t * 0.7f + i) * 0.25f);
-            tr.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * 11f + i) * 5f);
+            // Short lateral bursts along the shoreline foam with natural resting pauses!
+            float phase = Mathf.Repeat(t * (0.28f + i * 0.05f) + i * 0.37f, 1f);
+            float lateral;
+            bool scuttling = false;
+            if (phase < 0.25f) { lateral = Mathf.SmoothStep(-0.9f, 0.9f, phase / 0.25f); scuttling = true; }
+            else if (phase < 0.55f) { lateral = 0.9f; }
+            else if (phase < 0.80f) { lateral = Mathf.SmoothStep(0.9f, -0.9f, (phase - 0.55f) / 0.25f); scuttling = true; }
+            else { lateral = -0.9f; }
+            float hop = scuttling ? Mathf.Abs(Mathf.Sin(t * 14f + i)) * 0.032f : 0f;
+            float roll = scuttling ? Mathf.Sin(t * 16f + i) * 7f : 0f;
+            tr.position = crabBasePos[i] + new Vector3(lateral, hop, Mathf.Sin(t * 0.6f + i) * 0.12f);
+            tr.localRotation = Quaternion.Euler(0f, 0f, roll);
         }
     }
 

@@ -390,3 +390,27 @@
 - **4. Escala coerente, proporções no Blender 5.3 e moradores vivos nas bordas (`build_orla_art_direction_characters.py`, `GirlPowerOrla3DCharacterAnimator.cs`, `GirlPowerOrla3DNpcAI.cs`):**
   - Protagonista atualizada com pernas `+18%` mais longas (`hip z = 0.54`, tubo `0.42 m`) e cabeça `-7%` menor (`r = 0.248`), casquinha elevada (`y = 0.94`, escala `1.18`) claramente visível ao carregar, e coleção `Ref_Escala_Cenario` (balcão `0.94 m`, banco `0.48 m`, porta `2.15 m`) lado a lado em `OrlaDasFadas_ArtDirectionChars.blend`.
   - Moradores contrastados por silhueta (`Char_PedestrianBlue` alto/pernas longas `h=1.18` vs. `Char_PedestrianCoral` mais baixa com casaco amplo e cabelo volumoso arredondado `h=0.88, w=1.14`) e com pausas naturais nas bordas (admirando o mar na mureta norte e conferindo mesas no recuo direito).
+
+---
+
+## Etapa 25 (v36) — Piso Contínuo de 3 Superfícies, Carrinho Morango Heroico, Floricultura Botânica, 1 Torre/1 Píer e HUD Hierárquico
+
+- **1. Chão contínuo de 3 superfícies e zero lacunas (`build_orla_v36_hero_and_terrain.py`, `OrlaEnvironmentBase.fbx`, `GirlPowerOrla3DPropsBuilder.cs`):**
+  - `OrlaEnvironmentBase.fbx` reconstruído do zero no Blender 5.3 com apenas **3 superfícies contínuas** cobrindo toda a largura de câmera (`x = -120..+144 m`, `z = -36..+18 m`): **Areia creme contínua** com curvatura costeira suave, **Calçadão contínuo** e **Praça contínua** fechando completamente o sul atrás da feira.
+  - Removidos os retângulos sobrepostos de piso (entradas flutuantes e placas extras em `GirlPowerOrla3DPropsBuilder.cs`), eliminando os remendos retangulares e a faixa azul atrás da feira.
+- **2. Identidade inconfundível de Carrinho, Floricultura, Quiosque e Protagonista (`IceCreamCart.fbx`, `FloristStand.fbx`, `KioskGirlPower.fbx`, `Char_Protagonist.fbx`, `build_orla_establishments.py`):**
+  - **Carrinho de sorvete (`IceCreamCart.fbx`):** rosa morango exclusivo (`#EC5A8E`), rodas grandes raiadas (`r = 0.42 m`), toldo creme curvado ligeiramente recuado para não tapar o atendimento, cubas visíveis de limão + manjericão, placa 3D de casquinha e detalhe verde manjericão ligando Carrinho e Floricultura.
+  - **Floricultura (`FloristStand.fbx`):** toldo botânico verde-sálvia e creme, vasos suspensos, estante escalonada de mudas/manjericão ao lado da entrada aberta e placa creme sólida.
+  - **Quiosque (`KioskGirlPower.fbx`):** repintado em creme, lilás suave e verde-sálvia para não competir com o rosa morango do carrinho.
+  - **Protagonista (`Char_Protagonist.fbx`):** adicionado avental creme com barra coral e laço nas costas para leitura imediata de frente e de costas mesmo sem HUD.
+  - Todas as barracas e placas receberam faixas creme sólidas com tipografia escura em espresso (`#2A1E1A`).
+- **3. Limpeza da orla, 1 torre/1 píer e paleta controlada (`GirlPowerOrla3DSceneBuilder.cs`, `GirlPowerOrla3DPropsBuilder.cs`, `GirlPowerOrla3DAmbient.cs`):**
+  - Mantidos apenas **1 torre de salva-vidas** e **1 píer** (`FishingPierDock`), removendo o píer oeste duplicado; caiaque (`HawaiianCanoe`) assentado rente à borda molhada (`z = 9.25 m`); caranguejos animados em deslocamentos laterais curtos com pausas perto da linha da espuma (`z = 9.1..9.35 m`).
+  - Substituídas as plataformas baixas de nuvens por 4 nuvens altas suaves e 3 veleiros pequenos distantes no horizonte (`z = 44..52 m`); fachadas e casas afastadas para as laterais abrindo a visão central da praça.
+  - Paleta disciplinada: areia creme (`#F4E6C8`), madeira clara fosca menos alaranjada (`#D4AE82` / `#B88E62`), mar azul-petróleo suave (`#1D7C8F` / `#35A8B4`), verde manjericão (`#4D9E65`) e rosa morango (`#EC5A8E`) reservado ao Carrinho.
+- **4. HUD hierárquico mobile e avisos discretos (`GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DMegaSystems.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`):**
+  - Cartão de missão no topo esquerdo com 2 linhas limpas em texto escuro sobre creme (**`Monte o sorvete`** / **`Limão + manjericão`**, exibindo `0/1` apenas ao iniciar o preparo e ocultando relógio na primeira entrega livre).
+  - Moedas, **Cardápio** e **Pausa** agrupados de forma compacta no canto superior direito.
+  - Botão rosa morango principal (`BtnPrimaryStyle`, maior) reservado **exclusivamente** à ação da missão principal ativa (`Montar sorvete`, `Entregar sorvete`, `Colher manjericão`); atividades paralelas (`Pescar`, `Horta & Plantação`, `Beach Tennis`, `Falar com Clara`, `Encher pote`, `Servir mesa`) usam o estilo secundário mais calmo (`BtnSecondaryStyle`); atalho `[E]` aparece apenas com teclado, mantendo rótulos limpos no mobile.
+  - Avisos de fundo (`"Cozinha abastecida"`, `"Camponesa colheu..."`) movidos para faixa discreta logo abaixo do cartão de missão (`ShowDiscreteNotice`), sem flutuar sobre as barracas.
+

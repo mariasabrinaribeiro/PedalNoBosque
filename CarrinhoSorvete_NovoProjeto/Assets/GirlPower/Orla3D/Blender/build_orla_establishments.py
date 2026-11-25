@@ -219,9 +219,9 @@ def build_stall_shell(col, width, depth, body_mat, stripe_a, stripe_b, extra_cou
         add_cyl("PostFR", 0.046, 2.28, MATS["AC_WoodWarm"], col, loc=( hw - 0.10, -hd + 0.12, 1.14), segs=10),
         add_cyl("PostBL", 0.046, 2.48, MATS["AC_WoodWarm"], col, loc=(-hw + 0.10,  hd - 0.12, 1.24), segs=10),
         add_cyl("PostBR", 0.046, 2.48, MATS["AC_WoodWarm"], col, loc=( hw - 0.10,  hd - 0.12, 1.24), segs=10),
-        # UNIFORM DARK MATTE FASCIA SIGNBOARD integrated at z = 2.42m (faces -Y toward camera/promenade!)
-        add_box("FasciaFrame", (width - 0.12, 0.10, 0.44), MATS["AC_WoodDark"], col, loc=(0, -hd + 0.02, 2.42), bevel=0.02),
-        add_box("FasciaBoard", (width - 0.24, 0.08, 0.34), MATS["AC_MetalDark"], col, loc=(0, -hd - 0.015, 2.42), bevel=0.01),
+        # UNIFORM SOLID CREAM SIGNBOARD framed in warm wood at z = 2.42m (for crisp dark espresso text!)
+        add_box("FasciaFrame", (width - 0.12, 0.10, 0.44), MATS["AC_WoodWarm"], col, loc=(0, -hd + 0.02, 2.42), bevel=0.02),
+        add_box("FasciaBoard", (width - 0.24, 0.08, 0.34), MATS["AC_Cream"], col, loc=(0, -hd - 0.015, 2.42), bevel=0.01),
     ]
 
     if extra_counter_fn is not None:

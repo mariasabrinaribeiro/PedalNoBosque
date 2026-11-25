@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v35_EntregaLivre_MarFechado_Proporcoes_Camera";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v36_PisoContinuo_CarrinhoHeroi_HUDHierarquico";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -98,14 +98,14 @@ public static class GirlPowerOrla3DSceneBuilder
         if (kiosk != null)
         {
             AddBlockingBox(kiosk, new Vector3(0f, 2.0f, 0f), new Vector3(4.4f, 4.0f, 2.0f), obstacles);
+            Make3DText(kiosk.transform, "Titulo Quiosque", new Vector3(0f, 2.92f, -0.82f), "ORLA DAS FADAS", 1.18f, new Color32(42, 30, 26, 255), new Vector2(2.45f, 0.36f));
         }
-        Make3DText(root.transform, "Titulo Quiosque", new Vector3(-2.2f, 3.55f, -17.45f), "ORLA DAS FADAS", 1.55f, new Color32(255, 248, 234, 255), new Vector2(2.85f, 0.48f));
 
-        GameObject customSign = PlaceModel(root.transform, "SignboardNew", "Placa Personalizada - Orla das Fadas", new Vector3(-2.2f, 3.56f, -17.55f), 0f, 0.96f, cozyMats);
+        GameObject customSign = PlaceModel(root.transform, "SignboardNew", "Placa Personalizada - Orla das Fadas", new Vector3(-2.2f, 2.92f, -17.65f), 0f, 0.96f, cozyMats);
         TextMeshPro customSignLabel = null;
         if (customSign != null)
         {
-            customSignLabel = Make3DText(customSign.transform, "Nome Instalado", new Vector3(0f, 0f, -0.17f), "ORLA DAS FADAS", 1.55f, new Color32(255, 248, 234, 255), new Vector2(2.85f, 0.48f));
+            customSignLabel = Make3DText(customSign.transform, "Nome Instalado", new Vector3(0f, 0f, -0.17f), "ORLA DAS FADAS", 1.25f, new Color32(255, 248, 234, 255), new Vector2(2.55f, 0.42f));
             customSign.SetActive(false);
         }
 
@@ -118,8 +118,8 @@ public static class GirlPowerOrla3DSceneBuilder
         if (floristStand != null)
         {
             AddBlockingBox(floristStand, new Vector3(0f, 2.0f, 0f), new Vector3(4.2f, 4.0f, 2.0f), obstacles);
+            Make3DText(floristStand.transform, "Titulo Florista", new Vector3(0f, 2.86f, -0.92f), "FLORES DA LUNA", 1.16f, new Color32(42, 30, 26, 255), new Vector2(2.38f, 0.36f));
         }
-        Make3DText(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, -7.42f), "FLORES DAS FADAS", 1.60f, new Color32(255, 246, 224, 255), new Vector2(2.65f, 0.45f));
 
         List<Transform> breezeCurtains = new List<Transform>();
         GameObject curtL = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Esq", new Vector3(22.35f, 2.46f, -7.65f), 0f, 0.92f, cozyMats);
@@ -175,8 +175,8 @@ public static class GirlPowerOrla3DSceneBuilder
             if (entry.stall == null) continue;
             AddBlockingBox(entry.stall, new Vector3(0f, 1.25f, 0.04f), new Vector3(2.45f, 2.5f, 1.12f), obstacles);
             // Keep 100% opaque (ZWrite On) by default; GirlPowerOrla3DOcclusionFader fades ONLY Estab_CanopyFade when blocking the camera ray!
-            // Mount each sign flush onto the built-in dark matte fascia board at uniform y = 2.42m!
-            Make3DText(entry.stall.transform, entry.signName, new Vector3(0f, 2.42f, -0.68f), entry.label, 1.04f, new Color32(255, 248, 234, 255), new Vector2(2.15f, 0.34f));
+            // Mount each sign flush onto the built-in SOLID CREAM fascia board with crisp DARK ESPRESSO text!
+            Make3DText(entry.stall.transform, entry.signName, new Vector3(0f, 2.42f, -0.68f), entry.label, 1.02f, new Color32(42, 30, 26, 255), new Vector2(2.15f, 0.34f));
         }
 
         // 6a. Restaurante "Batata & Mar" na ala gastronômica esquerda (recuado atrás da pastelaria, sem invadir a passagem!)
@@ -184,7 +184,7 @@ public static class GirlPowerOrla3DSceneBuilder
         if (restKitchen != null)
         {
             AddBlockingBox(restKitchen, new Vector3(0f, 1.3f, 0.05f), new Vector3(3.45f, 2.6f, 1.35f), obstacles);
-            Make3DText(restKitchen.transform, "Placa Restaurante", new Vector3(0f, 2.42f, -0.82f), "BATATA & MAR", 1.14f, new Color32(255, 248, 234, 255), new Vector2(2.85f, 0.36f));
+            Make3DText(restKitchen.transform, "Placa Restaurante", new Vector3(0f, 2.42f, -0.82f), "BATATA & MAR", 1.12f, new Color32(42, 30, 26, 255), new Vector2(2.85f, 0.36f));
         }
         // Pavilion: 4 solid corner pillars so stairs & interior festival table remain 100% walkable!
         if (pavilion != null)
@@ -212,12 +212,12 @@ public static class GirlPowerOrla3DSceneBuilder
         // Keep cafeRoof 100% opaque (ZWrite On) until the player actually enters Café das Fadas!
         Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.55f, new Color32(255, 246, 224, 255), new Vector2(2.8f, 0.44f));
 
-        // 6a3. Colorful Low Coastal Town Facades pushed far south (z = -29.0f, low profile) so cut-off roofs NEVER invade bottom foreground!
-        float[] facadeXs = { -11.5f, 11.5f, 34.0f };
+        // 6a3. Low Coastal Town Facades tucked strictly on OUTER SIDES (central foreground view into the plaza 100% OPEN!)
+        float[] facadeXs = { -26.0f, 38.0f };
         for (int i = 0; i < facadeXs.Length; i++)
         {
             GameObject fac = PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.16f, -29.0f), 0f, 1.0f, cozyMats);
-            if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.62f, 1.0f);
+            if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.58f, 1.0f);
         }
 
         // 6a4. Original Tropical-Magical Props (Glowing Beach Mushrooms, Floating Lanterns & Flower Lamp Posts!)
@@ -306,16 +306,16 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject noticeBoard = PlaceModel(root.transform, "VillageNoticeBoard", "Mural de Avisos da Vila", new Vector3(-12.6f, 0f, -3.75f), 0f, 1f, cozyMats);
         if (noticeBoard != null) AddBlockingBox(noticeBoard, new Vector3(0f, 1.1f, 0f), new Vector3(1.9f, 2.2f, 0.36f), obstacles);
 
-        // Moored decorative Hawaiian Canoe on the beach
-        PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.16f, 8.2f), 22f, 1.0f, cozyMats);
+        // Moored Kayak/Canoe clearly grounded right along the wet sand margin!
+        PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.22f, 9.25f), 22f, 1.0f, cozyMats);
 
-        // 6b. 3 Low-Profile Paintable Coastal Houses pushed well south (z = -23.2..-24.2, opaque ZWrite On!) so no cut-off roof blocks bottom screen!
+        // 6b. 3 Low-Profile Paintable Coastal Houses tucked to the LATERAL EDGES (z = -24.5 -> ZERO central roof barrier!)
         List<Transform> paintableHouses = new List<Transform>();
         Vector3[] housePositions =
         {
-            new Vector3(-14.8f, -0.10f, -23.2f),
-            new Vector3(9.5f, -0.10f, -24.2f),
-            new Vector3(34.2f, -0.10f, -23.2f)
+            new Vector3(-19.5f, -0.10f, -24.0f),
+            new Vector3(24.5f, -0.10f, -24.5f),
+            new Vector3(36.2f, -0.10f, -24.0f)
         };
         for (int i = 0; i < housePositions.Length; i++)
         {
@@ -427,10 +427,9 @@ public static class GirlPowerOrla3DSceneBuilder
             GameObject chair = PlaceModel(root.transform, "BeachChair", "Cadeira de Praia " + (i + 1), new Vector3(umbXs[i] + 1.15f, -0.10f, 6.5f), -165f, 1f, cozyMats);
             if (chair != null) AddBlockingBox(chair, new Vector3(0f, 0.32f, 0f), new Vector3(1.12f, 0.64f, 0.78f), obstacles);
         }
+        // ONE iconic Lifeguard Tower as the beach focal landmark (avoiding repetitive identical towers!)
         GameObject towerA = PlaceModel(root.transform, "LifeguardTower", "Posto Salva-Vidas 1", new Vector3(15.2f, -0.14f, 7.6f), 180f, 1f, cozyMats);
         if (towerA != null) AddBlockingBox(towerA, new Vector3(0f, 1.25f, 0f), new Vector3(1.65f, 2.5f, 1.65f), obstacles);
-        GameObject towerB = PlaceModel(root.transform, "LifeguardTower", "Posto Salva-Vidas 2", new Vector3(28.2f, -0.14f, 7.4f), 175f, 1f, cozyMats);
-        if (towerB != null) AddBlockingBox(towerB, new Vector3(0f, 1.25f, 0f), new Vector3(1.65f, 2.5f, 1.65f), obstacles);
 
         // 10. Feira Obstacles (Crates tucked to the sides of stalls & Florist; NPCs off the main 5m promenade!)
         GameObject crateOr = PlaceModel(root.transform, "CrateOranges", "Caixa de Laranjas", new Vector3(11.8f, 0f, -8.8f), -12f, 1f, cozyMats);
@@ -458,11 +457,11 @@ public static class GirlPowerOrla3DSceneBuilder
         if (cart != null)
             AddBlockingBox(cart, new Vector3(0f, 0.9f, 0.05f), new Vector3(1.60f, 1.8f, 0.92f), obstacles);
 
-        // Clean front plaque typography on the Hero Ice Cream Cart + Choice Upgrade 2
+        // Crisp dark espresso plaque typography on the Hero Strawberry-Pink Ice Cream Cart + Choice Upgrade 2
         GameObject cartPaintedSignUpgrade = null;
         if (cart != null)
         {
-            Make3DText(cart.transform, "Placa Frontal Sorvetes", new Vector3(0.10f, 0.81f, -0.54f), "SORVETES", 1.15f, new Color32(218, 72, 118, 255), new Vector2(1.05f, 0.34f));
+            Make3DText(cart.transform, "Placa Frontal Sorvetes", new Vector3(0.16f, 0.74f, -0.57f), "SORVETES", 0.96f, new Color32(42, 30, 26, 255), new Vector2(0.95f, 0.30f));
             cartPaintedSignUpgrade = PlaceModel(cart.transform, "CartPaintedSignUpgrade", "Melhoria - Placa Pintada", new Vector3(0f, 1.62f, -0.52f), 0f, 0.95f, cozyMats);
             if (cartPaintedSignUpgrade != null) cartPaintedSignUpgrade.SetActive(false);
         }
@@ -581,9 +580,9 @@ public static class GirlPowerOrla3DSceneBuilder
         List<Transform> crabs = new List<Transform>();
         Vector3[] crabPositions =
         {
-            new Vector3(1.5f, -0.15f, 6.8f),
-            new Vector3(11.8f, -0.18f, 7.6f),
-            new Vector3(22.2f, -0.16f, 7.1f)
+            new Vector3(1.5f, -0.22f, 9.15f),
+            new Vector3(11.8f, -0.22f, 9.35f),
+            new Vector3(22.2f, -0.22f, 9.10f)
         };
         for (int i = 0; i < crabPositions.Length; i++)
         {
@@ -1322,9 +1321,8 @@ public static class GirlPowerOrla3DSceneBuilder
         parallax.farLayerFollowFactor = 0.90f;
         parallax.midLayerFollowFactor = 0.70f;
 
-        // Keep kiosk upgrade & florist sign synced; stall fascia signs are parented directly onto each establishment's built-in board!
+        // Keep kiosk upgrade synced; stall, kiosk & florist signs are parented directly onto their solid cream plaques!
         if (kioskAwningUpgrade != null && kiosk != null) kioskAwningUpgrade.transform.position = kiosk.transform.position;
-        SetNamedChildPosition(root.transform, "Titulo Florista", new Vector3(24f, 3.16f, -7.53f));
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -1798,58 +1796,61 @@ public static class GirlPowerOrla3DSceneBuilder
         // Fixed 3-Color Cohesive Coastal Palette:
         // 1. Dominant: Coastal Turquoise (#2AC6CC)   2. Warm Secondary: Golden Sand & Light Wood (#EED2A4 / #C9996B)
         // 3. Magical Accent: Fairy Pink-Lilac (#EC6FA4 / #C68CE0) — unified saturation across the vertical slice!
+        // Disciplined Coastal Palette:
+        // Base: Cream Sand (#F4E6C8) + Light Matte Wood (#D4AE82/#B88E62) + Soft Petrol Sea (#1D7C8F/#35A8B4)
+        // Hero Accent: Strawberry Pink (#EC5A8E) reserved for the Ice Cream Cart + Basil Green (#4D9E65) linking Cart & Florist!
         var palette = new (string name, string hex, float gloss, string emitHex, float emitStr)[]
         {
-            ("AC_Sand", "#EED2A4", 0.04f, null, 0f),          // Warm Secondary: Matte Golden Sand!
-            ("AC_SandWet", "#D5B184", 0.16f, null, 0f),
-            ("AC_Grass", "#6AA688", 0.04f, null, 0f),         // Harmonized coastal sage-teal green
-            ("AC_GrassLight", "#84BA9C", 0.05f, null, 0f),
-            ("AC_Ocean", "#1FA6B2", 0.48f, null, 0f),         // Dominant: Vibrant Coastal Turquoise!
-            ("AC_OceanShallow", "#2AC6CC", 0.44f, null, 0f),
+            ("AC_Sand", "#F4E6C8", 0.04f, null, 0f),          // Cream Sand base!
+            ("AC_SandWet", "#DEC9A4", 0.14f, null, 0f),
+            ("AC_Grass", "#6FA684", 0.04f, null, 0f),
+            ("AC_GrassLight", "#88BD9B", 0.05f, null, 0f),
+            ("AC_Ocean", "#1D7C8F", 0.44f, null, 0f),         // Soft Petrol Blue sea!
+            ("AC_OceanShallow", "#35A8B4", 0.40f, null, 0f),
             ("AC_Foam", "#F4FBFE", 0.12f, "#E2F4FA", 0.10f),
-            ("AC_HillDistant", "#8CBAD0", 0.03f, null, 0f),   // Soft sky-blended distant coastal silhouette
+            ("AC_HillDistant", "#8AB7CC", 0.03f, null, 0f),
             ("AC_HillFar", "#A6CBE0", 0.03f, null, 0f),
 
-            ("AC_StoneWhite", "#F2E9D6", 0.05f, null, 0f),
-            ("AC_StoneWarm", "#E2D4BC", 0.05f, null, 0f),
+            ("AC_StoneWhite", "#F4ECDC", 0.05f, null, 0f),
+            ("AC_StoneWarm", "#E6D9C2", 0.05f, null, 0f),
             ("AC_StoneDark", "#A29584", 0.05f, null, 0f),
-            ("AC_CobbleA", "#DCC6A8", 0.05f, null, 0f),
-            ("AC_CobbleB", "#C8B092", 0.05f, null, 0f),
+            ("AC_CobbleA", "#E2D3BC", 0.05f, null, 0f),
+            ("AC_CobbleB", "#D2C0A4", 0.05f, null, 0f),
             ("AC_PlazaTile", "#EFE4CE", 0.05f, null, 0f),
-            ("AC_PlazaAccent", "#E2CBAA", 0.05f, null, 0f),
+            ("AC_PlazaAccent", "#E4D3BA", 0.05f, null, 0f),
             ("AC_Asphalt", "#6E7884", 0.04f, null, 0f),
-            ("AC_RoadLine", "#EED2A4", 0.05f, null, 0f),
+            ("AC_RoadLine", "#F4E6C8", 0.05f, null, 0f),
 
-            ("AC_WoodWarm", "#A6764E", 0.05f, null, 0f),      // Coherent Matte Coastal Wood (zero plastic glare!)
-            ("AC_WoodLight", "#C9996B", 0.06f, null, 0f),
-            ("AC_WoodDark", "#6E4A32", 0.05f, null, 0f),
-            ("AC_Cream", "#FAF2E4", 0.07f, null, 0f),
-            ("AC_PinkBerry", "#EC6FA4", 0.08f, null, 0f),     // Matte awning & clothing fabrics
-            ("AC_PinkSoft", "#F4AECB", 0.07f, null, 0f),
-            ("AC_MintTeal", "#2AC6CC", 0.08f, null, 0f),
-            ("AC_MintSoft", "#8EDFE2", 0.07f, null, 0f),
-            ("AC_PurplePlum", "#3A949A", 0.07f, null, 0f),
-            ("AC_Lavender", "#C68CE0", 0.07f, null, 0f),
-            ("AC_Coral", "#D89886", 0.07f, null, 0f),
-            ("AC_SunnyYellow", "#F0D284", 0.07f, null, 0f),
-            ("AC_SkyBlue", "#68C4D6", 0.07f, null, 0f),
-            ("AC_Glass", "#CBEFF7", 0.45f, "#B4E6F2", 0.14f),
-            ("AC_MetalDark", "#2E3540", 0.12f, null, 0f),     // Matte charcoal fascia signboard for crisp white text!
-            ("AC_MetalSilver", "#D6DDE6", 0.36f, null, 0f),
-            ("AC_Gold", "#E8C374", 0.32f, null, 0f),
+            ("AC_WoodWarm", "#B88E62", 0.05f, null, 0f),      // Light Coastal Wood (less orange!)
+            ("AC_WoodLight", "#D4AE82", 0.05f, null, 0f),
+            ("AC_WoodDark", "#755238", 0.05f, null, 0f),
+            ("AC_Cream", "#FAF4E8", 0.06f, null, 0f),
+            ("AC_PinkBerry", "#EC5A8E", 0.08f, null, 0f),     // Hero Strawberry Pink reserved for the Ice Cream Cart!
+            ("AC_PinkSoft", "#F4B4CC", 0.07f, null, 0f),
+            ("AC_MintTeal", "#35A8B4", 0.07f, null, 0f),      // Soft Petrol-Teal
+            ("AC_MintSoft", "#9ED6C8", 0.06f, null, 0f),      // Calm Sage-Mint
+            ("AC_PurplePlum", "#48868C", 0.06f, null, 0f),
+            ("AC_Lavender", "#C9A8E2", 0.06f, null, 0f),      // Soft Lilac for calm kiosks
+            ("AC_Coral", "#DE8874", 0.07f, null, 0f),
+            ("AC_SunnyYellow", "#F4D678", 0.07f, null, 0f),
+            ("AC_SkyBlue", "#6EBAD2", 0.07f, null, 0f),
+            ("AC_Glass", "#CBEFF7", 0.42f, "#B4E6F2", 0.12f),
+            ("AC_MetalDark", "#3A424E", 0.12f, null, 0f),
+            ("AC_MetalSilver", "#D6DDE6", 0.34f, null, 0f),
+            ("AC_Gold", "#E6C274", 0.30f, null, 0f),
 
             ("AC_LanternGlow", "#FFE69C", 0.10f, "#FFD26B", 1.10f),
             ("AC_BulbWarm", "#FFF0B3", 0.10f, "#FFE082", 1.00f),
 
-            ("AC_PalmTrunk", "#C9996B", 0.05f, null, 0f),
-            ("AC_PalmRing", "#A67A54", 0.05f, null, 0f),
-            ("AC_PalmLeaf", "#5B9E7E", 0.08f, null, 0f),
-            ("AC_PalmLeafTip", "#7BB896", 0.08f, null, 0f),
+            ("AC_PalmTrunk", "#C89E72", 0.05f, null, 0f),
+            ("AC_PalmRing", "#AD845C", 0.05f, null, 0f),
+            ("AC_PalmLeaf", "#5B9E78", 0.08f, null, 0f),
+            ("AC_PalmLeafTip", "#7BB892", 0.08f, null, 0f),
             ("AC_Coconut", "#764E34", 0.08f, null, 0f),
-            ("AC_CoconutGreen", "#6BA884", 0.10f, null, 0f),
-            ("AC_BushGreen", "#629C80", 0.06f, null, 0f),
-            ("AC_BushLight", "#7EB496", 0.06f, null, 0f),
-            ("AC_Terracotta", "#C97D5E", 0.06f, null, 0f),
+            ("AC_CoconutGreen", "#6BA880", 0.10f, null, 0f),
+            ("AC_BushGreen", "#4D9E65", 0.06f, null, 0f),     // Basil Green linking Cart & Florist!
+            ("AC_BushLight", "#7AC286", 0.06f, null, 0f),
+            ("AC_Terracotta", "#C98566", 0.06f, null, 0f),
             ("AC_Orange", "#EA9B52", 0.12f, null, 0f),
             ("AC_Strawberry", "#EC6FA4", 0.14f, null, 0f),
             ("AC_Chocolate", "#6E4632", 0.10f, null, 0f),

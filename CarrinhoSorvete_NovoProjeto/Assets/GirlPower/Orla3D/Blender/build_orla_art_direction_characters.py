@@ -254,6 +254,13 @@ def build_protagonist(col):
         add_cyl("T_ShirtHem", 0.202, 0.048, MATS["AC_Cream"], col, loc=(0, 0, 0.49 + dz), r_top=0.198),
         # Deep coastal denim shorts
         add_cyl("T_Shorts", 0.202, 0.17, MATS["AC_Denim"], col, loc=(0, 0, 0.44 + dz), r_top=0.192),
+        # DISTINCTIVE CREAM APRON WITH CORAL TRIM & BACK BOW (makes protagonist recognizable from afar & from behind!)
+        add_box("T_ApronFront", (0.26, 0.045, 0.34), MATS["AC_Cream"], col, loc=(0, -0.195, 0.56 + dz), bevel=0.015),
+        add_box("T_ApronTrim", (0.27, 0.050, 0.065), MATS["AC_Coral"], col, loc=(0, -0.198, 0.415 + dz), bevel=0.012),
+        add_cyl("T_ApronWaist", 0.208, 0.045, MATS["AC_Coral"], col, loc=(0, 0, 0.54 + dz)),
+        add_sphere("T_ApronBackBowL", 0.072, MATS["AC_Cream"], col, loc=(-0.065, 0.215, 0.54 + dz), scale=(1.15, 0.55, 0.85)),
+        add_sphere("T_ApronBackBowR", 0.072, MATS["AC_Cream"], col, loc=( 0.065, 0.215, 0.54 + dz), scale=(1.15, 0.55, 0.85)),
+        add_sphere("T_ApronBackKnot", 0.046, MATS["AC_Coral"], col, loc=(0.0, 0.222, 0.54 + dz)),
         # SHORT CROSSBODY SATCHEL (Bolsa Curta): diagonal strap visible front & back + golden pouch at hip!
         add_box("T_StrapFront", (0.045, 0.028, 0.44), MATS["AC_WoodDark"], col,
                 loc=(0.02, -0.175, 0.67 + dz), rot=(0.12, math.radians(-34), 0.0), bevel=0.008),

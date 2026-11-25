@@ -235,7 +235,8 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                 string crop = OrchardCrops[orchardIdx % OrchardCrops.Length];
                 camponesaCarryingToKitchen = true;
                 camponesaWait = 2.6f;
-                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(cur + Vector3.up * 1.4f, "🧺 Camponesa colheu " + crop + "!", new Color(0.72f, 0.96f, 0.62f), 1.6f);
+                if (storyController != null)
+                    storyController.ShowDiscreteNotice("Horta: " + crop + " colhido para a cozinha", 2.4f);
             }
             else
             {
@@ -244,7 +245,8 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                 camponesaWait = 2.2f;
                 OrchardHarvestedTotal++;
                 if (megaSystems != null) megaSystems.Data.organicHerbs++;
-                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(cur + Vector3.up * 1.4f, "✓ Cozinha abastecida pela Horta!", new Color(1f, 0.90f, 0.45f), 1.6f);
+                if (storyController != null)
+                    storyController.ShowDiscreteNotice("✓ Cozinha abastecida pela horta", 2.4f);
             }
             return;
         }
@@ -728,7 +730,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
             {
                 string lbl = touchPrimary
                     ? GirlPowerOrla3DLocalization.T("Encher pote", "Refill bowl", "Llenar pote")
-                    : GirlPowerOrla3DLocalization.T("[E] Encher pote", "[E] Refill bowl", "[E] Llenar pote");
+                    : GirlPowerOrla3DLocalization.T("Encher pote   [E]", "Refill bowl   [E]", "Llenar pote   [E]");
                 DrawUnifiedActionPill(lbl, s, () => RefillBowl(nearestBowlIdx, false));
                 return;
             }
@@ -736,7 +738,7 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
             {
                 string lbl = touchPrimary
                     ? GirlPowerOrla3DLocalization.T("Servir mesa", "Serve table", "Servir mesa")
-                    : GirlPowerOrla3DLocalization.T("[E] Servir mesa", "[E] Serve table", "[E] Servir mesa");
+                    : GirlPowerOrla3DLocalization.T("Servir mesa   [E]", "Serve table   [E]", "Servir mesa   [E]");
                 DrawUnifiedActionPill(lbl, s, () => ServePetFriendlyGuest(nearestGuest));
             }
         }
@@ -788,9 +790,9 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         float safeBottom = safeTop + sa.height;
         float w = Mathf.Clamp(78f * s + text.Length * 7.6f * s, 184f * s, Mathf.Min(300f * s, sa.width - 36f * s));
         float h = 48f * s;
-        // Single thumb-reachable action pill in bottom-right safe area (never covers center walkway or protagonist's feet!)
+        // Side care actions use calm secondary button style so vivid strawberry pink stays reserved for the main mission!
         Rect pill = new Rect(sa.xMax - w - 18f * s, safeBottom - h - 18f * s, w, h);
-        if (GUI.Button(pill, text, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        if (GUI.Button(pill, text, GirlPowerOrla3DUITheme.BtnSecondaryStyle))
             onClick?.Invoke();
     }
 

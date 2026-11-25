@@ -636,17 +636,17 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     {
         if (sceneCamera == null) return;
         bool touchPrimary = gameFlow != null && gameFlow.storyController != null && gameFlow.storyController.IsTouchPrimary;
-        string pfx = touchPrimary ? "" : "[E] ";
-        if (Near(gardenBed, 3.2f)) DrawFloatingStationBtn(gardenBed, pfx + "Horta & Plantação", s, () => OpenModal(ActiveModal.Garden));
-        else if (Near(fishingPier, 3.8f)) DrawFloatingStationBtn(fishingPier, pfx + "Pescar no Píer", s, () => OpenModal(ActiveModal.Fishing));
-        else if (IsAtBeachTennisEntrance()) DrawFloatingStationBtn(beachTennisEntrance != null ? beachTennisEntrance : beachTennisCourt, pfx + "Jogar Beach Tennis", s, () => OpenModal(ActiveModal.BeachTennis));
-        else if (Near(noticeBoard, 3.0f)) DrawFloatingStationBtn(noticeBoard, pfx + "Mural de Avisos", s, () => OpenModal(ActiveModal.NoticeBoard));
+        string sfx = touchPrimary ? "" : "   [E]";
+        if (Near(gardenBed, 3.2f)) DrawFloatingStationBtn(gardenBed, "Horta & Plantação" + sfx, s, () => OpenModal(ActiveModal.Garden));
+        else if (Near(fishingPier, 3.8f)) DrawFloatingStationBtn(fishingPier, "Pescar" + sfx, s, () => OpenModal(ActiveModal.Fishing));
+        else if (IsAtBeachTennisEntrance()) DrawFloatingStationBtn(beachTennisEntrance != null ? beachTennisEntrance : beachTennisCourt, "Beach Tennis" + sfx, s, () => OpenModal(ActiveModal.BeachTennis));
+        else if (Near(noticeBoard, 3.0f)) DrawFloatingStationBtn(noticeBoard, "Mural de Avisos" + sfx, s, () => OpenModal(ActiveModal.NoticeBoard));
         else if (Near(restaurantKitchen, 3.4f))
         {
             int ord = FindFirstActiveOrderIndex();
             string txt = ord >= 0
-                ? (pfx + GetDishPrepVerb(Orders[ord].dishName) + " " + Orders[ord].dishName)
-                : pfx + "Restaurante Batata & Mar";
+                ? (GetDishPrepVerb(Orders[ord].dishName) + " " + Orders[ord].dishName + sfx)
+                : ("Batata & Mar" + sfx);
             DrawFloatingStationBtn(restaurantKitchen, txt, s, () => { if (ord >= 0) StartSliceMixForTable(ord); });
         }
         else if (CarryingRestaurantTray && restaurantTables != null)
@@ -656,7 +656,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
                 if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
                 {
                     int idx = i;
-                    DrawFloatingStationBtn(restaurantTables[i], pfx + "Servir " + Orders[i].tableName, s, () => DeliverTableOrder(idx));
+                    DrawFloatingStationBtn(restaurantTables[i], "Servir " + Orders[i].tableName + sfx, s, () => DeliverTableOrder(idx));
                     break;
                 }
             }
@@ -668,11 +668,12 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         if (target == null) return;
         Rect sa = Screen.safeArea;
         float safeBottom = (Screen.height - (sa.y + sa.height)) + sa.height;
-        float w = Mathf.Clamp(78f * s + label.Length * 7.6f * s, 188f * s, Mathf.Min(320f * s, sa.width - 36f * s));
-        float h = 48f * s;
+        float w = Mathf.Clamp(78f * s + label.Length * 7.6f * s, 180f * s, Mathf.Min(300f * s, sa.width - 36f * s));
+        float h = 46f * s;
         float x = sa.xMax - w - 18f * s;
         float y = safeBottom - h - 18f * s;
-        if (GUI.Button(new Rect(x, y, w, h), label, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        // Side exploration activities use calm secondary style (vivid strawberry pink stays reserved for the active main mission!)
+        if (GUI.Button(new Rect(x, y, w, h), label, GirlPowerOrla3DUITheme.BtnSecondaryStyle))
             onClick?.Invoke();
     }
 
