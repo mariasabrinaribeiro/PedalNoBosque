@@ -298,3 +298,20 @@
 - **6. Hierarquia de letreiros e ícones flutuantes:**
   - Cada letreiro (`TextMeshPro`) fixado como filho direto sobre a placa escura fosca integrada de sua barraca na altura uniforme `y = 2.42 m` sem cortes ou sobreposições.
   - `GirlPowerOrla3DPetFriendlySystem.cs` limitado a exibir o ícone flutuante **apenas sobre o único alvo acionável mais próximo** (`<= 7.0 m`), impedindo que ícones cubram a protagonista ou poluam a cena.
+
+
+---
+
+## Etapa 21 (v32) — Pastelaria à Esquerda, Passagem Central Aberta, Mesas à Direita, Bica Pet com Água Subindo e Silhueta em Tela de Celular
+
+- **1. Câmera e Barraca Central recuada primeiro (`GirlPowerOrla3DSceneBuilder.cs`):**
+  - Câmera ajustada para `offset = (0, 11.8, -14.8)` e `pitch = 37.5°` (leitura imediata do corpo inteiro da protagonista e da área caminhável em tamanho de celular).
+  - Barraca central (*Quiosque Orla das Fadas*) recuada para o fundo da praça (`(-2.2, 0, -16.8)`) e mural de avisos deslocado para `(-12.6, 0, -3.75)`, eliminando qualquer obstáculo ou cobertura no centro da travessia.
+- **2. Pastelaria à esquerda, passagem central aberta e mesas num recuo à direita:**
+  - *Pastel & Caldo* posicionada à esquerda em `(-10.6, 0, -9.2)` (`rotY = -18°`), mantendo sua cobertura completamente fora da linha da câmera durante a travessia.
+  - As 3 mesas (`RestaurantKioskTable`) concentradas no recuo à direita (`(4.4, 0, -7.4)`, `(8.8, 0, -7.4)`, `(13.2, 0, -7.4)`), deixando passagem central aberta de mais de `6 m` entre a pastelaria e o recuo de mesas.
+- **3. Ponto de água junto à borda, perto de um banco, com água subindo e retorno imediato ao controle:**
+  - `PetWaterBowl.fbx` reforçado no Blender 5.3 (`build_orla_establishments.py`) com bica mais alta (`1.08 m`), medalhão de pata turquesa/creme de alto contraste, torneira metálica saliente e tigela mais larga (`r = 0.36 m`), instalada junto ao Banco #1 na borda da passagem (`(-5.8, 0, -3.55)`) e junto ao Banco #2 (`(13.4, 0, -3.55)`).
+  - Em `GirlPowerOrla3DPetFriendlySystem.cs` e `GirlPowerOrla3DFirstDelivery.cs`: ao se aproximar, exibe apenas uma indicação pequena (`34 px`) acima da tigela e uma **única ação no canto inferior direito (alcance do polegar)**. Ao acionar **Encher pote**, a malha `WaterBowl_Liquid` sobe visivelmente dentro da tigela ao longo de `0.78 s` com brilho turquesa enquanto a jogadora mantém controle imediato sem nenhum travamento.
+- **4. Silhueta da protagonista para câmera real em celular (`build_orla_art_direction_characters.py`):**
+  - Pernas discretamente mais longas (`+8 cm` no pivô do quadril `z = 0.49`, tubo de perna `0.37 m`) e altura levemente ampliada (`scale = 1.16` na cena), destacando a passada, o rabo de cavalo com laço turquesa e a bolsa curta mesmo de costas e entre outros moradores.

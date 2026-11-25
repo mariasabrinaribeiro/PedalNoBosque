@@ -2070,10 +2070,11 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         Rect safe = GetGuiSafeArea();
         string text = IsTouchPrimary ? actionLabel : ("[E]  " + actionLabel);
-        float w = Mathf.Clamp(86f * s + text.Length * 7.8f * s, 200f * s, Mathf.Min(340f * s, safe.width - 28f * s));
-        float h = 46f * s;
-        float x = safe.x + (safe.width - w) * 0.5f;
-        float y = safe.yMax - 60f * s;
+        float w = Mathf.Clamp(78f * s + text.Length * 7.6f * s, 188f * s, Mathf.Min(310f * s, safe.width - 36f * s));
+        float h = 48f * s;
+        // Bottom-right thumb zone: keeps the protagonist's feet & center walkway 100% clear while staying directly under the right thumb!
+        float x = safe.xMax - w - 18f * s;
+        float y = safe.yMax - h - 18f * s;
 
         Rect pill = new Rect(x, y, w, h);
         bottomPanelHudRect = pill;

@@ -56,6 +56,9 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
     {
         public WaterBowlEntry cfg;
         public float level = 1.0f; // 1 = Cheio, 0.5 = Metade, 0 = Vazio!
+        public float visualLevel = 1.0f; // Smooth animated fill level so the player watches water rise inside the bowl!
+        public float fillAnimTimer;
+        public Vector3 liquidBaseLocalPos;
         public Renderer liqRenderer;
         public float emptyAlertCooldown;
         public float fairyRefillTimer;
@@ -117,10 +120,14 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                 WaterBowlEntry w = waterBowls[i];
                 if (w.bowlRoot == null) continue;
                 Transform liq = w.liquidMesh != null ? w.liquidMesh : FindChildRec(w.bowlRoot, "WaterBowl_Liquid");
+                float startLvl = (i == 0) ? 0.32f : 0.88f; // Border station beside Bench #1 starts low so player sees & tests refill right away!
                 bowls.Add(new BowlRuntime
                 {
                     cfg = w,
-                    level = (i == 1) ? 0.45f : 0.92f, // Start with one bowl already half-full so mechanic is immediately visible!
+                    level = startLvl,
+                    visualLevel = startLvl,
+                    fillAnimTimer = 0f,
+                    liquidBaseLocalPos = liq != null ? liq.localPosition : new Vector3(0f, 0.225f, -0.05f),
                     liqRenderer = liq != null ? liq.GetComponent<Renderer>() : null,
                     emptyAlertCooldown = 0f,
                     fairyRefillTimer = 18f + i * 7f
@@ -266,16 +273,35 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
             // Gradual drinking/evaporation along the sunny beach promenade (~65 seconds from full to empty)
             b.level = Mathf.Max(0f, b.level - dt * (0.012f + (i % 2) * 0.004f));
 
-            // Update visual water level & color (Full=Turquoise, Half=Amber, Empty=Red pulse!)
+            // Smooth visible rising-water animation upon refill (zero control lock — player walks freely right away!)
+            if (b.fillAnimTimer > 0f)
+            {
+                b.fillAnimTimer = Mathf.Max(0f, b.fillAnimTimer - dt);
+                b.visualLevel = Mathf.MoveTowards(b.visualLevel, b.level, dt * 1.45f);
+            }
+            else
+            {
+                b.visualLevel = Mathf.Lerp(b.visualLevel, b.level, 1f - Mathf.Exp(-6f * dt));
+            }
+
+            // Update visual water height inside the bowl & color (Full=Turquoise, Half=Amber, Empty=Red pulse!)
             if (b.liqRenderer != null)
             {
                 Transform lt = b.liqRenderer.transform;
-                lt.localScale = new Vector3(1f, Mathf.Lerp(0.18f, 1.0f, b.level), 1f);
-                Color col = b.level > 0.55f
-                    ? new Color(0.24f, 0.84f, 0.88f, 1f)
-                    : (b.level > 0.12f
-                        ? new Color(0.95f, 0.72f, 0.24f, 1f)
-                        : Color.Lerp(new Color(0.88f, 0.22f, 0.26f, 1f), new Color(1f, 0.55f, 0.55f, 1f), 0.5f + 0.5f * Mathf.Sin(t * 7f)));
+                float vis = Mathf.Clamp01(b.visualLevel);
+                float splashPulse = b.fillAnimTimer > 0f ? (1f + Mathf.Sin(t * 24f) * 0.04f) : 1f;
+                lt.localScale = new Vector3(splashPulse * Mathf.Lerp(0.84f, 1.0f, vis), Mathf.Lerp(0.28f, 1.05f, vis), splashPulse * Mathf.Lerp(0.84f, 1.0f, vis));
+                float lowY = Mathf.Max(0.06f, b.liquidBaseLocalPos.y - 0.14f);
+                float fullY = b.liquidBaseLocalPos.y + 0.01f;
+                lt.localPosition = new Vector3(b.liquidBaseLocalPos.x, Mathf.Lerp(lowY, fullY, vis), b.liquidBaseLocalPos.z);
+
+                Color col = b.fillAnimTimer > 0f
+                    ? Color.Lerp(new Color(0.22f, 0.88f, 0.94f, 1f), new Color(0.68f, 0.98f, 1.0f, 1f), 0.5f + 0.5f * Mathf.Sin(t * 20f))
+                    : (vis > 0.55f
+                        ? new Color(0.24f, 0.84f, 0.88f, 1f)
+                        : (vis > 0.15f
+                            ? new Color(0.95f, 0.72f, 0.24f, 1f)
+                            : Color.Lerp(new Color(0.88f, 0.22f, 0.26f, 1f), new Color(1f, 0.55f, 0.55f, 1f), 0.5f + 0.5f * Mathf.Sin(t * 7f))));
                 b.liqRenderer.GetPropertyBlock(bowlMpb);
                 bowlMpb.SetColor("_Color", col);
                 b.liqRenderer.SetPropertyBlock(bowlMpb);
@@ -321,13 +347,15 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
     {
         if (index < 0 || index >= bowls.Count) return;
         BowlRuntime b = bowls[index];
+        b.visualLevel = Mathf.Min(b.visualLevel, b.level);
         b.level = 1.0f;
+        b.fillAnimTimer = 0.78f; // Smoothly lifts water inside the bowl while control remains 100% immediate!
         b.emptyAlertCooldown = 4f;
         PetReputation = Mathf.Min(100, PetReputation + (byFairy ? 3 : 5));
         if (audioController != null) audioController.PlayChime();
-        GirlPowerOrla3DJuice.PopScale(b.cfg.bowlRoot, 1.24f, 0.30f);
-        string msg = byFairy ? "✨ Fada reabasteceu o pote! (+3 Rep)" : "💧 Pote cheio! (+5 Reputação)";
-        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(b.cfg.bowlRoot.position + Vector3.up * 0.5f, msg, new Color(0.45f, 0.94f, 0.96f), 1.8f);
+        GirlPowerOrla3DJuice.PopScale(b.cfg.bowlRoot, 1.16f, 0.26f);
+        string msg = byFairy ? "✨ Fada encheu o pote! (+3 Rep)" : "💧 Pote cheio! (+5 Rep)";
+        GirlPowerOrla3DUITheme.SpawnFloatingFeedback(b.cfg.bowlRoot.position + Vector3.up * 1.05f, msg, new Color(0.45f, 0.94f, 0.96f), 1.5f);
     }
 
     // ------------------------------------------------------------------
@@ -644,21 +672,21 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
 
         bool focusIsBowl = nearestBowlIdx >= 0 && (nearestGuest == null || nearestBowlDist <= nearestGuestDist);
 
-        // 1. Anchored world-space icon strictly above the single nearest actionable target!
+        // 1. Small, understated anchored indicator right above the single nearest actionable target upon approaching!
         if (focusIsBowl)
         {
             Transform bowlT = bowls[nearestBowlIdx].cfg.bowlRoot;
-            Vector3 sp = sceneCamera.WorldToScreenPoint(bowlT.position + Vector3.up * 1.18f);
-            if (sp.z > 0.2f && sp.z < 26f)
+            Vector3 sp = sceneCamera.WorldToScreenPoint(bowlT.position + Vector3.up * 1.26f);
+            if (sp.z > 0.2f && sp.z < 24f)
             {
-                float pulse = 1.0f + Mathf.Sin(Time.time * 5.2f) * 0.08f;
-                float floatY = Mathf.Sin(Time.time * 2.8f) * 3.0f * s;
-                float sz = 44f * s * pulse;
+                float pulse = 1.0f + Mathf.Sin(Time.time * 4.5f) * 0.06f;
+                float floatY = Mathf.Sin(Time.time * 2.6f) * 2.2f * s;
+                float sz = 34f * s * pulse;
                 Rect badge = new Rect(sp.x - sz * 0.5f, (Screen.height - sp.y) - sz + floatY, sz, sz);
                 if (GUI.Button(badge, GUIContent.none, GUIStyle.none))
                     QuickRefillBowl(nearestBowlIdx);
                 GUI.DrawTexture(badge, GirlPowerOrla3DUITheme.CircleGlassTex);
-                float ip = 7f * s * pulse;
+                float ip = 5.5f * s * pulse;
                 GUI.DrawTexture(new Rect(badge.x + ip, badge.y + ip, sz - ip * 2f, sz - ip * 2f), GirlPowerOrla3DUITheme.IconWaterDrop);
             }
         }
@@ -758,9 +786,10 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         Rect sa = Screen.safeArea;
         float safeTop = Screen.height - (sa.y + sa.height);
         float safeBottom = safeTop + sa.height;
-        float w = Mathf.Clamp(86f * s + text.Length * 7.8f * s, 200f * s, Mathf.Min(340f * s, sa.width - 28f * s));
-        float h = 46f * s;
-        Rect pill = new Rect(sa.x + (sa.width - w) * 0.5f, safeBottom - 60f * s, w, h);
+        float w = Mathf.Clamp(78f * s + text.Length * 7.6f * s, 184f * s, Mathf.Min(300f * s, sa.width - 36f * s));
+        float h = 48f * s;
+        // Single thumb-reachable action pill in bottom-right safe area (never covers center walkway or protagonist's feet!)
+        Rect pill = new Rect(sa.xMax - w - 18f * s, safeBottom - h - 18f * s, w, h);
         if (GUI.Button(pill, text, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             onClick?.Invoke();
     }
