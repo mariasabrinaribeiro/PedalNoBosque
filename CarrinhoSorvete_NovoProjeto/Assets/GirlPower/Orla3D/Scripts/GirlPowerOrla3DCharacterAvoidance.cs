@@ -17,6 +17,8 @@ public sealed class GirlPowerOrla3DCharacterAvoidance : MonoBehaviour
     [Header("Avoidance Tuning")]
     public float characterRadius = 0.45f;
     public float separationStrength = 6.5f;
+    [Tooltip("Leave disabled when character controllers already own movement; prevents a second script from writing transforms.")]
+    public bool applyTransformSeparation;
 
     private readonly List<Transform> allActors = new List<Transform>(32);
 
@@ -52,7 +54,7 @@ public sealed class GirlPowerOrla3DCharacterAvoidance : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (Time.timeScale <= 0.01f || allActors.Count == 0) return;
+        if (!applyTransformSeparation || Time.timeScale <= 0.01f || allActors.Count == 0) return;
         float dt = Time.deltaTime;
         float minPairDist = characterRadius * 2.0f; // 0.90m clean personal bubble!
         float minPairDistSq = minPairDist * minPairDist;
@@ -93,48 +95,34 @@ public sealed class GirlPowerOrla3DCharacterAvoidance : MonoBehaviour
             }
         }
 
-        // 2. Push strolling NPCs gently out of bushes, planters, benches, lamps & stalls!
+        // 2. Gentle OBB safety cushion only if a character clips deep inside a static obstacle
+        //    (primary obstacle avoidance is owned cleanly by GirlPowerOrla3DPathfinder A* routes!)
         if (blockingObstacles == null || blockingObstacles.Length == 0) return;
-        float npcRad = characterRadius * 0.82f;
+        float npcRad = characterRadius * 0.72f;
+        float npcRadSq = npcRad * npcRad;
         for (int i = 0; i < allActors.Count; i++)
         {
             Transform actor = allActors[i];
             if (actor == null || actor == player || !actor.gameObject.activeInHierarchy) continue;
-            if (actor.position.y > 0.45f) continue; // Fairies fly above ground obstacles
+            if (actor.position.y > 0.45f) continue;
 
             Vector3 pos = actor.position;
+            Vector3 probe = new Vector3(pos.x, 0.5f, pos.z);
             for (int k = 0; k < blockingObstacles.Length; k++)
             {
                 BoxCollider box = blockingObstacles[k];
                 if (box == null || !box.enabled || box.isTrigger || !box.gameObject.activeInHierarchy) continue;
-                Bounds b = box.bounds;
-                if (b.max.y < 0.08f) continue;
-
-                float cx = Mathf.Clamp(pos.x, b.min.x, b.max.x);
-                float cz = Mathf.Clamp(pos.z, b.min.z, b.max.z);
-                float dx = pos.x - cx;
-                float dz = pos.z - cz;
-                float dSq = dx * dx + dz * dz;
-                if (dSq < npcRad * npcRad)
+                float dSq = GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ(probe, box);
+                if (dSq < npcRadSq)
                 {
-                    float d = Mathf.Sqrt(dSq);
-                    Vector2 pushDir;
-                    if (d > 0.0005f)
-                    {
-                        pushDir = new Vector2(dx / d, dz / d);
-                    }
-                    else
-                    {
-                        // Inside bounds -> push toward nearest horizontal edge
-                        float outX = (pos.x < b.center.x) ? -1f : 1f;
-                        float outZ = (pos.z < b.center.z) ? -1f : 1f;
-                        pushDir = (Mathf.Abs(pos.x - b.center.x) / Mathf.Max(0.1f, b.extents.x) > Mathf.Abs(pos.z - b.center.z) / Mathf.Max(0.1f, b.extents.z))
-                            ? new Vector2(outX, 0f)
-                            : new Vector2(0f, outZ);
-                    }
-                    float pen = (npcRad - d) + 0.03f;
+                    Vector3 center = box.transform.TransformPoint(box.center);
+                    Vector2 outVec = new Vector2(pos.x - center.x, pos.z - center.z);
+                    Vector2 pushDir = outVec.sqrMagnitude > 0.0001f ? outVec.normalized : Vector2.right;
+                    float pen = (npcRad - Mathf.Sqrt(dSq)) + 0.02f;
                     pos.x += pushDir.x * pen;
                     pos.z += pushDir.y * pen;
+                    probe.x = pos.x;
+                    probe.z = pos.z;
                 }
             }
             actor.position = pos;
@@ -143,19 +131,6 @@ public sealed class GirlPowerOrla3DCharacterAvoidance : MonoBehaviour
 
     private bool HitsAnyObstacle(Vector3 p, float rad)
     {
-        if (blockingObstacles == null) return false;
-        float rSq = rad * rad;
-        for (int i = 0; i < blockingObstacles.Length; i++)
-        {
-            BoxCollider box = blockingObstacles[i];
-            if (box == null || !box.enabled || box.isTrigger || !box.gameObject.activeInHierarchy) continue;
-            Bounds b = box.bounds;
-            float cx = Mathf.Clamp(p.x, b.min.x, b.max.x);
-            float cz = Mathf.Clamp(p.z, b.min.z, b.max.z);
-            float dx = p.x - cx;
-            float dz = p.z - cz;
-            if (dx * dx + dz * dz < rSq) return true;
-        }
-        return false;
+        return GirlPowerOrla3DPathfinder.IsPointBlockedOBB(new Vector3(p.x, 0.5f, p.z), blockingObstacles, rad * rad);
     }
 }

@@ -37,6 +37,11 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         public float speed;
         public float baseY;
         public float gaitPhase;
+        public float faceSign;
+        public Vector3 prevWorldPos;
+        public Quaternion lastValidRot;
+        public List<Vector3> subPath;
+        public int subIdx;
     }
 
     private sealed class FairyAgent
@@ -52,6 +57,9 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         public bool hasDispatchOrder;
         public Vector3 dispatchPos;
         public Action onDispatchArrive;
+        public float faceSign;
+        public Vector3 prevWorldPos;
+        public Quaternion lastValidRot;
     }
 
     private sealed class SparkleDust
@@ -127,20 +135,23 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
     private void InitWaypointWalkers()
     {
         if (strollingNpcs == null) return;
+        // All villager stops sit strictly at the SIDES of the 5m promenade & beside lateral plaza counters
+        // (never parking in the middle of the main Cart -> Florist corridor!)
         Vector3[][] routes =
         {
-            new[] { new Vector3(-9.5f, 0f, -1.6f), new Vector3(-2.5f, 0f, -1.5f), new Vector3(4.5f, 0f, -1.9f), new Vector3(-5.5f, 0f, -2.4f) },
-            new[] { new Vector3(9.5f, 0f, -1.6f), new Vector3(16.8f, 0f, -1.5f), new Vector3(22.5f, 0f, -1.8f), new Vector3(13.2f, 0f, -2.3f) },
-            new[] { new Vector3(-13.5f, 0f, 3.9f), new Vector3(-7.0f, 0f, 4.6f), new Vector3(-1.0f, 0f, 3.8f), new Vector3(-8.5f, 0f, 3.4f) },
-            new[] { new Vector3(-4.5f, 0f, 4.2f), new Vector3(0.5f, 0f, 3.7f), new Vector3(3.8f, 0f, 4.6f), new Vector3(-1.5f, 0f, 5.0f) },
-            new[] { new Vector3(4.4f, 0f, 4.2f), new Vector3(8.4f, 0f, 3.7f), new Vector3(12.0f, 0f, 4.5f), new Vector3(7.5f, 0f, 5.1f) },
-            new[] { new Vector3(27.8f, 0f, 4.2f), new Vector3(29.0f, 0f, 3.7f), new Vector3(32.0f, 0f, 4.5f), new Vector3(30.0f, 0f, 5.0f) }
+            new[] { new Vector3(-8.5f, 0f, -2.5f), new Vector3(-2.5f, 0f, -2.6f), new Vector3(4.2f, 0f, -2.5f), new Vector3(-4.5f, 0f, -5.2f) },
+            new[] { new Vector3(10.5f, 0f, -2.5f), new Vector3(16.5f, 0f, -2.5f), new Vector3(21.5f, 0f, -2.6f), new Vector3(13.5f, 0f, -5.4f) },
+            new[] { new Vector3(-12.5f, 0f, 1.8f), new Vector3(-5.5f, 0f, 2.0f), new Vector3(2.0f, 0f, 1.9f), new Vector3(-6.5f, 0f, 5.2f) },
+            new[] { new Vector3(-3.5f, 0f, 5.2f), new Vector3(2.0f, 0f, 5.4f), new Vector3(7.5f, 0f, 5.2f), new Vector3(0.5f, 0f, 2.0f) },
+            new[] { new Vector3(7.5f, 0f, 1.8f), new Vector3(14.0f, 0f, 2.0f), new Vector3(20.0f, 0f, 1.9f), new Vector3(15.5f, 0f, 5.4f) },
+            new[] { new Vector3(27.0f, 0f, 1.8f), new Vector3(29.0f, 0f, 5.2f), new Vector3(32.0f, 0f, 5.0f), new Vector3(28.5f, 0f, -2.4f) }
         };
 
         for (int i = 0; i < strollingNpcs.Length; i++)
         {
             Transform npc = strollingNpcs[i];
             if (npc == null) continue;
+            GirlPowerOrla3DCharacterFacing.DisableRootMotion(npc);
             walkers.Add(new WaypointWalker
             {
                 tr = npc,
@@ -151,8 +162,13 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 route = routes[i % routes.Length],
                 wpIdx = 0,
                 waitTimer = 1.5f + i * 1.2f,
-                speed = 1.1f + (i % 3) * 0.12f,
-                baseY = npc.position.y
+                speed = 1.15f + (i % 3) * 0.12f,
+                baseY = npc.position.y,
+                faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(npc, -1f),
+                prevWorldPos = npc.position,
+                lastValidRot = npc.rotation,
+                subPath = new List<Vector3>(16),
+                subIdx = 0
             });
             WaypointWalker walker = walkers[walkers.Count - 1];
             if (walker.legL != null) walker.legLBase = walker.legL.localRotation;
@@ -190,6 +206,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         {
             Transform f = fairyWaitresses[i];
             if (f == null) continue;
+            GirlPowerOrla3DCharacterFacing.DisableRootMotion(f);
             fairies.Add(new FairyAgent
             {
                 root = f,
@@ -198,7 +215,10 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 stops = fairyRoutes[i % fairyRoutes.Length],
                 stopIdx = 0,
                 serveWait = 1.0f + i * 0.8f,
-                phase = i * 2.1f
+                phase = i * 2.1f,
+                faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(f, -1f),
+                prevWorldPos = f.position,
+                lastValidRot = f.rotation
             });
         }
     }
@@ -242,8 +262,12 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 if (dPlayer < 2.8f)
                 {
                     Vector3 look = new Vector3(player.position.x - w.tr.position.x, 0f, player.position.z - w.tr.position.z);
-                    if (look.sqrMagnitude > 0.01f)
-                        w.tr.rotation = Quaternion.Slerp(w.tr.rotation, Quaternion.LookRotation(-look.normalized, Vector3.up), dt * 6f);
+                    if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(look, w.faceSign, 0.04f, out Quaternion greetRot))
+                    {
+                        w.lastValidRot = greetRot;
+                        w.tr.rotation = Quaternion.Slerp(w.tr.rotation, greetRot, dt * 6f);
+                    }
+                    w.prevWorldPos = w.tr.position;
                     AnimateWalkerGait(w, 0f, t, dt, true);
                     continue;
                 }
@@ -252,32 +276,68 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
             if (w.waitTimer > 0f)
             {
                 w.waitTimer -= dt;
-                // Cozy browsing / chatting animation while paused at a stall or bench!
-                float browseYaw = Mathf.Sin(t * 1.4f + i * 2f) * 28f;
-                w.tr.rotation = Quaternion.Slerp(w.tr.rotation, Quaternion.Euler(0f, browseYaw, 0f), dt * 2.5f);
+                // Keep last valid facing smoothly when paused (no flipping!)
+                w.tr.rotation = Quaternion.Slerp(w.tr.rotation, w.lastValidRot, dt * 4f);
                 float breathe = Mathf.Abs(Mathf.Sin(t * 2.6f + i)) * 0.03f;
                 w.tr.position = new Vector3(w.tr.position.x, w.baseY + breathe, w.tr.position.z);
+                w.prevWorldPos = w.tr.position;
                 AnimateWalkerGait(w, 0f, t, dt, false);
                 continue;
             }
 
-            Vector3 goal = w.route[w.wpIdx];
+            // Single-owner obstacle-avoiding A* pathing for strolling villagers (never walks straight into stalls!)
+            Vector3 finalStop = w.route[w.wpIdx];
+            if (w.subPath.Count == 0 || w.subIdx >= w.subPath.Count)
+            {
+                if (GirlPowerOrla3DPathfinder.Instance != null)
+                    GirlPowerOrla3DPathfinder.Instance.FindPath(w.tr.position, finalStop, w.subPath, 0.45f);
+                if (w.subPath.Count == 0) w.subPath.Add(finalStop);
+                w.subIdx = 0;
+            }
+
+            Vector3 goal = w.subPath[w.subIdx];
             Vector2 delta = new Vector2(goal.x - w.tr.position.x, goal.z - w.tr.position.z);
             float dist = delta.magnitude;
-            if (dist < 0.35f)
+            if (dist < 0.45f)
             {
-                w.wpIdx = (w.wpIdx + 1) % w.route.Length;
-                w.waitTimer = 4.5f + (i % 3) * 0.8f; // Pause ~5 seconds browsing!
+                w.subIdx++;
+                if (w.subIdx >= w.subPath.Count)
+                {
+                    w.subPath.Clear();
+                    w.subIdx = 0;
+                    w.wpIdx = (w.wpIdx + 1) % w.route.Length;
+                    w.waitTimer = 4.5f + (i % 3) * 0.8f; // Pause ~5s at side counter/bench!
+                }
+                w.prevWorldPos = w.tr.position;
                 continue;
             }
 
             Vector2 dir = delta / dist;
+            // Polite lateral yield when crossing paths with the Protagonist so neither ever gets stuck!
+            if (player != null)
+            {
+                Vector2 fromPlayer = new Vector2(w.tr.position.x - player.position.x, w.tr.position.z - player.position.z);
+                float pDist = fromPlayer.magnitude;
+                if (pDist < 1.35f && pDist > 0.01f)
+                {
+                    dir = (dir + (fromPlayer / pDist) * Mathf.Clamp01((1.35f - pDist) / 0.85f) * 0.85f).normalized;
+                }
+            }
+
             float step = Mathf.Min(dist, w.speed * dt);
-            w.tr.position = new Vector3(w.tr.position.x + dir.x * step, w.baseY, w.tr.position.z + dir.y * step);
-            w.gaitPhase += step * (Mathf.PI * 2f / 1.45f);
-            AnimateWalkerGait(w, step / Mathf.Max(dt, 0.0001f), t, dt, false);
-            Quaternion face = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up);
-            w.tr.rotation = Quaternion.Slerp(w.tr.rotation, face, dt * 6.5f);
+            Vector3 nextPos = new Vector3(w.tr.position.x + dir.x * step, w.baseY, w.tr.position.z + dir.y * step);
+            w.tr.position = nextPos;
+
+            // Orient villager strictly by REAL frame-to-frame planar displacement (including curves!)
+            Vector3 realMove = new Vector3(nextPos.x - w.prevWorldPos.x, 0f, nextPos.z - w.prevWorldPos.z);
+            float realSpeed = dt > 0.0001f ? (realMove.magnitude / dt) : 0f;
+            w.prevWorldPos = nextPos;
+
+            w.gaitPhase += realMove.magnitude * (Mathf.PI * 2f / 1.48f);
+            AnimateWalkerGait(w, realSpeed, t, dt, false);
+            if (realSpeed > 0.25f && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, w.faceSign, 0.00001f, out Quaternion face))
+                w.lastValidRot = face;
+            w.tr.rotation = Quaternion.Slerp(w.tr.rotation, w.lastValidRot, dt * 7.5f);
         }
     }
 
@@ -367,9 +427,13 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                     float spd = 5.2f;
                     float step = Mathf.Min(dist, spd * dt);
                     float nextY = Mathf.Lerp(cur.y, target.y + hover, dt * 6f);
-                    f.root.position = new Vector3(cur.x + dir.x * step, nextY, cur.z + dir.y * step);
-                    Quaternion look = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up);
-                    f.root.rotation = Quaternion.Slerp(f.root.rotation, look * Quaternion.Euler(-12f, 0f, Mathf.Sin(t * 4.5f) * 6f), dt * 8f);
+                    Vector3 nextPos = new Vector3(cur.x + dir.x * step, nextY, cur.z + dir.y * step);
+                    f.root.position = nextPos;
+                    Vector3 realMove = new Vector3(nextPos.x - f.prevWorldPos.x, 0f, nextPos.z - f.prevWorldPos.z);
+                    f.prevWorldPos = nextPos;
+                    if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, f.faceSign, 0.0001f, out Quaternion look))
+                        f.lastValidRot = look;
+                    f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(-12f, 0f, Mathf.Sin(t * 4.5f) * 6f), dt * 8f);
                 }
             }
             else if (f.serveWait > 0f)
@@ -377,6 +441,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 f.serveWait -= dt;
                 Vector3 stop = f.stops[f.stopIdx];
                 f.root.position = Vector3.Lerp(cur, new Vector3(stop.x, stop.y + hover, stop.z), dt * 3.5f);
+                f.prevWorldPos = f.root.position;
                 // Gentle graceful serve spin/bob
                 f.root.Rotate(0f, Mathf.Sin(t * 2.2f + f.phase) * 24f * dt, 0f, Space.World);
             }
@@ -389,6 +454,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 {
                     f.serveWait = 3.2f; // Pause gracefully to serve a table or pick up drinks!
                     f.stopIdx = (f.stopIdx + 1) % f.stops.Length;
+                    f.prevWorldPos = f.root.position;
                 }
                 else
                 {
@@ -396,9 +462,13 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                     float spd = 2.65f;
                     float step = Mathf.Min(dist, spd * dt);
                     float nextY = Mathf.Lerp(cur.y, target.y + hover, dt * 4.5f);
-                    f.root.position = new Vector3(cur.x + dir.x * step, nextY, cur.z + dir.y * step);
-                    Quaternion look = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up);
-                    f.root.rotation = Quaternion.Slerp(f.root.rotation, look * Quaternion.Euler(-8f, 0f, Mathf.Sin(t * 3f) * 5f), dt * 6f);
+                    Vector3 nextPos = new Vector3(cur.x + dir.x * step, nextY, cur.z + dir.y * step);
+                    f.root.position = nextPos;
+                    Vector3 realMove = new Vector3(nextPos.x - f.prevWorldPos.x, 0f, nextPos.z - f.prevWorldPos.z);
+                    f.prevWorldPos = nextPos;
+                    if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, f.faceSign, 0.0001f, out Quaternion look))
+                        f.lastValidRot = look;
+                    f.root.rotation = Quaternion.Slerp(f.root.rotation, f.lastValidRot * Quaternion.Euler(-8f, 0f, Mathf.Sin(t * 3f) * 5f), dt * 6f);
                 }
             }
 

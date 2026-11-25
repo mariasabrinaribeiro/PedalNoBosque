@@ -67,6 +67,8 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private Quaternion baseLegBLRot = Quaternion.identity;
     private Quaternion baseLegBRRot = Quaternion.identity;
     private Vector3 prevFramePos;
+    private float petFaceSign = -1f;
+    private Quaternion lastValidRot = Quaternion.identity;
 
     private static readonly Vector3[] HiddenSpots =
     {
@@ -80,6 +82,9 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
 
     private void Start()
     {
+        GirlPowerOrla3DCharacterFacing.DisableRootMotion(transform);
+        petFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(transform, -1f);
+        lastValidRot = transform.rotation;
         homePos = transform.position;
         if (bandanaProp != null)
         {
@@ -277,16 +282,18 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
                 hopClock += dt * 16f;
                 float baseY = SampleCompanionGroundY(nx, nz);
                 transform.position = new Vector3(nx, baseY + Mathf.Abs(Mathf.Sin(hopClock)) * 0.20f, nz);
-                Quaternion lookRot = Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y).normalized, Vector3.up);
-                transform.rotation = Quaternion.Slerp(transform.rotation, lookRot, dt * 12f);
+                if (GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(new Vector3(dir.x, 0f, dir.y), petFaceSign, 0.001f, out Quaternion lookRot))
+                    lastValidRot = lookRot;
+                transform.rotation = Quaternion.Slerp(transform.rotation, lastValidRot, dt * 12f);
             }
             else
             {
                 Vector3 toThief = detectiveSuspect.position - curPos;
                 toThief.y = 0f;
-                Quaternion faceThief = toThief.sqrMagnitude > 0.01f
-                    ? Quaternion.LookRotation(-toThief.normalized, Vector3.up)
-                    : transform.rotation;
+                Quaternion faceThief = GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(toThief, petFaceSign, 0.01f, out Quaternion tRot)
+                    ? tRot
+                    : lastValidRot;
+                lastValidRot = faceThief;
                 float baseY = SampleCompanionGroundY(curPos.x, curPos.z);
 
                 switch (CurrentDetectiveSignal)
@@ -404,30 +411,31 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
             float baseY = SampleCompanionGroundY(nx, nz);
             transform.position = new Vector3(nx, baseY + hop, nz);
 
-            Vector3 look = new Vector3(dir.x, 0f, dir.y);
-            if (look.sqrMagnitude > 0.01f)
+            Vector3 look = new Vector3(nx - current.x, 0f, nz - current.z);
+            if (look.magnitude / Mathf.Max(0.0001f, dt) > 0.25f
+                && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(look, petFaceSign, 0.00001f, out Quaternion targetRot))
             {
-                Quaternion targetRot = Quaternion.LookRotation(-look.normalized, Vector3.up);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 1f - Mathf.Exp(-10f * dt));
+                lastValidRot = targetRot;
             }
+            transform.rotation = Quaternion.Slerp(transform.rotation, lastValidRot, 1f - Mathf.Exp(-10f * dt));
         }
         else
         {
             float baseY = SampleCompanionGroundY(current.x, current.z);
             float idle = Mathf.Abs(Mathf.Sin(t * 3.0f)) * 0.035f;
             transform.position = Vector3.Lerp(current, new Vector3(current.x, baseY + idle, current.z), dt * 10f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lastValidRot, 1f - Mathf.Exp(-8f * dt));
         }
     }
 
     private static float SampleCompanionGroundY(float x, float z)
     {
-        if (x >= 12.6f && x <= 18.6f && z >= 2.6f && z <= 10.2f)
+        if (x >= 23.2f && x <= 28.8f && z >= -11.9f && z <= -7.6f)
         {
-            if (z < 3.4f) return Mathf.Lerp(0f, 0.36f, (z - 2.6f) / 0.8f);
-            if (z <= 7.4f) return 0.36f;
-            return Mathf.Lerp(0.36f, -0.24f, Mathf.Clamp01((z - 7.4f) / 2.2f));
+            if (z > -8.3f) return Mathf.Lerp(-0.04f, 0.34f, (-7.6f - z) / 0.7f);
+            return 0.34f;
         }
-        if (z < -3.75f) return -0.08f;
+        if (z < -3.75f) return -0.05f;
         if (z <= 3.35f) return 0f;
         if (z < 4.10f) return Mathf.Sin(((z - 3.35f) / 0.75f) * Mathf.PI) * 0.48f;
         return Mathf.Lerp(-0.04f, -0.34f, Mathf.Clamp01((z - 4.10f) / 6.40f));

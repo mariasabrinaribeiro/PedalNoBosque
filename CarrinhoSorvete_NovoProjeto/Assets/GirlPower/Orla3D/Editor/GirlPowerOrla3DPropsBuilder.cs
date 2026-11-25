@@ -84,10 +84,16 @@ public static class GirlPowerOrla3DPropsBuilder
         // Note: OrlaEnvironmentBase already has StreetCurb at z=-3.55, AsphaltRoad top=-0.08 (z=-8.05..-3.55).
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Jardim_Interno",
             new Vector3(12f, 0.032f, -0.56f), new Vector3(90f, 0.06f, 0.16f), Quaternion.identity, stoneWarm, false);
-        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Oeste",
-            new Vector3(-3.2f, 0.04f, 3.42f), new Vector3(31.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+        // 4-segment boardwalk-to-sand curb leaving 3 unmistakable open beach accesses:
+        // Access #1: x = -7.2 .. -3.5 | Access #2 (Central Plaza): x = 5.5 .. 9.5 | Access #3 (Florist): x = 18.0 .. 22.0
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Oeste1",
+            new Vector3(-12.85f, 0.04f, 3.42f), new Vector3(11.3f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Centro1",
+            new Vector3(1.0f, 0.04f, 3.42f), new Vector3(9.0f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Centro2",
+            new Vector3(13.75f, 0.04f, 3.42f), new Vector3(8.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Leste",
-            new Vector3(28.5f, 0.04f, 3.42f), new Vector3(20.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+            new Vector3(30.25f, 0.04f, 3.42f), new Vector3(16.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
 
         // Widened south promenade & town terrace (+50% spacious corridor between Fair stalls & South Houses!)
         MakePrim(grp.transform, PrimitiveType.Cube, "Calcada_Sul",
@@ -539,22 +545,23 @@ public static class GirlPowerOrla3DPropsBuilder
         Material flowerPink = GetMat(mats, "AC_FlowerPink");
         Material flowerYellow = GetMat(mats, "AC_FlowerYellow");
 
+        // Restinga tufts placed cleanly OUTSIDE the 3 beach accesses (x=-7..-3.5, x=5.5..9.5, x=18..22)
+        // and behind the relocated Fair Plaza (z = -15.4f) so zero green bushes block walking or stalls!
         Vector3[] tuftCoords =
         {
-            new Vector3(-10.5f, -0.05f, 4.55f),
-            new Vector3(-7.4f, -0.06f, 4.75f),
-            new Vector3(-3.8f, -0.06f, 4.65f),
-            new Vector3(1.6f, -0.06f, 4.70f),
-            new Vector3(6.8f, -0.07f, 4.85f),
-            new Vector3(10.8f, -0.06f, 4.60f),
-            new Vector3(19.4f, -0.06f, 4.70f),
+            new Vector3(-11.2f, -0.05f, 4.65f),
+            new Vector3(-8.4f, -0.06f, 4.75f),
+            new Vector3(-1.8f, -0.06f, 4.70f),
+            new Vector3(2.4f, -0.06f, 4.75f),
+            new Vector3(11.4f, -0.06f, 4.65f),
+            new Vector3(15.6f, -0.06f, 4.70f),
             new Vector3(24.6f, -0.06f, 4.65f),
             new Vector3(29.0f, -0.07f, 4.80f),
-            new Vector3(-4.2f, -0.08f, -12.6f),
-            new Vector3(2.4f, -0.08f, -12.8f),
-            new Vector3(12.2f, -0.08f, -12.6f),
-            new Vector3(16.8f, -0.08f, -12.8f),
-            new Vector3(25.2f, -0.08f, -12.6f)
+            new Vector3(-4.2f, -0.08f, -15.4f),
+            new Vector3(2.4f, -0.08f, -15.6f),
+            new Vector3(12.2f, -0.08f, -15.4f),
+            new Vector3(16.8f, -0.08f, -15.6f),
+            new Vector3(25.2f, -0.08f, -15.4f)
         };
 
         for (int i = 0; i < tuftCoords.Length; i++)

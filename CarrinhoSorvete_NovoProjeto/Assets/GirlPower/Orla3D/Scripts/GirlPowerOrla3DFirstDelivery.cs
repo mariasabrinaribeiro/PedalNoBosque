@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -85,6 +86,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private Vector2 currentMoveVel;
     private float actualPlanarSpeed;
+    private float lastValidFacingYaw;
+    private bool hasValidFacingYaw;
     private Vector3 cameraVelRef;
     private float craftProgressTimer;
     private float craftProgressDuration;
@@ -153,6 +156,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private bool hasTapDest;
     private Vector3 tapDestWorld;
     private System.Action tapArriveCallback;
+    private List<Vector3> tapRoute = new List<Vector3>();
+    private int tapRouteIndex;
     private Vector2 cameraPanOffsetXZ;
     private Rect topLeftHudRect;
     private Rect topRightHudRect;
@@ -161,18 +166,45 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     public void SetTapDestination(Vector3 worldPos, System.Action onArrive = null)
     {
-        hasTapDest = true;
-        tapDestWorld = new Vector3(
+        Vector3 requested = new Vector3(
             Mathf.Clamp(worldPos.x, minWorldX + 0.35f, maxWorldX - 0.35f),
             0f,
             Mathf.Clamp(worldPos.z, minWorldZ + 0.35f, maxWorldZ - 0.35f));
         tapArriveCallback = onArrive;
+        tapRoute.Clear();
+        GirlPowerOrla3DPathfinder pathfinder = EnsurePathfinder();
+        if (pathfinder != null && player != null)
+            pathfinder.FindPath(player.position, requested, tapRoute, PlayerRadius + 0.06f);
+        else
+            tapRoute.Add(requested);
+        tapRouteIndex = 0;
+        hasTapDest = tapRoute.Count > 0;
+        if (hasTapDest) tapDestWorld = tapRoute[tapRoute.Count - 1];
+    }
+
+    private GirlPowerOrla3DPathfinder EnsurePathfinder()
+    {
+        if (GirlPowerOrla3DPathfinder.Instance != null) return GirlPowerOrla3DPathfinder.Instance;
+        var pf = FindObjectOfType<GirlPowerOrla3DPathfinder>();
+        if (pf == null)
+        {
+            pf = gameObject.AddComponent<GirlPowerOrla3DPathfinder>();
+            pf.blockingObstacles = blockingObstacles;
+            pf.minX = minWorldX;
+            pf.maxX = maxWorldX;
+            pf.minZ = minWorldZ;
+            pf.maxZ = maxWorldZ;
+            pf.RebuildGrid();
+        }
+        return pf;
     }
 
     public void ClearTapDestination()
     {
         hasTapDest = false;
         tapArriveCallback = null;
+        tapRoute.Clear();
+        tapRouteIndex = 0;
     }
 
     public void AddCameraPanOffset(Vector2 deltaXZ)
@@ -217,6 +249,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         touchDetected = Input.touchSupported && (Application.isMobilePlatform || SystemInfo.deviceType == DeviceType.Handheld);
         CaptureHomePositions();
+        EnsurePathfinder();
         CreateDiegeticWaypointBeacon();
         LoadProgress();
         ApplyWorldStateFromPhase(false);
@@ -294,7 +327,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 basilLeaves = 0;
                 collectedCardsMask = 0;
                 onboardingTimer = 2.35f; // Invisible Onboarding: 2s pan showing Florista Luna (!) then Cart
-                if (player != null) player.position = new Vector3(-1.25f, 0f, -1.75f);
+                if (player != null) player.position = new Vector3(-1.2f, 0f, 0.25f);
                 if (ambientController != null) ambientController.ApplyTimePreset(GirlPowerOrla3DAmbient.TimePreset.FimDeTarde);
                 break;
             case 2:
@@ -456,18 +489,39 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (joyDragging && joyVector.sqrMagnitude > 0.01f && !talking && !viewingPhoto)
             input = joyVector;
 
-        // Direct keyboard/gamepad input immediately takes priority over tap-to-move
+        // Convert manual stick/keyboard input into camera-relative ground XZ movement
+        // so Right/Up ALWAYS move in the exact direction seen on screen!
+        Vector2 worldMoveInput = Vector2.zero;
         if (input.sqrMagnitude > 0.01f)
         {
             ClearTapDestination();
             cameraPanOffsetXZ = Vector2.Lerp(cameraPanOffsetXZ, Vector2.zero, 1f - Mathf.Exp(-3.2f * Time.deltaTime));
+            Vector3 camFwd = Vector3.forward;
+            Vector3 camRight = Vector3.right;
+            if (sceneCamera != null)
+            {
+                camFwd = sceneCamera.transform.forward;
+                camFwd.y = 0f;
+                if (camFwd.sqrMagnitude > 0.001f) camFwd.Normalize(); else camFwd = Vector3.forward;
+                camRight = sceneCamera.transform.right;
+                camRight.y = 0f;
+                if (camRight.sqrMagnitude > 0.001f) camRight.Normalize(); else camRight = Vector3.right;
+            }
+            Vector3 wDir = camRight * input.x + camFwd * input.y;
+            worldMoveInput = new Vector2(wDir.x, wDir.z);
         }
         else if (hasTapDest && !talking && !viewingPhoto && !modalBlocked)
         {
-            Vector2 delta = new Vector2(tapDestWorld.x - player.position.x, tapDestWorld.z - player.position.z);
-            float dist = delta.magnitude;
-            float arriveRadius = tapArriveCallback != null ? 1.85f : 0.42f;
-            if (dist <= arriveRadius)
+            while (tapRouteIndex < tapRoute.Count)
+            {
+                bool isFinalWp = tapRouteIndex == tapRoute.Count - 1;
+                float reachSq = isFinalWp ? (0.36f * 0.36f) : (0.50f * 0.50f);
+                if (DistanceSqXZ(player.position, tapRoute[tapRouteIndex]) <= reachSq)
+                    tapRouteIndex++;
+                else
+                    break;
+            }
+            if (tapRouteIndex >= tapRoute.Count)
             {
                 System.Action cb = tapArriveCallback;
                 ClearTapDestination();
@@ -475,13 +529,17 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             }
             else
             {
-                // Gentle deceleration curve as the protagonist reaches the tapped ground circle
-                float ease = Mathf.Clamp01(dist / 1.15f);
-                input = (delta / dist) * Mathf.Max(0.35f, ease);
+                Vector3 next = tapRoute[tapRouteIndex];
+                Vector2 delta = new Vector2(next.x - player.position.x, next.z - player.position.z);
+                float dist = delta.magnitude;
+                bool isFinalWp = tapRouteIndex == tapRoute.Count - 1;
+                float ease = isFinalWp ? Mathf.Clamp01(dist / 0.85f) : 1f;
+                worldMoveInput = dist > 0.001f ? (delta / dist) * Mathf.Max(0.42f, ease) : Vector2.zero;
                 cameraPanOffsetXZ = Vector2.Lerp(cameraPanOffsetXZ, Vector2.zero, 1f - Mathf.Exp(-2.0f * Time.deltaTime));
             }
         }
 
+        input = worldMoveInput;
         if (input.sqrMagnitude > 1f) input.Normalize();
         bool running = !talking && !viewingPhoto && (
             (keys != null && (keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed))
@@ -617,17 +675,31 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         next.y = SampleGroundHeight(next.x, next.z);
         player.position = next;
-        actualPlanarSpeed = new Vector2(next.x - current.x, next.z - current.z).magnitude / dt;
+        Vector3 realDisp = new Vector3(next.x - current.x, 0f, next.z - current.z);
+        actualPlanarSpeed = realDisp.magnitude / dt;
 
         if (characterAnimator != null)
             characterAnimator.SetSurfing(next.z >= 9.6f);
 
-        Vector3 dir = new Vector3(currentMoveVel.x, 0f, currentMoveVel.y);
-        if (dir.sqrMagnitude > 0.05f && playerVisual != null)
+        // Rotate visual strictly by REAL post-collision displacement + deadzone tolerance:
+        // preserves lastValidFacingYaw whenever stopped or pressed against a wall (zero flipping / zero wall jitter!).
+        if (playerVisual != null)
         {
-            Quaternion targetRot = Quaternion.LookRotation(-dir.normalized, Vector3.up);
+            if (!hasValidFacingYaw)
+            {
+                lastValidFacingYaw = playerVisual.localEulerAngles.y;
+                hasValidFacingYaw = true;
+            }
+
+            float faceSign = characterAnimator != null ? characterAnimator.FaceForwardSign : -1f;
+            if (input.sqrMagnitude > 0.04f && actualPlanarSpeed > 0.35f
+                && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realDisp, faceSign, 0.00001f, out Quaternion targetRot))
+            {
+                lastValidFacingYaw = targetRot.eulerAngles.y;
+            }
+
             Vector3 curE = playerVisual.localEulerAngles;
-            Quaternion flatTarget = Quaternion.Euler(0f, targetRot.eulerAngles.y, 0f);
+            Quaternion flatTarget = Quaternion.Euler(0f, lastValidFacingYaw, 0f);
             Quaternion currentFlat = Quaternion.Euler(0f, curE.y, 0f);
             Quaternion slerpStep = Quaternion.Slerp(currentFlat, flatTarget, 1f - Mathf.Exp(-turnSpeed * dt));
             Quaternion nextFlat = Quaternion.RotateTowards(currentFlat, slerpStep, angularSpeedDeg * dt);
@@ -664,6 +736,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     {
         if (delta.sqrMagnitude < 0.000001f) return origin;
         Vector3 candidate = origin + delta;
+        Vector3 candProbe = new Vector3(candidate.x, 0.5f, candidate.z);
+        Vector3 origProbe = new Vector3(origin.x, 0.5f, origin.z);
+        float minSq = PlayerRadius * PlayerRadius;
 
         if (blockingObstacles != null)
         {
@@ -671,11 +746,10 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             {
                 BoxCollider box = blockingObstacles[i];
                 if (box == null || !box.enabled || box.isTrigger || !box.gameObject.activeInHierarchy) continue;
-                Bounds b = box.bounds;
-                float candDistSq = DistanceSqXZ(candidate, b);
-                if (candDistSq < PlayerRadius * PlayerRadius)
+                float candDistSq = GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ(candProbe, box);
+                if (candDistSq < minSq)
                 {
-                    float origDistSq = DistanceSqXZ(origin, b);
+                    float origDistSq = GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ(origProbe, box);
                     if (candDistSq <= origDistSq)
                         return origin;
                 }
@@ -684,12 +758,10 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         return candidate;
     }
 
-    private static float DistanceSqXZ(Vector3 p, Bounds b)
+    private static float DistanceSqXZ(Vector3 a, Vector3 b)
     {
-        float cx = Mathf.Clamp(p.x, b.min.x, b.max.x);
-        float cz = Mathf.Clamp(p.z, b.min.z, b.max.z);
-        float dx = p.x - cx;
-        float dz = p.z - cz;
+        float dx = a.x - b.x;
+        float dz = a.z - b.z;
         return dx * dx + dz * dz;
     }
 
@@ -700,15 +772,40 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         Vector3 baseOff = inWater ? new Vector3(0f, 9.8f, -15.4f) : cameraOffset;
         float targetPitch = inWater ? 34.0f : cameraPitch;
 
+        // Smart arrival framing: gently lift and center on the Cart or Florist pocket so roofs never crowd the view!
+        float arrivalLiftY = 0f;
+        Vector2 servicePullXZ = Vector2.zero;
+        if (!inWater)
+        {
+            Transform focusService = null;
+            float bestDist = 4.8f;
+            if (cart != null)
+            {
+                float d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(cart.position.x, cart.position.z));
+                if (d < bestDist) { bestDist = d; focusService = cart; }
+            }
+            if (florist != null)
+            {
+                float d = Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(florist.position.x, florist.position.z));
+                if (d < bestDist) { bestDist = d; focusService = florist; }
+            }
+            if (focusService != null)
+            {
+                float blend = Mathf.SmoothStep(0f, 1f, 1f - (bestDist / 4.8f));
+                arrivalLiftY = blend * 0.85f;
+                servicePullXZ = new Vector2(focusService.position.x - player.position.x, focusService.position.z - player.position.z) * (blend * 0.28f);
+            }
+        }
+
         Vector3 scaledOffset = baseOff * zoomFactor;
         float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.26f, -1.5f, 1.5f);
         // Slightly bias camera forward (+0.55f Z) on land so the protagonist sees more path ahead!
         float lookAheadZ = Mathf.Clamp(currentMoveVel.y * 0.18f, -0.9f, 0.9f) + (inWater ? -0.4f : 0.55f);
-        float focusX = Mathf.Clamp(player.position.x + lookAheadX + cameraPanOffsetXZ.x, minWorldX + 2.5f, maxWorldX - 2.5f);
-        float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + cameraPanOffsetXZ.y, minWorldZ + 1.2f, maxWorldZ - 2.0f);
+        float focusX = Mathf.Clamp(player.position.x + lookAheadX + servicePullXZ.x + cameraPanOffsetXZ.x, minWorldX + 2.5f, maxWorldX - 2.5f);
+        float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + servicePullXZ.y + cameraPanOffsetXZ.y, minWorldZ + 1.2f, maxWorldZ - 2.0f);
         float desiredX = focusX;
         float desiredZ = focusZ + scaledOffset.z;
-        float desiredY = player.position.y + scaledOffset.y;
+        float desiredY = player.position.y + scaledOffset.y + arrivalLiftY;
         Vector3 shake = GirlPowerOrla3DJuice.Instance != null ? GirlPowerOrla3DJuice.Instance.GetCameraShakeOffset() : Vector3.zero;
         Vector3 target = new Vector3(desiredX, desiredY, desiredZ) + shake;
         sceneCamera.transform.position = Vector3.SmoothDamp(sceneCamera.transform.position, target, ref cameraVelRef, cameraSmoothTime);

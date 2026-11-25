@@ -76,6 +76,9 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         public Transform calopWingR;
         public float walkPhase;
         public Vector3 patrolTarget;
+        public float faceSign;
+        public Vector3 prevWorldPos;
+        public Quaternion lastValidRot;
     }
 
     private readonly List<BowlRuntime> bowls = new List<BowlRuntime>();
@@ -87,6 +90,9 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
     private int orchardIdx;
     private bool camponesaCarryingToKitchen;
     private float camponesaWait;
+    private float camponesaFaceSign = -1f;
+    private Vector3 camponesaPrevPos;
+    private Quaternion camponesaLastRot = Quaternion.identity;
     private static readonly string[] OrchardCrops = { "Laranja", "Limão", "Manjericão", "Maçã" };
 
     private void Start()
@@ -118,12 +124,21 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
             }
         }
 
+        if (camponesaHarvester != null)
+        {
+            GirlPowerOrla3DCharacterFacing.DisableRootMotion(camponesaHarvester);
+            camponesaFaceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(camponesaHarvester, -1f);
+            camponesaPrevPos = camponesaHarvester.position;
+            camponesaLastRot = camponesaHarvester.rotation;
+        }
+
         if (archetypeGuests != null)
         {
             for (int i = 0; i < archetypeGuests.Length; i++)
             {
                 ArchetypeActorEntry a = archetypeGuests[i];
                 if (a.actor == null) continue;
+                GirlPowerOrla3DCharacterFacing.DisableRootMotion(a.actor);
                 var prof = GirlPowerOrla3DArchetypeConfig.GetDefaultProfile(a.kind);
                 var gr = new GuestRuntime
                 {
@@ -132,7 +147,10 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                     homePos = a.actor.position,
                     patrolTarget = a.actor.position + new Vector3((i % 2 == 0 ? 3.2f : -3.2f), 0f, 0f),
                     walkPhase = i * 1.4f,
-                    stateTimer = 2f + i * 2.5f
+                    stateTimer = 2f + i * 2.5f,
+                    faceSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(a.actor, -1f),
+                    prevWorldPos = a.actor.position,
+                    lastValidRot = a.actor.rotation
                 };
                 if (a.petCompanion != null && a.petKind == GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita)
                 {
@@ -213,8 +231,14 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
         Vector2 dir = delta / dist;
         float step = Mathf.Min(dist, 2.0f * dt);
         float hop = Mathf.Abs(Mathf.Sin(t * 7.8f)) * 0.07f;
-        camponesaHarvester.position = new Vector3(cur.x + dir.x * step, hop, cur.z + dir.y * step);
-        camponesaHarvester.rotation = Quaternion.Slerp(camponesaHarvester.rotation, Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up), dt * 6f);
+        Vector3 nextPos = new Vector3(cur.x + dir.x * step, hop, cur.z + dir.y * step);
+        camponesaHarvester.position = nextPos;
+        Vector3 realMove = new Vector3(nextPos.x - camponesaPrevPos.x, 0f, nextPos.z - camponesaPrevPos.z);
+        float realSpeed = dt > 0.0001f ? (realMove.magnitude / dt) : 0f;
+        camponesaPrevPos = nextPos;
+        if (realSpeed > 0.25f && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, camponesaFaceSign, 0.00001f, out Quaternion cRot))
+            camponesaLastRot = cRot;
+        camponesaHarvester.rotation = Quaternion.Slerp(camponesaHarvester.rotation, camponesaLastRot, dt * 7f);
     }
 
     // ------------------------------------------------------------------
@@ -383,8 +407,14 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                     float spd = (g.cfg.kind == GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Vovo) ? 1.15f : 1.75f;
                     float step = Mathf.Min(dist, spd * dt);
                     float hop = Mathf.Abs(Mathf.Sin(t * 7.0f + g.walkPhase)) * 0.06f;
-                    g.cfg.actor.position = new Vector3(cur.x + dir.x * step, g.homePos.y + hop, cur.z + dir.y * step);
-                    g.cfg.actor.rotation = Quaternion.Slerp(g.cfg.actor.rotation, Quaternion.LookRotation(-new Vector3(dir.x, 0f, dir.y), Vector3.up), dt * 6f);
+                    Vector3 nextPos = new Vector3(cur.x + dir.x * step, g.homePos.y + hop, cur.z + dir.y * step);
+                    g.cfg.actor.position = nextPos;
+                    Vector3 realMove = new Vector3(nextPos.x - g.prevWorldPos.x, 0f, nextPos.z - g.prevWorldPos.z);
+                    float realSpeed = dt > 0.0001f ? (realMove.magnitude / dt) : 0f;
+                    g.prevWorldPos = nextPos;
+                    if (realSpeed > 0.25f && GirlPowerOrla3DCharacterFacing.TryGetFaceRotation(realMove, g.faceSign, 0.00001f, out Quaternion gRot))
+                        g.lastValidRot = gRot;
+                    g.cfg.actor.rotation = Quaternion.Slerp(g.cfg.actor.rotation, g.lastValidRot, dt * 7f);
                 }
             }
 

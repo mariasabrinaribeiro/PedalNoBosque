@@ -197,3 +197,31 @@
   - **Camada 1 (10% da velocidade da câmera):** 5 ilhas tropicais estilizadas com colinas/palmeiras + 6 nuvens volumosas no horizonte (`z = 38..55`).
   - **Camada 2 (30% da velocidade da câmera):** 5 barcos e veleiros coloridos navegando continuamente no mar médio (`z = 20.5..30`) com balanço nas ondas.
   - **Camada 3 (Beira-mar):** 8 faixas de espuma das ondas animadas em loop suave avançando e recuando sobre a areia molhada.
+
+
+---
+
+### Correção de Orientação, Deslocamento Real, Root Motion & Tolerância em Paredes (`GirlPowerOrla3DCharacterFacing.cs`)
+- [x] **Detecção automática da frente real do rosto (`GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign`):** Mede em tempo de execução a posição local dos olhos (`Protag_EyeL`, `EyeL`, `P_EyeL`, `DogEyeL`, `CatEyeL`) em relação à cabeça/tronco para garantir que o rosto de **todos** os personagens (Protagonista, Moradores, Turistas, Camponesa, Fadas e Pets) aponte sempre para o sentido exato do movimento — nunca 180° invertido.
+- [x] **Conversão do movimento relativa à câmera (`GirlPowerOrla3DFirstDelivery.cs`):** Teclado e joystick agora projetam o vetor de entrada em `camRight` e `camForwardXZ` da câmera ativa, garantindo correspondência exata com a tela.
+- [x] **Fim de Root Motion conflitante e pés escorregando (`GirlPowerOrla3DCharacterAnimator.cs`):** `applyRootMotion = false` forçado em todos os `Animator`s; passada orientada exclusivamente pelo deslocamento real no chão (`stepMeters`) com amplitude zerando suavemente quando a personagem desacelera ou encosta em parede.
+- [x] **Moradores mirando o deslocamento real nas curvas (`GirlPowerOrla3DNpcAI.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`, `GirlPowerOrla3DPetCompanion.cs`):** Todos os moradores, turistas, Camponesa, fadas e pets agora rotacionam pelo vetor real `posAtual - posAnterior` do frame (em vez de mirar no destino final atrás de uma barraca/arbusto), eliminando caminhadas de costas nas curvas.
+- [x] **Tolerância contra viradas ao parar ou oscilar em paredes:** `lastValidFacingYaw` / `lastValidRot` só atualizam acima da tolerância mínima (`actualPlanarSpeed > 0.35 m/s` e `input > 0.2` para a protagonista; `> 0.25 m/s` para NPCs/pets), mantendo a última orientação válida ao parar ou encostar em paredes.
+
+---
+
+### Etapa 16 (v23) — Colisão OBB Real, Navegação A\* no Toque/Moradores & Reorganização Espacial da Orla (`LayoutEspacoso`)
+- [x] **1. Colisão Real por Caixa Orientada — OBB (`GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ`):**
+  - Substituída a colisão baseada em `BoxCollider.bounds` (AABB alinhada ao mundo que inflava quinas de peças giradas) por distância exata no espaço local de cada `BoxCollider` (`TryMoveAxis` em `GirlPowerOrla3DFirstDelivery.cs` e `GirlPowerOrla3DCharacterAvoidance.cs`), com volumes ajustados à base física de bancos, postes, caixas, placas e guarda-sóis.
+- [x] **2. Sistema Único de Movimento com Rotas A\* para Moradores (`GirlPowerOrla3DNpcAI.cs`, `GirlPowerOrla3DPathfinder.cs`, `GirlPowerOrla3DCharacterAvoidance.cs`):**
+  - Removido o conflito entre dois scripts movendo moradores (`charAvoid.applyTransformSeparation = false`): agora `GirlPowerOrla3DNpcAI` é o único dono do deslocamento, traçando rotas suavizadas por A\* com string-pulling (`GirlPowerOrla3DPathfinder`) que contornam barracas/arbustos, com parada lateral junto aos balcões e desvio lateral cortês ao cruzar com a protagonista.
+- [x] **3. Rota Caminhável A\* no Toque para Andar (`GirlPowerOrla3DFirstDelivery.cs`):**
+  - `SetTapDestination` agora calcula uma rota caminhável suavizada por A\* (`GirlPowerOrla3DPathfinder.FindPath`) contornando automaticamente barracas e obstáculos (ex.: tocar na Florista a partir do outro lado da feira), além de ajustar automaticamente destinos clicados sobre balcões para o ponto livre em frente ao atendimento.
+- [x] **4. Reorganização Espacial da Orla (`GirlPowerOrla3DSceneBuilder.cs` v23 & `GirlPowerOrla3DPropsBuilder.cs`):**
+  - **Calçadão principal:** faixa contínua livre de **`5,0 m`** (`z = -2,2 .. +2,8`, ~6 a 8 larguras da protagonista) do carrinho até a florista, sem bancos, postes nem barracas no trajeto.
+  - **Carrinho de sorvete:** posicionado em recuo próprio (`(0.4, 0, -3.45)`) com frente totalmente aberta para montar pedidos enquanto moradores passam livremente no calçadão.
+  - **Praça lateral de Feira & Gastronomia:** barracas (`z = -9.6/-12.6`), mesas (`z = -6.5`), *Batata & Mar* (`(-14.2, 0, -9.8)`) e *Café das Fadas* (`(6.2, -0.08, -12.4)`) agrupados na praça lateral com abertura visível de **`6,0 m`** (`x = 4..10`) a partir do calçadão e espaço livre diante de cada balcão.
+  - **Florista:** área dedicada junto à fachada (`(24, 0, -6.8)` e *Florista Luna* em `(24, 0, -5.25)`), com caixas e vasos movidos para a lateral (`x = 21.1`) para entregas fora do fluxo principal.
+  - **Faixa de areia:** guarda-sóis espaçados (`x = -1.2, 12.2, 24.5` em `z = 6.6`) e **3 acessos diretos abertos** no meio-fio e na restinga (`x = -7.2..-3.5`, `x = 5.5..9.5`, `x = 18.0..22.0`).
+  - **Bancos, postes e potes para pets:** recuados nas bordas (`z = -3.4..-3.75`) com colisores compactos que preservam todas as esquinas.
+  - **Telhados e câmera:** telhados de primeiro plano reduzidos com `ApplyFadeMaterials` + enquadramento inteligente na chegada ao Carrinho e à Florista (`FollowAnimalCrossingCamera`).

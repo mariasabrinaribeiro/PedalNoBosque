@@ -37,6 +37,8 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     public WaterMode CurrentWaterMode { get; private set; } = WaterMode.Surf;
     public bool IsInWater => inWater;
     public bool HasHatEquipped { get; private set; }
+    /// <summary>Auto-detected local Z sign of the protagonist's face (+1 = +Z, -1 = -Z).</summary>
+    public float FaceForwardSign { get; private set; } = -1f;
 
     private Vector3 visualBaseLocalPos;
     private float walkPhase;
@@ -48,6 +50,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private float prevYaw;
     private Vector3 prevWorldPos;
     private bool hasPrevWorldPos;
+    private float lastActualSpeed;
 
     // Articulated Blender 5.3 limb, torso & face joints (auto-discovered at Start!)
     private Transform jointTorso;
@@ -86,13 +89,16 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private void Start()
     {
         if (visualRoot == null) visualRoot = transform;
+        // Disable Root Motion on all child Animators so movement is owned strictly by the controller (zero sliding!)
+        GirlPowerOrla3DCharacterFacing.DisableRootMotion(transform);
         cachedAnimator = visualRoot.GetComponentInChildren<Animator>(true);
         cachedAgent = GetComponent<NavMeshAgent>();
         visualBaseLocalPos = visualRoot.localPosition;
         visualRoot.localRotation = Quaternion.Euler(0f, visualRoot.localEulerAngles.y, 0f);
         prevYaw = visualRoot.localEulerAngles.y;
-        SetupProps();
         CacheArticulatedJoints();
+        FaceForwardSign = GirlPowerOrla3DCharacterFacing.DetectFaceForwardSign(visualRoot, -1f);
+        SetupProps();
         SetupVfxPool();
         RefreshEquippedProps();
     }
@@ -217,18 +223,21 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
         else if (moving)
         {
-            float amp = running ? 42f : 27f;
+            // Scale stride swing smoothly by actual ground speed so feet NEVER skate or slide backward when slowing/blocked!
+            float speedScale = Mathf.Clamp01(lastActualSpeed / 1.35f);
+            float amp = (running ? 42f : 27f) * speedScale;
             float s = Mathf.Sin(walkPhase);
-            legL = s * amp;
-            legR = -s * amp;
-            armL = -s * (amp * 0.85f);
-            armR = holdingCone ? -52f : (s * (amp * 0.85f));
+            float frontSign = FaceForwardSign >= 0f ? -1f : 1f;
+            legL = s * amp * frontSign;
+            legR = -s * amp * frontSign;
+            armL = -s * (amp * 0.85f) * frontSign;
+            armR = holdingCone ? (-52f * frontSign) : (s * (amp * 0.85f) * frontSign);
             // Natural Secondary Motion: counter-rotating shoulders/torso opposite to leg swing + gentle weight shift!
-            torsoYaw = -s * (running ? 11.5f : 7.5f);
-            torsoRoll = s * (running ? 3.8f : 2.4f);
-            torsoPitch = running ? -5.5f : -2.0f;
-            headPitch = running ? -4f : -1.5f;
-            headYaw = s * (running ? 5.0f : 3.2f);
+            torsoYaw = -s * (running ? 11.5f : 7.5f) * speedScale;
+            torsoRoll = s * (running ? 3.8f : 2.4f) * speedScale;
+            torsoPitch = (running ? -5.5f : -2.0f) * frontSign * speedScale;
+            headPitch = (running ? -4f : -1.5f) * frontSign * speedScale;
+            headYaw = s * (running ? 5.0f : 3.2f) * speedScale;
         }
         else
         {
@@ -250,10 +259,11 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
 
     private void SetupProps()
     {
-        AttachProp(heldIceCreamCone, new Vector3(0.36f, 0.72f, -0.22f), Quaternion.Euler(-12f, 0f, -10f), 1.05f, holdingCone);
+        float fz = FaceForwardSign >= 0f ? 1f : -1f;
+        AttachProp(heldIceCreamCone, new Vector3(0.36f, 0.72f, 0.22f * fz), Quaternion.Euler(12f * fz, 0f, -10f), 1.05f, holdingCone);
         AttachProp(surfboardProp, new Vector3(0f, 0.02f, 0f), Quaternion.identity, 1.05f, false);
         AttachProp(skateboardProp, new Vector3(0f, 0.01f, 0f), Quaternion.identity, 0.92f, false);
-        AttachProp(scooterProp, new Vector3(0f, 0.01f, -0.08f), Quaternion.identity, 0.90f, false);
+        AttachProp(scooterProp, new Vector3(0f, 0.01f, 0.08f * fz), Quaternion.identity, 0.90f, false);
         AttachProp(rollerSkatesProp, new Vector3(0f, 0.0f, 0f), Quaternion.identity, 0.95f, false);
         AttachProp(hawaiianCanoeProp, new Vector3(0f, -0.10f, 0f), Quaternion.identity, 0.85f, false);
         AttachProp(wardrobeHatProp, new Vector3(0f, 1.38f, 0f), Quaternion.identity, 0.92f, HasHatEquipped);
@@ -458,11 +468,14 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             return;
         }
 
-        // Drive the gait from displacement, not input. This prevents fast feet while accelerating,
-        // sliding against obstacles, or releasing the joystick.
-        float referenceSpeed = running ? 6.4f : 4.0f;
-        float speed01 = Mathf.Clamp01(actualPlanarSpeed / referenceSpeed);
-        bool moving = actualPlanarSpeed > 0.12f;
+        // Drive the gait strictly from real ground displacement (zero foot sliding when blocked or slowing!).
+        lastActualSpeed = actualPlanarSpeed;
+        if (cachedAgent != null && cachedAgent.enabled && cachedAgent.isOnNavMesh && cachedAgent.velocity.sqrMagnitude > 0.01f)
+            lastActualSpeed = cachedAgent.velocity.magnitude;
+        else if (lastActualSpeed <= 0.01f && hasPrevWorldPos && dt > 0.0001f)
+            lastActualSpeed = new Vector2(worldPos.x - prevWorldPos.x, worldPos.z - prevWorldPos.z).magnitude / dt;
+
+        bool moving = lastActualSpeed > 0.22f;
         UpdateArticulatedLimbs(moving, running, false, dt, t);
 
         if (inWater)
@@ -525,11 +538,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
 
         // Ground-speed synchronized walk/run cycle (eliminates foot sliding!) + vertical bobbing & forward sprint lean!
-        float actualSpeed = actualPlanarSpeed;
-        if (cachedAgent != null && cachedAgent.enabled && cachedAgent.isOnNavMesh && cachedAgent.velocity.sqrMagnitude > 0.01f)
-            actualSpeed = cachedAgent.velocity.magnitude;
-        else if (actualSpeed <= 0.01f && hasPrevWorldPos && dt > 0.0001f)
-            actualSpeed = new Vector2(worldPos.x - prevWorldPos.x, worldPos.z - prevWorldPos.z).magnitude / dt;
+        float actualSpeed = lastActualSpeed;
         prevWorldPos = worldPos;
         hasPrevWorldPos = true;
 
@@ -538,16 +547,17 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         if (cachedAnimator != null)
             cachedAnimator.speed = moving ? Mathf.Clamp(walkSpeedRatio, 0.35f, 2.25f) : 1.0f;
 
-        if (moving && actualSpeed > 0.12f)
+        if (moving && actualSpeed > 0.22f)
         {
             // Sync footstep cadence strictly to real ground displacement (exact stride match, zero foot sliding!)
-            float syncRate = Mathf.Clamp(walkSpeedRatio * walkStepRate, 3.6f, 18.0f);
-            walkPhase += dt * syncRate;
+            float stepMeters = actualSpeed * dt;
+            walkPhase += stepMeters * (Mathf.PI * 2f / 1.48f);
             float s = Mathf.Sin(walkPhase);
             float cadenceWeight = Mathf.Clamp01(actualSpeed / 3.2f);
             float hop = Mathf.Abs(s) * (running ? 0.135f : 0.085f) * cadenceWeight;
             float waddle = s * (running ? 4.2f : 2.6f) * cadenceWeight + turnTilt * 0.40f;
-            float forwardLean = running ? -9.0f : -3.2f;
+            float frontSign = FaceForwardSign >= 0f ? -1f : 1f;
+            float forwardLean = (running ? -9.0f : -3.2f) * frontSign;
 
             float poseBlend = 1f - Mathf.Exp(-15f * dt);
             Vector3 walkPose = visualBaseLocalPos + new Vector3(0f, hop, 0f);
