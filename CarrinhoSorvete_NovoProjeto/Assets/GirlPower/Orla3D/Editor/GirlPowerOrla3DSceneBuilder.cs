@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v33_ZeroArtefatos_CameraHeroi_HUDLimpo";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v34_AguaExplicita_Quadra_Servico_IA";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -77,6 +77,19 @@ public static class GirlPowerOrla3DSceneBuilder
             if (r != null) Debug.Log("[Orla3D] OrlaEnvironmentBase Bounds: " + r.bounds);
         }
         Transform oceanSurface = CreateAnimatedOcean(root.transform, oceanMat);
+        // Explicit Water Zone aligned strictly to the visible ocean mesh shoreline (moves automatically with Low/High Tide!)
+        BoxCollider waterSurfZone = null;
+        if (oceanSurface != null)
+        {
+            GameObject waterZoneObj = new GameObject("Zona_Agua_Mar_Surf");
+            waterZoneObj.transform.SetParent(oceanSurface, false);
+            waterZoneObj.transform.localPosition = Vector3.zero;
+            waterSurfZone = waterZoneObj.AddComponent<BoxCollider>();
+            waterSurfZone.isTrigger = true;
+            // Ocean mesh spans local Z -16..+16; start water zone 0.9m past shoreline feather (-15.1 -> +16.0) so dry sand never triggers surf!
+            waterSurfZone.center = new Vector3(0f, 0.5f, 0.45f);
+            waterSurfZone.size = new Vector3(110f, 4.0f, 31.1f);
+        }
 
         // 4. Barraca Central (Quiosque Orla das Fadas) recuada para o fundo da praça (z = -16.8 -> passagem central 100% livre!)
         List<BoxCollider> obstacles = new List<BoxCollider>();
@@ -275,6 +288,16 @@ public static class GirlPowerOrla3DSceneBuilder
 
         GameObject fishingPier = PlaceModel(root.transform, "FishingPierDock", "Pier de Pesca da Baia", new Vector3(31.0f, -0.20f, 8.8f), 0f, 1f, cozyMats);
         GameObject beachTennis = PlaceModel(root.transform, "BeachTennisCourt", "Quadra de Beach Tennis", new Vector3(3.2f, -0.14f, 7.6f), 0f, 1f, cozyMats);
+        Transform beachTennisEntrance = null;
+        if (beachTennis != null)
+        {
+            // Solid net/posts blocker across the middle of the court while leaving BOTH lateral accesses wide open!
+            AddBlockingBox(beachTennis, new Vector3(0f, 1.0f, 0f), new Vector3(3.6f, 2.0f, 0.28f), obstacles);
+            GameObject btEnt = new GameObject("Entrada_Lateral_BeachTennis");
+            btEnt.transform.SetParent(beachTennis.transform, false);
+            btEnt.transform.localPosition = new Vector3(-2.45f, 0f, -0.35f);
+            beachTennisEntrance = btEnt.transform;
+        }
         GameObject campingZone = PlaceModel(root.transform, "CampingTent", "Acampamento Familiar da Praia", new Vector3(34.5f, -0.14f, 6.2f), 168f, 1f, cozyMats);
         if (campingZone != null) AddBlockingBox(campingZone, new Vector3(0f, 0.8f, 0f), new Vector3(2.3f, 1.6f, 2.3f), obstacles);
 
@@ -429,8 +452,10 @@ public static class GirlPowerOrla3DSceneBuilder
             idleCharacters.Add(pedCoral.transform);
         }
 
-        // 11. Hero Ice Cream Cart in dedicated open recess (100% opaque ZWrite On -> zero translucent rendering artifacts!)
+        // 11. Hero Ice Cream Cart in dedicated open recess (100% opaque ZWrite On + tight physical counter collider!)
         GameObject cart = PlaceModel(root.transform, "IceCreamCart", "Carrinho de Sorvete", new Vector3(0.4f, 0f, -3.45f), 0f, 1.08f, cozyMats);
+        if (cart != null)
+            AddBlockingBox(cart, new Vector3(0f, 0.9f, 0.05f), new Vector3(1.60f, 1.8f, 0.92f), obstacles);
 
         // Clean front plaque typography on the Hero Ice Cream Cart + Choice Upgrade 2
         GameObject cartPaintedSignUpgrade = null;
@@ -474,8 +499,10 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject playerCanoe = PlaceModel(playerRoot.transform, "HawaiianCanoe", "Canoa Havaiana da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerHat = PlaceModel(playerRoot.transform, "WardrobeHatProp", "Chapeu e Oculos da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
 
-        // Decorative beach surfboard standing near Lifeguard Tower 1 (keeping sand access #2 x=5.5..9.5 clear!)
-        PlaceModel(root.transform, "Surfboard", "Prancha na Areia", new Vector3(14.0f, 0.25f, 7.2f), 32f, 1.05f, cozyMats);
+        // Decorative beach surfboard grounded cleanly on the far side of Lifeguard Tower 1 (never overlapping the beach chair!)
+        GameObject sandSurfboard = PlaceModel(root.transform, "Surfboard", "Prancha na Areia", new Vector3(16.9f, -0.02f, 7.7f), 28f, 1.0f, cozyMats);
+        if (sandSurfboard != null)
+            AddBlockingBox(sandSurfboard, new Vector3(0f, 0.45f, 0f), new Vector3(0.55f, 0.90f, 1.45f), obstacles);
 
         // Cute Pet Companions: Dog "Pipoca" right beside the Protagonist (ready to follow!) & Cat "Mingau"!
         GameObject dogObj = PlaceModel(root.transform, "PetDog", "Cachorro Pipoca", new Vector3(-3.85f, 0f, -4.15f), 145f, 1.05f, cozyMats);
@@ -1112,6 +1139,7 @@ public static class GirlPowerOrla3DSceneBuilder
         mission.photoOverlay = photoCtrl;
         mission.lifeActivities = lifeAct;
         mission.blockingObstacles = obstacles.ToArray();
+        mission.waterSurfZone = waterSurfZone;
 
         // One shared, oriented-box path grid drives both tap navigation and strolling residents.
         GameObject pathfinderObj = new GameObject("Navegacao_Orla_AStar_OBB");
@@ -1148,6 +1176,7 @@ public static class GirlPowerOrla3DSceneBuilder
         megaSys.gardenBed = gardenBed != null ? gardenBed.transform : null;
         megaSys.fishingPier = fishingPier != null ? fishingPier.transform : null;
         megaSys.beachTennisCourt = beachTennis != null ? beachTennis.transform : null;
+        megaSys.beachTennisEntrance = beachTennisEntrance;
         megaSys.noticeBoard = noticeBoard != null ? noticeBoard.transform : null;
         megaSys.campingZone = campingZone != null ? campingZone.transform : null;
         megaSys.fairyLightsGroup = pavilionFestivalLights;

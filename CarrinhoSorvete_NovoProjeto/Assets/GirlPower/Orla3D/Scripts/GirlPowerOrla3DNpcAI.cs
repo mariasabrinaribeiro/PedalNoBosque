@@ -42,6 +42,7 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         public Quaternion lastValidRot;
         public List<Vector3> subPath;
         public int subIdx;
+        public int failedPathCount;
     }
 
     private sealed class FairyAgent
@@ -289,13 +290,31 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 continue;
             }
 
-            // Single-owner obstacle-avoiding A* pathing for strolling villagers (never walks straight into stalls!)
+            // Single-owner obstacle-avoiding A* pathing for strolling villagers (NEVER falls back to straight-line clipping!)
+            GirlPowerOrla3DPathfinder pf = GirlPowerOrla3DPathfinder.Instance;
             Vector3 finalStop = w.route[w.wpIdx];
             if (w.subPath.Count == 0 || w.subIdx >= w.subPath.Count)
             {
-                if (GirlPowerOrla3DPathfinder.Instance != null)
-                    GirlPowerOrla3DPathfinder.Instance.FindPath(w.tr.position, finalStop, w.subPath, 0.45f);
-                if (w.subPath.Count == 0) w.subPath.Add(finalStop);
+                if (pf != null)
+                {
+                    Vector3 safeStop = pf.FindNearestWalkablePoint(finalStop, Vector3.back, 0.45f);
+                    pf.FindPath(w.tr.position, safeStop, w.subPath, 0.45f);
+                }
+                if (w.subPath.Count == 0)
+                {
+                    // No walkable route found right now: wait calmly and recalculate (or skip blocked stop) — never walk straight through obstacles!
+                    w.failedPathCount++;
+                    w.waitTimer = 1.15f;
+                    if (w.failedPathCount >= 2)
+                    {
+                        w.failedPathCount = 0;
+                        w.wpIdx = (w.wpIdx + 1) % w.route.Length;
+                    }
+                    w.prevWorldPos = w.tr.position;
+                    AnimateWalkerGait(w, 0f, t, dt, false);
+                    continue;
+                }
+                w.failedPathCount = 0;
                 w.subIdx = 0;
             }
 
@@ -316,20 +335,62 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
                 continue;
             }
 
-            Vector2 dir = delta / dist;
-            // Polite lateral yield when crossing paths with the Protagonist so neither ever gets stuck!
+            Vector2 pathDir = delta / dist;
+            float step = Mathf.Min(dist, w.speed * dt);
+            Vector3 curPos = w.tr.position;
+
+            // Validate lateral yield & path step against OBB obstacles BEFORE applying position!
+            bool yieldingToPlayer = false;
+            Vector2 yieldPref = pathDir;
+            Vector2 yieldAlt = pathDir;
             if (player != null)
             {
-                Vector2 fromPlayer = new Vector2(w.tr.position.x - player.position.x, w.tr.position.z - player.position.z);
+                Vector2 fromPlayer = new Vector2(curPos.x - player.position.x, curPos.z - player.position.z);
                 float pDist = fromPlayer.magnitude;
                 if (pDist < 1.35f && pDist > 0.01f)
                 {
-                    dir = (dir + (fromPlayer / pDist) * Mathf.Clamp01((1.35f - pDist) / 0.85f) * 0.85f).normalized;
+                    yieldingToPlayer = true;
+                    float weight = Mathf.Clamp01((1.35f - pDist) / 0.85f) * 0.85f;
+                    Vector2 sideAway = fromPlayer / pDist;
+                    Vector2 perpR = new Vector2(pathDir.y, -pathDir.x);
+                    Vector2 perpL = -perpR;
+                    Vector2 prefSide = (Vector2.Dot(sideAway, perpR) >= 0f) ? perpR : perpL;
+                    Vector2 altSide = -prefSide;
+                    yieldPref = (pathDir + prefSide * weight).normalized;
+                    yieldAlt = (pathDir + altSide * weight).normalized;
                 }
             }
 
-            float step = Mathf.Min(dist, w.speed * dt);
-            Vector3 nextPos = new Vector3(w.tr.position.x + dir.x * step, w.baseY, w.tr.position.z + dir.y * step);
+            Vector3 chosenPos = curPos;
+            bool stepValid = false;
+            const float NpcCheckRadius = 0.43f;
+            Vector2[] candidates = yieldingToPlayer
+                ? new[] { yieldPref, yieldAlt, pathDir }
+                : new[] { pathDir };
+
+            for (int c = 0; c < candidates.Length; c++)
+            {
+                Vector3 cand = new Vector3(curPos.x + candidates[c].x * step, w.baseY, curPos.z + candidates[c].y * step);
+                if (pf == null || pf.IsMoveStepClear(curPos, cand, NpcCheckRadius))
+                {
+                    chosenPos = cand;
+                    stepValid = true;
+                    break;
+                }
+            }
+
+            if (!stepValid)
+            {
+                // No unobstructed lateral or forward step available -> pause politely & force A* recalculation instead of clipping!
+                w.subPath.Clear();
+                w.subIdx = 0;
+                w.waitTimer = 0.65f;
+                w.prevWorldPos = curPos;
+                AnimateWalkerGait(w, 0f, t, dt, false);
+                continue;
+            }
+
+            Vector3 nextPos = chosenPos;
             w.tr.position = nextPos;
 
             // Orient villager strictly by REAL frame-to-frame planar displacement (including curves!)

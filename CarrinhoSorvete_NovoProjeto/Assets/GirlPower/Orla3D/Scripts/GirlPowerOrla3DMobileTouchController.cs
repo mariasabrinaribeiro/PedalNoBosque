@@ -388,8 +388,10 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
             }
         }
 
-        // C. Quick Tap on Interactive Object -> Walk Protagonist cleanly over & auto-interact!
-        Vector3 destPos = source.Anchor.position;
+        // C. Quick Tap on Interactive Object -> Walk Protagonist cleanly to the walkable FRONT service spot & auto-interact!
+        Vector3 destPos = storyController != null
+            ? storyController.GetWalkableServicePoint(source.Anchor)
+            : source.Anchor.position;
         SpawnTapRing(destPos);
 
         if (source.role == GirlPowerOrla3DTouchTarget.TargetRole.WaterBowl && petFriendlySystem != null)

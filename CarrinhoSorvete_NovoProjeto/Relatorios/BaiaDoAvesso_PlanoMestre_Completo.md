@@ -352,3 +352,21 @@
   - [x] Coqueiros com variação de altura, rotação e inclinação.
 - **P2 — Mobile e Estabilidade:**
   - [ ] Validar build Android em aparelho físico (registrar aparelho, resolução, FPS >= 30, memória e folga real de colisores em Play Mode).
+
+
+---
+
+## Etapa 23 (v34) — Zona de Água Explícita, Acesso Lateral no Beach Tennis, Pontos Caminháveis Diante dos Balcões e Validação de Passo Lateral na IA
+
+- **1. Rede de Beach Tennis e guarda-sóis (`GirlPowerOrla3DSceneBuilder.cs`, `GirlPowerOrla3DMegaSystems.cs`):**
+  - Adicionado colisor físico sólido + `NavMeshObstacle (Carve)` na rede da quadra (`3.6 × 2.0 × 0.28 m`) preservando os dois acessos laterais abertos.
+  - Criado ponto explícito `Entrada_Lateral_BeachTennis` na lateral da quadra (`local (-2.45, 0, -0.35)`). O convite **Jogar Beach Tennis** agora exige que a protagonista esteja na entrada lateral em areia seca (`IsAtBeachTennisEntrance`, `<= 2.25 m`, nunca atrás da rede nem sobre a prancha no mar) e posiciona o botão na zona inferior direita do polegar.
+- **2. Torre, cadeira e prancha + Zona de Água Explícita (`GirlPowerOrla3DSceneBuilder.cs`, `GirlPowerOrla3DFirstDelivery.cs`):**
+  - `Prancha na Areia` decorativa reposicionada para o lado oposto da Torre Salva-Vidas (`(16.9, -0.02, 7.7)`) com colisor próprio, eliminando a sobreposição visual sobre a cadeira de praia.
+  - Substituído o corte fixo no eixo `Z` (`z >= 9.6f`) por uma zona explícita `Zona_Agua_Mar_Surf` (`BoxCollider` trigger filho de `oceanSurface`, começando `0.9 m` dentro da linha d'água visível e acompanhando automaticamente a Maré Baixa e a Maré Alta). `IsPointInWaterZone` agora governa surf, desmontagem de patinete/skate e altura das ondas.
+- **3. Carrinho e Florista — Destino caminhável diante do balcão (`GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DPathfinder.cs`, `GirlPowerOrla3DMobileTouchController.cs`):**
+  - Adicionado colisor justo no corpo do `IceCreamCart` e criado `GetWalkableServicePoint(Transform)` validado por `FindNearestWalkablePoint` (OBB): tocar em **Montar aqui**, **▶ IR**, no Carrinho, na Florista ou em qualquer barraca agora traça rota A* até um ponto livre **diante do balcão** (funciona partindo da praia, da feira ou do lado oposto de cada banca). O anel luminoso no chão (`groundBeacon`) também marca diretamente esse ponto caminhável frontal.
+- **4. Moradores desviando perto de obstáculos (`GirlPowerOrla3DNpcAI.cs`, `GirlPowerOrla3DPathfinder.cs`):**
+  - Adicionados `IsPositionWalkable` e `IsMoveStepClear` no pathfinder OBB.
+  - Removido o fallback em linha reta quando `FindPath` volta vazio: o morador aguarda com calma (`waitTimer = 1.15 s`) e recalcula (ou avança para o próximo ponto alcançável após 2 tentativas).
+  - Todo passo de desvio lateral ao cruzar com a protagonista agora valida ambos os lados (`yieldPref`, `yieldAlt`, `pathDir`) via `IsMoveStepClear` **antes** de mover o `Transform`; sem passagem livre, o morador espera e recalcula a rota sem atravessar mobiliário.

@@ -127,6 +127,69 @@ public sealed class GirlPowerOrla3DPathfinder : MonoBehaviour
     }
 
     /// <summary>
+    /// Validates whether a single world XZ position is inside playable bounds and clear of all OBB obstacles.
+    /// </summary>
+    public bool IsPositionWalkable(Vector3 worldPos, float radius)
+    {
+        if (worldPos.x < minX + 0.25f || worldPos.x > maxX - 0.25f || worldPos.z < minZ + 0.25f || worldPos.z > maxZ - 0.25f)
+            return false;
+        Vector3 probe = new Vector3(worldPos.x, 0.5f, worldPos.z);
+        return !IsPointBlockedOBB(probe, blockingObstacles, radius * radius);
+    }
+
+    /// <summary>
+    /// Validates both the destination point and the swept line segment against all OBB obstacles.
+    /// </summary>
+    public bool IsMoveStepClear(Vector3 from, Vector3 to, float radius)
+    {
+        if (!IsPositionWalkable(to, radius)) return false;
+        return IsSegmentClearOBB(from, to, blockingObstacles, radius);
+    }
+
+    /// <summary>
+    /// Finds a guaranteed walkable point at or near desired, biased toward preferredFrontDir (e.g. in front of a counter).
+    /// </summary>
+    public Vector3 FindNearestWalkablePoint(Vector3 desired, Vector3 preferredFrontDir, float radius)
+    {
+        Vector3 flatDesired = new Vector3(
+            Mathf.Clamp(desired.x, minX + 0.4f, maxX - 0.4f),
+            0f,
+            Mathf.Clamp(desired.z, minZ + 0.4f, maxZ - 0.4f));
+
+        if (IsPositionWalkable(flatDesired, radius))
+            return flatDesired;
+
+        Vector3 front = new Vector3(preferredFrontDir.x, 0f, preferredFrontDir.z);
+        if (front.sqrMagnitude < 0.01f) front = Vector3.back;
+        front.Normalize();
+        Vector3 right = new Vector3(front.z, 0f, -front.x);
+
+        float[] radii = { 0.55f, 1.05f, 1.55f, 2.10f, 2.70f };
+        Vector3[] dirs =
+        {
+            front,
+            (front + right * 0.55f).normalized,
+            (front - right * 0.55f).normalized,
+            right,
+            -right,
+            (-front + right * 0.7f).normalized,
+            (-front - right * 0.7f).normalized,
+            -front
+        };
+
+        for (int r = 0; r < radii.Length; r++)
+        {
+            for (int d = 0; d < dirs.Length; d++)
+            {
+                Vector3 cand = flatDesired + dirs[d] * radii[r];
+                if (IsPositionWalkable(cand, radius))
+                    return cand;
+            }
+        }
+        return flatDesired;
+    }
+
+    /// <summary>
     /// Computes a clean, obstacle-avoiding smoothed path on XZ from start to goal.
     /// Automatically snaps blocked goal points (like tapping directly on a stall or Florist)
     /// to the nearest open walkable spot in front of it!

@@ -101,6 +101,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     public Transform gardenBed;
     public Transform fishingPier;
     public Transform beachTennisCourt;
+    public Transform beachTennisEntrance;
     public Transform noticeBoard;
     public Transform campingZone;
     public GameObject fairyLightsGroup;
@@ -477,11 +478,22 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             TryWorldStationInteract();
     }
 
+    private bool IsAtBeachTennisEntrance()
+    {
+        if (characterAnimator != null && characterAnimator.IsInWater) return false;
+        Transform entry = beachTennisEntrance != null ? beachTennisEntrance : beachTennisCourt;
+        if (entry == null || player == null) return false;
+        // Require the player to stand at the lateral court entrance (dry sand side — never behind the net or on a surfboard!)
+        if (beachTennisCourt != null && player.position.z > beachTennisCourt.position.z + 0.85f)
+            return false;
+        return Near(entry, 2.25f);
+    }
+
     public bool TryWorldStationInteract()
     {
         if (Near(gardenBed, 3.2f)) { OpenModal(ActiveModal.Garden); return true; }
         if (Near(fishingPier, 3.8f)) { OpenModal(ActiveModal.Fishing); return true; }
-        if (Near(beachTennisCourt, 4.4f)) { OpenModal(ActiveModal.BeachTennis); return true; }
+        if (IsAtBeachTennisEntrance()) { OpenModal(ActiveModal.BeachTennis); return true; }
         if (Near(noticeBoard, 3.0f)) { OpenModal(ActiveModal.NoticeBoard); return true; }
 
         // Restaurant Kitchen: prepare active table order via Fatiar & Fritar minigame!
@@ -623,16 +635,18 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     private void DrawWorldStationPrompts(float s)
     {
         if (sceneCamera == null) return;
-        if (Near(gardenBed, 3.2f)) DrawFloatingStationBtn(gardenBed, "[E] Horta & Plantação", s, () => OpenModal(ActiveModal.Garden));
-        else if (Near(fishingPier, 3.8f)) DrawFloatingStationBtn(fishingPier, "[E] Pescar no Píer", s, () => OpenModal(ActiveModal.Fishing));
-        else if (Near(beachTennisCourt, 4.4f)) DrawFloatingStationBtn(beachTennisCourt, "[E] Jogar Beach Tennis", s, () => OpenModal(ActiveModal.BeachTennis));
-        else if (Near(noticeBoard, 3.0f)) DrawFloatingStationBtn(noticeBoard, "[E] Mural de Avisos", s, () => OpenModal(ActiveModal.NoticeBoard));
+        bool touchPrimary = gameFlow != null && gameFlow.storyController != null && gameFlow.storyController.IsTouchPrimary;
+        string pfx = touchPrimary ? "" : "[E] ";
+        if (Near(gardenBed, 3.2f)) DrawFloatingStationBtn(gardenBed, pfx + "Horta & Plantação", s, () => OpenModal(ActiveModal.Garden));
+        else if (Near(fishingPier, 3.8f)) DrawFloatingStationBtn(fishingPier, pfx + "Pescar no Píer", s, () => OpenModal(ActiveModal.Fishing));
+        else if (IsAtBeachTennisEntrance()) DrawFloatingStationBtn(beachTennisEntrance != null ? beachTennisEntrance : beachTennisCourt, pfx + "Jogar Beach Tennis", s, () => OpenModal(ActiveModal.BeachTennis));
+        else if (Near(noticeBoard, 3.0f)) DrawFloatingStationBtn(noticeBoard, pfx + "Mural de Avisos", s, () => OpenModal(ActiveModal.NoticeBoard));
         else if (Near(restaurantKitchen, 3.4f))
         {
             int ord = FindFirstActiveOrderIndex();
             string txt = ord >= 0
-                ? ("[E] " + GetDishPrepVerb(Orders[ord].dishName) + " " + Orders[ord].dishName)
-                : "[E] Restaurante Batata & Mar";
+                ? (pfx + GetDishPrepVerb(Orders[ord].dishName) + " " + Orders[ord].dishName)
+                : pfx + "Restaurante Batata & Mar";
             DrawFloatingStationBtn(restaurantKitchen, txt, s, () => { if (ord >= 0) StartSliceMixForTable(ord); });
         }
         else if (CarryingRestaurantTray && restaurantTables != null)
@@ -642,7 +656,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
                 if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
                 {
                     int idx = i;
-                    DrawFloatingStationBtn(restaurantTables[i], "[E] Servir " + Orders[i].tableName, s, () => DeliverTableOrder(idx));
+                    DrawFloatingStationBtn(restaurantTables[i], pfx + "Servir " + Orders[i].tableName, s, () => DeliverTableOrder(idx));
                     break;
                 }
             }
@@ -652,11 +666,12 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     private void DrawFloatingStationBtn(Transform target, string label, float s, Action onClick)
     {
         if (target == null) return;
-        // Consistent bottom-center primary action region (matches FirstDelivery & Shops!)
-        float w = Mathf.Clamp(92f * s + label.Length * 7.8f * s, 215f * s, 360f * s);
-        float h = 46f * s;
-        float x = (Screen.width - w) * 0.5f;
-        float y = Screen.height - 118f * s;
+        Rect sa = Screen.safeArea;
+        float safeBottom = (Screen.height - (sa.y + sa.height)) + sa.height;
+        float w = Mathf.Clamp(78f * s + label.Length * 7.6f * s, 188f * s, Mathf.Min(320f * s, sa.width - 36f * s));
+        float h = 48f * s;
+        float x = sa.xMax - w - 18f * s;
+        float y = safeBottom - h - 18f * s;
         if (GUI.Button(new Rect(x, y, w, h), label, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             onClick?.Invoke();
     }

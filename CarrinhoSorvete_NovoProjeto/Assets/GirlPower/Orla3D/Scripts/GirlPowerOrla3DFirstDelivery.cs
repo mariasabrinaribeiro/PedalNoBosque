@@ -62,6 +62,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public GirlPowerOrla3DCardapioUI cardapioUI;
     public GirlPowerOrla3DPetFriendlySystem petFriendlySystem;
     public BoxCollider[] blockingObstacles;
+    public BoxCollider waterSurfZone;
 
     [Header("Movement & Feel")]
     public float walkSpeed = 4.0f;
@@ -225,6 +226,68 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         zoomFactor = Mathf.Clamp(zoomFactor + deltaZoom, Mathf.Max(0.75f, minZoom), Mathf.Min(1.62f, maxZoom));
     }
 
+    /// <summary>
+    /// Computes an explicit walkable service position strictly IN FRONT of the target's counter/NPC
+    /// (verified outside all OBB colliders so approaching from beach, fair, or behind the stand always arrives cleanly!).
+    /// </summary>
+    public Vector3 GetWalkableServicePoint(Transform target)
+    {
+        if (target == null) return player != null ? player.position : Vector3.zero;
+        Vector3 desired;
+        Vector3 frontDir = Vector3.back; // Counters face -Z toward camera/promenade
+
+        if (target == cart)
+        {
+            desired = new Vector3(cart.position.x, 0f, cart.position.z - 1.48f);
+            frontDir = Vector3.back;
+        }
+        else if (target == florist)
+        {
+            // Luna stands on the customer side (-Z) of FloristStand; stop cleanly in front of her!
+            desired = new Vector3(florist.position.x, 0f, florist.position.z - 1.15f);
+            frontDir = Vector3.back;
+        }
+        else if (target == basilPot)
+        {
+            desired = new Vector3(basilPot.position.x, 0f, basilPot.position.z - 1.05f);
+            frontDir = Vector3.back;
+        }
+        else if (target == pavilion)
+        {
+            desired = new Vector3(pavilion.position.x, 0f, pavilion.position.z + 2.25f);
+            frontDir = Vector3.forward;
+        }
+        else
+        {
+            Vector3 f = -target.forward;
+            f.y = 0f;
+            if (f.sqrMagnitude < 0.01f) f = Vector3.back;
+            frontDir = f.normalized;
+            desired = target.position + frontDir * 1.45f;
+            desired.y = 0f;
+        }
+
+        GirlPowerOrla3DPathfinder pf = EnsurePathfinder();
+        if (pf != null)
+            return pf.FindNearestWalkablePoint(desired, frontDir, PlayerRadius + 0.08f);
+        return desired;
+    }
+
+    public bool IsPointInWaterZone(Vector3 worldPos)
+    {
+        if (waterSurfZone != null && waterSurfZone.enabled && waterSurfZone.gameObject.activeInHierarchy)
+        {
+            Vector3 local = waterSurfZone.transform.InverseTransformPoint(new Vector3(worldPos.x, waterSurfZone.transform.position.y + waterSurfZone.center.y, worldPos.z));
+            Vector3 half = waterSurfZone.size * 0.5f;
+            Vector3 c = waterSurfZone.center;
+            return Mathf.Abs(local.x - c.x) <= half.x && Mathf.Abs(local.z - c.z) <= half.z;
+        }
+        // Safe fallback aligned to visible ocean shoreline mesh when running an older scene build
+        if (ambientController != null && ambientController.oceanSurface != null)
+            return worldPos.z >= ambientController.oceanSurface.position.z - 15.1f;
+        return worldPos.z >= 10.9f;
+    }
+
     public void GuideAndPerformActiveObjective()
     {
         Transform target = GetActiveObjectiveTarget();
@@ -234,7 +297,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             Interact();
             return;
         }
-        SetTapDestination(target.position, () => Interact());
+        Vector3 frontPoint = GetWalkableServicePoint(target);
+        SetTapDestination(frontPoint, () => Interact());
     }
 
     public bool IsUiPointBlocked(Vector2 guiPos)
@@ -601,7 +665,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         }
 
         groundBeacon.gameObject.SetActive(true);
-        Vector3 tp = target.position;
+        // Place the ground ring on the walkable FRONT service point (never hidden underneath the Cart or Florist stand!)
+        Vector3 tp = GetWalkableServicePoint(target);
         float gy = SampleGroundHeight(tp.x, tp.z);
         float pulse = 1.0f + Mathf.Sin(Time.time * 4.2f) * 0.16f;
         groundBeacon.position = new Vector3(tp.x, gy + 0.05f, tp.z);
@@ -652,7 +717,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
         bool isWheeled = characterAnimator != null && characterAnimator.CurrentLandMode != GirlPowerOrla3DCharacterAnimator.LandMode.Walk;
-        bool isSurfingNow = player.position.z >= 9.6f;
+        bool isSurfingNow = IsPointInWaterZone(player.position);
 
         if (characterAnimator != null)
             characterAnimator.SetSurfing(isSurfingNow);
@@ -661,7 +726,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         float upgMult = megaSystems != null ? megaSystems.GetSpeedUpgradeMultiplier() : 1f;
 
         // Terrain physics: Scooter/Skate/Patins are faster on paved promenade/street & drag realistically on soft beach sand!
-        bool onSoftSand = player.position.z >= 3.95f && player.position.z < 9.6f;
+        bool onSoftSand = player.position.z >= 3.95f && !isSurfingNow;
         float terrainMult = (onSoftSand && isWheeled) ? 0.54f : 1.0f;
 
         float maxSpeed = (isSurfingNow ? surfSpeed : (running ? runSpeed : walkSpeed)) * mobMult * upgMult * terrainMult;
@@ -689,12 +754,13 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         Vector3 next = TryMoveAxis(current, new Vector3(move.x, 0f, 0f));
         next = TryMoveAxis(next, new Vector3(0f, 0f, move.z));
 
-        // Keep player safely inside scenic bounds; wheeled vehicles smoothly switch off at the ocean's edge!
+        // Keep player safely inside scenic bounds; wheeled vehicles smoothly switch off at the explicit water shoreline!
         next.x = Mathf.Clamp(next.x, minWorldX, maxWorldX);
         next.z = Mathf.Clamp(next.z, minWorldZ, maxWorldZ);
-        if (isWheeled && next.z >= 9.4f)
+        bool nextInWater = IsPointInWaterZone(next);
+        if (isWheeled && nextInWater)
         {
-            // Auto-dismount scooter/skate cleanly at the water's edge when entering the ocean!
+            // Auto-dismount scooter/skate cleanly at the visible shoreline when entering the ocean!
             characterAnimator.SetLandMode(GirlPowerOrla3DCharacterAnimator.LandMode.Walk);
             GirlPowerOrla3DUITheme.SpawnFloatingFeedback(next, "Entrando no mar! [V: Surf / Nadar / Canoa]", new Color(0.58f, 0.94f, 1f), 1.4f);
         }
@@ -705,7 +771,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         actualPlanarSpeed = realDisp.magnitude / dt;
 
         if (characterAnimator != null)
-            characterAnimator.SetSurfing(next.z >= 9.6f);
+            characterAnimator.SetSurfing(nextInWater);
 
         // Rotate visual strictly by REAL post-collision displacement + deadzone tolerance:
         // preserves lastValidFacingYaw whenever stopped or pressed against a wall (zero flipping / zero wall jitter!).
@@ -733,9 +799,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         }
     }
 
-    private static float SampleGroundHeight(float x, float z)
+    private float SampleGroundHeight(float x, float z)
     {
-        if (z >= 9.8f)
+        if (IsPointInWaterZone(new Vector3(x, 0f, z)))
         {
             float wave = Mathf.Sin(x * 0.55f + Time.time * 1.6f) * 0.06f + Mathf.Cos(z * 0.8f - Time.time * 1.2f) * 0.05f;
             return -0.24f + wave;
