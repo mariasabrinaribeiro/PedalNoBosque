@@ -50,6 +50,11 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private Transform jointArmR;
     private Transform jointLegL;
     private Transform jointLegR;
+    private Quaternion baseHeadRot = Quaternion.identity;
+    private Quaternion baseArmLRot = Quaternion.identity;
+    private Quaternion baseArmRRot = Quaternion.identity;
+    private Quaternion baseLegLRot = Quaternion.identity;
+    private Quaternion baseLegRRot = Quaternion.identity;
     private float blinkClock = 2.4f;
 
     private sealed class VfxItem
@@ -91,6 +96,17 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         jointArmR = FindRecursive(visualRoot, "Protag_ArmR");
         jointLegL = FindRecursive(visualRoot, "Protag_LegL");
         jointLegR = FindRecursive(visualRoot, "Protag_LegR");
+
+        if (jointHead != null)
+        {
+            if (jointEyeL != null && jointEyeL.parent != jointHead) jointEyeL.SetParent(jointHead, true);
+            if (jointEyeR != null && jointEyeR.parent != jointHead) jointEyeR.SetParent(jointHead, true);
+            baseHeadRot = jointHead.localRotation;
+        }
+        if (jointArmL != null) baseArmLRot = jointArmL.localRotation;
+        if (jointArmR != null) baseArmRRot = jointArmR.localRotation;
+        if (jointLegL != null) baseLegLRot = jointLegL.localRotation;
+        if (jointLegR != null) baseLegRRot = jointLegR.localRotation;
     }
 
     private static Transform FindRecursive(Transform root, string targetName)
@@ -204,11 +220,11 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
 
         float k = 1f - Mathf.Exp(-14f * dt);
-        if (jointArmL != null) jointArmL.localRotation = Quaternion.Slerp(jointArmL.localRotation, Quaternion.Euler(armL, 0f, armLRoll), k);
-        if (jointArmR != null) jointArmR.localRotation = Quaternion.Slerp(jointArmR.localRotation, Quaternion.Euler(armR, 0f, armRRoll), k);
-        if (jointLegL != null) jointLegL.localRotation = Quaternion.Slerp(jointLegL.localRotation, Quaternion.Euler(legL, 0f, 0f), k);
-        if (jointLegR != null) jointLegR.localRotation = Quaternion.Slerp(jointLegR.localRotation, Quaternion.Euler(legR, 0f, 0f), k);
-        if (jointHead != null) jointHead.localRotation = Quaternion.Slerp(jointHead.localRotation, Quaternion.Euler(headPitch, 0f, 0f), k);
+        if (jointArmL != null) jointArmL.localRotation = Quaternion.Slerp(jointArmL.localRotation, baseArmLRot * Quaternion.Euler(armL, 0f, armLRoll), k);
+        if (jointArmR != null) jointArmR.localRotation = Quaternion.Slerp(jointArmR.localRotation, baseArmRRot * Quaternion.Euler(armR, 0f, armRRoll), k);
+        if (jointLegL != null) jointLegL.localRotation = Quaternion.Slerp(jointLegL.localRotation, baseLegLRot * Quaternion.Euler(legL, 0f, 0f), k);
+        if (jointLegR != null) jointLegR.localRotation = Quaternion.Slerp(jointLegR.localRotation, baseLegRRot * Quaternion.Euler(legR, 0f, 0f), k);
+        if (jointHead != null) jointHead.localRotation = Quaternion.Slerp(jointHead.localRotation, baseHeadRot * Quaternion.Euler(headPitch, 0f, 0f), k);
     }
 
     private void SetupProps()

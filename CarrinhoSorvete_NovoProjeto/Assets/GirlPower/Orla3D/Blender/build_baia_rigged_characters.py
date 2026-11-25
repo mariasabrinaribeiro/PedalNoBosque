@@ -119,16 +119,13 @@ def join_around_pivot(parts, name, pivot_world, col):
     return obj
 
 
-def export_hierarchy(root_obj, filename):
+def export_flat_parts(objs, filename):
+    """Exports flat sibling meshes with bake_space_transform=True so Unity imports every joint
+    100% UPRIGHT (Y-up, zero -90 X tilt!) with exact pivot origins and localRotation = (0,0,0)!"""
     bpy.ops.object.select_all(action="DESELECT")
-
-    def sel_rec(o):
+    for o in objs:
         o.select_set(True)
-        for ch in o.children:
-            sel_rec(ch)
-
-    sel_rec(root_obj)
-    bpy.context.view_layer.objects.active = root_obj
+    bpy.context.view_layer.objects.active = objs[0]
     out_path = os.path.join(MODELS_DIR, f"{filename}.fbx")
     bpy.ops.export_scene.fbx(
         filepath=out_path,
@@ -136,31 +133,22 @@ def export_hierarchy(root_obj, filename):
         global_scale=1.0,
         apply_unit_scale=True,
         apply_scale_options="FBX_SCALE_ALL",
-        bake_space_transform=False,
-        object_types={"EMPTY", "MESH"},
+        bake_space_transform=True,
+        object_types={"MESH"},
         mesh_smooth_type="FACE",
         axis_forward="-Z",
         axis_up="Y",
         add_leaf_bones=False,
         bake_anim=False,
     )
-    print(f"[FBX Articulated] {out_path}")
-
-
-def parent_keep(child, parent):
-    """Parents child to parent preserving world position via clean local offset."""
-    local = child.location - parent.location
-    child.parent = parent
-    child.location = local
+    print(f"[FBX Flat Articulated Upright] {out_path}")
 
 
 # =========================================================================
 # 1. ARTICULATED PROTAGONIST (Swinging Arms/Legs, Blinking Eyes, Ponytail!)
 # =========================================================================
 def build_protagonist(col):
-    root = bpy.data.objects.new("Protag_Root", None)
-    root.location = (0, 0, 0)
-    col.objects.link(root)
+    exported = []
 
     # Torso (Berry Pink shirt + Denim shorts + Teal crossbody ice-cream satchel!)
     torso_parts = [
@@ -171,15 +159,14 @@ def build_protagonist(col):
         add_sphere("T_PackButton", 0.045, MATS["AC_Gold"], col, loc=(0, 0.30, 0.62)),
     ]
     torso = join_around_pivot(torso_parts, "Protag_Torso", (0, 0, 0.42), col)
-    parent_keep(torso, root)
+    exported.append(torso)
 
-    # Head (pivoted at neck z=0.82; facing -Y in Blender so Unity looks forward cleanly!)
+    # Head (pivoted at neck z=0.82; facing -Y in Blender = -Z in Unity!)
     head_parts = [
         add_sphere("H_Skull", 0.29, MATS["AC_SkinLight"], col, loc=(0, 0, 1.08), scale=(1.02, 0.98, 0.98), u=18, v=14),
         add_sphere("H_CheekL", 0.055, MATS["AC_CheekBlush"], col, loc=(-0.15, -0.24, 1.02), scale=(1.2, 0.45, 0.85)),
         add_sphere("H_CheekR", 0.055, MATS["AC_CheekBlush"], col, loc=(0.15, -0.24, 1.02), scale=(1.2, 0.45, 0.85)),
         add_sphere("H_Nose", 0.032, MATS["AC_SkinLight"], col, loc=(0, -0.29, 1.04)),
-        # Cozy curly brown hair cap + bangs + pink hair ribbon
         add_sphere("H_HairMain", 0.315, MATS["AC_HairBrown"], col, loc=(0, 0.04, 1.13), scale=(1.04, 1.02, 0.98), u=16, v=12),
         add_sphere("H_BangL", 0.13, MATS["AC_HairBrown"], col, loc=(-0.14, -0.21, 1.24), scale=(1.2, 0.75, 0.75)),
         add_sphere("H_BangR", 0.13, MATS["AC_HairBrown"], col, loc=(0.14, -0.21, 1.24), scale=(1.2, 0.75, 0.75)),
@@ -187,7 +174,7 @@ def build_protagonist(col):
         add_sphere("H_HairRibbon", 0.09, MATS["AC_ProtagShirt"], col, loc=(0, 0.26, 1.20), scale=(1.35, 0.65, 0.75)),
     ]
     head = join_around_pivot(head_parts, "Protag_Head", (0, 0, 0.82), col)
-    parent_keep(head, torso)
+    exported.append(head)
 
     # Separate Eyes so Unity can blink smoothly!
     for side, sx in [("L", -0.105), ("R", 0.105)]:
@@ -196,7 +183,7 @@ def build_protagonist(col):
             add_sphere(f"EyeShine_{side}", 0.018, MATS["AC_EyeShine"], col, loc=(sx - 0.015, -0.278, 1.10)),
         ]
         eye = join_around_pivot(ep, f"Protag_Eye{side}", (sx, -0.255, 1.08), col)
-        parent_keep(eye, head)
+        exported.append(eye)
 
     # Articulated Arms (pivoted at shoulders z=0.74!)
     for side, sx in [("L", -0.25), ("R", 0.25)]:
@@ -206,7 +193,7 @@ def build_protagonist(col):
             add_sphere(f"Hand_{side}", 0.068, MATS["AC_SkinLight"], col, loc=(sx, 0, 0.43)),
         ]
         arm = join_around_pivot(ap, f"Protag_Arm{side}", (sx, 0, 0.74), col)
-        parent_keep(arm, torso)
+        exported.append(arm)
 
     # Articulated Legs (pivoted at hips z=0.34!)
     for side, sx in [("L", -0.115), ("R", 0.115)]:
@@ -216,19 +203,17 @@ def build_protagonist(col):
             add_sphere(f"Shoe_{side}", 0.088, MATS["AC_ProtagShirt"], col, loc=(sx, -0.04, 0.055), scale=(0.95, 1.35, 0.68)),
         ]
         leg = join_around_pivot(lp, f"Protag_Leg{side}", (sx, 0, 0.34), col)
-        parent_keep(leg, root)
+        exported.append(leg)
 
-    export_hierarchy(root, "Char_Protagonist")
-    return root
+    export_flat_parts(exported, "Char_Protagonist")
+    return exported
 
 
 # =========================================================================
 # 2. ARTICULATED PIPOCA (Wagging Tail, Floppy Ears, Galloping Legs!)
 # =========================================================================
 def build_pipoca(col):
-    root = bpy.data.objects.new("Pipoca_Root", None)
-    root.location = (0, 0, 0)
-    col.objects.link(root)
+    exported = []
 
     body_parts = [
         add_sphere("P_Torso", 0.22, MATS["AC_Cream"], col, loc=(0, 0.02, 0.28), scale=(0.92, 1.38, 0.90), u=16, v=12),
@@ -237,9 +222,8 @@ def build_pipoca(col):
         add_sphere("P_Bell", 0.036, MATS["AC_Gold"], col, loc=(0, -0.28, 0.26)),
     ]
     body = join_around_pivot(body_parts, "Pipoca_Body", (0, 0, 0.26), col)
-    parent_keep(body, root)
+    exported.append(body)
 
-    # Head pivoted at neck (0, -0.22, 0.38)
     head_parts = [
         add_sphere("P_Skull", 0.20, MATS["AC_Cream"], col, loc=(0, -0.28, 0.48), scale=(1.04, 1.0, 0.95), u=16, v=12),
         add_sphere("P_Snout", 0.105, MATS["AC_Cream"], col, loc=(0, -0.44, 0.44), scale=(1.05, 0.95, 0.80)),
@@ -251,30 +235,27 @@ def build_pipoca(col):
         add_sphere("P_Patch", 0.095, MATS["AC_WoodLight"], col, loc=(-0.09, -0.37, 0.53), scale=(0.9, 0.6, 0.9)),
     ]
     head = join_around_pivot(head_parts, "Pipoca_Head", (0, -0.22, 0.38), col)
-    parent_keep(head, body)
+    exported.append(head)
 
-    # Floppy Ears pivoted on head sides!
     for side, sx in [("L", -0.17), ("R", 0.17)]:
         ep = [add_sphere(f"EarMesh_{side}", 0.085, MATS["AC_WoodWarm"], col, loc=(sx * 1.15, -0.26, 0.46), scale=(0.55, 0.85, 1.45))]
         ear = join_around_pivot(ep, f"Pipoca_Ear{side}", (sx, -0.26, 0.55), col)
-        parent_keep(ear, head)
+        exported.append(ear)
 
-    # Wagging Tail pivoted at rump!
     tp = [add_sphere("TailMesh", 0.072, MATS["AC_WoodLight"], col, loc=(0, 0.34, 0.40), scale=(0.75, 1.45, 0.85))]
     tail = join_around_pivot(tp, "Pipoca_Tail", (0, 0.26, 0.34), col)
-    parent_keep(tail, body)
+    exported.append(tail)
 
-    # 4 Articulated Legs!
     for lname, lx, ly in [("FL", -0.11, -0.15), ("FR", 0.11, -0.15), ("BL", -0.11, 0.16), ("BR", 0.11, 0.16)]:
         lp = [
             add_cyl(f"PLeg_{lname}", 0.048, 0.18, MATS["AC_Cream"], col, loc=(lx, ly, 0.10)),
             add_sphere(f"PPaw_{lname}", 0.056, MATS["AC_WoodLight"], col, loc=(lx, ly - 0.02, 0.035), scale=(1.0, 1.2, 0.65)),
         ]
         leg = join_around_pivot(lp, f"Pipoca_Leg{lname}", (lx, ly, 0.19), col)
-        parent_keep(leg, root)
+        exported.append(leg)
 
-    export_hierarchy(root, "PetDog")
-    return root
+    export_flat_parts(exported, "PetDog")
+    return exported
 
 
 def main():
@@ -283,9 +264,10 @@ def main():
     col = bpy.data.collections.new("ArticulatedChars")
     bpy.context.scene.collection.children.link(col)
 
-    protag = build_protagonist(col)
-    pipoca = build_pipoca(col)
-    pipoca.location = (1.1, 0.0, 0.0)
+    build_protagonist(col)
+    pipoca_objs = build_pipoca(col)
+    for o in pipoca_objs:
+        o.location.x += 1.1
 
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_OUT)
     print("[Articulated Blender Characters Complete]")

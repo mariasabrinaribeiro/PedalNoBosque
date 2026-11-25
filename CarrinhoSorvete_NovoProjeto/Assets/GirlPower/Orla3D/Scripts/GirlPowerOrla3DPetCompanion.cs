@@ -58,6 +58,14 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     private Transform pLegFR;
     private Transform pLegBL;
     private Transform pLegBR;
+    private Quaternion baseHeadRot = Quaternion.identity;
+    private Quaternion baseTailRot = Quaternion.identity;
+    private Quaternion baseEarLRot = Quaternion.identity;
+    private Quaternion baseEarRRot = Quaternion.identity;
+    private Quaternion baseLegFLRot = Quaternion.identity;
+    private Quaternion baseLegFRRot = Quaternion.identity;
+    private Quaternion baseLegBLRot = Quaternion.identity;
+    private Quaternion baseLegBRRot = Quaternion.identity;
     private Vector3 prevFramePos;
 
     private static readonly Vector3[] HiddenSpots =
@@ -95,6 +103,19 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
         pLegFR = FindChildRec(transform, "Pipoca_LegFR");
         pLegBL = FindChildRec(transform, "Pipoca_LegBL");
         pLegBR = FindChildRec(transform, "Pipoca_LegBR");
+        if (pHead != null)
+        {
+            if (pEarL != null && pEarL.parent != pHead) pEarL.SetParent(pHead, true);
+            if (pEarR != null && pEarR.parent != pHead) pEarR.SetParent(pHead, true);
+            baseHeadRot = pHead.localRotation;
+        }
+        if (pTail != null) baseTailRot = pTail.localRotation;
+        if (pEarL != null) baseEarLRot = pEarL.localRotation;
+        if (pEarR != null) baseEarRRot = pEarR.localRotation;
+        if (pLegFL != null) baseLegFLRot = pLegFL.localRotation;
+        if (pLegFR != null) baseLegFRRot = pLegFR.localRotation;
+        if (pLegBL != null) baseLegBLRot = pLegBL.localRotation;
+        if (pLegBR != null) baseLegBRRot = pLegBR.localRotation;
         prevFramePos = transform.position;
     }
 
@@ -121,23 +142,23 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
         float wagRate = excited ? 20f : 9f;
         float wagAmp = excited ? 36f : 18f;
         if (pTail != null)
-            pTail.localRotation = Quaternion.Euler(excited ? 18f : 0f, Mathf.Sin(t * wagRate) * wagAmp, 0f);
+            pTail.localRotation = baseTailRot * Quaternion.Euler(excited ? 18f : 0f, Mathf.Sin(t * wagRate) * wagAmp, 0f);
 
         float earFlop = speed > 0.35f ? Mathf.Abs(Mathf.Sin(t * 14f)) * 22f : Mathf.Sin(t * 3.5f) * 5f;
-        if (pEarL != null) pEarL.localRotation = Quaternion.Euler(0f, 0f, earFlop);
-        if (pEarR != null) pEarR.localRotation = Quaternion.Euler(0f, 0f, -earFlop);
+        if (pEarL != null) pEarL.localRotation = baseEarLRot * Quaternion.Euler(0f, 0f, earFlop);
+        if (pEarR != null) pEarR.localRotation = baseEarRRot * Quaternion.Euler(0f, 0f, -earFlop);
 
         if (pHead != null)
         {
             float headTilt = CurrentDetectiveSignal == DetectiveSignal.Chorar ? 18f : (CurrentDetectiveSignal == DetectiveSignal.Latir ? -14f : Mathf.Sin(t * 2.5f) * 4f);
-            pHead.localRotation = Quaternion.Euler(headTilt, 0f, excited ? Mathf.Sin(t * 6f) * 8f : 0f);
+            pHead.localRotation = baseHeadRot * Quaternion.Euler(headTilt, 0f, excited ? Mathf.Sin(t * 6f) * 8f : 0f);
         }
 
         float stride = speed > 0.25f ? Mathf.Sin(t * 16f) * 34f : 0f;
-        if (pLegFL != null) pLegFL.localRotation = Quaternion.Euler(stride, 0f, 0f);
-        if (pLegFR != null) pLegFR.localRotation = Quaternion.Euler(-stride, 0f, 0f);
-        if (pLegBL != null) pLegBL.localRotation = Quaternion.Euler(-stride, 0f, 0f);
-        if (pLegBR != null) pLegBR.localRotation = Quaternion.Euler(stride, 0f, 0f);
+        if (pLegFL != null) pLegFL.localRotation = baseLegFLRot * Quaternion.Euler(stride, 0f, 0f);
+        if (pLegFR != null) pLegFR.localRotation = baseLegFRRot * Quaternion.Euler(-stride, 0f, 0f);
+        if (pLegBL != null) pLegBL.localRotation = baseLegBLRot * Quaternion.Euler(-stride, 0f, 0f);
+        if (pLegBR != null) pLegBR.localRotation = baseLegBRRot * Quaternion.Euler(stride, 0f, 0f);
     }
 
     public void SetDetectiveAlert(Transform suspect, DetectiveSignal signal)
