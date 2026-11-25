@@ -418,58 +418,34 @@ public sealed class GirlPowerOrla3DThiefDetective : MonoBehaviour
         GirlPowerOrla3DUITheme.EnsureInitialized();
         float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
 
-        // Compact Detective Security Badge below top-left Order Card (only while thief event is active)
-        float bw = 326f * s;
-        Rect badge = new Rect(18f * s, 134f * s, bw, 42f * s);
-        GUI.Box(badge, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
-        GUI.DrawTexture(new Rect(badge.x + 8f * s, badge.y + 7f * s, 26f * s, 26f * s), GirlPowerOrla3DUITheme.IconPaw);
+        // Sleek semi-transparent TOP-RIGHT corner alert (leaves 100% of center view open & spacious!)
+        float aw = 290f * s;
+        float ah = IsThiefActive ? 112f * s : 52f * s;
+        Rect alert = new Rect(Screen.width - aw - 16f * s, 68f * s, aw, ah);
+        GUI.Box(alert, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
 
-        string secText = "Pipoca: " + ArrestsCount + "/" + arrestsToWin + " presos  •  " + DetectivePoints + " pts";
-        GUI.Label(new Rect(badge.x + 40f * s, badge.y + 3f * s, bw - 48f * s, 34f * s), secText,
-            new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle) { fontSize = Mathf.RoundToInt(12f * s), alignment = TextAnchor.MiddleLeft });
-
-        // Active Thief Alert Banner + One-Click Call Police [L] Button!
-        if (IsThiefActive || state == RaidState.PoliceResponding)
+        GUIStyle warnSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle)
         {
-            float aw = 510f * s;
-            float ah = IsThiefActive ? 104f * s : 56f * s;
-            Rect alert = new Rect((Screen.width - aw) * 0.5f, 82f * s, aw, ah);
-            GUI.Box(alert, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+            fontSize = Mathf.RoundToInt(11.5f * s),
+            alignment = TextAnchor.MiddleLeft,
+            wordWrap = true,
+            normal = { textColor = new Color(1f, 0.92f, 0.72f) }
+        };
+        GUI.DrawTexture(new Rect(alert.x + 10f * s, alert.y + 8f * s, 24f * s, 24f * s), GirlPowerOrla3DUITheme.IconPaw);
+        string cornerHead = IsThiefActive
+            ? livePipocaSignalText
+            : ("Pipoca: " + ArrestsCount + "/" + arrestsToWin + "  •  Polícia a caminho!");
+        GUI.Label(new Rect(alert.x + 38f * s, alert.y + 4f * s, aw - 48f * s, 36f * s), cornerHead, warnSt);
 
-            GUIStyle warnSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
-            {
-                fontSize = Mathf.RoundToInt(14f * s),
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.66f, 0.14f, 0.22f) }
-            };
-            GUI.Label(new Rect(alert.x + 14f * s, alert.y + 6f * s, aw - 28f * s, 30f * s), "🐾  " + livePipocaSignalText, warnSt);
+        if (IsThiefActive)
+        {
+            Color barCol = stealProgress < 0.55f ? new Color(0.98f, 0.76f, 0.28f) : new Color(0.94f, 0.30f, 0.36f);
+            GirlPowerOrla3DUITheme.DrawProgressBar(new Rect(alert.x + 12f * s, alert.y + 44f * s, aw - 24f * s, 10f * s), stealProgress, barCol);
 
-            if (IsThiefActive)
-            {
-                // Steal danger progress bar
-                Color barCol = stealProgress < 0.55f ? new Color(0.98f, 0.72f, 0.22f) : new Color(0.92f, 0.24f, 0.30f);
-                GirlPowerOrla3DUITheme.DrawProgressBar(new Rect(alert.x + 18f * s, alert.y + 38f * s, aw - 36f * s, 12f * s), stealProgress, barCol);
-
-                // Big glowing Call Police button!
-                if (GUI.Button(new Rect(alert.x + (aw - 280f * s) * 0.5f, alert.y + 56f * s, 280f * s, 40f * s),
-                    GirlPowerOrla3DLocalization.T("🚓  CHAMAR POLÍCIA (190)  [L]", "🚓  CALL POLICE (911)  [L]", "🚓  LLAMAR POLICÍA  [L]"),
-                    GirlPowerOrla3DUITheme.BtnPrimaryStyle))
-                    CallPoliceNow();
-
-                // Floating world alert directly above the Street Thief!
-                if (sceneCamera != null && thiefActor != null)
-                {
-                    Vector3 sp = sceneCamera.WorldToScreenPoint(thiefActor.position + Vector3.up * 2.15f);
-                    if (sp.z > 0.1f)
-                    {
-                        float fw = 178f * s;
-                        float fx = Mathf.Clamp(sp.x - fw * 0.5f, 16f * s, Screen.width - fw - 16f * s);
-                        float fy = Mathf.Clamp((Screen.height - sp.y) - 38f * s, 188f * s, Screen.height - 140f * s);
-                        if (GUI.Button(new Rect(fx, fy, fw, 36f * s), "⚠ LADRÃO! [L] Polícia", GirlPowerOrla3DUITheme.BtnDangerStyle))
-                            CallPoliceNow();
-                    }
-                }
-            }
+            if (GUI.Button(new Rect(alert.x + 12f * s, alert.y + 62f * s, aw - 24f * s, 38f * s),
+                GirlPowerOrla3DLocalization.T("🚓 Polícia (190) [L]", "🚓 Police (911) [L]", "🚓 Policía [L]"),
+                GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+                CallPoliceNow();
         }
     }
 }

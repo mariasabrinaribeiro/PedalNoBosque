@@ -20,9 +20,16 @@ public sealed class GirlPowerOrla3DCameraPost : MonoBehaviour
 
     private void OnEnable()
     {
+        // Crisp distant sharpness: MSAA 4x + Anisotropic texture filtering + Depth buffer for water!
+        if (QualitySettings.antiAliasing < 4) QualitySettings.antiAliasing = 4;
+        QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
+
         Camera cam = GetComponent<Camera>();
         if (cam != null)
+        {
+            cam.allowMSAA = true;
             cam.depthTextureMode |= DepthTextureMode.Depth;
+        }
         EnsureMaterial();
     }
 

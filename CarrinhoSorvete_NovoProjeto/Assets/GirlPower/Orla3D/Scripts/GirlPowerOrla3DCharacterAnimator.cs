@@ -41,6 +41,8 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private bool inWater;
     private float effectClock;
     private float prevYaw;
+    private Vector3 prevWorldPos;
+    private bool hasPrevWorldPos;
 
     // Articulated Blender 5.3 limb & face joints (auto-discovered at Start!)
     private Transform jointHead;
@@ -416,7 +418,7 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
     }
 
-    public void UpdateAnimation(Vector2 moveInput, bool running, bool talking, Vector3 worldPos)
+    public void UpdateAnimation(Vector2 moveInput, bool running, bool talking, Vector3 worldPos, float actualPlanarSpeed)
     {
         float dt = Time.deltaTime;
         float t = Time.time;
@@ -437,7 +439,11 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             return;
         }
 
-        bool moving = moveInput.sqrMagnitude > 0.01f;
+        // Drive the gait from displacement, not input. This prevents fast feet while accelerating,
+        // sliding against obstacles, or releasing the joystick.
+        float referenceSpeed = running ? 6.4f : 4.0f;
+        float speed01 = Mathf.Clamp01(actualPlanarSpeed / referenceSpeed);
+        bool moving = actualPlanarSpeed > 0.12f;
         UpdateArticulatedLimbs(moving, running, false, dt, t);
 
         if (inWater)
@@ -499,17 +505,29 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             return;
         }
 
-        // Standard cozy walking & running with turn banking + dust + wet sand footprints
-        if (moving)
-        {
-            float rate = running ? runStepRate : walkStepRate;
-            walkPhase += dt * rate;
-            float s = Mathf.Sin(walkPhase);
-            float hop = Mathf.Abs(s) * (running ? 0.18f : 0.11f);
-            float waddle = s * (running ? 6.5f : 4.0f) + turnTilt * 0.65f;
+        // Ground-speed synchronized walk/run cycle (eliminates foot sliding!) + vertical bobbing & forward sprint lean!
+        float actualSpeed = 0f;
+        if (hasPrevWorldPos && dt > 0.0001f)
+            actualSpeed = new Vector2(worldPos.x - prevWorldPos.x, worldPos.z - prevWorldPos.z).magnitude / dt;
+        prevWorldPos = worldPos;
+        hasPrevWorldPos = true;
 
-            visualRoot.localPosition = visualBaseLocalPos + new Vector3(0f, hop, 0f);
-            visualRoot.localRotation = Quaternion.Euler(running ? -6f : -2f, yaw, waddle);
+        if (moving && actualSpeed > 0.12f)
+        {
+            // Sync footstep cadence strictly to real ground displacement (2.55 rad per meter walked!)
+            float syncRate = Mathf.Clamp(actualSpeed * 2.55f, 4.8f, 17.5f);
+            walkPhase += dt * syncRate;
+            float s = Mathf.Sin(walkPhase);
+            float cadenceWeight = Mathf.Clamp01(actualSpeed / 3.2f);
+            float hop = Mathf.Abs(s) * (running ? 0.135f : 0.085f) * cadenceWeight;
+            float waddle = s * (running ? 4.2f : 2.6f) * cadenceWeight + turnTilt * 0.40f;
+            float forwardLean = running ? -9.0f : -3.2f;
+
+            float poseBlend = 1f - Mathf.Exp(-15f * dt);
+            Vector3 walkPose = visualBaseLocalPos + new Vector3(0f, hop, 0f);
+            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, walkPose, poseBlend);
+            Quaternion walkRotation = Quaternion.Euler(forwardLean * cadenceWeight, yaw, waddle);
+            visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, walkRotation, poseBlend);
 
             int stepHalf = Mathf.FloorToInt(walkPhase / Mathf.PI);
             if (stepHalf != lastStepHalf)

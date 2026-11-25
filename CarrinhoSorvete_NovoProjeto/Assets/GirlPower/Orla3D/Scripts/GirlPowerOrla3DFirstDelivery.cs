@@ -68,20 +68,21 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public float turnSpeed = 9.5f;
     public float interactionRadius = 2.9f;
 
-    [Header("Elevated Clear Diorama Camera (Hero Protagonist & Cart Framing)")]
-    public Vector3 cameraOffset = new Vector3(0f, 8.2f, -9.6f);
-    public float cameraPitch = 39.5f;
+    [Header("Open Spacious Horizon Camera (Wide Beach, Fairies & Town Horizon)")]
+    public Vector3 cameraOffset = new Vector3(0f, 9.2f, -14.2f);
+    public float cameraPitch = 32.5f;
     public float cameraSmoothTime = 0.22f;
     public float minZoom = 0.72f;
-    public float maxZoom = 1.48f;
+    public float maxZoom = 1.65f;
 
-    [Header("World Exploration Bounds (Safe Scenic Play Area — Zero Gray Void!)")]
+    [Header("World Exploration Bounds (Wide Promenade, Enterable Cafe & Open Beach!)")]
     public float minWorldX = -17.5f;
     public float maxWorldX = 36.8f;
-    public float minWorldZ = -6.9f;
-    public float maxWorldZ = 20.5f;
+    public float minWorldZ = -10.8f;
+    public float maxWorldZ = 21.5f;
 
     private Vector2 currentMoveVel;
+    private float actualPlanarSpeed;
     private Vector3 cameraVelRef;
     private float craftProgressTimer;
     private float craftProgressDuration;
@@ -218,6 +219,14 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     public void JumpToChapter(int chapter)
     {
+        currentMoveVel = Vector2.zero;
+        craftProgressTimer = 0f;
+        onCraftComplete = null;
+        if (characterAnimator != null)
+        {
+            characterAnimator.SetSurfing(false);
+            characterAnimator.SetLandMode(GirlPowerOrla3DCharacterAnimator.LandMode.Walk);
+        }
         cartOpen = false;
         inviteMenuOpen = false;
         routeChosen = false;
@@ -328,6 +337,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             audioController.SetTimerUrgency(urgency);
         }
 
+        actualPlanarSpeed = 0f;
         if (!talking && !viewingPhoto && !modalBlocked)
         {
             if (keys != null)
@@ -413,7 +423,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         UpdateDiegeticBeacon();
 
         if (characterAnimator != null)
-            characterAnimator.UpdateAnimation(input, running, talking, player.position);
+            characterAnimator.UpdateAnimation(input, running, talking, player.position, actualPlanarSpeed);
 
         FollowAnimalCrossingCamera(input);
     }
@@ -478,6 +488,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private void MovePlayer(Vector2 input, bool running)
     {
         float dt = Time.deltaTime;
+        if (dt <= 0f) return;
         bool isWheeled = characterAnimator != null && characterAnimator.CurrentLandMode != GirlPowerOrla3DCharacterAnimator.LandMode.Walk;
         bool isSurfingNow = player.position.z >= 9.6f;
 
@@ -500,6 +511,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         if (currentMoveVel.sqrMagnitude < 0.0005f)
         {
+            actualPlanarSpeed = 0f;
             if (isSurfingNow)
             {
                 Vector3 p = player.position;
@@ -527,6 +539,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         next.y = SampleGroundHeight(next.x, next.z);
         player.position = next;
+        actualPlanarSpeed = new Vector2(next.x - current.x, next.z - current.z).magnitude / dt;
 
         if (characterAnimator != null)
             characterAnimator.SetSurfing(next.z >= 9.6f);
@@ -605,8 +618,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     {
         if (sceneCamera == null) return;
         bool inWater = characterAnimator != null && characterAnimator.IsInWater;
-        Vector3 baseOff = inWater ? new Vector3(0f, 8.8f, -10.8f) : cameraOffset;
-        float targetPitch = inWater ? 41.0f : cameraPitch;
+        Vector3 baseOff = inWater ? new Vector3(0f, 9.8f, -15.4f) : cameraOffset;
+        float targetPitch = inWater ? 34.0f : cameraPitch;
 
         Vector3 scaledOffset = baseOff * zoomFactor;
         float lookAheadX = Mathf.Clamp(currentMoveVel.x * 0.26f, -1.5f, 1.5f);
@@ -1306,7 +1319,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (gameFlow != null && !gameFlow.IsPlaying) return;
         GirlPowerOrla3DUITheme.EnsureInitialized();
 
-        float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
+        float s = Mathf.Clamp(Screen.width / 1440f, 0.72f, 1.15f);
 
         // Floating diegetic numbers (+10 moedas, +1 Manjericão...)
         GirlPowerOrla3DUITheme.UpdateAndDrawFloatingFeedback(sceneCamera, Time.deltaTime, s);
@@ -1369,30 +1382,30 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawCompactOrderCard(float s)
     {
-        float cw = 326f * s;
-        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 110f * s : 92f * s;
+        float cw = 360f * s;
+        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 122f * s : 102f * s;
         Rect card = new Rect(18f * s, 18f * s, cw, ch);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         GetOrderVisuals(out Texture2D clientIcon, out Texture2D itemIcon, out string chapterTag, out string shortTask, out string counterBadge);
 
         // Client portrait badge on left
-        float iconSz = 56f * s;
-        GUI.DrawTexture(new Rect(card.x + 12f * s, card.y + 14f * s, iconSz, iconSz), clientIcon);
+        float iconSz = 64f * s;
+        GUI.DrawTexture(new Rect(card.x + 10f * s, card.y + 15f * s, iconSz, iconSz), clientIcon);
 
         // Order item mini-bubble overlapping bottom-right of portrait
-        float miniSz = 32f * s;
-        GUI.DrawTexture(new Rect(card.x + 44f * s, card.y + 44f * s, miniSz, miniSz), itemIcon);
+        float miniSz = 36f * s;
+        GUI.DrawTexture(new Rect(card.x + 42f * s, card.y + 48f * s, miniSz, miniSz), itemIcon);
 
         // Chapter pill & short visual objective
-        Rect tagRect = new Rect(card.x + 82f * s, card.y + 12f * s, 128f * s, 22f * s);
+        Rect tagRect = new Rect(card.x + 84f * s, card.y + 13f * s, 142f * s, 24f * s);
         GUI.Box(tagRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-        GUIStyle tagSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(11f * s) };
+        GUIStyle tagSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(12f * s) };
         GUI.Label(tagRect, chapterTag, tagSt);
 
         if (!string.IsNullOrEmpty(counterBadge))
         {
-            Rect cntRect = new Rect(card.xMax - 82f * s, card.y + 12f * s, 68f * s, 22f * s);
+            Rect cntRect = new Rect(card.xMax - 82f * s, card.y + 13f * s, 68f * s, 24f * s);
             GUI.Box(cntRect, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
             GUI.Label(cntRect, counterBadge, tagSt);
         }
@@ -1408,8 +1421,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             distSuffix = "  (" + arr + " " + Mathf.RoundToInt(m) + "m)";
         }
 
-        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(13.5f * s) };
-        GUI.Label(new Rect(card.x + 82f * s, card.y + 38f * s, cw - 94f * s, 42f * s), shortTask + distSuffix, taskSt);
+        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(15f * s), wordWrap = true };
+        GUI.Label(new Rect(card.x + 84f * s, card.y + 42f * s, cw - 98f * s, 48f * s), shortTask + distSuffix, taskSt);
 
         // Patience / Daylight Timer Bar
         if (gameFlow != null && gameFlow.HasActiveTimer)
@@ -1449,7 +1462,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 item = GirlPowerOrla3DUITheme.IconIceCreamLemonBasil;
                 tag = "CAPÍTULO 1";
                 task = "Entregar sorvete à Florista Luna";
-                counter = "1/1";
+                // The counter must remain incomplete until the delivery interaction advances the phase.
+                counter = "0/1";
                 break;
             case StoryPhase.Ch1_ReturningForUpgrade:
             case StoryPhase.Ch1_ChooseUpgrade:

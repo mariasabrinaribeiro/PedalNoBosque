@@ -68,17 +68,18 @@ Shader "GirlPower/OrlaACNHOcean"
             float t = _Time.y * _FoamSpeed;
             float3 wp = IN.worldPos;
 
-            // 1. Real Depth-Buffer comparison (Built-in equivalent of URP Scene Depth - Screen Position!)
+            // 1. Real Depth-Buffer comparison (hardened against unpopulated depth buffer returning 0!)
             float rawSceneDepth = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(IN.screenPos));
+            bool validDepth = (rawSceneDepth > 0.0002 && rawSceneDepth < 0.9998);
             float sceneEyeDepth = LinearEyeDepth(rawSceneDepth);
             float surfaceEyeDepth = IN.screenPos.w;
-            float depthDiff = max(0.0, sceneEyeDepth - surfaceEyeDepth);
+            float depthDiff = validDepth ? max(0.0, sceneEyeDepth - surfaceEyeDepth) : 4.0;
 
-            // Soft geometric fallback toward the far horizon so deep bay stays rich teal
+            // Soft geometric fallback toward the far horizon so deep bay stays rich vibrant turquoise-teal
             float shoreCurve = sin(wp.x * 0.18) * 0.45 + cos(wp.x * 0.44) * 0.18;
             float zFromShore = max(0.0, wp.z - (9.8 + shoreCurve));
-            float geoDepth = smoothstep(0.5, 11.5, zFromShore);
-            float depthT = saturate(max(depthDiff / max(0.05, _DepthDistance), geoDepth * 0.88));
+            float geoDepth = smoothstep(0.4, 11.5, zFromShore);
+            float depthT = saturate(validDepth ? max(depthDiff / max(0.05, _DepthDistance), geoDepth * 0.88) : geoDepth);
 
             fixed3 waterCol = lerp(_ShallowColor.rgb, _DeepColor.rgb, depthT);
 
@@ -88,12 +89,13 @@ Shader "GirlPower/OrlaACNHOcean"
             float shallowCaustic = smoothstep(0.45, 0.95, abs(c1 * c2)) * (1.0 - depthT) * 0.09;
             waterCol += fixed3(0.14, 0.24, 0.24) * shallowCaustic;
 
-            // 2. Organic Animated Shoreline-Only Foam (hugging sand, rocks & pier pilings!)
+            // 2. Organic Animated Shoreline-Only Foam (hugging sand, rocks & pier pilings — NEVER covering whole sea!)
             float nA = sin(wp.x * 1.75 + t * 3.2) * cos(wp.z * 1.95 - t * 2.6);
             float nB = sin(wp.x * 3.35 - wp.z * 2.65 + t * 4.0) * 0.45;
             float foamNoise = saturate(0.5 + 0.36 * (nA + nB));
 
-            float depthShore = 1.0 - saturate(depthDiff / max(0.05, _FoamDistance));
+            // Only trust depthShore near the actual shoreline/rocks (zFromShore < 4.5) so unpopulated depth never turns ocean white!
+            float depthShore = (validDepth && zFromShore < 4.5) ? (1.0 - saturate(depthDiff / max(0.05, _FoamDistance))) : 0.0;
             // Gentle rhythmic swash line right along the wet beach edge
             float swashWave = sin(t * 3.6 + wp.x * 0.26) * 0.28;
             float beachEdge = 1.0 - smoothstep(0.0, 0.58, abs(zFromShore - (0.42 + swashWave)));

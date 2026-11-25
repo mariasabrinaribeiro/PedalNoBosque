@@ -97,6 +97,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     public Camera sceneCamera;
     public Transform restaurantKitchen;
     public Transform[] restaurantTables;
+    public GameObject[] tableCustomers;
     public Transform gardenBed;
     public Transform fishingPier;
     public Transform beachTennisCourt;
@@ -185,6 +186,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         if (ambientController != null) lastPresetSeen = ambientController.currentPreset;
 
         InitTableOrders();
+        SyncVisibleTableCustomers();
         ApplySavedVisualStates();
     }
 
@@ -436,6 +438,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
                 }
             }
         }
+        SyncVisibleTableCustomers();
 
         // Update minigame cursors
         if (CurrentModal == ActiveModal.Fishing)
@@ -497,7 +500,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         {
             for (int i = 0; i < restaurantTables.Length; i++)
             {
-                if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active)
+                if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
                 {
                     DeliverTableOrder(i);
                     return true;
@@ -518,6 +521,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
 
     private void DeliverTableOrder(int idx)
     {
+        if (Orders == null || idx < 0 || idx >= Orders.Length || !Orders[idx].active || !IsTableCustomerVisible(idx)) return;
         TableOrder ord = Orders[idx];
         int reward = ord.baseReward;
         if (ord.isVip) reward *= 2;
@@ -547,6 +551,24 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         for (int i = 0; i < Orders.Length; i++)
             if (Orders[i].active) return i;
         return -1;
+    }
+
+    private void SyncVisibleTableCustomers()
+    {
+        if (tableCustomers == null) return;
+        for (int i = 0; i < tableCustomers.Length; i++)
+        {
+            GameObject guest = tableCustomers[i];
+            if (guest == null) continue;
+            bool shouldBeVisible = Orders != null && i < Orders.Length && Orders[i].active;
+            if (guest.activeSelf != shouldBeVisible) guest.SetActive(shouldBeVisible);
+        }
+    }
+
+    private bool IsTableCustomerVisible(int tableIndex)
+    {
+        return tableCustomers != null && tableIndex >= 0 && tableIndex < tableCustomers.Length
+            && tableCustomers[tableIndex] != null && tableCustomers[tableIndex].activeInHierarchy;
     }
 
     private bool Near(Transform t, float r)
@@ -609,7 +631,7 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         {
             for (int i = 0; i < restaurantTables.Length; i++)
             {
-                if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active)
+                if (Near(restaurantTables[i], 3.2f) && Orders != null && i < Orders.Length && Orders[i].active && IsTableCustomerVisible(i))
                 {
                     int idx = i;
                     DrawFloatingStationBtn(restaurantTables[i], "[E] Servir " + Orders[i].tableName, s, () => DeliverTableOrder(idx));
@@ -666,13 +688,18 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
 
     private void DrawModalTitle(Rect card, float s, string title)
     {
+        Rect titleRect = new Rect(card.x + 24f * s, card.y + 12f * s, card.width - 80f * s, 36f * s);
         GUIStyle st = new GUIStyle(GirlPowerOrla3DUITheme.HeadingStyle)
         {
             alignment = TextAnchor.MiddleLeft,
             fontSize = Mathf.RoundToInt(22f * s),
+            wordWrap = false,
+            clipping = TextClipping.Clip,
             normal = { textColor = new Color(0.18f, 0.44f, 0.36f) }
         };
-        GUI.Label(new Rect(card.x + 24f * s, card.y + 12f * s, card.width - 80f * s, 36f * s), title, st);
+        while (st.fontSize > Mathf.RoundToInt(13f * s) && st.CalcSize(new GUIContent(title)).x > titleRect.width)
+            st.fontSize--;
+        GUI.Label(titleRect, title, st);
     }
 
     private void DrawGardenModal(Rect card, float s)
@@ -1046,6 +1073,25 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
             if (lifeActivities != null) Data.coins = lifeActivities.Coins;
             string json = JsonUtility.ToJson(Data, true);
             File.WriteAllText(saveFilePath, json);
+        }
+        catch (Exception) { }
+    }
+
+    public string CaptureChapterAttemptSnapshot()
+    {
+        return Data != null ? JsonUtility.ToJson(Data) : "";
+    }
+
+    public void RestoreChapterAttemptSnapshot(string snapshot)
+    {
+        if (string.IsNullOrEmpty(snapshot)) return;
+        try
+        {
+            SaveData restored = JsonUtility.FromJson<SaveData>(snapshot);
+            if (restored == null) return;
+            Data = restored;
+            ApplySavedVisualStates();
+            SaveJson();
         }
         catch (Exception) { }
     }

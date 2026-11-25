@@ -86,6 +86,8 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private float menuOrbitClock;
     private int chapterCoinsStart;
     private int chapterPaintStart;
+    private string chapterSaveSnapshot = "";
+    private string[] chapterBagSnapshot;
 
     // Victory / Game Over data
     private int summaryChapter = 1;
@@ -114,14 +116,14 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         if (characterAnimator == null) characterAnimator = FindObjectOfType<GirlPowerOrla3DCharacterAnimator>();
         if (sceneCamera != null)
         {
-            sceneCamera.fieldOfView = 42f;
+            sceneCamera.fieldOfView = 48f;
             sceneCamera.depthTextureMode |= DepthTextureMode.Depth;
             GirlPowerOrla3DCameraPost cameraPost = sceneCamera.GetComponent<GirlPowerOrla3DCameraPost>();
             if (cameraPost != null)
             {
-                cameraPost.contrast = 1.06f;
-                cameraPost.saturation = 1.08f;
-                cameraPost.vignetteStrength = 0.14f;
+                cameraPost.contrast = 1.07f;
+                cameraPost.saturation = 1.10f;
+                cameraPost.vignetteStrength = 0.10f;
             }
         }
         GirlPowerOrla3DOcclusionFader occlusionFader = FindObjectOfType<GirlPowerOrla3DOcclusionFader>();
@@ -206,8 +208,13 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
 
     public void RestartCurrentChapter()
     {
-        // Restore coins cleanly to what the player had at the start of the chapter attempt!
-        if (lifeActivities != null) lifeActivities.SetCoinsDirect(chapterCoinsStart);
+        // Restore attempt-scoped inventory and progression before rebuilding the chapter state.
+        if (megaSystems != null) megaSystems.RestoreChapterAttemptSnapshot(chapterSaveSnapshot);
+        if (lifeActivities != null)
+        {
+            lifeActivities.SetCoinsDirect(chapterCoinsStart);
+            lifeActivities.RestoreBagItemsForChapterAttempt(chapterBagSnapshot);
+        }
         if (megaSystems != null)
         {
             megaSystems.Data.coins = chapterCoinsStart;
@@ -244,6 +251,8 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     public void BeginChapterTimer(int chapterNumber)
     {
         chapterCoinsStart = lifeActivities != null ? lifeActivities.Coins : 0;
+        chapterBagSnapshot = lifeActivities != null ? lifeActivities.CaptureBagItemsForChapterAttempt() : null;
+        chapterSaveSnapshot = megaSystems != null ? megaSystems.CaptureChapterAttemptSnapshot() : "";
         chapterPaintStart = (lifeActivities != null && lifeActivities.paintSystem != null)
             ? lifeActivities.paintSystem.StreetTilesPainted
             : 0;

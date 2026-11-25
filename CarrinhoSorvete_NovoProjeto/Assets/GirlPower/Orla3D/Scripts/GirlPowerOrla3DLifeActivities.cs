@@ -93,6 +93,20 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         Coins = Mathf.Max(0, value);
     }
 
+    public string[] CaptureBagItemsForChapterAttempt()
+    {
+        return bagItems.ToArray();
+    }
+
+    public void RestoreBagItemsForChapterAttempt(string[] snapshot)
+    {
+        bagItems.Clear();
+        if (snapshot != null) bagItems.AddRange(snapshot);
+        openShopIndex = -1;
+        activityToast = "";
+        toastTimer = 0f;
+    }
+
     public void AddItemToBag(string itemName)
     {
         if (string.IsNullOrEmpty(itemName)) return;
@@ -347,7 +361,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
 
         GirlPowerOrla3DUITheme.EnsureInitialized();
         GUI.color = Color.white;
-        float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
+        float s = Mathf.Clamp(Screen.width / 1440f, 0.72f, 1.15f);
 
         // ------------------------------------------------------------------
         // BOTTOM-LEFT: Crisp Illustrated Coins + Synced Inventory + Clear Labeled Controls (ZERO empty gray slots!)
@@ -483,7 +497,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         // Surfing / Water Sports indicator pill (subtle frosted glass at top-center)
         if (player.position.z >= 9.8f && (megaSystems == null || !megaSystems.CarryingRestaurantTray))
         {
-            string waterLbl = characterAnimator != null ? ("〰  " + characterAnimator.GetActiveMobilityName() + " na Baía!  [V troca]") : "〰  Surfando na Baía!";
+        string waterLbl = characterAnimator != null ? ("SURFE  " + characterAnimator.GetActiveMobilityName() + " na Baía!  [V troca]") : "SURFE  Surfando na Baía!";
             Rect surfPill = new Rect((Screen.width - 310f * s) * 0.5f, 20f * s, 310f * s, 38f * s);
             GUI.Box(surfPill, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
             GUI.Label(surfPill, waterLbl, GirlPowerOrla3DUITheme.BadgeTextStyle);

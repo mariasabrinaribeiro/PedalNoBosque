@@ -70,37 +70,37 @@ public static class GirlPowerOrla3DPropsBuilder
         Material bush = GetMat(mats, "AC_BushGreen");
         Material stoneDark = GetMat(mats, "AC_StoneDark");
 
-        // Crisp continuous boardwalk curbs defining walkway, lawn, and beach sand cleanly!
-        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Calcadao_Sul",
-            new Vector3(12f, 0.03f, -3.52f), new Vector3(92f, 0.12f, 0.22f), Quaternion.identity, stoneWhite, true);
+        // Crisp non-overlapping boardwalk curbs & widened south plaza (ZERO Z-fighting!)
+        // Note: OrlaEnvironmentBase already has StreetCurb at z=-3.55, AsphaltRoad top=-0.08 (z=-8.05..-3.55).
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Jardim_Interno",
-            new Vector3(12f, 0.025f, -0.58f), new Vector3(90f, 0.09f, 0.16f), Quaternion.identity, stoneWarm, false);
+            new Vector3(12f, 0.032f, -0.56f), new Vector3(90f, 0.06f, 0.16f), Quaternion.identity, stoneWarm, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Oeste",
-            new Vector3(-3.2f, 0.03f, 3.42f), new Vector3(31.5f, 0.12f, 0.24f), Quaternion.identity, stoneWhite, true);
+            new Vector3(-3.2f, 0.04f, 3.42f), new Vector3(31.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Leste",
-            new Vector3(28.5f, 0.03f, 3.42f), new Vector3(20.5f, 0.12f, 0.24f), Quaternion.identity, stoneWhite, true);
+            new Vector3(28.5f, 0.04f, 3.42f), new Vector3(20.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
 
-        // Continuous south sidewalk & coastal garden ground behind the road (z = -8.0 .. -26.0, zero gray void!)
+        // Widened south promenade & town terrace (cleanly stepped Y = -0.055 vs Asphalt -0.08 vs Lawn -0.12 => zero flicker!)
         MakePrim(grp.transform, PrimitiveType.Cube, "Calcada_Sul",
-            new Vector3(12f, -0.16f, -8.85f), new Vector3(96f, 0.16f, 1.8f), Quaternion.identity, stoneWarm, false);
+            new Vector3(12f, -0.135f, -9.85f), new Vector3(100f, 0.16f, 3.6f), Quaternion.identity, stoneWarm, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "Gramado_Bairro_Sul",
-            new Vector3(12f, -0.18f, -18.5f), new Vector3(106f, 0.20f, 18.0f), Quaternion.identity, grass, false);
+            new Vector3(12f, -0.22f, -20.5f), new Vector3(114f, 0.20f, 18.0f), Quaternion.identity, grass, false);
 
-        // Low coastal wooden fence & hedge along the far south & side map borders
+        // Low coastal wooden fence pushed back to z = -11.4 so player walks spaciously into the Cafe das Fadas!
         for (float x = -18f; x <= 38f; x += 4.0f)
         {
+            if (x >= 1.5f && x <= 10.5f) continue; // Keep front/entry around Cafe das Fadas wide open!
             MakePrim(grp.transform, PrimitiveType.Cube, "Cerca_Sul_Poste_" + x,
-                new Vector3(x, 0.34f, -7.85f), new Vector3(0.14f, 0.78f, 0.14f), Quaternion.identity, woodWarm, true);
+                new Vector3(x, 0.34f, -11.45f), new Vector3(0.14f, 0.78f, 0.14f), Quaternion.identity, woodWarm, true);
             MakePrim(grp.transform, PrimitiveType.Cube, "Cerca_Sul_Barra_" + x,
-                new Vector3(x + 2.0f, 0.50f, -7.85f), new Vector3(4.0f, 0.10f, 0.08f), Quaternion.identity, woodLight, false);
+                new Vector3(x + 2.0f, 0.50f, -11.45f), new Vector3(4.0f, 0.10f, 0.08f), Quaternion.identity, woodLight, false);
             MakePrim(grp.transform, PrimitiveType.Sphere, "Arbusto_Sul_" + x,
-                new Vector3(x + 1.2f, 0.22f, -8.25f), new Vector3(1.1f, 0.52f, 0.85f), Quaternion.identity, bush, false);
+                new Vector3(x + 1.2f, 0.22f, -11.85f), new Vector3(1.1f, 0.52f, 0.85f), Quaternion.identity, bush, false);
         }
 
         // West & East map edge natural boulder/hedge borders so player stays smoothly inside the scenic bay!
         foreach (float edgeX in new[] { -18.8f, 38.2f })
         {
-            for (float z = -7.0f; z <= 9.5f; z += 2.6f)
+            for (float z = -11.0f; z <= 9.5f; z += 2.6f)
             {
                 bool onBeach = z > 3.8f;
                 MakePrim(grp.transform, PrimitiveType.Sphere, "Limite_Lateral_" + edgeX + "_" + z,
@@ -110,15 +110,15 @@ public static class GirlPowerOrla3DPropsBuilder
             }
         }
 
-        // Continuous invisible blockers close the gaps between the visible edge props.
+        // Continuous invisible blockers close the gaps between the visible edge props (spanning wide promenade + Cafe + Sea!).
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Oeste",
-            new Vector3(-17.62f, 1.5f, 6.8f), new Vector3(0.24f, 4.0f, 27.8f));
+            new Vector3(-17.62f, 1.5f, 5.2f), new Vector3(0.24f, 4.0f, 34.0f));
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Leste",
-            new Vector3(36.92f, 1.5f, 6.8f), new Vector3(0.24f, 4.0f, 27.8f));
+            new Vector3(36.92f, 1.5f, 5.2f), new Vector3(0.24f, 4.0f, 34.0f));
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Sul",
-            new Vector3(9.6f, 1.5f, -7.02f), new Vector3(54.4f, 4.0f, 0.24f));
+            new Vector3(9.6f, 1.5f, -11.0f), new Vector3(54.8f, 4.0f, 0.24f));
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Mar",
-            new Vector3(9.6f, 1.5f, 20.62f), new Vector3(54.4f, 4.0f, 0.24f));
+            new Vector3(9.6f, 1.5f, 21.6f), new Vector3(54.8f, 4.0f, 0.24f));
     }
 
     private static void AddBoundaryBox(Transform parent, List<BoxCollider> obstacles, string name, Vector3 position, Vector3 size)
@@ -375,7 +375,7 @@ public static class GirlPowerOrla3DPropsBuilder
         {
             (new Vector3(-5.8f, 0f, 3.05f), 8f, "PRAIA ↓", mint),
             (new Vector3(12.2f, 0f, 3.10f), -6f, "PAVILHÃO →", coral),
-            (new Vector3(26.8f, 0f, 3.05f), -12f, "SURF 〰", mint)
+            (new Vector3(26.8f, 0f, 3.05f), -12f, "SURF", mint)
         };
 
         for (int i = 0; i < specs.Length; i++)
