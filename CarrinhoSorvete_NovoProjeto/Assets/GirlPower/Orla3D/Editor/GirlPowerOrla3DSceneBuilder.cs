@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v28_DirecaoArte_EixoZPadronizado";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v29_OrlaContinua_UXAcessivel";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -147,7 +147,12 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject stallDoces = PlaceModel(root.transform, "MarketStall_Doces", "Barraca - Doces e Cupcakes", new Vector3(-16.0f, 0f, -19.0f), 0f, 0.92f, cozyMats);
         GameObject stallSucos = PlaceModel(root.transform, "MarketStall_SucosRefri", "Barraca - Sucos, Agua e Refri", new Vector3(34.0f, 0f, -19.0f), 0f, 0.92f, cozyMats);
         foreach (GameObject st in new[] { stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
-            if (st != null) AddBlockingBox(st, new Vector3(0f, 2.0f, 0f), new Vector3(2.6f, 4.0f, 1.10f), obstacles);
+            if (st != null)
+            {
+                AddBlockingBox(st, new Vector3(0f, 2.0f, 0f), new Vector3(2.6f, 4.0f, 1.10f), obstacles);
+                // Smooth occlusion fade whenever any stall awning crosses between camera and protagonist!
+                ApplyFadeMaterials(st, false);
+            }
 
         // Letreiros acompanham o recuo da feira e permanecem legíveis a partir do passeio.
         Make3DText(root.transform, "Placa Sushi", new Vector3(-7.4f, 2.35f, -16.78f), "SUSHI", 1.38f, new Color32(255, 246, 224, 255), new Vector2(2.2f, 0.40f));
@@ -212,24 +217,25 @@ public static class GirlPowerOrla3DSceneBuilder
         for (int i = 0; i < mushroomSpots.Length; i++)
             PlaceModel(root.transform, "GlowingMushroomCluster", "Cogumelo Luminoso " + (i + 1), mushroomSpots[i], i * 52f, 0.88f + (i % 3) * 0.14f, cozyMats);
 
+        // Floating lanterns & decorative flower lamps concentrated strictly along the Lateral Plaza & Facades (ZERO crossing obstructions!)
         List<Transform> floatingLanterns = new List<Transform>();
         Vector3[] lanternSpots =
         {
-            new Vector3(-3.8f, 2.25f, -3.2f), new Vector3(2.8f, 2.35f, -5.4f), new Vector3(8.4f, 2.35f, -5.4f),
-            new Vector3(14.5f, 2.30f, -3.2f), new Vector3(23.2f, 2.25f, -3.0f), new Vector3(15.6f, 2.65f, 3.6f)
+            new Vector3(-7.4f, 2.95f, -8.8f), new Vector3(3.4f, 2.95f, -9.8f), new Vector3(9.0f, 2.95f, -9.8f),
+            new Vector3(15.6f, 2.95f, -8.8f), new Vector3(24.0f, 3.05f, -7.2f)
         };
         for (int i = 0; i < lanternSpots.Length; i++)
         {
-            GameObject fl = PlaceModel(root.transform, "FloatingLantern", "Lanterna Flutuante " + (i + 1), lanternSpots[i], i * 40f, 1.0f, cozyMats);
+            GameObject fl = PlaceModel(root.transform, "FloatingLantern", "Lanterna Flutuante " + (i + 1), lanternSpots[i], i * 40f, 0.92f, cozyMats);
             if (fl != null) floatingLanterns.Add(fl.transform);
         }
 
-        // Flower lamp posts tucked cleanly along the outer plaza edge (compact corner-safe collider!)
-        Vector3[] flowerLampSpots = { new Vector3(-3.8f, 0f, 1.55f), new Vector3(10.4f, 0f, 1.55f), new Vector3(20.8f, 0f, 1.55f) };
+        // Flower lamp posts placed back in the Lateral Plaza corners (never blocking the protagonist or delivery crossings!)
+        Vector3[] flowerLampSpots = { new Vector3(-5.8f, 0f, -8.2f), new Vector3(10.6f, 0f, -8.2f), new Vector3(21.4f, 0f, -8.2f) };
         for (int i = 0; i < flowerLampSpots.Length; i++)
         {
-            GameObject flp = PlaceModel(root.transform, "FlowerLampPost", "Poste com Flores " + (i + 1), flowerLampSpots[i], i == 1 ? 180f : 0f, 1.15f, cozyMats);
-            if (flp != null) AddBlockingBox(flp, new Vector3(0f, 1.8f, 0f), new Vector3(0.38f, 3.6f, 0.38f), obstacles);
+            GameObject flp = PlaceModel(root.transform, "FlowerLampPost", "Poste com Flores " + (i + 1), flowerLampSpots[i], i == 1 ? 180f : 0f, 0.96f, cozyMats);
+            if (flp != null) AddBlockingBox(flp, new Vector3(0f, 1.6f, 0f), new Vector3(0.36f, 3.2f, 0.36f), obstacles);
         }
 
         // Pet-Friendly Restaurant Tables grouped cleanly in the Lateral Gastronomy Plaza (z = -6.5f -> zero promenade block!)
@@ -349,23 +355,22 @@ public static class GirlPowerOrla3DSceneBuilder
             if (veg != null) AddBlockingBox(veg, new Vector3(0f, 0.72f, 0f), new Vector3(1.48f, 1.44f, 0.72f), obstacles);
         }
 
-        // Street lamps tucked along the outer promenade border with compact base colliders (zero corner encroachment!)
+        // Street lamps pushed cleanly back to the plaza border (z=-8.4, low compact profile) so NO post ever crosses the protagonist or promenade!
         Vector2[] lampCoords =
         {
-            new Vector2(-14.0f, -3.75f),
-            new Vector2(-4.0f, -3.75f),
-            new Vector2(10.8f, -3.75f),
-            new Vector2(16.4f, -3.75f),
-            new Vector2(27.2f, -3.75f),
-            new Vector2(35.0f, -3.75f)
+            new Vector2(-15.5f, -8.4f),
+            new Vector2(-4.4f, -8.4f),
+            new Vector2(12.2f, -8.4f),
+            new Vector2(27.8f, -8.4f),
+            new Vector2(35.0f, -8.4f)
         };
         for (int i = 0; i < lampCoords.Length; i++)
         {
             float rotY = lampCoords[i].x > 15f ? 180f : 0f;
-            GameObject lamp = PlaceModel(root.transform, "StreetLamp", "Poste Costeiro " + (i + 1), new Vector3(lampCoords[i].x, 0f, lampCoords[i].y), rotY, 1f, cozyMats);
-            if (lamp != null) AddBlockingBox(lamp, new Vector3(0f, 2.1f, 0f), new Vector3(0.36f, 4.2f, 0.36f), obstacles);
+            GameObject lamp = PlaceModel(root.transform, "StreetLamp", "Poste Costeiro " + (i + 1), new Vector3(lampCoords[i].x, 0f, lampCoords[i].y), rotY, 0.86f, cozyMats);
+            if (lamp != null) AddBlockingBox(lamp, new Vector3(0f, 1.8f, 0f), new Vector3(0.34f, 3.6f, 0.34f), obstacles);
             float lightOffsetX = rotY > 90f ? -0.52f : 0.52f;
-            warmLights.Add(CreateWarmLight(root.transform, "Luz Poste " + (i + 1), new Vector3(lampCoords[i].x + lightOffsetX, 2.75f, lampCoords[i].y), 1.45f, 7.5f));
+            warmLights.Add(CreateWarmLight(root.transform, "Luz Poste " + (i + 1), new Vector3(lampCoords[i].x + lightOffsetX, 2.55f, lampCoords[i].y), 1.45f, 8.2f));
         }
         // Cozy kiosk & florist awning glow synced to recessed plaza positions
         warmLights.Add(CreateWarmLight(root.transform, "Luz Quiosque", new Vector3(0f, 2.4f, -10.8f), 1.7f, 8.5f));
@@ -423,8 +428,9 @@ public static class GirlPowerOrla3DSceneBuilder
             idleCharacters.Add(pedCoral.transform);
         }
 
-        // 11. Hero Ice Cream Cart in dedicated pocket off the main 5m promenade (open front -> villagers pass freely!)
+        // 11. Hero Ice Cream Cart in dedicated open recess (raised & offset umbrella + smooth occlusion fade if player walks behind it!)
         GameObject cart = PlaceModel(root.transform, "IceCreamCart", "Carrinho de Sorvete", new Vector3(0.4f, 0f, -3.45f), 0f, 1.06f, cozyMats);
+        if (cart != null) ApplyFadeMaterials(cart, false);
 
         // Clean front plaque typography on the Hero Ice Cream Cart + Choice Upgrade 2
         GameObject cartPaintedSignUpgrade = null;
@@ -748,13 +754,8 @@ public static class GirlPowerOrla3DSceneBuilder
             }
         }
 
-        // Distant gliding horizon sailboats (background coastal motion!)
+        // Distant sailboats are handled exclusively by the 3 well-spaced, low-contrast Parallax Horizon vessels (no clutter!)
         List<Transform> distantBoats = new List<Transform>();
-        for (int i = 0; i < 2; i++)
-        {
-            GameObject db = PlaceModel(root.transform, "HawaiianCanoe", "Barquinho Horizonte " + (i + 1), new Vector3(-8f + i * 24f, -0.22f, 25.5f + i * 4.0f), i == 0 ? 90f : -90f, 1.35f, cozyMats);
-            if (db != null) distantBoats.Add(db.transform);
-        }
 
         // Seamless Café das Fadas Roof Fade Controller (strict interior 0.5m inset margin -> never flickers on outside sidewalk!)
         if (cafeRoof != null)
@@ -1388,7 +1389,7 @@ public static class GirlPowerOrla3DSceneBuilder
         cam.farClipPlane = 185f;
         cam.allowMSAA = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.64f, 0.77f, 0.87f);
+        cam.backgroundColor = new Color(0.74f, 0.87f, 0.95f);
         cam.depthTextureMode |= DepthTextureMode.Depth;
         camObj.AddComponent<AudioListener>();
         GirlPowerOrla3DCameraPost post = camObj.AddComponent<GirlPowerOrla3DCameraPost>();
@@ -1793,8 +1794,8 @@ public static class GirlPowerOrla3DSceneBuilder
             ("AC_Ocean", "#1FA6B2", 0.52f, null, 0f),         // Dominant: Vibrant Coastal Turquoise!
             ("AC_OceanShallow", "#2AC6CC", 0.48f, null, 0f),
             ("AC_Foam", "#F4FBFE", 0.20f, "#E2F4FA", 0.12f),
-            ("AC_HillDistant", "#68989A", 0.08f, null, 0f),
-            ("AC_HillFar", "#7A9EB0", 0.08f, null, 0f),
+            ("AC_HillDistant", "#8CBAD0", 0.06f, null, 0f),   // Soft sky-blended distant coastal silhouette (zero gray mass!)
+            ("AC_HillFar", "#A6CBE0", 0.05f, null, 0f),
 
             ("AC_StoneWhite", "#F2E9D6", 0.14f, null, 0f),
             ("AC_StoneWarm", "#E2D4BC", 0.14f, null, 0f),

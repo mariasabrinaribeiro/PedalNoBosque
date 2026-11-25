@@ -161,6 +161,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private Vector2 cameraPanOffsetXZ;
     private Rect topLeftHudRect;
     private Rect topRightHudRect;
+    private Rect bottomPanelHudRect;
+    private float floristReactionTimer;
+    private string floristReactionText = "";
 
     public float CurrentZoomFactor => zoomFactor;
 
@@ -225,7 +228,16 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     public bool IsUiPointBlocked(Vector2 guiPos)
     {
-        return topLeftHudRect.Contains(guiPos) || topRightHudRect.Contains(guiPos);
+        return topLeftHudRect.Contains(guiPos) || topRightHudRect.Contains(guiPos) || bottomPanelHudRect.Contains(guiPos);
+    }
+
+    private static Rect GetGuiSafeArea()
+    {
+        Rect sa = Screen.safeArea;
+        if (sa.width < 100f || sa.height < 100f)
+            return new Rect(0f, 0f, Screen.width, Screen.height);
+        // Convert Unity bottom-left safeArea to OnGUI top-left coordinates
+        return new Rect(sa.x, Screen.height - (sa.y + sa.height), sa.width, sa.height);
     }
 
     // Diegetic 3D Ground Beacon & Invisible Chapter 1 Onboarding Camera Pan
@@ -557,6 +569,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         UpdateStoryTriggers();
         UpdateDiegeticBeacon();
+        if (floristReactionTimer > 0f)
+            floristReactionTimer = Mathf.Max(0f, floristReactionTimer - Time.deltaTime);
 
         if (characterAnimator != null)
             characterAnimator.UpdateAnimation(input, running, talking, player.position, actualPlanarSpeed);
@@ -1056,38 +1070,26 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         {
             if (phase == StoryPhase.Ch1_Delivering)
             {
+                // Short, joyous, non-blocking Florist reaction: updates objective & returns movement control immediately without covering the path!
                 phase = StoryPhase.Ch1_ReturningForUpgrade;
                 SaveProgress();
                 if (megaSystems != null) megaSystems.RecordDelivery(15, florist.position);
                 else if (lifeActivities != null) lifeActivities.AddCoins(15);
-                GirlPowerOrla3DJuice.PopScale(florist, 1.20f, 0.36f);
-                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(florist.position, "+15 moedas  •  Foto Desbloqueada!", new Color(1f, 0.86f, 0.36f));
+                GirlPowerOrla3DJuice.PopScale(florist, 1.24f, 0.36f);
+                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(florist.position + Vector3.up * 0.4f, "+15 ★", new Color(1f, 0.86f, 0.36f), 2.0f);
                 if (characterAnimator != null)
                 {
                     characterAnimator.SetHoldingCone(false);
                     characterAnimator.TriggerCelebration();
                 }
                 if (audioController != null) audioController.PlayFanfare();
-                if (photoOverlay != null) photoOverlay.UnlockAndShow();
+                if (photoOverlay != null) photoOverlay.UnlockSilent();
 
-                if (dialogueController != null)
-                {
-                    dialogueController.ShowDialogue(
-                        "Florista Luna",
-                        new Color(0.76f, 0.44f, 0.72f, 1f),
-                        1.20f,
-                        new[]
-                        {
-                            "Limão com manjericão... espere um segundo! Eu reconheço esse sabor na hora.",
-                            "Olha esta fotografia antiga que eu guardo na banca: somos eu e minha irmã em frente ao Pavilhão da Baía do Avesso.",
-                            "Minha irmã fez esse letreiro. Ainda é ela quem guarda a chave. Volte ao carrinho para celebrar!"
-                        },
-                        () =>
-                        {
-                            if (photoOverlay != null) photoOverlay.Close();
-                        }
-                    );
-                }
+                floristReactionText = GirlPowerOrla3DLocalization.T(
+                    "Florista Luna: \"♥ Limão com manjericão! Que delícia! Volte ao carrinho para escolher sua melhoria!\"",
+                    "Florist Luna: \"♥ Lemon & basil! Delicious! Head back to the cart to pick your upgrade!\"",
+                    "Florista Luna: \"♥ ¡Limón con albahaca! ¡Qué rico! ¡Vuelve al carrito para elegir tu mejora!\"");
+                floristReactionTimer = 4.2f;
                 return;
             }
 
@@ -1562,21 +1564,22 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawCompactOrderCard(float s)
     {
-        // MOBILE LEGIBILITY (+70% font scale with crisp dark outline, still compact in extreme Top-Left corner!)
-        float cw = 342f * s;
-        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 94f * s : 78f * s;
-        Rect card = new Rect(14f * s, 14f * s, cw, ch);
+        Rect safe = GetGuiSafeArea();
+        float maxW = Mathf.Min(356f * s, safe.width * 0.54f);
+        float cw = Mathf.Max(230f * s, maxW);
+        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 104f * s : 88f * s;
+        Rect card = new Rect(safe.x + 12f * s, safe.y + 12f * s, cw, ch);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         GetOrderVisuals(out Texture2D clientIcon, out Texture2D itemIcon, out string chapterTag, out string shortTask, out string counterBadge);
 
         // Client portrait badge on left + overlapping order item mini-icon
-        float iconSz = 56f * s;
+        float iconSz = 54f * s;
         GUI.DrawTexture(new Rect(card.x + 10f * s, card.y + 10f * s, iconSz, iconSz), clientIcon);
-        float miniSz = 30f * s;
-        GUI.DrawTexture(new Rect(card.x + 38f * s, card.y + 38f * s, miniSz, miniSz), itemIcon);
+        float miniSz = 28f * s;
+        GUI.DrawTexture(new Rect(card.x + 36f * s, card.y + 36f * s, miniSz, miniSz), itemIcon);
 
-        // Concise directional distance + progress counter (enlarged +70% with outline for mobile screens!)
+        // Concise directional distance + progress counter (accessible shape+text badges with strong contrast over bright ocean!)
         Transform objTarget = GetActiveObjectiveTarget();
         string distStr = "";
         if (objTarget != null && player != null && !NearXZ(objTarget, 3.0f))
@@ -1587,23 +1590,29 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             distStr = arr + " " + Mathf.RoundToInt(m) + "m";
         }
 
-        Color darkOutline = new Color(0.14f, 0.10f, 0.14f, 0.90f);
-        GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(18f * s) };
+        Color darkOutline = new Color(0.10f, 0.08f, 0.12f, 0.94f);
+        GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(16.5f * s) };
         if (!string.IsNullOrEmpty(counterBadge))
         {
-            Rect cntRect = new Rect(card.x + 76f * s, card.y + 9f * s, 72f * s, 28f * s);
+            Rect cntRect = new Rect(card.x + 72f * s, card.y + 8f * s, 72f * s, 26f * s);
             GUI.Box(cntRect, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
             GirlPowerOrla3DUITheme.DrawOutlinedLabel(cntRect, counterBadge, badgeSt, Color.white, darkOutline, 1.2f);
         }
         if (!string.IsNullOrEmpty(distStr))
         {
-            Rect distRect = new Rect(card.x + 154f * s, card.y + 9f * s, 96f * s, 28f * s);
+            Rect distRect = new Rect(card.x + 150f * s, card.y + 8f * s, Mathf.Min(96f * s, cw - 158f * s), 26f * s);
             GUI.Box(distRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
             GirlPowerOrla3DUITheme.DrawOutlinedLabel(distRect, distStr, badgeSt, Color.white, darkOutline, 1.2f);
         }
 
-        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(18.5f * s), wordWrap = false };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(card.x + 76f * s, card.y + 40f * s, cw - 86f * s, 28f * s), shortTask, taskSt, new Color(0.22f, 0.14f, 0.10f), new Color(1f, 0.98f, 0.92f, 0.9f), 1.0f);
+        // Wrapped localized objective text (supports longer PT/EN/ES strings cleanly without truncation!)
+        GUIStyle taskSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+        {
+            fontSize = Mathf.RoundToInt(16.5f * s),
+            wordWrap = true,
+            alignment = TextAnchor.UpperLeft
+        };
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(card.x + 72f * s, card.y + 38f * s, cw - 82f * s, 44f * s), shortTask, taskSt, new Color(0.18f, 0.11f, 0.08f), new Color(1f, 0.98f, 0.92f, 0.92f), 1.0f);
 
         // Sleek Daylight/Patience Progress Bar tucked at bottom edge
         if (gameFlow != null && gameFlow.HasActiveTimer)
@@ -1612,20 +1621,20 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             Color barCol = ratio > 0.45f
                 ? new Color(0.165f, 0.776f, 0.80f)
                 : (ratio > 0.22f ? new Color(0.95f, 0.76f, 0.34f) : new Color(0.925f, 0.435f, 0.643f));
-            Rect barRect = new Rect(card.x + 12f * s, card.yMax - 19f * s, cw - 82f * s, 11f * s);
+            Rect barRect = new Rect(card.x + 12f * s, card.yMax - 18f * s, cw - 84f * s, 10f * s);
             GirlPowerOrla3DUITheme.DrawProgressBar(barRect, ratio, barCol);
 
             GUIStyle tmSt = new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle)
             {
                 alignment = TextAnchor.MiddleRight,
-                fontSize = Mathf.RoundToInt(16.5f * s),
-                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.20f, 0.30f) : new Color(0.32f, 0.22f, 0.16f) }
+                fontSize = Mathf.RoundToInt(15.5f * s),
+                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.16f, 0.26f) : new Color(0.24f, 0.16f, 0.12f) }
             };
-            GUI.Label(new Rect(card.xMax - 68f * s, card.yMax - 25f * s, 56f * s, 22f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
+            GUI.Label(new Rect(card.xMax - 70f * s, card.yMax - 24f * s, 58f * s, 22f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
         }
 
-        // Compact Icon-Only Resource Strip directly below (Large +70% Coins + 5 Pet Stars + Herbs!)
-        Rect resStrip = new Rect(card.x, card.yMax + 6f * s, cw, 44f * s);
+        // Compact Icon-Only Resource Strip directly below (High-contrast Coins + 5 Pet Stars + Herbs!)
+        Rect resStrip = new Rect(card.x, card.yMax + 6f * s, cw, 42f * s);
         GUI.Box(resStrip, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         int coins = lifeActivities != null ? lifeActivities.Coins : 0;
@@ -1633,32 +1642,52 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         int petStars = Mathf.Clamp(Mathf.RoundToInt(petRep / 20f), 0, 5);
         int herbs = basilLeaves + (megaSystems != null ? megaSystems.Data.organicHerbs : 0);
 
-        GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(21f * s), alignment = TextAnchor.MiddleLeft };
+        GUIStyle numSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle) { fontSize = Mathf.RoundToInt(19f * s), alignment = TextAnchor.MiddleLeft };
         float rx = resStrip.x + 10f * s;
-        float ry = resStrip.y + 8f * s;
-        float isz = 28f * s;
+        float ry = resStrip.y + 7f * s;
+        float isz = 26f * s;
 
-        // 1. Coins (+70% bold outlined counter)
         GUI.DrawTexture(new Rect(rx, ry, isz, isz), GirlPowerOrla3DUITheme.IconCoin);
-        GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(rx + isz + 4f * s, resStrip.y + 4f * s, 56f * s, 36f * s), coins.ToString(), numSt, new Color(1f, 0.94f, 0.68f), darkOutline, 1.3f);
-        rx += 88f * s;
+        GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(rx + isz + 4f * s, resStrip.y + 4f * s, 54f * s, 34f * s), coins.ToString(), numSt, new Color(1f, 0.94f, 0.68f), darkOutline, 1.3f);
+        rx += 82f * s;
 
-        // 2. Pet Reputation (Paw + 5 Golden Stars!)
-        GUI.DrawTexture(new Rect(rx, ry + 2f * s, 24f * s, 24f * s), GirlPowerOrla3DUITheme.IconPaw);
-        rx += 28f * s;
-        float starSz = 22f * s;
+        GUI.DrawTexture(new Rect(rx, ry + 1f * s, 22f * s, 22f * s), GirlPowerOrla3DUITheme.IconPaw);
+        rx += 26f * s;
+        float starSz = Mathf.Min(20f * s, (resStrip.xMax - rx - 74f * s) / 5.4f);
         for (int st = 0; st < 5; st++)
         {
             Texture2D starTex = (st < petStars) ? GirlPowerOrla3DUITheme.IconStarFilled : GirlPowerOrla3DUITheme.IconStarEmpty;
             GUI.DrawTexture(new Rect(rx + st * (starSz + 2f * s), resStrip.y + 11f * s, starSz, starSz), starTex);
         }
-        rx += 5 * (starSz + 2f * s) + 12f * s;
+        rx += 5 * (starSz + 2f * s) + 10f * s;
 
-        // 3. Organic Orchard Herbs
-        GUI.DrawTexture(new Rect(rx, ry + 1f * s, 26f * s, 26f * s), GirlPowerOrla3DUITheme.IconBasil);
-        GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(rx + 28f * s, resStrip.y + 4f * s, 40f * s, 36f * s), herbs.ToString(), numSt, new Color(0.84f, 1f, 0.78f), darkOutline, 1.3f);
+        if (rx + 54f * s <= resStrip.xMax)
+        {
+            GUI.DrawTexture(new Rect(rx, ry + 1f * s, 24f * s, 24f * s), GirlPowerOrla3DUITheme.IconBasil);
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(rx + 26f * s, resStrip.y + 4f * s, 38f * s, 34f * s), herbs.ToString(), numSt, new Color(0.84f, 1f, 0.78f), darkOutline, 1.3f);
+        }
 
         topLeftHudRect = new Rect(card.x - 6f, card.y - 6f, cw + 12f, (resStrip.yMax - card.y) + 12f);
+
+        // Short, non-blocking Florist delivery reaction banner (never blocks movement or covers the walkway!)
+        if (floristReactionTimer > 0f && !string.IsNullOrEmpty(floristReactionText))
+        {
+            float bw = Mathf.Min(540f * s, safe.width - 28f * s);
+            float bh = 68f * s;
+            float bx = safe.x + (safe.width - bw) * 0.5f;
+            float by = safe.y + 12f * s;
+            if (bx < topLeftHudRect.xMax + 8f) by = topLeftHudRect.yMax + 8f;
+            Rect toast = new Rect(bx, by, bw, bh);
+            GUI.Box(toast, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+            GUI.DrawTexture(new Rect(toast.x + 10f * s, toast.y + 10f * s, 48f * s, 48f * s), GirlPowerOrla3DUITheme.IconPortraitLuna);
+            GUIStyle reactSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+            {
+                fontSize = Mathf.RoundToInt(16f * s),
+                wordWrap = true,
+                alignment = TextAnchor.MiddleLeft
+            };
+            GUI.Label(new Rect(toast.x + 66f * s, toast.y + 6f * s, bw - 78f * s, bh - 12f * s), floristReactionText, reactSt);
+        }
     }
 
     private void GetOrderVisuals(out Texture2D client, out Texture2D item, out string tag, out string task, out string counter)
@@ -1669,73 +1698,104 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             case StoryPhase.Ch1_AtCart:
                 client = GirlPowerOrla3DUITheme.IconPortraitNina;
                 item = GirlPowerOrla3DUITheme.IconIceCreamLemonBasil;
-                tag = "CAPÍTULO 1";
-                task = "Montar Limão + Manjericão no carrinho";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 1", "CHAPTER 1", "CAPÍTULO 1");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Montar Limão + Manjericão no carrinho",
+                    "Build Lemon + Basil cone at the cart",
+                    "Armar Limón + Albahaca en el carrito");
                 counter = "0/1";
                 break;
             case StoryPhase.Ch1_Delivering:
                 client = GirlPowerOrla3DUITheme.IconPortraitLuna;
                 item = GirlPowerOrla3DUITheme.IconIceCreamLemonBasil;
-                tag = "CAPÍTULO 1";
-                task = "Entregar sorvete à Florista Luna";
-                // The counter must remain incomplete until the delivery interaction advances the phase.
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 1", "CHAPTER 1", "CAPÍTULO 1");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Entregar sorvete à Florista Luna",
+                    "Deliver ice cream to Florist Luna",
+                    "Entregar helado a la Florista Luna");
                 counter = "0/1";
                 break;
             case StoryPhase.Ch1_ReturningForUpgrade:
             case StoryPhase.Ch1_ChooseUpgrade:
                 client = GirlPowerOrla3DUITheme.IconPortraitNina;
                 item = GirlPowerOrla3DUITheme.IconBrush;
-                tag = "CAPÍTULO 1";
-                task = "Escolher melhoria no quiosque";
-                counter = "★";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 1", "CHAPTER 1", "CAPÍTULO 1");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Voltar ao carrinho e escolher melhoria",
+                    "Return to the cart and pick an upgrade",
+                    "Volver al carrito y elegir una mejora");
+                counter = "★ 1/1";
                 break;
             case StoryPhase.Ch2_HarvestBasil:
                 client = GirlPowerOrla3DUITheme.IconPortraitLuna;
                 item = GirlPowerOrla3DUITheme.IconBasil;
-                tag = "CAPÍTULO 2";
-                task = "Colher Manjericão ao lado do carrinho";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 2", "CHAPTER 2", "CAPÍTULO 2");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Colher Manjericão ao lado do carrinho",
+                    "Harvest Basil beside the cart",
+                    "Cosechar Albahaca junto al carrito");
                 counter = "0/1";
                 break;
             case StoryPhase.Ch2_CollectCards:
                 client = GirlPowerOrla3DUITheme.IconPortraitLuna;
                 item = GirlPowerOrla3DUITheme.IconPostcard;
-                tag = "CAPÍTULO 2";
-                task = "Recolher cartões levados pelo vento";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 2", "CHAPTER 2", "CAPÍTULO 2");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Recolher cartões levados pelo vento",
+                    "Collect postcards blown by the wind",
+                    "Recoger tarjetas llevadas por el viento");
                 counter = CountCollectedCards() + "/4";
                 break;
             case StoryPhase.Ch2_InviteChoice:
                 client = GirlPowerOrla3DUITheme.IconPortraitLuna;
                 item = GirlPowerOrla3DUITheme.IconPostcard;
-                tag = "CAPÍTULO 2";
-                task = "Falar com Luna sobre o convite";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 2", "CHAPTER 2", "CAPÍTULO 2");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Falar com Luna sobre o convite",
+                    "Talk to Luna about the invitation",
+                    "Hablar con Luna sobre la invitación");
                 counter = "4/4";
                 break;
             case StoryPhase.Ch2_DeliverInviteToMarina:
                 client = GirlPowerOrla3DUITheme.IconPortraitMarina;
                 item = GirlPowerOrla3DUITheme.IconPostcard;
-                tag = "CAPÍTULO 2";
-                task = "Entregar convite à Marina no calçadão";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 2", "CHAPTER 2", "CAPÍTULO 2");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Entregar convite à Marina no calçadão",
+                    "Deliver invitation to Marina on the boardwalk",
+                    "Entregar invitación a Marina en el paseo");
                 counter = "♥";
                 break;
             case StoryPhase.Ch3_PrepareFestivalTreat:
                 client = GirlPowerOrla3DUITheme.IconPortraitNina;
                 item = GirlPowerOrla3DUITheme.IconFestivalTrio;
-                tag = "CAPÍTULO 3";
-                task = "Preparar Trio da Festa com Manjericão";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 3", "CHAPTER 3", "CAPÍTULO 3");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Preparar Trio da Festa com Manjericão",
+                    "Prepare Festival Trio with Basil",
+                    "Preparar Trío de Fiesta con Albahaca");
                 counter = basilLeaves > 0 ? "OK" : "0/1";
                 break;
             case StoryPhase.Ch3_RestorePavilion:
                 client = GirlPowerOrla3DUITheme.IconPortraitPavilion;
                 item = GirlPowerOrla3DUITheme.IconGoldenKey;
-                tag = "CAPÍTULO 3";
-                task = "Acender o Pavilhão na Maré Baixa";
-                counter = (ambientController != null && ambientController.isHighTide) ? "MARÉ!" : "PRONTO";
+                tag = GirlPowerOrla3DLocalization.T("CAPÍTULO 3", "CHAPTER 3", "CAPÍTULO 3");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Acender o Pavilhão na Maré Baixa",
+                    "Light up the Pavilion at Low Tide",
+                    "Encender el Pabellón en Marea Baja");
+                counter = (ambientController != null && ambientController.isHighTide)
+                    ? GirlPowerOrla3DLocalization.T("MARÉ!", "TIDE!", "¡MAREA!")
+                    : GirlPowerOrla3DLocalization.T("PRONTO", "READY", "LISTO");
                 break;
             default:
                 client = GirlPowerOrla3DUITheme.IconPortraitPavilion;
                 item = GirlPowerOrla3DUITheme.IconFestivalTrio;
-                tag = "FESTA FINAL";
-                task = "Baía do Avesso viva! Explore e celebre";
+                tag = GirlPowerOrla3DLocalization.T("FESTA FINAL", "FINAL FESTIVAL", "FIESTA FINAL");
+                task = GirlPowerOrla3DLocalization.T(
+                    "Orla das Fadas viva! Explore e celebre",
+                    "Orla das Fadas alive! Explore & celebrate",
+                    "¡Orla das Fadas viva! Explora y celebra");
                 counter = "★★★";
                 break;
         }
@@ -1743,16 +1803,18 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawTopRightIconBar(float s)
     {
-        // 15%-SCREEN RULE: Single sleek Top-Right frosted-glass icon bar (Cardápio, Mobility, Pipoca, Time, Tide, Photo, Pause!)
+        // Safe-area anchored Top-Right frosted-glass bar (scales cleanly for narrow & wide mobile screens!)
+        Rect safe = GetGuiSafeArea();
         bool hasPhoto = photoOverlay != null && photoOverlay.IsUnlocked;
-        float btnSz = 42f * s;
-        float gap = 7f * s;
         int count = hasPhoto ? 7 : 6;
+        float maxBarW = Mathf.Max(220f * s, safe.width * 0.42f);
+        float btnSz = Mathf.Min(42f * s, (maxBarW - 14f * s - (count - 1) * 6f * s) / count);
+        float gap = 6f * s;
         float barW = count * btnSz + (count - 1) * gap + 14f * s;
         float barH = btnSz + 12f * s;
-        Rect strip = new Rect(Screen.width - barW - 14f * s, 14f * s, barW, barH);
+        Rect strip = new Rect(safe.xMax - barW - 12f * s, safe.y + 12f * s, barW, barH);
         GUI.Box(strip, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
-        topRightHudRect = new Rect(strip.x - 6f, strip.y - 6f, strip.width + 12f, strip.height + 64f * s);
+        topRightHudRect = new Rect(strip.x - 6f, strip.y - 6f, strip.width + 12f, strip.height + 54f * s);
 
         float x = strip.x + 7f * s;
         float y = strip.y + 6f * s;
@@ -1823,48 +1885,162 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     private void DrawStoryChoicePanels(float s)
     {
-        float y = 142f * s;
+        Rect safe = GetGuiSafeArea();
+        bottomPanelHudRect = Rect.zero;
+
         if (phase == StoryPhase.Ch1_AtCart && cartOpen)
         {
-            float pw = 560f * s;
-            Rect box = new Rect((Screen.width - pw) * 0.5f, y, pw, 128f * s);
+            // BOTTOM-DOCKED ONE-HANDED ASSEMBLY PANEL:
+            // - Florist's order always visible at top
+            // - Assembled cone preview at center
+            // - Illustrated & named ingredients with shape markers (never color-only!)
+            // - "Confirmar pedido" button locked in the EXACT SAME position throughout assembly!
+            float pw = Mathf.Min(680f * s, safe.width - 20f * s);
+            float ph = Mathf.Min(292f * s, safe.height * 0.44f);
+            float px = safe.x + (safe.width - pw) * 0.5f;
+            float py = safe.yMax - ph - 10f * s;
+            Rect box = new Rect(px, py, pw, ph);
+            bottomPanelHudRect = box;
             GUI.Box(box, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-            GUI.Label(new Rect(box.x + 18f * s, box.y + 10f * s, pw - 36f * s, 28f * s), "ESCOLHA O SABOR DO SORVETE:", GirlPowerOrla3DUITheme.BodyDarkStyle);
 
-            float by = box.y + 46f * s;
-            if (GUI.Button(new Rect(box.x + 18f * s, by, 212f * s, 44f * s), "1  Limão + Manjericão", selectedFlavor == "Limão com Manjericão" ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnTileStyle))
-                SelectFlavor("Limão com Manjericão");
-            if (GUI.Button(new Rect(box.x + 238f * s, by, 146f * s, 44f * s), "2  Morango", GirlPowerOrla3DUITheme.BtnTileStyle))
-                SelectFlavor("Morango");
-            if (GUI.Button(new Rect(box.x + 392f * s, by, 150f * s, 44f * s), "3  Baunilha", GirlPowerOrla3DUITheme.BtnTileStyle))
-                SelectFlavor("Baunilha");
-
-            if (selectedFlavor == "Limão com Manjericão")
+            // 1. Florist Order Header Bar (always visible while assembling!)
+            Rect orderBar = new Rect(box.x + 12f * s, box.y + 10f * s, pw - 24f * s, 48f * s);
+            GUI.Box(orderBar, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
+            GUI.DrawTexture(new Rect(orderBar.x + 8f * s, orderBar.y + 5f * s, 38f * s, 38f * s), GirlPowerOrla3DUITheme.IconPortraitLuna);
+            GUI.DrawTexture(new Rect(orderBar.xMax - 46f * s, orderBar.y + 5f * s, 38f * s, 38f * s), GirlPowerOrla3DUITheme.IconIceCreamLemonBasil);
+            string orderText = GirlPowerOrla3DLocalization.T(
+                "PEDIDO DA FLORISTA:  ◆ Limão + ♣ Manjericão",
+                "FLORIST'S ORDER:  ◆ Lemon + ♣ Basil",
+                "PEDIDO DE LA FLORISTA:  ◆ Limón + ♣ Albahaca");
+            GUIStyle orderSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle)
             {
-                if (GUI.Button(new Rect(box.x + (pw - 220f * s) * 0.5f, box.yMax - 30f * s, 220f * s, 44f * s), "MONTAR CASQUINHA [E]", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+                fontSize = Mathf.RoundToInt(16f * s),
+                wordWrap = true,
+                alignment = TextAnchor.MiddleCenter
+            };
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(orderBar.x + 50f * s, orderBar.y + 2f * s, orderBar.width - 100f * s, orderBar.height - 4f * s),
+                orderText, orderSt, Color.white, new Color(0.08f, 0.16f, 0.18f, 0.92f), 1.2f);
+
+            // 2. Center Cone Preview Area + Status Label
+            float previewH = 74f * s;
+            float previewY = orderBar.yMax + 8f * s;
+            Rect previewBox = new Rect(box.x + 14f * s, previewY, pw - 28f * s, previewH);
+            GUI.Box(previewBox, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
+
+            bool matchesOrder = selectedFlavor == "Limão com Manjericão";
+            float coneSz = 58f * s;
+            Rect coneRect = new Rect(previewBox.x + (previewBox.width - coneSz) * 0.5f - 78f * s, previewBox.y + (previewH - coneSz) * 0.5f, coneSz, coneSz);
+            Color prevGuiCol = GUI.color;
+            GUI.color = selectedFlavor == "Morango"
+                ? new Color(1f, 0.72f, 0.82f)
+                : (selectedFlavor == "Baunilha" ? new Color(1f, 0.96f, 0.82f) : Color.white);
+            GUI.DrawTexture(coneRect, GirlPowerOrla3DUITheme.IconIceCreamLemonBasil);
+            GUI.color = prevGuiCol;
+            if (matchesOrder)
+                GUI.DrawTexture(new Rect(coneRect.xMax - 20f * s, coneRect.y - 2f * s, 24f * s, 24f * s), GirlPowerOrla3DUITheme.IconBasil);
+
+            string currentConeLabel = string.IsNullOrEmpty(selectedFlavor)
+                ? GirlPowerOrla3DLocalization.T("Casquinha pronta — toque no sabor abaixo", "Cone ready — tap a flavor below", "Cono listo — toca un sabor abajo")
+                : (matchesOrder
+                    ? GirlPowerOrla3DLocalization.T("✓ Casquinha: ◆ Limão + ♣ Manjericão (Pronto!)", "✓ Cone: ◆ Lemon + ♣ Basil (Ready!)", "✓ Cono: ◆ Limón + ♣ Albahaca (¡Listo!)")
+                    : GirlPowerOrla3DLocalization.T("Casquinha: " + selectedFlavor + " (troque para Limão + Manjericão)", "Cone: " + selectedFlavor + " (switch to Lemon + Basil)", "Cono: " + selectedFlavor + " (cambia a Limón + Albahaca)"));
+            GUIStyle prevSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle)
+            {
+                fontSize = Mathf.RoundToInt(15.5f * s),
+                wordWrap = true,
+                alignment = TextAnchor.MiddleLeft
+            };
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(new Rect(coneRect.xMax + 12f * s, previewBox.y + 4f * s, previewBox.xMax - (coneRect.xMax + 20f * s), previewH - 8f * s),
+                currentConeLabel, prevSt, matchesOrder ? new Color(0.86f, 1f, 0.82f) : Color.white, new Color(0.10f, 0.08f, 0.14f, 0.90f), 1.1f);
+
+            // 3. Illustrated & Named Ingredient Tiles (accessible shape markers + clear selection check!)
+            float rowY = previewBox.yMax + 8f * s;
+            float gap = 8f * s;
+            float tileW = (pw - 28f * s - gap * 2f) / 3f;
+            float tileH = 66f * s;
+
+            var options = new (string key, string label, Texture2D icon, Color tint)[]
+            {
+                ("Limão com Manjericão", GirlPowerOrla3DLocalization.T("◆ Limão +\n♣ Manjericão", "◆ Lemon +\n♣ Basil", "◆ Limón +\n♣ Albahaca"), GirlPowerOrla3DUITheme.IconIceCreamLemonBasil, Color.white),
+                ("Morango", GirlPowerOrla3DLocalization.T("● Morango", "● Strawberry", "● Fresa"), GirlPowerOrla3DUITheme.IconIceCreamLemonBasil, new Color(1f, 0.70f, 0.82f)),
+                ("Baunilha", GirlPowerOrla3DLocalization.T("▲ Baunilha", "▲ Vanilla", "▲ Vainilla"), GirlPowerOrla3DUITheme.IconIceCreamLemonBasil, new Color(1f, 0.95f, 0.80f))
+            };
+
+            GUIStyle tileLblSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+            {
+                fontSize = Mathf.RoundToInt(14.5f * s),
+                wordWrap = true,
+                alignment = TextAnchor.MiddleLeft
+            };
+            for (int i = 0; i < options.Length; i++)
+            {
+                bool isSel = selectedFlavor == options[i].key;
+                Rect tr = new Rect(box.x + 14f * s + i * (tileW + gap), rowY, tileW, tileH);
+                if (GUI.Button(tr, GUIContent.none, isSel ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnTileStyle))
+                    SelectFlavor(options[i].key);
+                float ic = 34f * s;
+                Color oldC = GUI.color;
+                GUI.color = options[i].tint;
+                GUI.DrawTexture(new Rect(tr.x + 8f * s, tr.y + (tileH - ic) * 0.5f, ic, ic), options[i].icon);
+                GUI.color = oldC;
+                string txt = (isSel ? "✓ " : "") + options[i].label;
+                Color tc = isSel ? Color.white : new Color(0.20f, 0.13f, 0.09f);
+                tileLblSt.normal.textColor = tc;
+                GUI.Label(new Rect(tr.x + ic + 14f * s, tr.y + 4f * s, tr.width - ic - 18f * s, tileH - 8f * s), txt, tileLblSt);
+            }
+
+            // 4. FIXED-POSITION BOTTOM ACTION BAR ("Confirmar pedido" stays in the EXACT SAME spot throughout assembly!)
+            float btnY = rowY + tileH + 10f * s;
+            float btnH = Mathf.Max(42f * s, box.yMax - btnY - 10f * s);
+            float closeW = Mathf.Min(120f * s, (pw - 36f * s) * 0.28f);
+            float confirmW = (pw - 36f * s) - closeW;
+
+            string closeTxt = GirlPowerOrla3DLocalization.T("Fechar", "Close", "Cerrar");
+            if (GUI.Button(new Rect(box.x + 14f * s, btnY, closeW, btnH), closeTxt, GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+                cartOpen = false;
+
+            string confirmTxt = matchesOrder
+                ? GirlPowerOrla3DLocalization.T("✓  CONFIRMAR PEDIDO [E]", "✓  CONFIRM ORDER [E]", "✓  CONFIRMAR PEDIDO [E]")
+                : GirlPowerOrla3DLocalization.T("CONFIRMAR PEDIDO", "CONFIRM ORDER", "CONFIRMAR PEDIDO");
+            Rect confirmRect = new Rect(box.x + 14f * s + closeW + 8f * s, btnY, confirmW, btnH);
+            if (GUI.Button(confirmRect, confirmTxt, matchesOrder ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnTileStyle))
+            {
+                if (matchesOrder)
                     Interact();
+                else
+                    GirlPowerOrla3DUITheme.SpawnFloatingFeedback(cart != null ? cart.position : player.position,
+                        GirlPowerOrla3DLocalization.T("Escolha ◆ Limão + ♣ Manjericão!", "Pick ◆ Lemon + ♣ Basil!", "¡Elige ◆ Limón + ♣ Albahaca!"),
+                        new Color(1f, 0.85f, 0.42f), 1.6f);
             }
         }
         else if (phase == StoryPhase.Ch1_ChooseUpgrade && cartOpen)
         {
-            float pw = 580f * s;
-            Rect box = new Rect((Screen.width - pw) * 0.5f, y, pw, 114f * s);
+            float pw = Mathf.Min(580f * s, safe.width - 24f * s);
+            float ph = 128f * s;
+            Rect box = new Rect(safe.x + (safe.width - pw) * 0.5f, safe.yMax - ph - 14f * s, pw, ph);
+            bottomPanelHudRect = box;
             GUI.Box(box, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-            GUI.Label(new Rect(box.x + 18f * s, box.y + 12f * s, pw - 36f * s, 28f * s), "ESCOLHA A MELHORIA DO QUIOSQUE:", GirlPowerOrla3DUITheme.BodyDarkStyle);
-            if (GUI.Button(new Rect(box.x + 18f * s, box.y + 50f * s, 264f * s, 46f * s), "1  Toldo Listrado", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            string upgTitle = GirlPowerOrla3DLocalization.T("ESCOLHA A MELHORIA DO QUIOSQUE:", "CHOOSE YOUR KIOSK UPGRADE:", "ELIGE LA MEJORA DEL QUIOSCO:");
+            GUI.Label(new Rect(box.x + 18f * s, box.y + 12f * s, pw - 36f * s, 30f * s), upgTitle, GirlPowerOrla3DUITheme.BodyDarkStyle);
+            float bw = (pw - 48f * s) * 0.5f;
+            if (GUI.Button(new Rect(box.x + 18f * s, box.y + 56f * s, bw, 52f * s), GirlPowerOrla3DLocalization.T("1  Toldo Listrado", "1  Striped Awning", "1  Toldo Rayado"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 ApplyUpgradeChoice("Toldo Listrado");
-            if (GUI.Button(new Rect(box.x + 298f * s, box.y + 50f * s, 264f * s, 46f * s), "2  Placa Pintada", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            if (GUI.Button(new Rect(box.x + 30f * s + bw, box.y + 56f * s, bw, 52f * s), GirlPowerOrla3DLocalization.T("2  Placa Pintada", "2  Painted Sign", "2  Letrero Pintado"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 ApplyUpgradeChoice("Placa Pintada");
         }
         else if (phase == StoryPhase.Ch2_InviteChoice && inviteMenuOpen)
         {
-            float pw = 620f * s;
-            Rect box = new Rect((Screen.width - pw) * 0.5f, y, pw, 114f * s);
+            float pw = Mathf.Min(620f * s, safe.width - 24f * s);
+            float ph = 128f * s;
+            Rect box = new Rect(safe.x + (safe.width - pw) * 0.5f, safe.yMax - ph - 14f * s, pw, ph);
+            bottomPanelHudRect = box;
             GUI.Box(box, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-            GUI.Label(new Rect(box.x + 18f * s, box.y + 12f * s, pw - 36f * s, 28f * s), "CONVITE PARA MARINA — COMO AJUDAR LUNA?", GirlPowerOrla3DUITheme.BodyDarkStyle);
-            if (GUI.Button(new Rect(box.x + 18f * s, box.y + 50f * s, 284f * s, 46f * s), "1  Entregar a Marina", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            string invTitle = GirlPowerOrla3DLocalization.T("CONVITE PARA MARINA — COMO AJUDAR LUNA?", "INVITE FOR MARINA — HOW TO HELP LUNA?", "INVITACIÓN PARA MARINA — ¿CÓMO AYUDAR A LUNA?");
+            GUI.Label(new Rect(box.x + 18f * s, box.y + 12f * s, pw - 36f * s, 30f * s), invTitle, GirlPowerOrla3DUITheme.BodyDarkStyle);
+            float bw = (pw - 48f * s) * 0.5f;
+            if (GUI.Button(new Rect(box.x + 18f * s, box.y + 56f * s, bw, 52f * s), GirlPowerOrla3DLocalization.T("1  Entregar a Marina", "1  Deliver to Marina", "1  Entregar a Marina"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 ChooseInviteApproach("Pessoalmente");
-            if (GUI.Button(new Rect(box.x + 318f * s, box.y + 50f * s, 284f * s, 46f * s), "2  Dar Coragem a Luna", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            if (GUI.Button(new Rect(box.x + 30f * s + bw, box.y + 56f * s, bw, 52f * s), GirlPowerOrla3DLocalization.T("2  Dar Coragem a Luna", "2  Encourage Luna", "2  Dar Ánimo a Luna"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 ChooseInviteApproach("Coragem");
         }
     }
@@ -1874,14 +2050,15 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (!TryGetNearbyInteractable(out Transform target, out string actionLabel)) return;
         if (target == null) return;
 
-        // Fixed, consistent bottom-center primary action region (reserves strong accent color for the main action!)
+        Rect safe = GetGuiSafeArea();
         string text = "[E]  " + actionLabel;
-        float w = Mathf.Clamp(92f * s + text.Length * 7.8f * s, 215f * s, 360f * s);
-        float h = 46f * s;
-        float x = (Screen.width - w) * 0.5f;
-        float y = Screen.height - 118f * s;
+        float w = Mathf.Clamp(92f * s + text.Length * 7.8f * s, 215f * s, Mathf.Min(360f * s, safe.width - 28f * s));
+        float h = 48f * s;
+        float x = safe.x + (safe.width - w) * 0.5f;
+        float y = safe.yMax - 64f * s;
 
         Rect pill = new Rect(x, y, w, h);
+        bottomPanelHudRect = pill;
         if (GUI.Button(pill, text, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             Interact();
     }

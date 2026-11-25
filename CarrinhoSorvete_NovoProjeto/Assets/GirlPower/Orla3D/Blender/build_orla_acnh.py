@@ -1042,6 +1042,32 @@ def build_lifeguard_tower(target_col):
     return join_collection_to_single_mesh(tmp, "LifeguardTower", target_col)
 
 
+def make_smile(name, mat, col, location, width=0.14, dip=0.028, thickness=0.007):
+    curve = bpy.data.curves.new(name, type="CURVE")
+    curve.dimensions = "3D"
+    curve.resolution_u = 12
+    curve.bevel_depth = thickness
+    curve.bevel_resolution = 3
+    curve.use_fill_caps = True
+    spline = curve.splines.new("BEZIER")
+    spline.bezier_points.add(2)
+    spline.bezier_points[0].co = (-width * 0.5, 0.0, 0.0)
+    spline.bezier_points[1].co = (0.0, 0.0, -dip)
+    spline.bezier_points[2].co = (width * 0.5, 0.0, 0.0)
+    for point in spline.bezier_points:
+        point.handle_left_type = "AUTO"
+        point.handle_right_type = "AUTO"
+    curve.materials.append(mat)
+    obj = bpy.data.objects.new(name, curve)
+    obj.location = location
+    col.objects.link(obj)
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.convert(target="MESH")
+    return bpy.context.view_layer.objects.active
+
+
 def build_chibi_character(target_col, name, skin_mat, hair_mat, shirt_mat, pants_mat, hat="none", star_emblem=False, apron=False):
     """
     Adorable Animal Crossing: New Horizons chibi character!
@@ -1088,6 +1114,8 @@ def build_chibi_character(target_col, name, skin_mat, hair_mat, shirt_mat, pants
         make_sphere(f"Eye_{side}", 0.062, m_eye, tmp, location=(side * 0.14, -0.32, head_z + 0.03), scale=(0.85, 0.45, 1.15), u_segs=10, v_segs=8)
         make_sphere(f"EyeShine_{side}", 0.022, m_shine, tmp, location=(side * 0.155, -0.352, head_z + 0.055), u_segs=8, v_segs=6)
         make_sphere(f"Cheek_{side}", 0.068, m_blush, tmp, location=(side * 0.21, -0.28, head_z - 0.06), scale=(1.1, 0.35, 0.75), u_segs=8, v_segs=6)
+    make_smile("Smile", m_eye, tmp, location=(0, -0.358, head_z - 0.15), width=0.14, dip=0.028)
+    make_sphere("SmileTongue", 0.027, MATERIALS["AC_Coral"], tmp, location=(0, -0.371, head_z - 0.18), scale=(1.0, 0.35, 0.48), u_segs=8, v_segs=6)
 
     # Fluffy rounded hair cap + side tufts
     make_sphere("HairCap", 0.385, hair_mat, tmp, location=(0, 0.04, head_z + 0.06), scale=(1.04, 1.02, 0.96), u_segs=16, v_segs=12)
@@ -1128,90 +1156,69 @@ def build_environment_base(target_col):
     """
     tmp = ensure_collection("_tmp_EnvironmentBase")
     cx = 12.0
-    span_x = 62.0
+    span_x = 64.0
 
-    # 1. Lower coastal asphalt street edge & curb (foreground framing)
-    make_box("AsphaltRoad", (span_x, 4.5, 0.20), MATERIALS["AC_Asphalt"], tmp, location=(cx, -5.8, -0.18), bevel=0.02)
-    for dx in range(-14, 42, 4):
-        make_box(f"RoadDash_{dx}", (1.8, 0.16, 0.02), MATERIALS["AC_RoadLine"], tmp, location=(dx, -5.6, -0.075), bevel=0.005)
-    make_box("StreetCurb", (span_x, 0.34, 0.18), MATERIALS["AC_StoneWarm"], tmp, location=(cx, -3.55, -0.05), bevel=0.04)
+    # 1. ONE CONTINUOUS WARM COASTAL BOARDWALK (z = -15.6 .. +3.45) — ZERO gray asphalt stripes!
+    # Unifies the entire promenade & lateral plaza into one calm, readable walking surface so the protagonist stands out clearly.
+    make_box("ContinuousBoardwalk", (span_x, 19.10, 0.18), MATERIALS["AC_StoneWhite"], tmp, location=(cx, -6.05, -0.09), bevel=0.05)
 
-    # 2. Wide Orla Promenade (Portuguese stone petit-pave aesthetic) at Y = -3.4 .. -0.6
-    make_box("OrlaPromenade", (span_x, 2.95, 0.16), MATERIALS["AC_StoneWhite"], tmp, location=(cx, -2.02, -0.06), bevel=0.04)
-    # Decorative wavy petit-pave accent stones along promenade
-    for i in range(-12, 38):
-        wave_y = -2.02 + math.sin(i * 0.72) * 0.42
-        make_box(f"PetitPave_{i}", (0.72, 0.24, 0.02), MATERIALS["AC_StoneWarm"], tmp, location=(i * 1.0, wave_y, 0.022), rotation=(0, 0, math.cos(i * 0.72) * 0.35), bevel=0.01)
+    # Subtle coastal petit-pave ribbon ONLY along the central delivery promenade (Y = -1.6 .. +0.8)
+    for i in range(-10, 36, 2):
+        wave_y = -0.35 + math.sin(i * 0.42) * 0.32
+        make_box(f"PetitPave_{i}", (0.85, 0.22, 0.012), MATERIALS["AC_StoneWarm"], tmp, location=(i * 1.0, wave_y, 0.005), rotation=(0, 0, math.cos(i * 0.42) * 0.20), bevel=0.006)
 
-    # 3. Lush Restinga Coastal Grass Strip (Y = -0.6 .. +3.6)
-    make_box("CoastalLawn", (span_x, 4.35, 0.18), MATERIALS["AC_Grass"], tmp, location=(cx, 1.55, -0.08), bevel=0.04)
-    # Soft lighter grass patches only on open lawn (outside paved plazas & feira lane!)
-    rng = random.Random(42)
-    for i in range(36):
-        gx = rng.uniform(-10.0, 35.0)
-        gy = rng.uniform(-0.3, 3.2)
-        in_kiosk_plaza = (-4.3 <= gx <= 4.3 and -0.8 <= gy <= 3.4)
-        in_bifurc_plaza = (4.3 <= gx <= 9.3 and -1.2 <= gy <= 2.8)
-        in_florist_plaza = (20.5 <= gx <= 27.5 and -0.8 <= gy <= 3.4)
-        in_feira_lane = (8.0 <= gx <= 21.8 and 0.4 <= gy <= 2.5)
-        if in_kiosk_plaza or in_bifurc_plaza or in_florist_plaza or in_feira_lane:
-            continue
-        make_sphere(f"GrassPatch_{i}", rng.uniform(0.45, 0.90), MATERIALS["AC_GrassLight"], tmp, location=(gx, gy, 0.005), scale=(1.3, 0.9, 0.025), u_segs=10, v_segs=6)
-
-    # 4. Welcoming Paved Plazas (Kiosk at X=0, Bifurcation at X=6.8, Florist at X=24)
-    plazas = [
-        ("PlazaKiosk", 0.0, 1.25, 7.6, 3.8),
-        ("PlazaBifurcation", 6.8, 0.75, 4.4, 3.5),
-        ("PlazaFlorist", 24.0, 1.25, 6.4, 3.8),
+    # 2. INTENTIONAL ENTRANCE MATERIAL ACCENTS (only at Cart recess, Fair Plaza entrance, Cafe & Florist recess — clean beveled rims, zero overlap!)
+    entrances = [
+        ("Entrance_CartRecess",      0.4, -3.55, 5.2, 2.7, MATERIALS["AC_PlazaTile"],  MATERIALS["AC_PlazaAccent"]),
+        ("Entrance_FairPlaza",       7.0, -6.20, 6.4, 5.2, MATERIALS["AC_CobbleA"],    MATERIALS["AC_StoneWarm"]),
+        ("Entrance_CafeMat",         6.2, -9.80, 5.2, 2.0, MATERIALS["AC_PlazaTile"],  MATERIALS["AC_PlazaAccent"]),
+        ("Entrance_FloristRecess",  24.0, -5.60, 6.2, 4.2, MATERIALS["AC_PlazaTile"],  MATERIALS["AC_PlazaAccent"]),
+        # 3 subtle sand-transition entrance mats leading straight onto the beach!
+        ("Entrance_BeachWest",      -5.35, 3.05, 3.5, 1.0, MATERIALS["AC_StoneWarm"],  MATERIALS["AC_PlazaAccent"]),
+        ("Entrance_BeachCenter",     7.50, 3.05, 3.8, 1.0, MATERIALS["AC_StoneWarm"],  MATERIALS["AC_PlazaAccent"]),
+        ("Entrance_BeachEast",      20.00, 3.05, 3.8, 1.0, MATERIALS["AC_StoneWarm"],  MATERIALS["AC_PlazaAccent"]),
     ]
-    for pname, px, py, pw, pd in plazas:
-        make_box(pname, (pw, pd, 0.06), MATERIALS["AC_PlazaTile"], tmp, location=(px, py, 0.005), bevel=0.03)
-        make_box(pname + "_Border", (pw + 0.22, pd + 0.22, 0.04), MATERIALS["AC_PlazaAccent"], tmp, location=(px, py, -0.005), bevel=0.02)
+    for ename, ex, ey, ew, ed, main_m, rim_m in entrances:
+        make_box(ename + "_Rim", (ew + 0.28, ed + 0.28, 0.014), rim_m, tmp, location=(ex, ey, 0.004), bevel=0.012)
+        make_box(ename, (ew, ed, 0.020), main_m, tmp, location=(ex, ey, 0.008), bevel=0.015)
 
-    # 5. Cobblestone Feira Shortcut connecting Bifurcation (X=8.6) to Florist Plaza (X=21.2) at Y = 1.45
-    make_box("FeiraLaneBase", (13.4, 1.75, 0.05), MATERIALS["AC_CobbleA"], tmp, location=(14.9, 1.45, 0.004), bevel=0.025)
-    for row in range(3):
-        for col_i in range(18):
-            cx_s = 8.6 + col_i * 0.74 + (0.35 if row % 2 else 0.0)
-            cy_s = 0.92 + row * 0.52
-            make_box(f"Cobble_{row}_{col_i}", (0.52, 0.36, 0.022), MATERIALS["AC_CobbleB"], tmp, location=(cx_s, cy_s, 0.026), bevel=0.012)
+    # 3. CLEAN FRAMED COASTAL LAWN BORDERS (ONLY outside the 3 beach openings & with crisp stone framing — ZERO stray stains!)
+    lawn_segments = [
+        ("Lawn_FarWest",  -13.6, 2.72, 12.2),
+        ("Lawn_MidWest",    1.0, 2.72,  8.6),
+        ("Lawn_MidEast",   13.75, 2.72, 8.1),
+        ("Lawn_FarEast",   30.8, 2.72, 17.2),
+    ]
+    for lname, lx, ly, lw in lawn_segments:
+        make_box(lname + "_Curb", (lw + 0.26, 1.44, 0.08), MATERIALS["AC_StoneWarm"], tmp, location=(lx, ly, 0.025), bevel=0.025)
+        make_box(lname, (lw, 1.18, 0.095), MATERIALS["AC_Grass"], tmp, location=(lx, ly, 0.042), bevel=0.03)
 
-    # 6. Whitewashed Coastal Seawall (Mureta da Orla) at Y = 3.72
-    make_box("CoastalMureta", (span_x, 0.42, 0.56), MATERIALS["AC_StoneWhite"], tmp, location=(cx, 3.72, 0.16), bevel=0.06)
-    make_box("MuretaCap", (span_x, 0.50, 0.10), MATERIALS["AC_StoneWarm"], tmp, location=(cx, 3.72, 0.46), bevel=0.03)
+    # 4. WHITEWASHED COASTAL MURETA SPLIT INTO 4 CLEAN SEGMENTS (leaving all 3 beach openings 100% open!)
+    mureta_segments = [
+        ("Mureta_FarWest",  -13.6, 12.2),
+        ("Mureta_MidWest",    1.0,  8.6),
+        ("Mureta_MidEast",   13.75, 8.1),
+        ("Mureta_FarEast",   30.8, 17.2),
+    ]
+    for mname, mx, mw in mureta_segments:
+        make_box(mname, (mw, 0.38, 0.42), MATERIALS["AC_StoneWhite"], tmp, location=(mx, 3.62, 0.11), bevel=0.05)
+        make_box(mname + "_Cap", (mw + 0.08, 0.46, 0.09), MATERIALS["AC_StoneWarm"], tmp, location=(mx, 3.62, 0.34), bevel=0.025)
 
-    # 7. Golden Beach Sand Slope (Y = 3.9 .. 10.6)
-    make_box("BeachSandDry", (span_x + 12, 5.4, 0.40), MATERIALS["AC_Sand"], tmp, location=(cx, 6.5, -0.26), rotation=(-0.06, 0, 0), bevel=0.08)
-    make_box("BeachSandWet", (span_x + 12, 2.2, 0.30), MATERIALS["AC_SandWet"], tmp, location=(cx, 9.8, -0.44), rotation=(-0.04, 0, 0), bevel=0.06)
+    # 5. GOLDEN BEACH SAND SLOPE (Y = 3.85 .. 10.6)
+    make_box("BeachSandDry", (span_x + 12, 5.5, 0.40), MATERIALS["AC_Sand"], tmp, location=(cx, 6.55, -0.25), rotation=(-0.055, 0, 0), bevel=0.08)
+    make_box("BeachSandWet", (span_x + 12, 2.3, 0.30), MATERIALS["AC_SandWet"], tmp, location=(cx, 9.85, -0.43), rotation=(-0.04, 0, 0), bevel=0.06)
 
     # Cute scattered starfish & shells on the beach!
     for idx, (sx, sy) in enumerate([(-4.0, 5.8), (3.5, 7.2), (12.8, 6.4), (19.5, 7.5), (27.0, 6.1)]):
         make_sphere(f"Starfish_{idx}", 0.18, MATERIALS["AC_Starfish"], tmp, location=(sx, sy, -0.08), scale=(1.1, 1.1, 0.28), u_segs=10, v_segs=6)
         make_sphere(f"Shell_{idx}", 0.12, MATERIALS["AC_Shell"], tmp, location=(sx + 0.6, sy + 0.5, -0.10), scale=(1.2, 0.9, 0.45), u_segs=8, v_segs=6)
 
-    # 8. Ocean Foam Ribbon, Shallow Turquoise & Deep Sea
-    for i in range(-18, 44, 2):
-        fy = 10.45 + math.sin(i * 0.55) * 0.35
-        make_sphere(f"FoamPuff_{i}", 1.25, MATERIALS["AC_Foam"], tmp, location=(i, fy, -0.34), scale=(1.25, 0.48, 0.08), u_segs=10, v_segs=6)
+    # 6. LIVELY SHORELINE FOAM RIBBON + CLEAR TURQUOISE SEA (Static boats & heavy gray horizon hills removed -> handled softly by Parallax!)
+    for i in range(-18, 46, 2):
+        fy = 10.42 + math.sin(i * 0.55) * 0.36
+        make_sphere(f"FoamPuff_{i}", 1.32, MATERIALS["AC_Foam"], tmp, location=(i, fy, -0.32), scale=(1.30, 0.52, 0.08), u_segs=10, v_segs=6)
     make_box("OceanShallow", (span_x + 36, 9.5, 0.20), MATERIALS["AC_OceanShallow"], tmp, location=(cx, 15.0, -0.46), bevel=0.02)
-    make_box("OceanDeep", (span_x + 80, 48.0, 0.20), MATERIALS["AC_Ocean"], tmp, location=(cx, 42.0, -0.50), bevel=0.02)
-
-    # 9. Distant cozy Matinhos coastal islands / hills & tiny sailboats on the horizon!
-    hills = [
-        (-22.0, 34.0, 5.5, 3.2, MATERIALS["AC_HillDistant"]),
-        (-13.0, 38.0, 8.0, 4.6, MATERIALS["AC_HillFar"]),
-        (36.0, 36.0, 7.5, 4.2, MATERIALS["AC_HillDistant"]),
-        (46.0, 34.0, 9.0, 5.2, MATERIALS["AC_HillFar"]),
-    ]
-    for i, (hx, hy, hr, hh, hm) in enumerate(hills):
-        make_sphere(f"CoastalHill_{i}", 1.0, hm, tmp, location=(hx, hy, -0.6), scale=(hr, hr * 0.65, hh), u_segs=16, v_segs=10)
-
-    # 3 cute sailboats in the bay
-    for idx, (bx, by) in enumerate([(2.5, 19.5), (14.5, 22.5), (27.5, 18.8)]):
-        make_box(f"BoatHull_{idx}", (1.35, 0.52, 0.34), MATERIALS["AC_Cream"], tmp, location=(bx, by, -0.22), bevel=0.08)
-        make_box(f"BoatStripe_{idx}", (1.38, 0.54, 0.10), MATERIALS["AC_PinkBerry"] if idx % 2 == 0 else MATERIALS["AC_Coral"], tmp, location=(bx, by, -0.14), bevel=0.02)
-        make_cylinder(f"BoatMast_{idx}", 0.035, 0.035, 1.55, MATERIALS["AC_WoodWarm"], tmp, location=(bx, by, 0.55), segs=8, bevel=0.0)
-        make_box(f"BoatSail_{idx}", (0.78, 0.06, 1.15), MATERIALS["AC_Cream"], tmp, location=(bx + 0.34, by, 0.68), rotation=(0, -0.12, 0.18), bevel=0.02)
+    make_box("OceanDeep", (span_x + 80, 52.0, 0.20), MATERIALS["AC_Ocean"], tmp, location=(cx, 44.0, -0.50), bevel=0.02)
 
     return join_collection_to_single_mesh(tmp, "OrlaEnvironmentBase", target_col)
 

@@ -244,3 +244,21 @@
   - **Pets (`GirlPowerOrla3DPetCompanion.cs`, `GirlPowerOrla3DPetFriendlySystem.cs`):** **Pipoca** e **Mingau** (agora também articulado!) com pelagem de alto contraste (manchas chocolate/ameixa + coleiras vibrantes), **baixando a cabeça para farejar o chão** e **variando o ritmo da passada** (trote rápido, passo curioso e pausas farejando).
 - [x] **5. Padronização de Exportação (`+Z` Forward) e Fim do Vetor Invertido:**
   - Todos os 21+ modelos de personagens, arquétipos, fadas e pets reexportados no Blender 5.3 com `axis_forward='Z', axis_up='Y', bake_space_transform=True` (`det = +1.0`), padronizando a frente real em `+Z` do Unity (`fallbackSign = +1f` em `GirlPowerOrla3DCharacterFacing.cs` e em todos os controladores).
+
+---
+
+### Etapa 18 (v29) — Orla Contínua sem Rua Cinza, Cobertura do Carrinho Elevada, Horizonte Atmosférico & UX de Montagem/Entrega Acessível
+- [x] **1. Calçadão Contínuo sem Rua Cinza nem Manchas Abruptas (`build_orla_acnh.py` → `OrlaEnvironmentBase.fbx`, `GirlPowerOrla3DPropsBuilder.cs`):**
+  - Removidos o asfalto cinza, faixas tracejadas, `MeioFio_Jardim_Interno` e manchas soltas de grama (`GrassPatch_*`).
+  - Todo o percurso (`z = -15.6..+3.45`) agora é uma superfície contínua quente de orla com mudanças de material intencionais e chanfradas apenas nas entradas do Carrinho, Praça da Feira, Café, Florista e nos 3 acessos abertos à areia (`Mureta` segmentada em 4 blocos com aberturas reais).
+- [x] **2. Travessias Limpas & Transparência Suave de Coberturas (`GirlPowerOrla3DSceneBuilder.cs`):**
+  - Bandeirinhas (`FestoonLights`), lanternas flutuantes e postes (`StreetLamp`, `FlowerLampPost`) concentrados na Praça Lateral e fachadas (`z = -8.2..-9.8`), liberando totalmente pés, travessia e destino da protagonista.
+  - `ApplyFadeMaterials` aplicado em todas as 8 barracas da feira, quiosque, florista e carrinho de sorvete para transparência suave quando qualquer toldo encobre a protagonista.
+- [x] **3. Carrinho de Sorvete com Balcão 100% Visível (`build_baia_hero_polish.py` → `IceCreamCart.fbx`):**
+  - Cobertura rosa listrada mantida como assinatura visual, porém elevada em `+0,48 m`, deslocada para trás (`+0.34 Y`) e levemente reduzida no raio para expor o balcão, a vitrine de sabores e o lado de atendimento.
+- [x] **4. Mar, Barcos e Horizonte Equilibrados (`GirlPowerOrla3DPropsBuilder.cs`, `GirlPowerOrla3DSceneBuilder.cs`):**
+  - Removidos barcos estáticos e colinas duplicadas de `OrlaEnvironmentBase.fbx`; 3 veleiros bem espaçados (`x = -22, 12, 44`) com velas suaves de baixo contraste, colinas rebaixadas fundidas ao céu (`AC_HillDistant`/`AC_HillFar` suaves) e 10 faixas de espuma dupla na beira-mar dando vida à margem.
+- [x] **5. Montagem Inferior, Entrega Curta & Acessibilidade PT/EN/ES (`GirlPowerOrla3DFirstDelivery.cs`, `GirlPowerOrla3DGameFlow.cs`, `GirlPowerOrla3DPhotoOverlay.cs`):**
+  - **Painel inferior para uma mão (`Ch1_AtCart`):** pedido da Florista sempre visível no topo, casquinha montada ao centro, ingredientes ilustrados e nomeados com **símbolos de forma (`◆ / ● / ▲ / ♣`)** além de cor, e botão **Confirmar pedido** fixo exatamente na mesma posição durante toda a montagem.
+  - **Entrega sem cobrir o percurso:** ao entregar à Florista Luna, exibe reação curta não bloqueante no topo, atualiza objetivo, desbloqueia a foto silenciosamente no ícone superior e devolve controle imediato.
+  - **Acessibilidade e segurança de progresso:** `Screen.safeArea` em telas estreitas e largas, quebra de linha (`wordWrap`) para textos longos em PT/EN/ES, alto contraste sobre mar claro, selo de partida salva no menu e **diálogo de confirmação explícito (`SubModal.ConfirmAction`)** antes de sobrescrever/reiniciar progresso ou sair ao menu.

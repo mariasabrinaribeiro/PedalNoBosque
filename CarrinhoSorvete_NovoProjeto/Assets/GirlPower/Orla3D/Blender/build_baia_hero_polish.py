@@ -251,24 +251,24 @@ def build_hero_ice_cream_cart(col):
         parts.append(make_cyl(f"Leg_{wy}", 0.035, 0.26, m_silver, col, location=(0.56, wy, 0.22), segs=10))
         parts.append(make_cyl(f"Caster_{wy}", 0.11, 0.07, m_dark, col, location=(0.56, wy, 0.11), rotation=(math.pi / 2, 0, 0), segs=14))
 
-    # Iconic Pink & White Striped Scalloped Umbrella (smooth radial dome + scalloped valance!)
-    parts.append(make_cyl("UmbPole", 0.044, 1.75, m_wood_l, col, location=(0.0, 0.14, 1.82), segs=12))
-    parts.append(make_sphere("UmbFinial", 0.09, m_gold, col, location=(0.0, 0.14, 2.84), u_segs=12, v_segs=8))
-    parts.append(make_sphere("UmbCap", 0.32, m_pink, col, location=(0.0, 0.14, 2.74), scale=(1.0, 1.0, 0.36), u_segs=14, v_segs=8))
+    # Iconic Pink & White Striped Scalloped Umbrella — RAISED (+0.48m) & OFFSET BACK (+0.34Y)
+    # so the counter, open flavor vitrine, scoops & customer service side stay 100% unobstructed on mobile camera!
+    umb_y = 0.34
+    parts.append(make_cyl("UmbPole", 0.042, 2.24, m_wood_l, col, location=(0.0, umb_y, 2.08), segs=12))
+    parts.append(make_sphere("UmbFinial", 0.085, m_gold, col, location=(0.0, umb_y, 3.30), u_segs=12, v_segs=8))
+    parts.append(make_sphere("UmbCap", 0.28, m_pink, col, location=(0.0, umb_y, 3.21), scale=(1.0, 1.0, 0.34), u_segs=14, v_segs=8))
     segs = 12
     for i in range(segs):
         ang = (i / segs) * math.pi * 2.0
         um = m_pink if i % 2 == 0 else m_cream
-        # Radial panel sloping smoothly outward from the top cap
-        px = math.cos(ang) * 0.52
-        py = 0.14 + math.sin(ang) * 0.52
-        parts.append(make_box(f"UmbPanel_{i}", (0.86, 0.38, 0.07), um, col,
-                              location=(px, py, 2.66),
-                              rotation=(0.0, 0.24, ang), bevel=0.02))
-        # Cute scalloped round valance drop around outer rim
-        rx = math.cos(ang) * 0.94
-        ry = 0.14 + math.sin(ang) * 0.94
-        parts.append(make_sphere(f"Scallop_{i}", 0.14, um, col, location=(rx, ry, 2.50), scale=(0.85, 0.85, 0.72), u_segs=10, v_segs=6))
+        px = math.cos(ang) * 0.44
+        py = umb_y + math.sin(ang) * 0.44
+        parts.append(make_box(f"UmbPanel_{i}", (0.72, 0.34, 0.065), um, col,
+                              location=(px, py, 3.14),
+                              rotation=(0.0, 0.22, ang), bevel=0.02))
+        rx = math.cos(ang) * 0.78
+        ry = umb_y + math.sin(ang) * 0.78
+        parts.append(make_sphere(f"Scallop_{i}", 0.12, um, col, location=(rx, ry, 2.99), scale=(0.85, 0.85, 0.68), u_segs=10, v_segs=6))
 
     return join_and_export(parts, "IceCreamCart", col)
 

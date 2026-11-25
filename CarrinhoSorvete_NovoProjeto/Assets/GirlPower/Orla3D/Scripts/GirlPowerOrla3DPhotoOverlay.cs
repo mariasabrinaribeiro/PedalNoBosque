@@ -23,6 +23,11 @@ public sealed class GirlPowerOrla3DPhotoOverlay : MonoBehaviour
         IsShowing = true;
     }
 
+    public void UnlockSilent()
+    {
+        IsUnlocked = true;
+    }
+
     public void ToggleShow()
     {
         if (!IsUnlocked) return;

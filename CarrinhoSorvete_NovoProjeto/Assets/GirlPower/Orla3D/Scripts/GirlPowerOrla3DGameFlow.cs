@@ -35,7 +35,8 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         Settings,
         ControlsGuide,
         Credits,
-        ParentsArea
+        ParentsArea,
+        ConfirmAction
     }
 
     private sealed class ConfettiPiece
@@ -102,6 +103,30 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private Texture2D whitePx;
     private string quitFeedback = "";
     private float quitFeedbackTimer;
+    private string pendingConfirmTitle = "";
+    private string pendingConfirmBody = "";
+    private System.Action pendingConfirmCallback;
+
+    private static Rect GetGuiSafeArea()
+    {
+        Rect sa = Screen.safeArea;
+        if (sa.width < 100f || sa.height < 100f)
+            return new Rect(0f, 0f, Screen.width, Screen.height);
+        return new Rect(sa.x, Screen.height - (sa.y + sa.height), sa.width, sa.height);
+    }
+
+    private bool HasSavedProgress()
+    {
+        return PlayerPrefs.HasKey("BaiaDoAvesso_v4_Phase") && PlayerPrefs.GetInt("BaiaDoAvesso_v4_Phase", 0) > 0;
+    }
+
+    private void RequestConfirmation(string title, string body, System.Action onConfirm)
+    {
+        pendingConfirmTitle = title;
+        pendingConfirmBody = body;
+        pendingConfirmCallback = onConfirm;
+        activeModal = SubModal.ConfirmAction;
+    }
 
     private const string PrefPrefix = "BaiaFlow_v1_";
 
@@ -613,49 +638,87 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     {
         EnsurePedalTitleStyles();
 
-        // Subtle left-side cozy atmospheric gradient over the live 3D orbiting Baía do Avesso!
-        GUI.DrawTexture(new Rect(0, 0, Screen.width * 0.56f, Screen.height), leftScrimTex);
+        Rect safe = GetGuiSafeArea();
+        // Subtle left-side cozy atmospheric gradient over the live 3D orbiting Orla das Fadas!
+        GUI.DrawTexture(new Rect(0, 0, Screen.width * 0.62f, Screen.height), leftScrimTex);
 
-        float lx = 76f * s;
-        float colW = 350f * s;
-        float topY = Screen.height * 0.14f;
+        float colW = Mathf.Min(350f * s, safe.width - 36f * s);
+        float lx = safe.width < 680f * s ? (safe.x + (safe.width - colW) * 0.5f) : (safe.x + 56f * s);
+        float topY = safe.y + Mathf.Max(20f * s, safe.height * 0.10f);
 
         // Stacked bold cream title ("ORLA / DAS FADAS") — Magical Seaside Resort & Pet-Friendly Island
         GUIStyle bigTitle = new GUIStyle(GirlPowerOrla3DUITheme.TitleLogoStyle)
         {
-            fontSize = Mathf.RoundToInt(54f * s),
+            fontSize = Mathf.RoundToInt(52f * s),
             alignment = TextAnchor.MiddleCenter
         };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 20f * s, topY, colW + 40f * s, 60f * s), "ORLA", bigTitle, new Color(1f, 0.98f, 0.92f), new Color(0.06f, 0.14f, 0.14f, 0.85f), 3f * s);
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 20f * s, topY + 56f * s, colW + 40f * s, 60f * s), "DAS FADAS", bigTitle, new Color(1f, 0.96f, 0.94f), new Color(0.06f, 0.14f, 0.14f, 0.85f), 3f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 16f * s, topY, colW + 32f * s, 58f * s), "ORLA", bigTitle, new Color(1f, 0.98f, 0.92f), new Color(0.06f, 0.14f, 0.14f, 0.90f), 3f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 16f * s, topY + 54f * s, colW + 32f * s, 58f * s), "DAS FADAS", bigTitle, new Color(1f, 0.96f, 0.94f), new Color(0.06f, 0.14f, 0.14f, 0.90f), 3f * s);
 
         string tagline = IsEnglish
             ? "Magical seaside resort • Fairy Cuisine & Pets"
             : (IsSpanish ? "Resort mágico costero • Hadas y Mascotas" : "Resort mágico à beira-mar • Fadas & Pets");
         GUIStyle subSt = new GUIStyle(GirlPowerOrla3DUITheme.SubtitleStyle)
         {
-            fontSize = Mathf.RoundToInt(16f * s),
+            fontSize = Mathf.RoundToInt(15.5f * s),
+            wordWrap = true,
             alignment = TextAnchor.MiddleCenter
         };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 18f * s, topY + 124f * s, colW + 36f * s, 28f * s), tagline, subSt, new Color(1f, 0.95f, 0.84f), new Color(0.06f, 0.14f, 0.14f, 0.8f), 2f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 14f * s, topY + 118f * s, colW + 28f * s, 34f * s), tagline, subSt, new Color(1f, 0.95f, 0.84f), new Color(0.06f, 0.14f, 0.14f, 0.88f), 2f * s);
 
         if (activeModal != SubModal.None) return;
 
-        float bx = lx + 18f * s;
-        float bw = colW - 36f * s;
-        float by = topY + 172f * s;
+        float bx = lx + 14f * s;
+        float bw = colW - 28f * s;
+        float by = topY + 162f * s;
 
-        // Golden-amber Primary Pill: ▶ Jogar
-        string playLbl = IsEnglish ? "▶   Play" : (IsSpanish ? "▶   Jugar" : "▶   Jogar");
-        if (GUI.Button(new Rect(bx, by, bw, 56f * s), playLbl, pedalGoldBtn))
-            StartChapter(1);
-        by += 70f * s;
+        bool hasSave = HasSavedProgress();
+        if (hasSave)
+        {
+            int savedChap = storyController != null ? storyController.GetCurrentChapterNumber() : 1;
+            string saveTag = GirlPowerOrla3DLocalization.T(
+                "★ Partida salva • Capítulo " + savedChap,
+                "★ Saved Game • Chapter " + savedChap,
+                "★ Partida guardada • Capítulo " + savedChap);
+            Rect saveBadge = new Rect(bx, by, bw, 28f * s);
+            GUI.Box(saveBadge, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(saveBadge, saveTag, new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(13.5f * s) }, Color.white, new Color(0.06f, 0.14f, 0.14f, 0.92f), 1.0f);
+            by += 36f * s;
+        }
 
-        // Soft Mint-Green Pill: Continuar
-        string contLbl = IsEnglish ? "Continue" : (IsSpanish ? "Continuar" : "Continuar");
-        if (GUI.Button(new Rect(bx, by, bw, 52f * s), contLbl, pedalMintBtn))
-            StartOrContinueGame();
-        by += 68f * s;
+        // Golden-amber Primary Pill: ▶ Continuar (when saved) or ▶ Jogar
+        string playLbl = hasSave
+            ? GirlPowerOrla3DLocalization.T("▶   Continuar Partida", "▶   Continue Game", "▶   Continuar Partida")
+            : GirlPowerOrla3DLocalization.T("▶   Jogar", "▶   Play", "▶   Jugar");
+        if (GUI.Button(new Rect(bx, by, bw, 54f * s), playLbl, pedalGoldBtn))
+        {
+            if (hasSave) StartOrContinueGame();
+            else StartChapter(1);
+        }
+        by += 64f * s;
+
+        // Secondary Pill: Novo Jogo (with progress confirmation when a save exists!) or Continuar
+        string secondLbl = hasSave
+            ? GirlPowerOrla3DLocalization.T("Novo Jogo (Cap. 1)", "New Game (Ch. 1)", "Nueva Partida (Cap. 1)")
+            : GirlPowerOrla3DLocalization.T("Continuar", "Continue", "Continuar");
+        if (GUI.Button(new Rect(bx, by, bw, 48f * s), secondLbl, pedalMintBtn))
+        {
+            if (hasSave)
+            {
+                RequestConfirmation(
+                    GirlPowerOrla3DLocalization.T("INICIAR NOVO JOGO?", "START NEW GAME?", "¿INICIAR NUEVA PARTIDA?"),
+                    GirlPowerOrla3DLocalization.T(
+                        "Você já tem uma partida salva. Começar do Capítulo 1 vai substituir o progresso da entrega atual. Deseja continuar?",
+                        "You already have a saved game. Starting from Chapter 1 will overwrite your current delivery progress. Continue?",
+                        "Ya tienes una partida guardada. Empezar desde el Capítulo 1 reemplazará el progreso actual. ¿Deseas continuar?"),
+                    () => StartChapter(1));
+            }
+            else
+            {
+                StartOrContinueGame();
+            }
+        }
+        by += 60f * s;
 
         // Compact 2-Column Pills: Configurações (Dark Green) & Sair (Burgundy)
         float halfW = (bw - 14f * s) * 0.5f;
@@ -734,37 +797,54 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), GirlPowerOrla3DUITheme.DimOverlayTex);
         if (activeModal != SubModal.None) return;
 
-        float w = 420f * s;
-        float h = 428f * s;
-        Rect card = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
+        Rect safe = GetGuiSafeArea();
+        float w = Mathf.Min(430f * s, safe.width - 28f * s);
+        float h = Mathf.Min(440f * s, safe.height - 44f * s);
+        Rect card = new Rect(safe.x + (safe.width - w) * 0.5f, safe.y + (safe.height - h) * 0.5f, w, h);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
-        Rect header = new Rect(card.x + 56f * s, card.y - 20f * s, w - 112f * s, 44f * s);
+        Rect header = new Rect(card.x + 48f * s, card.y - 20f * s, w - 96f * s, 44f * s);
         GUI.Box(header, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-        GUI.Label(header, IsEnglish ? "PAUSED" : "PAUSA", GirlPowerOrla3DUITheme.BadgeTextStyle);
+        GUI.Label(header, GirlPowerOrla3DLocalization.T("PAUSA", "PAUSED", "PAUSA"), GirlPowerOrla3DUITheme.BadgeTextStyle);
 
-        float bx = card.x + 36f * s;
-        float bw = w - 72f * s;
-        float by = card.y + 44f * s;
+        float bx = card.x + 30f * s;
+        float bw = w - 60f * s;
+        float by = card.y + 42f * s;
 
-        if (GUI.Button(new Rect(bx, by, bw, 52f * s), IsEnglish ? "▶  RESUME" : "▶  CONTINUAR", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        if (GUI.Button(new Rect(bx, by, bw, 52f * s), GirlPowerOrla3DLocalization.T("▶  VOLTAR AO JOGO", "▶  RESUME GAME", "▶  VOLVER AL JUEGO"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
             ResumeGame();
         by += 64f * s;
 
-        if (GUI.Button(new Rect(bx, by, bw, 46f * s), IsEnglish ? "RESTART CHAPTER" : "REINICIAR CAPÍTULO", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
-            RestartCurrentChapter();
+        if (GUI.Button(new Rect(bx, by, bw, 46f * s), GirlPowerOrla3DLocalization.T("REINICIAR CAPÍTULO", "RESTART CHAPTER", "REINICIAR CAPÍTULO"), GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+        {
+            RequestConfirmation(
+                GirlPowerOrla3DLocalization.T("REINICIAR CAPÍTULO?", "RESTART CHAPTER?", "¿REINICIAR CAPÍTULO?"),
+                GirlPowerOrla3DLocalization.T(
+                    "O progresso atual deste capítulo será reiniciado. Deseja confirmar?",
+                    "Your current progress in this chapter will be reset. Confirm?",
+                    "El progreso actual de este capítulo se reiniciará. ¿Confirmar?"),
+                RestartCurrentChapter);
+        }
         by += 58f * s;
 
-        if (GUI.Button(new Rect(bx, by, bw, 46f * s), IsEnglish ? "CONTROLS GUIDE" : "GUIA DE CONTROLES", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+        if (GUI.Button(new Rect(bx, by, bw, 46f * s), GirlPowerOrla3DLocalization.T("GUIA DE CONTROLES", "CONTROLS GUIDE", "GUÍA DE CONTROLES"), GirlPowerOrla3DUITheme.BtnSecondaryStyle))
             activeModal = SubModal.ControlsGuide;
         by += 58f * s;
 
-        if (GUI.Button(new Rect(bx, by, bw, 46f * s), IsEnglish ? "AUDIO & SETTINGS" : "ÁUDIO E CONFIGURAÇÕES", GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+        if (GUI.Button(new Rect(bx, by, bw, 46f * s), GirlPowerOrla3DLocalization.T("ÁUDIO E CONFIGURAÇÕES", "AUDIO & SETTINGS", "AUDIO Y AJUSTES"), GirlPowerOrla3DUITheme.BtnSecondaryStyle))
             activeModal = SubModal.Settings;
         by += 62f * s;
 
-        if (GUI.Button(new Rect(bx, by, bw, 44f * s), IsEnglish ? "MAIN MENU" : "VOLTAR AO MENU PRINCIPAL", GirlPowerOrla3DUITheme.BtnDangerStyle))
-            EnterTitleMenu();
+        if (GUI.Button(new Rect(bx, by, bw, 44f * s), GirlPowerOrla3DLocalization.T("MENU PRINCIPAL", "MAIN MENU", "MENÚ PRINCIPAL"), GirlPowerOrla3DUITheme.BtnDangerStyle))
+        {
+            RequestConfirmation(
+                GirlPowerOrla3DLocalization.T("VOLTAR AO MENU?", "RETURN TO MENU?", "¿VOLVER AL MENÚ?"),
+                GirlPowerOrla3DLocalization.T(
+                    "Seu progresso salvo será mantido. Deseja voltar ao Menu Principal?",
+                    "Your saved progress will be kept. Return to the Main Menu?",
+                    "Tu progreso guardado se conservará. ¿Volver al Menú Principal?"),
+                EnterTitleMenu);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -898,8 +978,45 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     {
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), GirlPowerOrla3DUITheme.DimOverlayTex);
 
-        float w = 560f * s;
-        float h = 470f * s;
+        if (activeModal == SubModal.ConfirmAction)
+        {
+            Rect safe = GetGuiSafeArea();
+            float cw = Mathf.Min(480f * s, safe.width - 28f * s);
+            float ch = 254f * s;
+            Rect cCard = new Rect(safe.x + (safe.width - cw) * 0.5f, safe.y + (safe.height - ch) * 0.5f, cw, ch);
+            GUI.Box(cCard, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
+
+            Rect cHead = new Rect(cCard.x + 36f * s, cCard.y - 20f * s, cw - 72f * s, 42f * s);
+            GUI.Box(cHead, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
+            GUI.Label(cHead, pendingConfirmTitle, GirlPowerOrla3DUITheme.BadgeTextStyle);
+
+            GUIStyle bodySt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+            {
+                fontSize = Mathf.RoundToInt(16.5f * s),
+                wordWrap = true,
+                alignment = TextAnchor.MiddleCenter
+            };
+            GUI.Label(new Rect(cCard.x + 24f * s, cCard.y + 42f * s, cw - 48f * s, 118f * s), pendingConfirmBody, bodySt);
+
+            float halfBtn = (cw - 60f * s) * 0.5f;
+            float btnY = cCard.yMax - 64f * s;
+            if (GUI.Button(new Rect(cCard.x + 24f * s, btnY, halfBtn, 46f * s), GirlPowerOrla3DLocalization.T("CANCELAR", "CANCEL", "CANCELAR"), GirlPowerOrla3DUITheme.BtnSecondaryStyle))
+            {
+                activeModal = SubModal.None;
+                pendingConfirmCallback = null;
+            }
+            if (GUI.Button(new Rect(cCard.x + 36f * s + halfBtn, btnY, halfBtn, 46f * s), GirlPowerOrla3DLocalization.T("CONFIRMAR", "CONFIRM", "CONFIRMAR"), GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+            {
+                System.Action cb = pendingConfirmCallback;
+                activeModal = SubModal.None;
+                pendingConfirmCallback = null;
+                cb?.Invoke();
+            }
+            return;
+        }
+
+        float w = Mathf.Min(560f * s, Screen.safeArea.width - 24f * s);
+        float h = Mathf.Min(470f * s, Screen.safeArea.height - 40f * s);
         Rect card = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 

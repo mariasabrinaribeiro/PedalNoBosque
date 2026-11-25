@@ -80,26 +80,22 @@ public static class GirlPowerOrla3DPropsBuilder
         Material bush = GetMat(mats, "AC_BushGreen");
         Material stoneDark = GetMat(mats, "AC_StoneDark");
 
-        // Crisp non-overlapping boardwalk curbs & widened south plaza (ZERO Z-fighting!)
-        // Note: OrlaEnvironmentBase already has StreetCurb at z=-3.55, AsphaltRoad top=-0.08 (z=-8.05..-3.55).
-        MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Jardim_Interno",
-            new Vector3(12f, 0.032f, -0.56f), new Vector3(90f, 0.06f, 0.16f), Quaternion.identity, stoneWarm, false);
-        // 4-segment boardwalk-to-sand curb leaving 3 unmistakable open beach accesses:
-        // Access #1: x = -7.2 .. -3.5 | Access #2 (Central Plaza): x = 5.5 .. 9.5 | Access #3 (Florist): x = 18.0 .. 22.0
+        // Clean continuous boardwalk edge: NO bisecting inner curb across the promenade!
+        // Only crisp boardwalk-to-sand curbs flanking the 3 open beach accesses (x=-7.2..-3.5, x=5.5..9.5, x=18.0..22.0)
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Oeste1",
-            new Vector3(-12.85f, 0.04f, 3.42f), new Vector3(11.3f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+            new Vector3(-13.6f, 0.02f, 3.44f), new Vector3(12.2f, 0.08f, 0.20f), Quaternion.identity, stoneWhite, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Centro1",
-            new Vector3(1.0f, 0.04f, 3.42f), new Vector3(9.0f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+            new Vector3(1.0f, 0.02f, 3.44f), new Vector3(8.6f, 0.08f, 0.20f), Quaternion.identity, stoneWhite, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Centro2",
-            new Vector3(13.75f, 0.04f, 3.42f), new Vector3(8.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+            new Vector3(13.75f, 0.02f, 3.44f), new Vector3(8.1f, 0.08f, 0.20f), Quaternion.identity, stoneWhite, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "MeioFio_Orla_Praia_Leste",
-            new Vector3(30.25f, 0.04f, 3.42f), new Vector3(16.5f, 0.10f, 0.22f), Quaternion.identity, stoneWhite, true);
+            new Vector3(30.8f, 0.02f, 3.44f), new Vector3(17.2f, 0.08f, 0.20f), Quaternion.identity, stoneWhite, false);
 
-        // Widened south promenade & town terrace (+50% spacious corridor between Fair stalls & South Houses!)
-        MakePrim(grp.transform, PrimitiveType.Cube, "Calcada_Sul",
-            new Vector3(12f, -0.135f, -11.4f), new Vector3(104f, 0.16f, 7.0f), Quaternion.identity, stoneWarm, false);
+        // Clean chamfered south lawn border starting flush behind ContinuousBoardwalk (z = -15.6f -> ZERO Z-fighting or abrupt slab overlap!)
+        MakePrim(grp.transform, PrimitiveType.Cube, "Borda_Sul_Calcadão",
+            new Vector3(12f, -0.02f, -15.65f), new Vector3(114f, 0.14f, 0.34f), Quaternion.identity, stoneWarm, false);
         MakePrim(grp.transform, PrimitiveType.Cube, "Gramado_Bairro_Sul",
-            new Vector3(12f, -0.22f, -22.5f), new Vector3(118f, 0.20f, 22.0f), Quaternion.identity, grass, false);
+            new Vector3(12f, -0.14f, -25.9f), new Vector3(120f, 0.18f, 20.4f), Quaternion.identity, grass, false);
 
         // A single paved market court joins the promenade to the recessed stalls without creating another narrow strip.
         Material plaza = GetMat(mats, "AC_CobbleA");
@@ -625,14 +621,13 @@ public static class GirlPowerOrla3DPropsBuilder
         Material woodDark = GetMat(mats, "AC_WoodDark");
         Material foam = GetMat(mats, "AC_Foam");
 
-        // LAYER 1A: 5 Layered Tropical Horizon Islands (10% apparent camera speed!)
+        // LAYER 1A: 3 Low-Profile Atmospheric Horizon Islands (soft sky-blended silhouette — ZERO heavy gray horizon wall!)
+        Material skyMist = GetMat(mats, "AC_SkyBlue");
         var islandSpecs = new (Vector3 pos, Vector3 hillScale, bool tallPeak)[]
         {
-            (new Vector3(-34f, -0.4f, 48f), new Vector3(22f, 6.2f, 10f), true),
-            (new Vector3(-11f, -0.4f, 54f), new Vector3(28f, 8.0f, 12f), false),
-            (new Vector3(14f,  -0.4f, 50f), new Vector3(24f, 6.8f, 11f), true),
-            (new Vector3(38f,  -0.4f, 55f), new Vector3(30f, 8.6f, 12f), false),
-            (new Vector3(60f,  -0.4f, 49f), new Vector3(22f, 5.8f, 10f), true)
+            (new Vector3(-34f, -0.45f, 58f), new Vector3(24f, 3.2f, 10f), false),
+            (new Vector3(12f,  -0.45f, 64f), new Vector3(30f, 3.8f, 11f), true),
+            (new Vector3(54f,  -0.45f, 59f), new Vector3(26f, 3.4f, 10f), false)
         };
         for (int i = 0; i < islandSpecs.Length; i++)
         {
@@ -641,73 +636,68 @@ public static class GirlPowerOrla3DPropsBuilder
             isl.transform.SetParent(pxRoot.transform, false);
             isl.transform.position = ispec.pos;
 
-            // Sandy base rim + layered soft coastal hills
-            MakePrim(isl.transform, PrimitiveType.Cylinder, "Praia_Ilha",
-                new Vector3(0f, 0.25f, 0f), new Vector3(ispec.hillScale.x * 1.08f, 0.35f, ispec.hillScale.z * 1.05f),
-                Quaternion.identity, sand, false);
             MakePrim(isl.transform, PrimitiveType.Sphere, "Morro_Principal",
-                new Vector3(0f, ispec.hillScale.y * 0.25f, 0.4f), ispec.hillScale,
-                Quaternion.identity, i % 2 == 0 ? hillDist : hillFar, false);
+                new Vector3(0f, ispec.hillScale.y * 0.22f, 0.4f), ispec.hillScale,
+                Quaternion.identity, hillFar, false);
             MakePrim(isl.transform, PrimitiveType.Sphere, "Morro_Secundario",
-                new Vector3(ispec.hillScale.x * 0.28f, ispec.hillScale.y * 0.16f, -0.5f),
-                new Vector3(ispec.hillScale.x * 0.58f, ispec.hillScale.y * 0.68f, ispec.hillScale.z * 0.78f),
+                new Vector3(ispec.hillScale.x * 0.28f, ispec.hillScale.y * 0.14f, -0.5f),
+                new Vector3(ispec.hillScale.x * 0.56f, ispec.hillScale.y * 0.62f, ispec.hillScale.z * 0.72f),
                 Quaternion.identity, hillDist, false);
             if (ispec.tallPeak)
             {
-                // Tiny stylized silhouette palms on the distant island ridge
                 MakePrim(isl.transform, PrimitiveType.Cylinder, "Palmeira_Tronco",
-                    new Vector3(-2.5f, ispec.hillScale.y * 0.58f, 0f), new Vector3(0.45f, 2.2f, 0.45f),
-                    Quaternion.Euler(0f, 0f, 8f), palmTrunk, false);
+                    new Vector3(-2.5f, ispec.hillScale.y * 0.55f, 0f), new Vector3(0.35f, 1.5f, 0.35f),
+                    Quaternion.Euler(0f, 0f, 8f), hillDist, false);
                 MakePrim(isl.transform, PrimitiveType.Sphere, "Palmeira_Copa",
-                    new Vector3(-2.8f, ispec.hillScale.y * 0.58f + 2.2f, 0f), new Vector3(2.8f, 1.1f, 2.6f),
-                    Quaternion.identity, palmLeaf, false);
+                    new Vector3(-2.7f, ispec.hillScale.y * 0.55f + 1.45f, 0f), new Vector3(2.1f, 0.8f, 1.9f),
+                    Quaternion.identity, hillDist, false);
             }
             farIslands.Add(isl.transform);
         }
 
-        // LAYER 1B: 6 Fluffy Horizon Clouds (10% apparent camera speed + calm sky drift!)
-        for (int i = 0; i < 6; i++)
+        // LAYER 1B: 5 Soft Distant Horizon Clouds (calm sky transition!)
+        for (int i = 0; i < 5; i++)
         {
             GameObject cl = new GameObject("Parallax_Nuvem_Horizonte_" + (i + 1));
             cl.transform.SetParent(pxRoot.transform, false);
-            cl.transform.position = new Vector3(-22f + i * 13.5f, 10.2f + (i % 3) * 1.8f, 38f + (i % 2) * 8f);
-            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffC", Vector3.zero, new Vector3(6.2f, 2.4f, 2.8f), Quaternion.identity, cream, false);
-            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffL", new Vector3(-2.5f, -0.25f, 0.2f), new Vector3(4.2f, 1.9f, 2.4f), Quaternion.identity, cream, false);
-            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffR", new Vector3(2.6f, -0.30f, -0.2f), new Vector3(4.5f, 2.0f, 2.5f), Quaternion.identity, cream, false);
+            cl.transform.position = new Vector3(-24f + i * 17.5f, 10.8f + (i % 3) * 1.6f, 44f + (i % 2) * 8f);
+            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffC", Vector3.zero, new Vector3(6.8f, 2.2f, 2.6f), Quaternion.identity, cream, false);
+            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffL", new Vector3(-2.8f, -0.22f, 0.2f), new Vector3(4.4f, 1.7f, 2.2f), Quaternion.identity, cream, false);
+            MakePrim(cl.transform, PrimitiveType.Sphere, "PuffR", new Vector3(2.9f, -0.26f, -0.2f), new Vector3(4.6f, 1.8f, 2.3f), Quaternion.identity, cream, false);
             farClouds.Add(cl.transform);
         }
 
-        // LAYER 2: 5 Stylized Mid-Sea Sailboats (30% apparent camera speed + continuous sailing!)
-        Material[] sailCols = { cream, pink, teal, lilac, cream };
-        Material[] trimCols = { teal, cream, pink, teal, lilac };
-        float[] boatXs = { -14f, 8f, 30f };
-        float[] boatZs = { 25f, 32f, 27f };
-        float[] boatScales = { 0.74f, 0.62f, 0.82f };
+        // LAYER 2: 3 Widely Spaced, Low-Contrast Mid-Sea Sailboats (varied scales & soft mist sails -> never compete with the Orla!)
+        float[] boatXs = { -22f, 12f, 44f };
+        float[] boatZs = { 28f, 37f, 31f };
+        float[] boatScales = { 0.64f, 0.48f, 0.72f };
         for (int i = 0; i < boatXs.Length; i++)
         {
             GameObject sb = new GameObject("Parallax_Veleiro_MarMedio_" + (i + 1));
             sb.transform.SetParent(pxRoot.transform, false);
-            sb.transform.position = new Vector3(boatXs[i], -0.22f, boatZs[i]);
+            sb.transform.position = new Vector3(boatXs[i], -0.26f, boatZs[i]);
             sb.transform.rotation = Quaternion.Euler(0f, (i % 2 == 0) ? 90f : -90f, 0f);
             sb.transform.localScale = Vector3.one * boatScales[i];
 
-            MakePrim(sb.transform, PrimitiveType.Cube, "Casco", new Vector3(0f, 0.22f, 0f), new Vector3(1.1f, 0.45f, 2.8f), Quaternion.identity, cream, false);
-            MakePrim(sb.transform, PrimitiveType.Cube, "Faixa", new Vector3(0f, 0.34f, 0f), new Vector3(1.16f, 0.16f, 2.86f), Quaternion.identity, trimCols[i], false);
-            MakePrim(sb.transform, PrimitiveType.Cylinder, "Mastro", new Vector3(0f, 1.55f, 0.1f), new Vector3(0.10f, 1.35f, 0.10f), Quaternion.identity, woodDark, false);
-            // Main billowing sail + jib sail
-            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Principal", new Vector3(0.06f, 1.65f, -0.45f), new Vector3(0.08f, 1.75f, 1.25f), Quaternion.Euler(0f, 10f, 0f), cream, false);
-            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Proa", new Vector3(-0.04f, 1.32f, 0.65f), new Vector3(0.07f, 1.25f, 0.85f), Quaternion.Euler(0f, -12f, 0f), cream, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Casco", new Vector3(0f, 0.22f, 0f), new Vector3(1.05f, 0.40f, 2.6f), Quaternion.identity, hillDist, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Faixa", new Vector3(0f, 0.34f, 0f), new Vector3(1.10f, 0.14f, 2.64f), Quaternion.identity, hillFar, false);
+            MakePrim(sb.transform, PrimitiveType.Cylinder, "Mastro", new Vector3(0f, 1.45f, 0.1f), new Vector3(0.08f, 1.25f, 0.08f), Quaternion.identity, hillDist, false);
+            // Low-contrast soft atmospheric mist sails (blends gracefully into horizon!)
+            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Principal", new Vector3(0.05f, 1.55f, -0.42f), new Vector3(0.07f, 1.62f, 1.15f), Quaternion.Euler(0f, 10f, 0f), skyMist != null ? skyMist : hillFar, false);
+            MakePrim(sb.transform, PrimitiveType.Cube, "Vela_Proa", new Vector3(-0.04f, 1.24f, 0.60f), new Vector3(0.06f, 1.15f, 0.78f), Quaternion.Euler(0f, -12f, 0f), hillFar, false);
             midSailboats.Add(sb.transform);
         }
 
-        // LAYER 3: 8 Looping Soft Shoreline Wave-Foam Ribbons on the Wet Sand!
-        for (int i = 0; i < 8; i++)
+        // LAYER 3: 10 Lively Layered Shoreline Wave-Foam Ribbons washing gently onto the wet sand!
+        for (int i = 0; i < 10; i++)
         {
             GameObject fr = new GameObject("Parallax_Espuma_BeiraMar_" + (i + 1));
             fr.transform.SetParent(pxRoot.transform, false);
-            fr.transform.position = new Vector3(-16f + i * 7.4f, -0.26f, 9.75f + (i % 2) * 0.25f);
+            fr.transform.position = new Vector3(-18f + i * 6.2f, -0.25f, 9.65f + (i % 2) * 0.38f);
             MakePrim(fr.transform, PrimitiveType.Cylinder, "Faixa_Espuma",
-                Vector3.zero, new Vector3(7.8f, 0.025f, 1.25f), Quaternion.identity, foam, false);
+                Vector3.zero, new Vector3(6.8f, 0.028f, 1.38f), Quaternion.identity, foam, false);
+            MakePrim(fr.transform, PrimitiveType.Cylinder, "Onda_Rasa",
+                new Vector3(0.8f, -0.01f, 0.95f), new Vector3(5.4f, 0.022f, 0.90f), Quaternion.identity, foam, false);
             shoreFoam.Add(fr.transform);
         }
     }
