@@ -42,6 +42,16 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private float effectClock;
     private float prevYaw;
 
+    // Articulated Blender 5.3 limb & face joints (auto-discovered at Start!)
+    private Transform jointHead;
+    private Transform jointEyeL;
+    private Transform jointEyeR;
+    private Transform jointArmL;
+    private Transform jointArmR;
+    private Transform jointLegL;
+    private Transform jointLegR;
+    private float blinkClock = 2.4f;
+
     private sealed class VfxItem
     {
         public GameObject go;
@@ -66,8 +76,139 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         visualRoot.localRotation = Quaternion.Euler(0f, visualRoot.localEulerAngles.y, 0f);
         prevYaw = visualRoot.localEulerAngles.y;
         SetupProps();
+        CacheArticulatedJoints();
         SetupVfxPool();
         RefreshEquippedProps();
+    }
+
+    private void CacheArticulatedJoints()
+    {
+        if (visualRoot == null) return;
+        jointHead = FindRecursive(visualRoot, "Protag_Head");
+        jointEyeL = FindRecursive(visualRoot, "Protag_EyeL");
+        jointEyeR = FindRecursive(visualRoot, "Protag_EyeR");
+        jointArmL = FindRecursive(visualRoot, "Protag_ArmL");
+        jointArmR = FindRecursive(visualRoot, "Protag_ArmR");
+        jointLegL = FindRecursive(visualRoot, "Protag_LegL");
+        jointLegR = FindRecursive(visualRoot, "Protag_LegR");
+    }
+
+    private static Transform FindRecursive(Transform root, string targetName)
+    {
+        if (root.name == targetName) return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform hit = FindRecursive(root.GetChild(i), targetName);
+            if (hit != null) return hit;
+        }
+        return null;
+    }
+
+    private void UpdateArticulatedLimbs(bool moving, bool running, bool celebrating, float dt, float t)
+    {
+        // Natural eye blink every ~3.2-4.6 seconds
+        if (jointEyeL != null && jointEyeR != null)
+        {
+            blinkClock -= dt;
+            float eyeScaleY = 1f;
+            if (blinkClock <= 0f)
+            {
+                eyeScaleY = 0.12f;
+                if (blinkClock <= -0.11f)
+                    blinkClock = Random.Range(3.0f, 4.8f);
+            }
+            Vector3 es = new Vector3(1f, eyeScaleY, 1f);
+            jointEyeL.localScale = es;
+            jointEyeR.localScale = es;
+        }
+
+        float armL = 0f, armR = 0f, legL = 0f, legR = 0f, headPitch = 0f;
+        float armLRoll = 0f, armRRoll = 0f;
+
+        if (celebrating)
+        {
+            float cheer = Mathf.Sin(t * 14f) * 14f;
+            armL = -135f + cheer;
+            armR = -135f - cheer;
+            armLRoll = 22f;
+            armRRoll = -22f;
+            headPitch = -8f;
+        }
+        else if (inWater)
+        {
+            if (CurrentWaterMode == WaterMode.Swim)
+            {
+                float s = moving ? Mathf.Sin(t * 7.5f) : Mathf.Sin(t * 2.5f) * 0.35f;
+                armL = -70f + s * 42f;
+                armR = -70f - s * 42f;
+                legL = s * 28f;
+                legR = -s * 28f;
+            }
+            else if (CurrentWaterMode == WaterMode.Canoe)
+            {
+                float p = moving ? Mathf.Sin(t * 5.2f) : Mathf.Sin(t * 2.0f) * 0.2f;
+                armL = -48f + p * 26f;
+                armR = -48f - p * 26f;
+            }
+            else
+            {
+                // Surf balance arms out!
+                float bal = Mathf.Sin(t * 3.8f) * 10f;
+                armLRoll = 58f + bal;
+                armRRoll = -58f + bal;
+            }
+        }
+        else if (CurrentLandMode != LandMode.Walk)
+        {
+            float kickCycle = moving ? Mathf.Repeat(t * 0.85f, 1f) : 0f;
+            float kick = (moving && CurrentLandMode != LandMode.RollerSkates && kickCycle < 0.28f)
+                ? Mathf.Sin((kickCycle / 0.28f) * Mathf.PI) * 38f
+                : 0f;
+            if (CurrentLandMode == LandMode.Scooter)
+            {
+                armL = -46f;
+                armR = -46f;
+                legR = kick;
+            }
+            else if (CurrentLandMode == LandMode.Skate)
+            {
+                armLRoll = 34f;
+                armRRoll = -34f;
+                legR = kick;
+            }
+            else
+            {
+                float gl = moving ? Mathf.Sin(t * 9.5f) * 28f : 0f;
+                armL = gl;
+                armR = -gl;
+                legL = -gl;
+                legR = gl;
+            }
+        }
+        else if (moving)
+        {
+            float amp = running ? 42f : 26f;
+            float s = Mathf.Sin(walkPhase);
+            legL = s * amp;
+            legR = -s * amp;
+            armL = -s * (amp * 0.85f);
+            armR = holdingCone ? -52f : (s * (amp * 0.85f));
+            headPitch = running ? -5f : -2f;
+        }
+        else
+        {
+            float idle = Mathf.Sin(t * 2.4f) * 3.5f;
+            armL = idle;
+            armR = holdingCone ? -50f : -idle;
+            headPitch = Mathf.Sin(t * 1.6f) * 2.5f;
+        }
+
+        float k = 1f - Mathf.Exp(-14f * dt);
+        if (jointArmL != null) jointArmL.localRotation = Quaternion.Slerp(jointArmL.localRotation, Quaternion.Euler(armL, 0f, armLRoll), k);
+        if (jointArmR != null) jointArmR.localRotation = Quaternion.Slerp(jointArmR.localRotation, Quaternion.Euler(armR, 0f, armRRoll), k);
+        if (jointLegL != null) jointLegL.localRotation = Quaternion.Slerp(jointLegL.localRotation, Quaternion.Euler(legL, 0f, 0f), k);
+        if (jointLegR != null) jointLegR.localRotation = Quaternion.Slerp(jointLegR.localRotation, Quaternion.Euler(legR, 0f, 0f), k);
+        if (jointHead != null) jointHead.localRotation = Quaternion.Slerp(jointHead.localRotation, Quaternion.Euler(headPitch, 0f, 0f), k);
     }
 
     private void SetupProps()
@@ -275,11 +416,13 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             float h = Mathf.Max(0f, Mathf.Sin(p * Mathf.PI * 2f)) * 0.42f;
             visualRoot.localPosition = visualBaseLocalPos + new Vector3(0f, h, 0f);
             visualRoot.localRotation = Quaternion.Euler(0f, yaw, Mathf.Sin(p * Mathf.PI * 6f) * 9f);
+            UpdateArticulatedLimbs(false, false, true, dt, t);
             UpdateVfx(dt);
             return;
         }
 
         bool moving = moveInput.sqrMagnitude > 0.01f;
+        UpdateArticulatedLimbs(moving, running, false, dt, t);
 
         if (inWater)
         {
