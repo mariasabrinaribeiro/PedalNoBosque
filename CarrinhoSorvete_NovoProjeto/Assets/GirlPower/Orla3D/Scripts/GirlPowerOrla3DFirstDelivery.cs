@@ -2237,24 +2237,35 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 ? GirlPowerOrla3DUITheme.IconIceCreamLemonBasil
                 : (target == florist ? GirlPowerOrla3DUITheme.IconPortraitLuna : GirlPowerOrla3DUITheme.IconBasil);
 
-            float icSz = 24f * s;
-            float ew = Mathf.Clamp(44f * s + icSz + edgeText.Length * 7.8f * s, 128f * s, 196f * s);
-            float eh = 38f * s;
-            float ex = onRight ? (safe.xMax - ew - 14f * s) : (safe.x + 14f * s);
-            float ey = Mathf.Clamp(safe.y + safe.height * 0.44f, safe.y + 112f * s, safe.yMax - 120f * s);
-            Rect edgeRect = new Rect(ex, ey, ew, eh);
-            if (GUI.Button(edgeRect, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle))
-                GuideAndPerformActiveObjective();
-            if (edgeIcon != null)
-                GUI.DrawTexture(new Rect(edgeRect.x + 8f * s, edgeRect.y + (eh - icSz) * 0.5f, icSz, icSz), edgeIcon);
+            float icSz = 22f * s;
             GUIStyle eSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
             {
                 fontSize = Mathf.RoundToInt(14.5f * s),
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
             };
             eSt.normal.textColor = new Color(0.84f, 0.24f, 0.46f, 1f);
-            GUI.Label(new Rect(edgeRect.x + icSz + 14f * s, edgeRect.y, ew - icSz - 18f * s, eh), edgeText, eSt);
+            float txtW = eSt.CalcSize(new GUIContent(edgeText)).x + 10f * s;
+            float ew = Mathf.Clamp(txtW + icSz + 26f * s, 122f * s, 210f * s);
+            float eh = 38f * s;
+            float ex = onRight ? (safe.xMax - ew - 16f * s) : (safe.x + 16f * s);
+            float ey = Mathf.Clamp(safe.y + safe.height * 0.44f, safe.y + 112f * s, safe.yMax - 120f * s);
+            Rect edgeRect = new Rect(ex, ey, ew, eh);
+            if (GUI.Button(edgeRect, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle))
+                GuideAndPerformActiveObjective();
+            if (onRight)
+            {
+                if (edgeIcon != null)
+                    GUI.DrawTexture(new Rect(edgeRect.x + 10f * s, edgeRect.y + (eh - icSz) * 0.5f, icSz, icSz), edgeIcon);
+                GUI.Label(new Rect(edgeRect.x + icSz + 14f * s, edgeRect.y, ew - icSz - 20f * s, eh), edgeText, eSt);
+            }
+            else
+            {
+                GUI.Label(new Rect(edgeRect.x + 10f * s, edgeRect.y, ew - icSz - 18f * s, eh), edgeText, eSt);
+                if (edgeIcon != null)
+                    GUI.DrawTexture(new Rect(edgeRect.xMax - icSz - 10f * s, edgeRect.y + (eh - icSz) * 0.5f, icSz, icSz), edgeIcon);
+            }
             return;
         }
 

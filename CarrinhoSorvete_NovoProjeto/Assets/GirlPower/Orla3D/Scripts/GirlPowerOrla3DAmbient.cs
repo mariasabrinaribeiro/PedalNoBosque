@@ -159,9 +159,12 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 mf.sharedMesh = BuildRuntimeOceanMesh(260f, 76f, 84, 34);
                 oceanSurface.position = new Vector3(12f, -0.20f, 46.2f);
             }
-            else if (oceanSurface.position.y < -0.24f || oceanSurface.position.z > 47.0f)
+            else
             {
-                oceanSurface.position = new Vector3(oceanSurface.position.x, -0.20f, 46.2f);
+                if (mf.sharedMesh.bounds.extents.y < 5f)
+                    mf.sharedMesh.bounds = new Bounds(Vector3.zero, new Vector3(260f, 40f, 76f));
+                if (oceanSurface.position.y < -0.24f || oceanSurface.position.z > 47.0f)
+                    oceanSurface.position = new Vector3(oceanSurface.position.x, -0.20f, 46.2f);
             }
 
             // Ensure rich visible turquoise material properties
@@ -191,6 +194,31 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
             GirlPowerOrla3DFirstDelivery story = FindObjectOfType<GirlPowerOrla3DFirstDelivery>();
             if (story != null && story.waterSurfZone == null)
                 story.waterSurfZone = wzCol;
+        }
+        // 3. Ensure anchored boats & buoys sit cleanly ON TOP of the water surface (y = -0.14f)
+        if (floatingBoats != null && boatBasePos != null)
+        {
+            for (int i = 0; i < floatingBoats.Length; i++)
+            {
+                if (floatingBoats[i] == null) continue;
+                if (boatBasePos[i].y < -0.18f)
+                {
+                    boatBasePos[i].y = -0.14f;
+                    floatingBoats[i].position = boatBasePos[i];
+                }
+            }
+        }
+        if (floatingBuoys != null && buoyBasePos != null)
+        {
+            for (int i = 0; i < floatingBuoys.Length; i++)
+            {
+                if (floatingBuoys[i] == null) continue;
+                if (buoyBasePos[i].y < -0.18f)
+                {
+                    buoyBasePos[i].y = -0.14f;
+                    floatingBuoys[i].position = buoyBasePos[i];
+                }
+            }
         }
     }
 
@@ -229,7 +257,9 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         mesh.uv = uvs;
         mesh.triangles = tris;
         mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
+        mesh.RecalculateTangents();
+        // Generous vertical bounds so horizon curvature never triggers frustum culling!
+        mesh.bounds = new Bounds(Vector3.zero, new Vector3(sizeX, 40f, sizeZ));
         return mesh;
     }
 

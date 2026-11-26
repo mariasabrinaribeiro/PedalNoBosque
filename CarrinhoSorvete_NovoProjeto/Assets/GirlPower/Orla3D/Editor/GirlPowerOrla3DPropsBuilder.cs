@@ -272,8 +272,8 @@ public static class GirlPowerOrla3DPropsBuilder
 
         var specs = new (Vector3 pos, float rotY, Material trim, Material sailMat, bool hasSail)[]
         {
-            (new Vector3(-8.0f, -0.26f, 14.8f), 28f, trimA, sail, false),
-            (new Vector3(25.6f, -0.26f, 14.4f), -32f, trimC, sail, false)
+            (new Vector3(-8.0f, -0.14f, 14.8f), 28f, trimA, sail, false),
+            (new Vector3(25.6f, -0.14f, 14.4f), -32f, trimC, sail, false)
         };
 
         for (int i = 0; i < specs.Length; i++)

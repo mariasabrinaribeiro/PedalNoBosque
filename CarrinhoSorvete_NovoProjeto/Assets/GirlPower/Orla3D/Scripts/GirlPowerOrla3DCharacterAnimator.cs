@@ -324,7 +324,8 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private void CreateWaterRippleRings()
     {
         if (vfxContainer == null) return;
-        Shader ringSh = Shader.Find("Sprites/Default");
+        Shader ringSh = Shader.Find("GirlPower/OrlaWaterRipple");
+        if (ringSh == null) ringSh = Shader.Find("Sprites/Default");
         if (ringSh == null) ringSh = Shader.Find("Unlit/Transparent");
         Texture2D ringTex = BuildWaterRingTexture(128);
 
@@ -342,7 +343,9 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         q.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
         Collider c = q.GetComponent<Collider>();
         if (c != null) Destroy(c);
-        mat = new Material(sh) { mainTexture = tex, color = new Color(0.92f, 0.99f, 1.0f, 0.78f) };
+        mat = new Material(sh) { mainTexture = tex, color = new Color(0.95f, 0.99f, 1.0f, 0.88f) };
+        if (mat.HasProperty("_CurveStrength"))
+            mat.SetFloat("_CurveStrength", 0.0008f);
         Renderer r = q.GetComponent<Renderer>();
         r.sharedMaterial = mat;
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -699,10 +702,10 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     {
         if (CurrentWaterMode == WaterMode.Swim)
         {
-            // Genuinely submerged in the water: chest-deep when treading water, tilted horizontally (~52 deg) when swimming forward!
-            float strokeRoll = moving ? Mathf.Sin(t * 8.4f) * 16f : Mathf.Sin(t * 2.6f) * 4f;
-            float swimPitch = moving ? (FaceForwardSign >= 0f ? 52f : -52f) : (FaceForwardSign >= 0f ? 10f : -10f);
-            float floatY = (moving ? -0.66f : -0.78f) + Mathf.Sin(t * 3.4f) * 0.055f;
+            // Chest-deep swimming: head, shoulders & stroking arms stay cleanly above the turquoise waves while waist/legs are submerged!
+            float strokeRoll = moving ? Mathf.Sin(t * 8.4f) * 14f : Mathf.Sin(t * 2.6f) * 4f;
+            float swimPitch = moving ? (FaceForwardSign >= 0f ? 42f : -42f) : (FaceForwardSign >= 0f ? 8f : -8f);
+            float floatY = (moving ? -0.48f : -0.56f) + Mathf.Sin(t * 3.4f) * 0.05f;
             visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, floatY, 0f), dt * 9f);
             visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(swimPitch, yaw, strokeRoll), dt * 8f);
         }

@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v38_PraiaAguaNado_BeachTennis_Acabamento";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v39_AguaVisivel_NadoProfundo_HUDLimpo";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -671,7 +671,7 @@ public static class GirlPowerOrla3DSceneBuilder
         // Canopy-only smooth occlusion: whenever ANY stall awning, table umbrella, cart canopy, or house roof crosses the camera-to-player ray, ONLY that overhead cover fades smoothly while counters/bases remain 100% solid!
         List<Transform> occluderRoots = new List<Transform>();
         foreach (Transform h in paintableHouses) if (h != null) occluderRoots.Add(h);
-        foreach (GameObject coverObj in new[] { kiosk, floristStand, cart, restKitchen, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
+        foreach (GameObject coverObj in new[] { kiosk, floristStand, cart, restKitchen, towerA, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
             if (coverObj != null) occluderRoots.Add(coverObj.transform);
         foreach (Transform tbl in restaurantTables)
             if (tbl != null) occluderRoots.Add(tbl);
@@ -1471,7 +1471,9 @@ public static class GirlPowerOrla3DSceneBuilder
         mesh.uv = uvs;
         mesh.triangles = tris;
         mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
+        mesh.RecalculateTangents();
+        // Generous vertical bounds so horizon curvature never triggers frustum culling!
+        mesh.bounds = new Bounds(Vector3.zero, new Vector3(sizeX, 40f, sizeZ));
 
         string meshPath = "Assets/GirlPower/Orla3D/Materials/OrlaOceanGrid.asset";
         if (AssetDatabase.LoadAssetAtPath<Mesh>(meshPath) != null)
