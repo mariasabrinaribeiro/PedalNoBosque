@@ -108,6 +108,8 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 lightBaseIntensity[i] = warmLanternLights[i] != null ? warmLanternLights[i].intensity : 1.3f;
         }
 
+        SanitizeLegacySceneVisualsAndOcean();
+
         if (oceanSurface != null)
             oceanLowTidePos = oceanSurface.position;
 
@@ -117,6 +119,118 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         SetPavilionLightsActive(false);
 
         ApplyTimePreset(currentPreset);
+    }
+
+    private void SanitizeLegacySceneVisualsAndOcean()
+    {
+        // 1. Eliminate any legacy cloud shadow ground quads (giant translucent rectangles causing vertical bands on sand/boardwalk!)
+        if (cloudShadows != null)
+        {
+            for (int i = 0; i < cloudShadows.Length; i++)
+                if (cloudShadows[i] != null) cloudShadows[i].gameObject.SetActive(false);
+        }
+        foreach (Transform tr in FindObjectsOfType<Transform>())
+        {
+            if (tr != null && tr.name.StartsWith("Sombra_Nuvem_Movel"))
+                tr.gameObject.SetActive(false);
+            else if (tr != null && tr.name == "Terreno Costeiro - Orla das Fadas")
+            {
+                foreach (Renderer r in tr.GetComponentsInChildren<Renderer>(true))
+                {
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    r.receiveShadows = true;
+                }
+            }
+        }
+
+        // 2. Guarantee visible, shoreline-aligned animated ocean plane (shoreline z = 8.2m, y = -0.20m) & Water Zone even on older scene builds!
+        if (oceanSurface == null)
+        {
+            GameObject foundOcean = GameObject.Find("Mar Estilizado - Animado");
+            if (foundOcean != null) oceanSurface = foundOcean.transform;
+        }
+        if (oceanSurface != null)
+        {
+            MeshFilter mf = oceanSurface.GetComponent<MeshFilter>();
+            bool needsMeshUpgrade = mf == null || mf.sharedMesh == null || mf.sharedMesh.bounds.extents.z < 30f;
+            if (needsMeshUpgrade)
+            {
+                if (mf == null) mf = oceanSurface.gameObject.AddComponent<MeshFilter>();
+                mf.sharedMesh = BuildRuntimeOceanMesh(260f, 76f, 84, 34);
+                oceanSurface.position = new Vector3(12f, -0.20f, 46.2f);
+            }
+            else if (oceanSurface.position.y < -0.24f || oceanSurface.position.z > 47.0f)
+            {
+                oceanSurface.position = new Vector3(oceanSurface.position.x, -0.20f, 46.2f);
+            }
+
+            // Ensure rich visible turquoise material properties
+            Renderer mr = oceanSurface.GetComponent<Renderer>();
+            if (mr != null && mr.sharedMaterial != null)
+            {
+                Material mat = mr.sharedMaterial;
+                if (mat.HasProperty("_ShallowColor")) mat.SetColor("_ShallowColor", new Color(0.20f, 0.82f, 0.86f, 0.86f));
+                if (mat.HasProperty("_DeepColor")) mat.SetColor("_DeepColor", new Color(0.06f, 0.42f, 0.62f, 0.97f));
+            }
+
+            // Ensure explicit Water Surf/Swim Zone collider exists and is linked to Story Controller
+            Transform wzTr = oceanSurface.Find("Zona_Agua_Mar_Surf");
+            BoxCollider wzCol = wzTr != null ? wzTr.GetComponent<BoxCollider>() : null;
+            if (wzCol == null)
+            {
+                GameObject wzObj = new GameObject("Zona_Agua_Mar_Surf");
+                wzObj.transform.SetParent(oceanSurface, false);
+                wzObj.transform.localPosition = Vector3.zero;
+                wzCol = wzObj.AddComponent<BoxCollider>();
+                wzCol.isTrigger = true;
+            }
+            // Ocean mesh spans local Z -38..+38 (world Z = 8.2 .. 84.2). Water zone begins at local Z = -37.55 (world Z = 8.65).
+            wzCol.center = new Vector3(0f, 0.5f, 0.225f);
+            wzCol.size = new Vector3(260f, 4.0f, 75.55f);
+
+            GirlPowerOrla3DFirstDelivery story = FindObjectOfType<GirlPowerOrla3DFirstDelivery>();
+            if (story != null && story.waterSurfZone == null)
+                story.waterSurfZone = wzCol;
+        }
+    }
+
+    private static Mesh BuildRuntimeOceanMesh(float sizeX, float sizeZ, int segsX, int segsZ)
+    {
+        Mesh mesh = new Mesh { name = "OrlaOceanGrid_Runtime" };
+        Vector3[] verts = new Vector3[(segsX + 1) * (segsZ + 1)];
+        Vector2[] uvs = new Vector2[verts.Length];
+        int[] tris = new int[segsX * segsZ * 6];
+        int v = 0;
+        for (int z = 0; z <= segsZ; z++)
+        {
+            float tz = (float)z / segsZ;
+            for (int x = 0; x <= segsX; x++)
+            {
+                float tx = (float)x / segsX;
+                verts[v] = new Vector3((tx - 0.5f) * sizeX, 0f, (tz - 0.5f) * sizeZ);
+                uvs[v] = new Vector2(tx, tz);
+                v++;
+            }
+        }
+        int ti = 0;
+        for (int z = 0; z < segsZ; z++)
+        {
+            for (int x = 0; x < segsX; x++)
+            {
+                int i0 = z * (segsX + 1) + x;
+                int i1 = i0 + 1;
+                int i2 = i0 + (segsX + 1);
+                int i3 = i2 + 1;
+                tris[ti++] = i0; tris[ti++] = i2; tris[ti++] = i1;
+                tris[ti++] = i1; tris[ti++] = i2; tris[ti++] = i3;
+            }
+        }
+        mesh.vertices = verts;
+        mesh.uv = uvs;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     private void Update()

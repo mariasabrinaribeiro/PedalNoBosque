@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v37_FluxoUnificado_GuardaSolDomo_PrepSorvete";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v38_PraiaAguaNado_BeachTennis_Acabamento";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -91,10 +91,10 @@ public static class GirlPowerOrla3DSceneBuilder
             waterZoneObj.transform.localPosition = Vector3.zero;
             waterSurfZone = waterZoneObj.AddComponent<BoxCollider>();
             waterSurfZone.isTrigger = true;
-            // Ocean mesh spans local Z -38..+38 (260m wide x 76m deep -> ZERO exposed left/right/far edges at any zoom!).
-            // Start water zone 0.9m past shoreline feather (-37.1 -> +38.0) so dry sand never triggers surf!
-            waterSurfZone.center = new Vector3(0f, 0.5f, 0.45f);
-            waterSurfZone.size = new Vector3(260f, 4.0f, 75.1f);
+            // Ocean mesh spans local Z -38..+38 (world Z = 8.2 .. 84.2 -> ZERO exposed edges, water visible behind pier & canoe!).
+            // Start water zone right past shoreline feather (-37.55 -> +38.0 = world Z 8.65 .. 84.2) so swimming triggers right in the water!
+            waterSurfZone.center = new Vector3(0f, 0.5f, 0.225f);
+            waterSurfZone.size = new Vector3(260f, 4.0f, 75.55f);
         }
 
         // 4. Barraca Central (Quiosque Orla das Fadas) aberta para a praça (sem árvores ou muretas na frente!)
@@ -290,8 +290,8 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject gardenBed = PlaceModel(root.transform, "GardenPlanterBed", "Horta da Baia - Canteiros", new Vector3(-5.0f, 0f, -18.1f), 0f, 1f, cozyMats);
         if (gardenBed != null) AddBlockingBox(gardenBed, new Vector3(0f, 0.4f, 0f), new Vector3(2.6f, 0.8f, 1.4f), obstacles);
 
-        GameObject fishingPier = PlaceModel(root.transform, "FishingPierDock", "Pier de Pesca da Baia", new Vector3(31.0f, -0.20f, 8.8f), 0f, 1f, cozyMats);
-        GameObject beachTennis = PlaceModel(root.transform, "BeachTennisCourt", "Quadra de Beach Tennis", new Vector3(3.2f, -0.14f, 7.6f), 0f, 1f, cozyMats);
+        GameObject fishingPier = PlaceModel(root.transform, "FishingPierDock", "Pier de Pesca da Baia", new Vector3(31.0f, -0.16f, 7.6f), 0f, 1f, cozyMats);
+        GameObject beachTennis = PlaceModel(root.transform, "BeachTennisCourt", "Quadra de Beach Tennis", new Vector3(3.2f, -0.12f, 6.8f), 0f, 1f, cozyMats);
         Transform beachTennisEntrance = null;
         if (beachTennis != null)
         {
@@ -309,8 +309,8 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject noticeBoard = PlaceModel(root.transform, "VillageNoticeBoard", "Mural de Avisos da Vila", new Vector3(-12.6f, 0f, -3.75f), 0f, 1f, cozyMats);
         if (noticeBoard != null) AddBlockingBox(noticeBoard, new Vector3(0f, 1.1f, 0f), new Vector3(1.9f, 2.2f, 0.36f), obstacles);
 
-        // Moored Kayak/Canoe clearly grounded right along the wet sand margin!
-        PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.22f, 9.25f), 22f, 1.0f, cozyMats);
+        // Moored Kayak/Canoe resting right along the animated turquoise shoreline!
+        PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.18f, 8.05f), 22f, 1.0f, cozyMats);
 
         // 6b. 3 Low-Profile Paintable Coastal Houses tucked to the LATERAL EDGES (z = -24.5 -> ZERO central roof barrier!)
         List<Transform> paintableHouses = new List<Transform>();
@@ -404,11 +404,11 @@ public static class GirlPowerOrla3DSceneBuilder
         warmLights.Add(CreateWarmLight(root.transform, "Luz Quiosque", new Vector3(0f, 2.4f, -11.2f), 0.62f, 7.5f));
         warmLights.Add(CreateWarmLight(root.transform, "Luz Florista", new Vector3(24f, 2.4f, -6.0f), 0.58f, 7.5f));
 
-        // Benches tucked cleanly in border recesses — Bench #1 (-7.6) pairs with Water Spout #1 (-5.8) along the open passage edge!
-        float[] benchXs = { -7.6f, 15.2f, 19.8f, 28.6f };
+        // Cohesive lateral rest nook: Trash Bin (-9.6) + Bench #1 (-8.2) + Water Spout #1 (-6.4), with wide open passage beside it!
+        float[] benchXs = { -8.2f, 15.2f, 19.8f, 28.6f };
         for (int i = 0; i < benchXs.Length; i++)
         {
-            GameObject bench = PlaceModel(root.transform, "CoastalBench", "Banco da Orla " + (i + 1), new Vector3(benchXs[i], 0f, -3.55f), 180f, 1f, cozyMats);
+            GameObject bench = PlaceModel(root.transform, "CoastalBench", "Banco da Orla " + (i + 1), new Vector3(benchXs[i], 0f, -3.45f), 180f, 1f, cozyMats);
             if (bench != null) AddBlockingBox(bench, new Vector3(0f, 0.48f, 0f), new Vector3(1.80f, 0.96f, 0.65f), obstacles);
         }
 
@@ -882,12 +882,12 @@ public static class GirlPowerOrla3DSceneBuilder
             }
         }
 
-        // PHASE 1 VERTICAL SLICE: 2 Prominent Coastal Water Spout Stations anchored right along the border beside Benches!
-        // Station #1 (-5.8, -3.55) sits right next to Bench #1 (-7.6, -3.55) at the edge of the open central passage -> unmistakable from afar!
+        // PHASE 1 VERTICAL SLICE: 2 Prominent Coastal Water Spout Stations grouped with the lateral rest nook!
+        // Station #1 (-6.4, -3.45) sits right beside Bench #1 (-8.2) & Trash Bin #1 (-9.6), leaving the passage at x=-5.4..+2.6 wide open!
         var bowlSpecs = new (string label, Vector3 pos, bool phase1Active)[]
         {
-            ("Pote Agua - Banco Orla",    new Vector3(-5.8f, 0f, -3.55f),  true),
-            ("Pote Agua - Recuo Mesas",   new Vector3(13.4f, 0f, -3.55f),  true),
+            ("Pote Agua - Banco Orla",    new Vector3(-6.4f, 0f, -3.45f),  true),
+            ("Pote Agua - Recuo Mesas",   new Vector3(13.4f, 0f, -3.45f),  true),
             ("Pote Agua - Cafe Fadas",    new Vector3(3.0f, 0f, -12.60f),  false),
             ("Pote Agua - Feira Central", new Vector3(17.8f, 0f, -3.55f),  false),
             ("Pote Agua - Florista",      new Vector3(21.4f, 0f, -6.20f),  false)
@@ -1094,9 +1094,9 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject missionObj = new GameObject("Historia Baia do Avesso - 4 Capitulos");
         missionObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DFirstDelivery mission = missionObj.AddComponent<GirlPowerOrla3DFirstDelivery>();
-        // Closer hero diorama framing: protagonist & cart read prominently in <2s on phone screens with crisp ocean horizon & zero foreground roofs!
-        mission.cameraOffset = new Vector3(0f, 8.6f, -10.8f);
-        mission.cameraPitch = 39.5f;
+        // Balanced hero diorama framing: protagonist stays close & readable while ocean shoreline shows cleanly behind the pier!
+        mission.cameraOffset = new Vector3(0f, 8.2f, -11.8f);
+        mission.cameraPitch = 33.5f;
         mission.minWorldZ = -22.2f;
         mission.maxWorldZ = 22.5f;
         mission.player = playerRoot.transform;
@@ -1426,8 +1426,8 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject ocean = new GameObject("Mar Estilizado - Animado");
         ocean.transform.SetParent(parent, false);
-        // Expanded 260m x 76m ocean plane keeping the shoreline at exact z = 10.2m while closing ALL left, right & far horizon edges at every zoom!
-        ocean.transform.position = new Vector3(12f, -0.29f, 48.2f);
+        // Expanded 260m x 76m ocean plane keeping the shoreline at exact z = 8.2m (meeting the pier & canoe!) while closing ALL edges!
+        ocean.transform.position = new Vector3(12f, -0.20f, 46.2f);
 
         MeshFilter mf = ocean.AddComponent<MeshFilter>();
         MeshRenderer mr = ocean.AddComponent<MeshRenderer>();
@@ -1702,9 +1702,11 @@ public static class GirlPowerOrla3DSceneBuilder
             if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0f);
             if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.18f);
         }
-        if (mat.HasProperty("_DepthDistance")) mat.SetFloat("_DepthDistance", 2.5f);
-        if (mat.HasProperty("_FoamDistance")) mat.SetFloat("_FoamDistance", 0.40f);
-        if (mat.HasProperty("_FoamSpeed")) mat.SetFloat("_FoamSpeed", 0.35f);
+        if (mat.HasProperty("_ShallowColor")) mat.SetColor("_ShallowColor", new Color(0.20f, 0.82f, 0.86f, 0.86f));
+        if (mat.HasProperty("_DeepColor")) mat.SetColor("_DeepColor", new Color(0.06f, 0.42f, 0.62f, 0.97f));
+        if (mat.HasProperty("_DepthDistance")) mat.SetFloat("_DepthDistance", 2.8f);
+        if (mat.HasProperty("_FoamDistance")) mat.SetFloat("_FoamDistance", 0.65f);
+        if (mat.HasProperty("_FoamSpeed")) mat.SetFloat("_FoamSpeed", 0.42f);
         if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
         if (mat.HasProperty("_WaveHeight")) mat.SetFloat("_WaveHeight", 0.055f);
         EditorUtility.SetDirty(mat);
@@ -1858,7 +1860,7 @@ public static class GirlPowerOrla3DSceneBuilder
             ("AC_BulbWarm", "#FFF0B3", 0.10f, "#FFE082", 1.00f),
 
             ("AC_PalmTrunk", "#C89E72", 0.05f, null, 0f),
-            ("AC_PalmRing", "#AD845C", 0.05f, null, 0f),
+            ("AC_PalmRing", "#BE946A", 0.05f, null, 0f),
             ("AC_PalmLeaf", "#5B9E78", 0.08f, null, 0f),
             ("AC_PalmLeafTip", "#7BB892", 0.08f, null, 0f),
             ("AC_Coconut", "#764E34", 0.08f, null, 0f),

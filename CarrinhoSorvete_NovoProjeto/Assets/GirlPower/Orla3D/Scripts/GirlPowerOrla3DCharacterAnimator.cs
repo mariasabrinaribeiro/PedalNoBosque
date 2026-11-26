@@ -34,8 +34,9 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private NavMeshAgent cachedAgent;
 
     public LandMode CurrentLandMode { get; private set; } = LandMode.Walk;
-    public WaterMode CurrentWaterMode { get; private set; } = WaterMode.Surf;
+    public WaterMode CurrentWaterMode { get; private set; } = WaterMode.Swim;
     public bool IsInWater => inWater;
+    public float WaterSurfaceY { get; set; } = -0.20f;
     public bool HasHatEquipped { get; private set; }
     /// <summary>Auto-detected local Z sign of the protagonist's face (+1 = Unity standard +Z forward).</summary>
     public float FaceForwardSign { get; private set; } = 1f;
@@ -85,6 +86,10 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private readonly Stack<VfxItem> vfxPool = new Stack<VfxItem>(64);
     private Material puffMat;
     private Transform vfxContainer;
+    private Transform waterRippleA;
+    private Transform waterRippleB;
+    private Material waterRippleMatA;
+    private Material waterRippleMatB;
 
     private void Start()
     {
@@ -174,11 +179,32 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         {
             if (CurrentWaterMode == WaterMode.Swim)
             {
-                float s = moving ? Mathf.Sin(t * 7.5f) : Mathf.Sin(t * 2.5f) * 0.35f;
-                armL = -70f + s * 42f;
-                armR = -70f - s * 42f;
-                legL = s * 28f;
-                legR = -s * 28f;
+                if (moving)
+                {
+                    // Energetic alternating freestyle swimming strokes + flutter kicks!
+                    float stroke = Mathf.Sin(t * 8.4f);
+                    float strokeCos = Mathf.Cos(t * 8.4f);
+                    armL = -110f + stroke * 58f;
+                    armR = -110f - stroke * 58f;
+                    armLRoll = 28f + strokeCos * 18f;
+                    armRRoll = -28f - strokeCos * 18f;
+                    legL = stroke * 36f;
+                    legR = -stroke * 36f;
+                    torsoRoll = stroke * 12f;
+                    headPitch = -36f; // Keep head & face lifted cleanly above water!
+                }
+                else
+                {
+                    // Gentle treading water with calm sculling arms & head up above waves
+                    float tread = Mathf.Sin(t * 3.4f);
+                    armL = -42f + tread * 18f;
+                    armR = -42f - tread * 18f;
+                    armLRoll = 38f + tread * 14f;
+                    armRRoll = -38f - tread * 14f;
+                    legL = tread * 20f;
+                    legR = -tread * 20f;
+                    headPitch = -8f;
+                }
             }
             else if (CurrentWaterMode == WaterMode.Canoe)
             {
@@ -291,6 +317,62 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             puffMat.SetColor("_ShadowColor", new Color(0.55f, 0.52f, 0.68f, 1f));
         if (puffMat.HasProperty("_CurveStrength"))
             puffMat.SetFloat("_CurveStrength", 0.0008f);
+
+        CreateWaterRippleRings();
+    }
+
+    private void CreateWaterRippleRings()
+    {
+        if (vfxContainer == null) return;
+        Shader ringSh = Shader.Find("Sprites/Default");
+        if (ringSh == null) ringSh = Shader.Find("Unlit/Transparent");
+        Texture2D ringTex = BuildWaterRingTexture(128);
+
+        waterRippleA = BuildRippleQuad("Protagonista_Anel_Agua_1", ringSh, ringTex, out waterRippleMatA);
+        waterRippleB = BuildRippleQuad("Protagonista_Anel_Agua_2", ringSh, ringTex, out waterRippleMatB);
+        if (waterRippleA != null) waterRippleA.gameObject.SetActive(false);
+        if (waterRippleB != null) waterRippleB.gameObject.SetActive(false);
+    }
+
+    private Transform BuildRippleQuad(string name, Shader sh, Texture2D tex, out Material mat)
+    {
+        GameObject q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        q.name = name;
+        q.transform.SetParent(vfxContainer, false);
+        q.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        Collider c = q.GetComponent<Collider>();
+        if (c != null) Destroy(c);
+        mat = new Material(sh) { mainTexture = tex, color = new Color(0.92f, 0.99f, 1.0f, 0.78f) };
+        Renderer r = q.GetComponent<Renderer>();
+        r.sharedMaterial = mat;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        r.receiveShadows = false;
+        return q.transform;
+    }
+
+    private static Texture2D BuildWaterRingTexture(int sz)
+    {
+        Texture2D tex = new Texture2D(sz, sz, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        Color32[] px = new Color32[sz * sz];
+        float half = sz * 0.5f;
+        for (int y = 0; y < sz; y++)
+        {
+            for (int x = 0; x < sz; x++)
+            {
+                float dx = (x - half) / half;
+                float dy = (y - half) / half;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+                // Crisp outer white foam ring + soft inner turquoise halo
+                float outerRing = Mathf.Exp(-Mathf.Pow((r - 0.80f) / 0.10f, 2f));
+                float innerRing = Mathf.Exp(-Mathf.Pow((r - 0.52f) / 0.08f, 2f)) * 0.55f;
+                float a = Mathf.Clamp01(outerRing + innerRing) * (r <= 1.0f ? 1f : 0f);
+                byte ba = (byte)Mathf.RoundToInt(a * 255f);
+                px[y * sz + x] = new Color32(235, 252, 255, ba);
+            }
+        }
+        tex.SetPixels32(px);
+        tex.Apply();
+        return tex;
     }
 
     public void SetHoldingCone(bool holding)
@@ -482,9 +564,12 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         if (inWater)
         {
             AnimateWaterModes(moveInput, moving, yaw, turnTilt, worldPos, t, dt);
+            UpdateWaterRipples(worldPos, moving, t);
             UpdateVfx(dt);
             return;
         }
+        if (waterRippleA != null && waterRippleA.gameObject.activeSelf) waterRippleA.gameObject.SetActive(false);
+        if (waterRippleB != null && waterRippleB.gameObject.activeSelf) waterRippleB.gameObject.SetActive(false);
 
         // Wheeled land sports (Skateboard, Scooter, RollerSkates) with push-off kick, turn banking & wheel particles!
         if (CurrentLandMode != LandMode.Walk)
@@ -583,21 +668,49 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         UpdateVfx(dt);
     }
 
+    private void UpdateWaterRipples(Vector3 worldPos, bool moving, float t)
+    {
+        if (waterRippleA == null || waterRippleB == null) return;
+        if (!waterRippleA.gameObject.activeSelf) waterRippleA.gameObject.SetActive(true);
+        if (!waterRippleB.gameObject.activeSelf) waterRippleB.gameObject.SetActive(true);
+
+        float speed = moving ? 1.45f : 0.72f;
+        float pA = Mathf.Repeat(t * speed, 1f);
+        float pB = Mathf.Repeat(t * speed + 0.5f, 1f);
+
+        float baseScale = CurrentWaterMode == WaterMode.Swim ? 0.85f : 1.15f;
+        float maxScale = CurrentWaterMode == WaterMode.Swim ? (moving ? 2.35f : 1.85f) : (moving ? 2.85f : 2.15f);
+        float ySurface = WaterSurfaceY + 0.03f;
+
+        float scA = Mathf.Lerp(baseScale, maxScale, pA);
+        float scB = Mathf.Lerp(baseScale, maxScale, pB);
+        waterRippleA.position = new Vector3(worldPos.x, ySurface, worldPos.z);
+        waterRippleB.position = new Vector3(worldPos.x, ySurface + 0.005f, worldPos.z);
+        waterRippleA.localScale = new Vector3(scA, scA, 1f);
+        waterRippleB.localScale = new Vector3(scB, scB, 1f);
+
+        if (waterRippleMatA != null)
+            waterRippleMatA.color = new Color(0.92f, 0.99f, 1.0f, (1f - pA) * (moving ? 0.88f : 0.68f));
+        if (waterRippleMatB != null)
+            waterRippleMatB.color = new Color(0.84f, 0.98f, 1.0f, (1f - pB) * (moving ? 0.88f : 0.68f));
+    }
+
     private void AnimateWaterModes(Vector2 moveInput, bool moving, float yaw, float turnTilt, Vector3 worldPos, float t, float dt)
     {
         if (CurrentWaterMode == WaterMode.Swim)
         {
-            // Swimming low in the turquoise water with gentle breaststroke bob & rings!
-            float stroke = moving ? Mathf.Sin(t * 7.5f) * 12f : Mathf.Sin(t * 2.4f) * 3f;
-            float floatY = -0.34f + Mathf.Sin(t * 3.2f) * 0.06f;
-            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, floatY, 0f), dt * 8f);
-            visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(moving ? 22f : 4f, yaw, stroke), dt * 8f);
+            // Genuinely submerged in the water: chest-deep when treading water, tilted horizontally (~52 deg) when swimming forward!
+            float strokeRoll = moving ? Mathf.Sin(t * 8.4f) * 16f : Mathf.Sin(t * 2.6f) * 4f;
+            float swimPitch = moving ? (FaceForwardSign >= 0f ? 52f : -52f) : (FaceForwardSign >= 0f ? 10f : -10f);
+            float floatY = (moving ? -0.66f : -0.78f) + Mathf.Sin(t * 3.4f) * 0.055f;
+            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, floatY, 0f), dt * 9f);
+            visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(swimPitch, yaw, strokeRoll), dt * 8f);
         }
         else if (CurrentWaterMode == WaterMode.Canoe)
         {
             // Paddling the Hawaiian Outrigger Canoe smoothly across the waves!
             float paddleRock = moving ? Mathf.Sin(t * 5.2f) * 7f : Mathf.Sin(t * 2.0f) * 2.5f;
-            float waveBob = 0.22f + Mathf.Sin(t * 3.0f) * 0.09f;
+            float waveBob = 0.20f + Mathf.Sin(t * 3.0f) * 0.09f;
             visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, waveBob, 0f), dt * 8f);
             visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(-2f, yaw, paddleRock + turnTilt * 0.5f), dt * 7f);
         }
@@ -607,27 +720,32 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             float waveBob = Mathf.Sin(t * 3.8f) * 0.14f + 0.14f;
             float carveRoll = -moveInput.x * 16f + turnTilt * 0.7f + Mathf.Sin(t * 2.8f) * 4f;
             float pitch = -moveInput.y * 8f - 4f;
-            visualRoot.localPosition = visualBaseLocalPos + new Vector3(0f, waveBob, 0f);
+            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, waveBob, 0f), dt * 10f);
             visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(pitch, yaw, carveRoll), dt * 8f);
         }
 
         effectClock += dt;
-        if (effectClock >= (moving ? 0.065f : 0.22f))
+        if (effectClock >= (moving ? 0.055f : 0.20f))
         {
             effectClock = 0f;
-            Vector3 backDir = visualRoot != null ? visualRoot.forward : Vector3.back;
+            Vector3 backDir = visualRoot != null ? -visualRoot.forward * FaceForwardSign : Vector3.back;
             Vector3 rightDir = visualRoot != null ? visualRoot.right : Vector3.right;
-            // Clean white wake ribbon right behind the surfboard / canoe so height & shore direction read clearly!
-            Vector3 wakeCenter = new Vector3(worldPos.x, -0.25f, worldPos.z) + backDir * 0.45f;
-            SpawnPuff(wakeCenter + rightDir * 0.22f, Vector3.zero, moving ? 0.24f : 0.16f, 0.36f, 0.95f, new Color(0.93f, 0.99f, 1.0f), true);
-            SpawnPuff(wakeCenter - rightDir * 0.22f, Vector3.zero, moving ? 0.24f : 0.16f, 0.36f, 0.95f, new Color(0.93f, 0.99f, 1.0f), true);
+            float ySurf = WaterSurfaceY + 0.02f;
+            // Clean white foamy wake right at the water surface behind the swimmer / surfboard / canoe!
+            Vector3 wakeCenter = new Vector3(worldPos.x, ySurf, worldPos.z) + backDir * 0.42f;
+            SpawnPuff(wakeCenter + rightDir * 0.24f, Vector3.zero, moving ? 0.26f : 0.16f, 0.40f, 0.95f, new Color(0.94f, 0.99f, 1.0f), true);
+            SpawnPuff(wakeCenter - rightDir * 0.24f, Vector3.zero, moving ? 0.26f : 0.16f, 0.40f, 0.95f, new Color(0.94f, 0.99f, 1.0f), true);
 
             if (moving)
             {
-                Vector3 sprayPos = worldPos + Vector3.up * 0.06f + backDir * 0.35f;
-                Vector3 vel = new Vector3(Random.Range(-0.85f, 0.85f), Random.Range(0.55f, 1.25f), Random.Range(-0.85f, 0.85f));
-                SpawnPuff(sprayPos, vel, 0.12f, 0.22f, 0.38f, new Color(0.95f, 0.99f, 1.0f), false);
-                if (audioController != null && Random.value > 0.68f)
+                int drops = CurrentWaterMode == WaterMode.Swim ? 3 : 2;
+                for (int d = 0; d < drops; d++)
+                {
+                    Vector3 sprayPos = new Vector3(worldPos.x, ySurf + 0.08f, worldPos.z) + backDir * 0.28f + rightDir * Random.Range(-0.28f, 0.28f);
+                    Vector3 vel = new Vector3(Random.Range(-1.05f, 1.05f), Random.Range(0.75f, 1.55f), Random.Range(-1.05f, 1.05f));
+                    SpawnPuff(sprayPos, vel, 0.11f, 0.20f, 0.40f, new Color(0.88f, 0.98f, 1.0f), false);
+                }
+                if (audioController != null && Random.value > 0.62f)
                     audioController.PlayFootstep(2);
             }
         }
@@ -636,8 +754,8 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private void OnFootstep(Vector3 pos, bool running, float sideOffset)
     {
         Vector3 footPos = pos + visualRoot.right * sideOffset + Vector3.up * 0.05f;
-        bool inSurf = pos.z >= 9.5f;
-        bool onBeach = pos.z >= 4.05f && pos.z < 9.5f;
+        bool inSurf = pos.z >= 7.8f;
+        bool onBeach = pos.z >= 4.05f && pos.z < 7.8f;
 
         if (audioController != null)
         {

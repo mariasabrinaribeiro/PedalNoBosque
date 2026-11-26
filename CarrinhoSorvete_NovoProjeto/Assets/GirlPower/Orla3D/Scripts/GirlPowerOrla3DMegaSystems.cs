@@ -157,6 +157,25 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
     private float tennisBallPos;
     private float tennisBallDir = 1f;
     private int tennisRally;
+    private bool tennisHasLastClick;
+    private float tennisLastClickPos;
+    private bool tennisLastClickHit;
+    private float tennisFeedbackTimer;
+    private const float TennisFeedbackDuration = 2.6f;
+    private string tennisFeedbackMsg = "";
+    private float tennisHitFxTimer;
+    private float tennisMissShakeTimer;
+    private float tennisVictoryCloseTimer;
+    private sealed class TennisFxParticle
+    {
+        public float x, y, vx, vy, age, life, size;
+        public Color color;
+        public bool isStar;
+    }
+    private readonly List<TennisFxParticle> tennisFxParticles = new List<TennisFxParticle>(48);
+    private float tennisFxOriginNormX = 0.5f;
+    private bool tennisFxPendingSpawn;
+    private bool tennisFxPendingVictory;
 
     private int slicePendingTable = -1;
     private string sliceDishName = "";
@@ -312,7 +331,17 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         else if (modal == ActiveModal.BeachTennis)
         {
             tennisBallPos = 0.1f;
+            tennisBallDir = 1f;
             tennisRally = 0;
+            tennisHasLastClick = false;
+            tennisFeedbackTimer = 0f;
+            tennisFeedbackMsg = "";
+            tennisHitFxTimer = 0f;
+            tennisMissShakeTimer = 0f;
+            tennisVictoryCloseTimer = 0f;
+            tennisFxParticles.Clear();
+            tennisFxPendingSpawn = false;
+            tennisFxPendingVictory = false;
         }
     }
 
@@ -450,9 +479,35 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         }
         else if (CurrentModal == ActiveModal.BeachTennis)
         {
-            tennisBallPos += tennisBallDir * dt * (1.25f + tennisRally * 0.14f);
-            if (tennisBallPos >= 1f) { tennisBallPos = 1f; tennisBallDir = -1f; }
-            else if (tennisBallPos <= 0f) { tennisBallPos = 0f; tennisBallDir = 1f; }
+            if (tennisFeedbackTimer > 0f) tennisFeedbackTimer = Mathf.Max(0f, tennisFeedbackTimer - dt);
+            if (tennisHitFxTimer > 0f) tennisHitFxTimer = Mathf.Max(0f, tennisHitFxTimer - dt);
+            if (tennisMissShakeTimer > 0f) tennisMissShakeTimer = Mathf.Max(0f, tennisMissShakeTimer - dt);
+
+            for (int i = tennisFxParticles.Count - 1; i >= 0; i--)
+            {
+                TennisFxParticle p = tennisFxParticles[i];
+                p.age += dt;
+                if (p.age >= p.life) { tennisFxParticles.RemoveAt(i); continue; }
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += 260f * dt;
+            }
+
+            if (tennisVictoryCloseTimer > 0f)
+            {
+                tennisVictoryCloseTimer -= dt;
+                if (tennisVictoryCloseTimer <= 0f)
+                {
+                    CurrentModal = ActiveModal.None;
+                    tennisFxParticles.Clear();
+                }
+            }
+            else
+            {
+                tennisBallPos += tennisBallDir * dt * (1.20f + tennisRally * 0.14f);
+                if (tennisBallPos >= 1f) { tennisBallPos = 1f; tennisBallDir = -1f; }
+                else if (tennisBallPos <= 0f) { tennisBallPos = 0f; tennisBallDir = 1f; }
+            }
         }
         else if (CurrentModal == ActiveModal.SliceMixMinigame)
         {
@@ -470,6 +525,12 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         if (keys.escapeKey.wasPressedThisFrame && CurrentModal != ActiveModal.None)
         {
             CurrentModal = ActiveModal.None;
+            return;
+        }
+        if (CurrentModal == ActiveModal.BeachTennis && tennisVictoryCloseTimer <= 0f
+            && (keys.spaceKey.wasPressedThisFrame || keys.enterKey.wasPressedThisFrame))
+        {
+            TriggerBeachTennisSwing();
             return;
         }
         if (keys.kKey.wasPressedThisFrame && petDog != null)
@@ -919,46 +980,249 @@ public sealed class GirlPowerOrla3DMegaSystems : MonoBehaviour
         }
     }
 
-    private void DrawBeachTennisModal(Rect card, float s)
+    private void TriggerBeachTennisSwing()
     {
-        DrawModalTitle(card, s, "Beach Tennis na Orla  •  Sequência: " + tennisRally + "/5");
-        GUI.Label(new Rect(card.x + 28f * s, card.y + 66f * s, card.width - 56f * s, 46f * s),
-            "Rebata a bolinha quando ela entrar na zona verde para completar 5 pontos e ganhar prêmio!", GirlPowerOrla3DUITheme.BodyDarkStyle);
+        if (tennisVictoryCloseTimer > 0f) return;
 
-        Rect track = new Rect(card.x + 36f * s, card.y + 150f * s, card.width - 72f * s, 44f * s);
-        GUI.Box(track, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
-        float zX = track.x + track.width * 0.38f;
-        float zW = track.width * 0.24f;
-        GUI.Box(new Rect(zX, track.y + 4f * s, zW, track.height - 8f * s), GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
+        tennisHasLastClick = true;
+        tennisLastClickPos = tennisBallPos;
+        tennisFeedbackTimer = TennisFeedbackDuration;
 
-        float bx = track.x + tennisBallPos * (track.width - 28f * s);
-        Color prev = GUI.color;
-        GUI.color = new Color(1f, 0.90f, 0.25f);
-        GUI.DrawTexture(new Rect(bx, track.y + 8f * s, 28f * s, 28f * s), GirlPowerOrla3DUITheme.CircleWhiteTex);
-        GUI.color = prev;
+        // Hit window cleanly aligned with the visible green zone (0.38..0.62 plus ball radius tolerance!)
+        bool isHit = tennisBallPos >= 0.355f && tennisBallPos <= 0.645f;
+        tennisLastClickHit = isHit;
 
-        if (GUI.Button(new Rect(card.x + (card.width - 230f * s) * 0.5f, card.y + 235f * s, 230f * s, 58f * s), "REBATER!", GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        if (isHit)
         {
-            if (tennisBallPos >= 0.35f && tennisBallPos <= 0.65f)
+            tennisRally++;
+            tennisHitFxTimer = 0.85f;
+            tennisMissShakeTimer = 0f;
+            tennisFxOriginNormX = tennisBallPos;
+            tennisFxPendingSpawn = true;
+            tennisFxPendingVictory = tennisRally >= 5;
+
+            if (audioController != null) audioController.PlayTennisHit();
+            GirlPowerOrla3DJuice.ShakeCamera(0.09f, 0.12f);
+
+            if (tennisRally >= 5)
             {
-                tennisRally++;
-                if (audioController != null) audioController.PlayTennisHit();
-                GirlPowerOrla3DJuice.ShakeCamera(0.08f, 0.10f);
-                if (tennisRally >= 5)
-                {
-                    if (lifeActivities != null) { lifeActivities.AddCoins(18); Data.coins = lifeActivities.Coins; }
-                    AddPrestige(10, beachTennisCourt != null ? beachTennisCourt.position : player.position);
-                    GirlPowerOrla3DJuice.SpawnFlyingCoins(player.position, 7);
-                    if (audioController != null) audioController.PlayVictoryFanfare();
-                    GirlPowerOrla3DUITheme.SpawnFloatingFeedback(player.position, "★ Vitória no Beach Tennis! +18 moedas!", new Color(1f, 0.88f, 0.34f));
-                    CurrentModal = ActiveModal.None;
-                }
+                tennisFeedbackMsg = "★ ACERTOU! VITÓRIA 5/5! +18 moedas e +10 prestígio!";
+                tennisVictoryCloseTimer = 1.85f;
+                if (lifeActivities != null) { lifeActivities.AddCoins(18); Data.coins = lifeActivities.Coins; }
+                AddPrestige(10, beachTennisCourt != null ? beachTennisCourt.position : player.position);
+                GirlPowerOrla3DJuice.SpawnFlyingCoins(player.position, 7);
+                if (audioController != null) audioController.PlayVictoryFanfare();
+                GirlPowerOrla3DUITheme.SpawnFloatingFeedback(player.position, "★ Vitória no Beach Tennis! +18 moedas!", new Color(1f, 0.88f, 0.34f));
             }
             else
             {
-                tennisRally = 0;
-                if (audioController != null) audioController.PlayFailChime();
+                tennisFeedbackMsg = "✓ ACERTOU! Ponto " + tennisRally + "/5 — continue no ritmo!";
             }
+        }
+        else
+        {
+            tennisRally = 0;
+            tennisHitFxTimer = 0f;
+            tennisMissShakeTimer = 0.36f;
+            string sideHint = tennisBallPos < 0.355f ? "clicou cedo demais (à esquerda)" : "clicou tarde demais (à direita)";
+            tennisFeedbackMsg = "✕ ERROU! Você " + sideHint + " — sequência zerada!";
+            if (audioController != null) audioController.PlayFailChime();
+            GirlPowerOrla3DJuice.ShakeCamera(0.06f, 0.09f);
+        }
+    }
+
+    private void SpawnTennisHitBurst(float cx, float cy, float s, bool isVictory)
+    {
+        int count = isVictory ? 34 : 20;
+        Color[] palette =
+        {
+            new Color(0.22f, 0.96f, 0.48f), // Vivid emerald green
+            new Color(1.00f, 0.88f, 0.24f), // Sunny gold
+            new Color(0.55f, 1.00f, 0.72f), // Mint sparkle
+            new Color(1.00f, 1.00f, 0.94f)  // Bright white-cream flash
+        };
+        for (int i = 0; i < count; i++)
+        {
+            float ang = (i / (float)count) * Mathf.PI * 2f + UnityEngine.Random.Range(-0.18f, 0.18f);
+            float spd = UnityEngine.Random.Range(isVictory ? 120f : 85f, isVictory ? 290f : 210f) * s;
+            tennisFxParticles.Add(new TennisFxParticle
+            {
+                x = cx,
+                y = cy,
+                vx = Mathf.Cos(ang) * spd,
+                vy = Mathf.Sin(ang) * spd - UnityEngine.Random.Range(40f, 110f) * s,
+                age = 0f,
+                life = UnityEngine.Random.Range(0.55f, isVictory ? 1.15f : 0.85f),
+                size = UnityEngine.Random.Range(9f, isVictory ? 20f : 16f) * s,
+                color = palette[i % palette.Length],
+                isStar = (i % 2 == 0)
+            });
+        }
+    }
+
+    private void DrawBeachTennisModal(Rect card, float s)
+    {
+        DrawModalTitle(card, s, "Beach Tennis na Orla  •  Sequência: " + tennisRally + "/5");
+
+        // Clear how-to-play explanation inside the modal
+        GUIStyle howSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
+        {
+            fontSize = Mathf.RoundToInt(14f * s),
+            wordWrap = true,
+            alignment = TextAnchor.UpperLeft
+        };
+        GUI.Label(new Rect(card.x + 28f * s, card.y + 56f * s, card.width - 56f * s, 54f * s),
+            "Como jogar: a bolinha amarela desliza na barra. Clique em REBATER! (ou pressione Espaço) exatamente quando ela entrar na zona verde! Faça 5 acertos seguidos para ganhar +18 moedas.", howSt);
+
+        // Subtle horizontal shake when missing
+        float shakeX = tennisMissShakeTimer > 0f
+            ? Mathf.Sin(tennisMissShakeTimer * 52f) * 8f * s * (tennisMissShakeTimer / 0.36f)
+            : 0f;
+
+        Rect track = new Rect(card.x + 36f * s + shakeX, card.y + 150f * s, card.width - 72f * s, 46f * s);
+        GUI.Box(track, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
+
+        // True vivid GREEN target zone (with luminous pulse on hit!)
+        float zX = track.x + track.width * 0.38f;
+        float zW = track.width * 0.24f;
+        Rect greenZone = new Rect(zX, track.y + 4f * s, zW, track.height - 8f * s);
+        Color prev = GUI.color;
+        float hitGlow = tennisHitFxTimer > 0f ? Mathf.Clamp01(tennisHitFxTimer / 0.85f) : 0f;
+        GUI.color = Color.Lerp(new Color(0.22f, 0.84f, 0.44f, 1f), new Color(0.68f, 1.0f, 0.62f, 1f), hitGlow * 0.65f);
+        GUI.DrawTexture(greenZone, GirlPowerOrla3DUITheme.PillWhiteTex);
+        // Subtle green zone label
+        GUI.color = new Color(0.08f, 0.32f, 0.16f, 0.85f);
+        GUIStyle zoneLbl = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(11f * s) };
+        GUI.Label(greenZone, "ZONA VERDE", zoneLbl);
+        GUI.color = prev;
+
+        float ballSz = 28f * s;
+        float hitPop = hitGlow > 0f ? (1f + Mathf.Sin(hitGlow * Mathf.PI) * 0.35f) : 1f;
+
+        // Spawn hit burst particles once we know exact track screen coords
+        if (tennisFxPendingSpawn)
+        {
+            tennisFxPendingSpawn = false;
+            float fxCx = track.x + tennisFxOriginNormX * (track.width - ballSz) + ballSz * 0.5f;
+            float fxCy = track.y + track.height * 0.5f;
+            SpawnTennisHitBurst(fxCx, fxCy, s, tennisFxPendingVictory);
+        }
+
+        // Last click marker (persists for ~2.6s: GREEN if hit, RED if missed!)
+        if (tennisHasLastClick && tennisFeedbackTimer > 0f)
+        {
+            float fadeAlpha = tennisFeedbackTimer > 0.65f ? 1f : Mathf.Clamp01(tennisFeedbackTimer / 0.65f);
+            float clickCenterX = track.x + tennisLastClickPos * (track.width - ballSz) + ballSz * 0.5f;
+            float clickCenterY = track.y + track.height * 0.5f;
+
+            Color markCol = tennisLastClickHit
+                ? new Color(0.14f, 0.86f, 0.38f, fadeAlpha)
+                : new Color(0.94f, 0.20f, 0.24f, fadeAlpha);
+            Color markRingCol = tennisLastClickHit
+                ? new Color(0.55f, 1.0f, 0.68f, fadeAlpha * 0.95f)
+                : new Color(1.0f, 0.48f, 0.48f, fadeAlpha * 0.95f);
+
+            // Vertical marker line across the track showing EXACT click position
+            GUI.color = markCol;
+            GUI.DrawTexture(new Rect(clickCenterX - 2.5f * s, track.y - 8f * s, 5f * s, track.height + 16f * s), GirlPowerOrla3DUITheme.PillWhiteTex);
+
+            // Outer highlight halo & filled marker dot at exact clicked ball position
+            float ringSz = 36f * s;
+            GUI.color = markRingCol;
+            GUI.DrawTexture(new Rect(clickCenterX - ringSz * 0.5f, clickCenterY - ringSz * 0.5f, ringSz, ringSz), GirlPowerOrla3DUITheme.CircleWhiteTex);
+            float dotSz = 26f * s;
+            GUI.color = markCol;
+            GUI.DrawTexture(new Rect(clickCenterX - dotSz * 0.5f, clickCenterY - dotSz * 0.5f, dotSz, dotSz), GirlPowerOrla3DUITheme.CircleWhiteTex);
+
+            // Crisp ✓ / ✕ symbol inside the marker + small floating tag above the bar
+            GUI.color = new Color(1f, 1f, 1f, fadeAlpha);
+            GUIStyle symSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(16f * s) };
+            GUI.Label(new Rect(clickCenterX - dotSz * 0.5f, clickCenterY - dotSz * 0.5f, dotSz, dotSz), tennisLastClickHit ? "✓" : "✕", symSt);
+
+            string tagTxt = tennisLastClickHit ? "ACERTO!" : "ERROU!";
+            float tagW = 84f * s;
+            float tagX = Mathf.Clamp(clickCenterX - tagW * 0.5f, track.x, track.xMax - tagW);
+            Rect tagRect = new Rect(tagX, track.y - 32f * s, tagW, 22f * s);
+            GUI.color = markCol;
+            GUI.DrawTexture(tagRect, GirlPowerOrla3DUITheme.PillWhiteTex);
+            GUI.color = new Color(1f, 1f, 1f, fadeAlpha);
+            GUIStyle tagSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(11.5f * s) };
+            GUI.Label(tagRect, tagTxt, tagSt);
+            GUI.color = prev;
+        }
+
+        // Expanding shockwave rings special effect on HIT!
+        if (tennisHitFxTimer > 0f)
+        {
+            float fxT = 1f - Mathf.Clamp01(tennisHitFxTimer / 0.85f);
+            float fxCx = track.x + tennisFxOriginNormX * (track.width - ballSz) + ballSz * 0.5f;
+            float fxCy = track.y + track.height * 0.5f;
+
+            float ring1 = Mathf.Lerp(26f * s, 118f * s, fxT);
+            GUI.color = new Color(0.24f, 0.96f, 0.50f, (1f - fxT) * 0.72f);
+            GUI.DrawTexture(new Rect(fxCx - ring1 * 0.5f, fxCy - ring1 * 0.5f, ring1, ring1), GirlPowerOrla3DUITheme.CircleWhiteTex);
+
+            float fxT2 = Mathf.Clamp01((fxT - 0.12f) / 0.88f);
+            if (fxT2 > 0f)
+            {
+                float ring2 = Mathf.Lerp(22f * s, 146f * s, fxT2);
+                GUI.color = new Color(1.0f, 0.90f, 0.28f, (1f - fxT2) * 0.55f);
+                GUI.DrawTexture(new Rect(fxCx - ring2 * 0.5f, fxCy - ring2 * 0.5f, ring2, ring2), GirlPowerOrla3DUITheme.CircleWhiteTex);
+            }
+            GUI.color = prev;
+        }
+
+        // Moving yellow tennis ball
+        float bx = track.x + tennisBallPos * (track.width - ballSz);
+        float drawBallSz = ballSz * hitPop;
+        float ballOffset = (drawBallSz - ballSz) * 0.5f;
+        GUI.color = new Color(1f, 0.90f, 0.25f);
+        GUI.DrawTexture(new Rect(bx - ballOffset, track.y + 9f * s - ballOffset, drawBallSz, drawBallSz), GirlPowerOrla3DUITheme.CircleWhiteTex);
+        GUI.color = prev;
+
+        // Sparkling burst particles on HIT!
+        if (tennisFxParticles.Count > 0)
+        {
+            GUIStyle starSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { alignment = TextAnchor.MiddleCenter };
+            for (int i = 0; i < tennisFxParticles.Count; i++)
+            {
+                TennisFxParticle p = tennisFxParticles[i];
+                float alpha = 1f - Mathf.Clamp01(p.age / Mathf.Max(0.01f, p.life));
+                GUI.color = new Color(p.color.r, p.color.g, p.color.b, alpha);
+                if (p.isStar)
+                {
+                    starSt.fontSize = Mathf.Max(10, Mathf.RoundToInt(p.size * (0.75f + alpha * 0.5f)));
+                    GUI.Label(new Rect(p.x - p.size, p.y - p.size, p.size * 2f, p.size * 2f), (i % 4 == 0) ? "★" : "✦", starSt);
+                }
+                else
+                {
+                    float sz = p.size * 0.55f * (0.4f + alpha * 0.6f);
+                    GUI.DrawTexture(new Rect(p.x - sz * 0.5f, p.y - sz * 0.5f, sz, sz), GirlPowerOrla3DUITheme.CircleWhiteTex);
+                }
+            }
+            GUI.color = prev;
+        }
+
+        // Persistent status banner below the track (GREEN for hit, RED for miss!)
+        if (tennisFeedbackTimer > 0f && !string.IsNullOrEmpty(tennisFeedbackMsg))
+        {
+            float fbAlpha = tennisFeedbackTimer > 0.55f ? 1f : Mathf.Clamp01(tennisFeedbackTimer / 0.55f);
+            Rect fbRect = new Rect(card.x + 36f * s, card.y + 210f * s, card.width - 72f * s, 34f * s);
+            GUI.color = tennisLastClickHit
+                ? new Color(0.14f, 0.72f, 0.36f, fbAlpha * 0.94f)
+                : new Color(0.86f, 0.20f, 0.24f, fbAlpha * 0.94f);
+            GUI.DrawTexture(fbRect, GirlPowerOrla3DUITheme.PillWhiteTex);
+            GUI.color = new Color(1f, 1f, 1f, fbAlpha);
+            GUIStyle fbSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(14f * s) };
+            GUI.Label(fbRect, tennisFeedbackMsg, fbSt);
+            GUI.color = prev;
+        }
+
+        // Main REBATER! button (disabled briefly during victory burst)
+        string btnTxt = tennisVictoryCloseTimer > 0f ? "★ VITÓRIA! ★" : "REBATER!   [Espaço]";
+        if (GUI.Button(new Rect(card.x + (card.width - 250f * s) * 0.5f, card.y + 266f * s, 250f * s, 58f * s), btnTxt, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
+        {
+            TriggerBeachTennisSwing();
         }
     }
 

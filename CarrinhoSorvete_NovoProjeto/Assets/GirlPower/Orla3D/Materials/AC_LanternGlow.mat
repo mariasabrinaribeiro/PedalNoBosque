@@ -37,6 +37,7 @@ Material:
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
     - _RimStrength: 0.05
+    - _TexStrength: 0
     - _TileScale: 0.35
     - _UseWorldUV: 0
     - _WrapAmount: 0.28

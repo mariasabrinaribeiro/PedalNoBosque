@@ -355,10 +355,10 @@ public static class GirlPowerOrla3DPropsBuilder
 
         Vector3[] coords =
         {
-            new Vector3(-9.2f, 0f, -3.55f),
-            new Vector3(16.6f, 0f, -3.55f),
-            new Vector3(21.4f, 0f, -3.55f),
-            new Vector3(27.2f, 0f, -3.55f)
+            new Vector3(-9.6f, 0f, -3.45f),
+            new Vector3(16.6f, 0f, -3.45f),
+            new Vector3(21.4f, 0f, -3.45f),
+            new Vector3(27.2f, 0f, -3.45f)
         };
         Material[] bodyMats = { binMint, binCoral, binBlue, binMint };
 
@@ -694,16 +694,16 @@ public static class GirlPowerOrla3DPropsBuilder
             midSailboats.Add(sb.transform);
         }
 
-        // LAYER 3: Delicate, Thin, Interrupted Shoreline Wave-Foam Wisps following the exact curved sand line!
+        // LAYER 3: Delicate, Thin, Interrupted Shoreline Wave-Foam Wisps following the exact curved sand line (z ~ 8.3m)!
         float[] foamXs = { -16.5f, -11.2f, -5.8f, 0.4f, 5.6f, 11.4f, 16.8f, 22.5f, 28.4f, 34.0f };
         for (int i = 0; i < foamXs.Length; i++)
         {
             float fx = foamXs[i];
-            float coastCurve = Mathf.Sin(fx * 0.045f) * 0.95f + Mathf.Cos(fx * 0.022f) * 0.45f;
-            float slopeAngleDeg = Mathf.Atan(Mathf.Cos(fx * 0.045f) * 0.045f * 0.95f - Mathf.Sin(fx * 0.022f) * 0.022f * 0.45f) * Mathf.Rad2Deg;
+            float coastCurve = Mathf.Sin(fx * 0.045f) * 0.72f + Mathf.Cos(fx * 0.022f) * 0.35f;
+            float slopeAngleDeg = Mathf.Atan(Mathf.Cos(fx * 0.045f) * 0.045f * 0.72f - Mathf.Sin(fx * 0.022f) * 0.022f * 0.35f) * Mathf.Rad2Deg;
             GameObject fr = new GameObject("Parallax_Espuma_BeiraMar_" + (i + 1));
             fr.transform.SetParent(pxRoot.transform, false);
-            fr.transform.position = new Vector3(fx, -0.265f, 9.85f + coastCurve * 0.80f + (i % 2) * 0.18f);
+            fr.transform.position = new Vector3(fx, -0.185f, 8.25f + coastCurve * 0.78f + (i % 2) * 0.16f);
             fr.transform.rotation = Quaternion.Euler(0f, -slopeAngleDeg, 0f);
             float segLen = 3.2f + (i % 3) * 0.45f;
             MakePrim(fr.transform, PrimitiveType.Cylinder, "Faixa_Espuma",

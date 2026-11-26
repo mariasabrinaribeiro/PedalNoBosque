@@ -30,18 +30,19 @@ Material:
     m_Ints: []
     m_Floats:
     - _CurveStrength: 0.0008
-    - _Glossiness: 0.06
+    - _Glossiness: 0.05
     - _GroundAO: 0.34
     - _GroundAOHeight: 0.72
     - _OccluderEnabled: 0
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
     - _RimStrength: 0.05
+    - _TexStrength: 0.38
     - _TileScale: 0.55
     - _UseWorldUV: 1
     - _WrapAmount: 0.28
     m_Colors:
-    - _Color: {r: 0.7882353, g: 0.6, b: 0.41960785, a: 1}
+    - _Color: {r: 0.83137256, g: 0.68235296, b: 0.50980395, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 1, g: 0.9, b: 0.72, a: 1}
     - _ShadowColor: {r: 0.38, g: 0.34, b: 0.52, a: 1}

@@ -324,6 +324,13 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         return desired;
     }
 
+    public float GetWaterSurfaceY()
+    {
+        if (ambientController != null && ambientController.oceanSurface != null)
+            return ambientController.oceanSurface.position.y;
+        return -0.20f;
+    }
+
     public bool IsPointInWaterZone(Vector3 worldPos)
     {
         if (waterSurfZone != null && waterSurfZone.enabled && waterSurfZone.gameObject.activeInHierarchy)
@@ -333,10 +340,15 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             Vector3 c = waterSurfZone.center;
             return Mathf.Abs(local.x - c.x) <= half.x && Mathf.Abs(local.z - c.z) <= half.z;
         }
-        // Safe fallback aligned to visible ocean shoreline mesh when running an older scene build
+        // Safe fallback aligned strictly to the visible ocean mesh front shoreline!
         if (ambientController != null && ambientController.oceanSurface != null)
-            return worldPos.z >= ambientController.oceanSurface.position.z - 15.1f;
-        return worldPos.z >= 10.9f;
+        {
+            MeshFilter mf = ambientController.oceanSurface.GetComponent<MeshFilter>();
+            float halfDepth = (mf != null && mf.sharedMesh != null) ? mf.sharedMesh.bounds.extents.z : 38f;
+            float shoreZ = ambientController.oceanSurface.position.z - halfDepth + 0.45f;
+            return worldPos.z >= shoreZ;
+        }
+        return worldPos.z >= 8.65f;
     }
 
     public void GuideAndPerformActiveObjective()
@@ -875,13 +887,27 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             return;
         }
 
+        // Only show the ground ring when the destination itself is visible on screen (no stray yellow blob in screen corners!)
+        if (sceneCamera != null)
+        {
+            Vector3 sp = sceneCamera.WorldToScreenPoint(target.position + Vector3.up * 0.8f);
+            bool targetOnScreen = sp.z > 0.3f && sp.z < 36f
+                && sp.x > 40f && sp.x < Screen.width - 40f
+                && sp.y > 40f && sp.y < Screen.height - 40f;
+            if (!targetOnScreen)
+            {
+                groundBeacon.gameObject.SetActive(false);
+                return;
+            }
+        }
+
         groundBeacon.gameObject.SetActive(true);
         // Place the ground ring on the walkable FRONT service point (never hidden underneath the Cart or Florist stand!)
         Vector3 tp = GetWalkableServicePoint(target);
         float gy = SampleGroundHeight(tp.x, tp.z);
-        float pulse = 1.0f + Mathf.Sin(Time.time * 4.2f) * 0.16f;
+        float pulse = 1.0f + Mathf.Sin(Time.time * 4.2f) * 0.14f;
         groundBeacon.position = new Vector3(tp.x, gy + 0.05f, tp.z);
-        groundBeacon.localScale = new Vector3(1.15f * pulse, 0.025f, 1.15f * pulse);
+        groundBeacon.localScale = new Vector3(1.05f * pulse, 0.025f, 1.05f * pulse);
     }
 
     private Transform GetActiveObjectiveTarget()
@@ -931,7 +957,10 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         bool isSurfingNow = IsPointInWaterZone(player.position);
 
         if (characterAnimator != null)
+        {
+            characterAnimator.WaterSurfaceY = GetWaterSurfaceY();
             characterAnimator.SetSurfing(isSurfingNow);
+        }
 
         float mobMult = characterAnimator != null ? characterAnimator.GetMobilitySpeedMultiplier() : 1f;
         float upgMult = megaSystems != null ? megaSystems.GetSpeedUpgradeMultiplier() : 1f;
@@ -973,7 +1002,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         {
             // Auto-dismount scooter/skate cleanly at the visible shoreline when entering the ocean!
             characterAnimator.SetLandMode(GirlPowerOrla3DCharacterAnimator.LandMode.Walk);
-            GirlPowerOrla3DUITheme.SpawnFloatingFeedback(next, "Entrando no mar! [V: Surf / Nadar / Canoa]", new Color(0.58f, 0.94f, 1f), 1.4f);
+            GirlPowerOrla3DUITheme.SpawnFloatingFeedback(next, "Entrando no mar! [Nadar / Surf / Canoa]", new Color(0.58f, 0.94f, 1f), 1.4f);
         }
 
         next.y = SampleGroundHeight(next.x, next.z);
@@ -1014,8 +1043,9 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     {
         if (IsPointInWaterZone(new Vector3(x, 0f, z)))
         {
-            float wave = Mathf.Sin(x * 0.55f + Time.time * 1.6f) * 0.06f + Mathf.Cos(z * 0.8f - Time.time * 1.2f) * 0.05f;
-            return -0.24f + wave;
+            float wave = Mathf.Sin(x * 0.42f + z * 0.34f + Time.time * 1.5f) * 0.035f
+                       + Mathf.Cos(z * 0.82f - Time.time * 1.7f) * 0.025f;
+            return GetWaterSurfaceY() + wave;
         }
         // Pavilion deck height cleanly synced to PavilionBay at (26.0, -0.02, -10.0)
         if (x >= 23.2f && x <= 28.8f && z >= -11.9f && z <= -7.6f)
@@ -1023,16 +1053,16 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             if (z > -8.3f) return Mathf.Lerp(-0.04f, 0.34f, (-7.6f - z) / 0.7f);
             return 0.34f;
         }
-        if (z < -3.75f) return -0.05f;
-        if (z < -3.45f) return Mathf.Lerp(-0.05f, 0f, (z + 3.75f) / 0.30f);
+        if (z < -3.75f) return -0.04f;
+        if (z < -3.45f) return Mathf.Lerp(-0.04f, 0f, (z + 3.75f) / 0.30f);
         if (z <= 3.35f) return 0f;
-        if (z < 4.10f)
+        if (z < 4.00f)
         {
-            float t = (z - 3.35f) / 0.75f;
-            return Mathf.Sin(t * Mathf.PI) * 0.32f;
+            float t = (z - 3.35f) / 0.65f;
+            return Mathf.Lerp(0f, -0.05f, t);
         }
-        float beachT = Mathf.Clamp01((z - 4.10f) / 5.70f);
-        return Mathf.Lerp(-0.04f, -0.30f, beachT);
+        float beachT = Mathf.Clamp01((z - 4.00f) / 4.50f);
+        return Mathf.Lerp(-0.05f, -0.22f, beachT);
     }
 
     private Vector3 TryMoveAxis(Vector3 origin, Vector3 delta)
@@ -1077,12 +1107,16 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
         // Contextual Camera Modes:
         // 1. Close-Up Focus when assembling ice cream at Cart or conversing with Luna/NPCs!
-        // 2. Stable Exploration framing showing feet + next walkway exit (default on land)
-        // 3. Water framing when surfing/swimming!
+        // 2. Coastal Promenade & Beach framing: keeps protagonist close while opening pitch slightly so sparkling sea shows behind the pier!
+        // 3. Water framing when swimming/surfing/canoeing!
+        float coastBlend = (!closeUpFocus && !inWater) ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-4.5f, 3.0f, player.position.z)) : 0f;
+        Vector3 landOff = Vector3.Lerp(cameraOffset, new Vector3(0f, 7.6f, -12.4f), coastBlend);
+        float landPitch = Mathf.Lerp(cameraPitch, 29.5f, coastBlend);
+
         Vector3 baseOff = closeUpFocus
             ? new Vector3(0f, 5.5f, -7.2f)
-            : (inWater ? new Vector3(0f, 9.6f, -13.6f) : cameraOffset);
-        float targetPitch = closeUpFocus ? 32.5f : (inWater ? 36.0f : cameraPitch);
+            : (inWater ? new Vector3(0f, 8.4f, -13.2f) : landOff);
+        float targetPitch = closeUpFocus ? 32.5f : (inWater ? 31.0f : landPitch);
         float targetFov = closeUpFocus ? 40f : 44f;
 
         // Smart framing pull when approaching the Cart or Florist so BOTH protagonist and station stay well inside the frame!
@@ -1915,16 +1949,14 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         float miniSz = 24f * s;
         GUI.DrawTexture(new Rect(card.x + 38f * s, card.y + 38f * s, miniSz, miniSz), clientIcon);
 
-        // Optional 1-tap "▶ IR / OK" pill tucked cleanly on top-right of the card
+        // Optional 1-tap "Guiar" pill tucked on top-right of the card ONLY while distant (avoids competing with "Montar sorvete" when in reach!)
         Transform objTarget = GetActiveObjectiveTarget();
         float rightReserve = 12f * s;
-        if (objTarget != null)
+        if (objTarget != null && !NearXZ(objTarget, interactionRadius))
         {
-            float goW = 58f * s;
+            float goW = 68f * s;
             Rect goRect = new Rect(card.xMax - goW - 8f * s, card.y + 8f * s, goW, 26f * s);
-            string goLbl = NearXZ(objTarget, interactionRadius)
-                ? GirlPowerOrla3DLocalization.T("▶ OK", "▶ DO", "▶ YA")
-                : GirlPowerOrla3DLocalization.T("▶ IR", "▶ GO", "▶ IR");
+            string goLbl = GirlPowerOrla3DLocalization.T("Guiar", "Guide", "Guiar");
             if (GUI.Button(goRect, goLbl, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 GuideAndPerformActiveObjective();
             rightReserve = goW + 14f * s;
@@ -2189,34 +2221,40 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 break;
         }
 
-        // If the target (e.g. Cart or Luna) is OFF-SCREEN or near the edge, draw a discreet edge arrow instead of clamping a label!
+        // If the target (e.g. Cart or Luna) is OFF-SCREEN or near the edge, draw a clean pill with item icon (e.g. [cone] Carrinho ->) instead of noisy distance numbers!
         if (!clearlyOnScreen)
         {
             Vector3 toTarget = target.position - player.position;
-            float distM = new Vector2(toTarget.x, toTarget.z).magnitude;
             bool onRight = toTarget.x >= 0f;
             string arrow = Mathf.Abs(toTarget.x) >= Mathf.Abs(toTarget.z) * 0.45f
                 ? (onRight ? "→" : "←")
                 : (toTarget.z >= 0f ? "↑" : "↓");
             string edgeText = onRight
-                ? (shortDest + " " + Mathf.RoundToInt(distM) + "m  " + arrow)
-                : (arrow + "  " + shortDest + " " + Mathf.RoundToInt(distM) + "m");
+                ? (shortDest + " " + arrow)
+                : (arrow + " " + shortDest);
 
-            float ew = Mathf.Clamp(62f * s + edgeText.Length * 7.0f * s, 124f * s, 186f * s);
-            float eh = 34f * s;
+            Texture2D edgeIcon = (target == cart)
+                ? GirlPowerOrla3DUITheme.IconIceCreamLemonBasil
+                : (target == florist ? GirlPowerOrla3DUITheme.IconPortraitLuna : GirlPowerOrla3DUITheme.IconBasil);
+
+            float icSz = 24f * s;
+            float ew = Mathf.Clamp(44f * s + icSz + edgeText.Length * 7.8f * s, 128f * s, 196f * s);
+            float eh = 38f * s;
             float ex = onRight ? (safe.xMax - ew - 14f * s) : (safe.x + 14f * s);
             float ey = Mathf.Clamp(safe.y + safe.height * 0.44f, safe.y + 112f * s, safe.yMax - 120f * s);
             Rect edgeRect = new Rect(ex, ey, ew, eh);
             if (GUI.Button(edgeRect, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle))
                 GuideAndPerformActiveObjective();
+            if (edgeIcon != null)
+                GUI.DrawTexture(new Rect(edgeRect.x + 8f * s, edgeRect.y + (eh - icSz) * 0.5f, icSz, icSz), edgeIcon);
             GUIStyle eSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
             {
                 fontSize = Mathf.RoundToInt(14.5f * s),
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter
+                alignment = TextAnchor.MiddleLeft
             };
             eSt.normal.textColor = new Color(0.84f, 0.24f, 0.46f, 1f);
-            GUI.Label(edgeRect, edgeText, eSt);
+            GUI.Label(new Rect(edgeRect.x + icSz + 14f * s, edgeRect.y, ew - icSz - 18f * s, eh), edgeText, eSt);
             return;
         }
 

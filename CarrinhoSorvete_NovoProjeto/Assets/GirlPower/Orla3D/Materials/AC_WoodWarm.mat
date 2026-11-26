@@ -37,11 +37,12 @@ Material:
     - _OccluderRadius: 2.1
     - _RimPower: 4.2
     - _RimStrength: 0.05
+    - _TexStrength: 0.38
     - _TileScale: 0.55
     - _UseWorldUV: 1
     - _WrapAmount: 0.28
     m_Colors:
-    - _Color: {r: 0.6509804, g: 0.4627451, b: 0.30588236, a: 1}
+    - _Color: {r: 0.72156864, g: 0.5568628, b: 0.38431373, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 1, g: 0.9, b: 0.72, a: 1}
     - _ShadowColor: {r: 0.38, g: 0.34, b: 0.52, a: 1}
