@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v42_PraiaLimpa_HeroDestaque_SemNadar";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v44_Parallax3DReal_CamadasAlinhadas";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -51,12 +51,12 @@ public static class GirlPowerOrla3DSceneBuilder
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.46f, 0.52f, 0.68f);
-        RenderSettings.ambientEquatorColor = new Color(0.58f, 0.52f, 0.48f);
-        RenderSettings.ambientGroundColor = new Color(0.26f, 0.22f, 0.26f);
+        RenderSettings.ambientSkyColor = new Color(0.62f, 0.56f, 0.72f);
+        RenderSettings.ambientEquatorColor = new Color(0.76f, 0.62f, 0.64f);
+        RenderSettings.ambientGroundColor = new Color(0.36f, 0.26f, 0.30f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.46f, 0.74f, 0.88f);
+        RenderSettings.fogColor = new Color(0.72f, 0.74f, 0.88f);
         RenderSettings.fogStartDistance = 58f;
         RenderSettings.fogEndDistance = 135f;
 
@@ -203,11 +203,11 @@ public static class GirlPowerOrla3DSceneBuilder
         // Keep cafeRoof 100% opaque (ZWrite On) until the player actually enters Café das Fadas!
         Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.35f, new Color32(58, 36, 26, 255), new Vector2(2.8f, 0.44f));
 
-        // 6a3. Low Coastal Town Facades tucked strictly on OUTER SIDES (central foreground view into the plaza 100% OPEN!)
-        float[] facadeXs = { -26.0f, 38.0f };
+        // 6a3. Low Coastal Town Facades placed well behind the furthest camera Z (z = -36.0) & outer flanks -> ZERO foreground camera blocking!
+        float[] facadeXs = { -28.0f, 42.0f };
         for (int i = 0; i < facadeXs.Length; i++)
         {
-            GameObject fac = PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.16f, -29.0f), 0f, 1.0f, cozyMats);
+            GameObject fac = PlaceModel(root.transform, "CoastalFacadeRow", "Fachada Vila Costeira " + (i + 1), new Vector3(facadeXs[i], -0.16f, -36.0f), 0f, 1.0f, cozyMats);
             if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.58f, 1.0f);
         }
 
@@ -271,8 +271,8 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject gardenBed = PlaceModel(root.transform, "GardenPlanterBed", "Horta da Baia - Canteiros", new Vector3(-5.0f, 0f, -18.1f), 0f, 1f, cozyMats);
         if (gardenBed != null) AddBlockingBox(gardenBed, new Vector3(0f, 0.4f, 0f), new Vector3(2.6f, 0.8f, 1.4f), obstacles);
 
-        GameObject fishingPier = PlaceModel(root.transform, "FishingPierDock", "Pier de Pesca da Baia", new Vector3(31.2f, -0.14f, 7.8f), 0f, 1f, cozyMats);
-        GameObject beachTennis = PlaceModel(root.transform, "BeachTennisCourt", "Quadra de Beach Tennis", new Vector3(3.2f, -0.10f, 6.0f), 0f, 1f, cozyMats);
+        GameObject fishingPier = PlaceModel(root.transform, "FishingPierDock", "Pier de Pesca da Baia", new Vector3(31.2f, -0.16f, 7.8f), 0f, 1f, cozyMats);
+        GameObject beachTennis = PlaceModel(root.transform, "BeachTennisCourt", "Quadra de Beach Tennis", new Vector3(3.2f, -0.115f, 6.0f), 0f, 1f, cozyMats);
         Transform beachTennisEntrance = null;
         if (beachTennis != null)
         {
@@ -293,13 +293,12 @@ public static class GirlPowerOrla3DSceneBuilder
         // Moored Kayak/Canoe resting right along the animated turquoise shoreline!
         // Beach canoe intentionally omitted (surf/swim/canoe water sports removed for clean dry beach!)
 
-        // 6b. 3 Low-Profile Paintable Coastal Houses tucked to the LATERAL EDGES (z = -24.5 -> ZERO central roof barrier!)
+        // 6b. Low-Profile Paintable Coastal Houses framing ONLY the OUTER flanks (never passing in front of the camera when walking south!)
         List<Transform> paintableHouses = new List<Transform>();
         Vector3[] housePositions =
         {
-            new Vector3(-19.5f, -0.10f, -24.0f),
-            new Vector3(24.5f, -0.10f, -24.5f),
-            new Vector3(36.2f, -0.10f, -24.0f)
+            new Vector3(-24.5f, -0.10f, -25.5f),
+            new Vector3(42.5f, -0.10f, -25.5f)
         };
         for (int i = 0; i < housePositions.Length; i++)
         {
@@ -320,7 +319,7 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fest != null) swayingFestoons.Add(fest.transform);
         }
 
-        // 7. Flanking Coconut Palms placed cleanly on OUTER edges (trimmer scale 0.78..0.94 -> canopies NEVER fill the screen or block Cart -> Luna!)
+        // 7. Flanking Coconut Palms firmly rooted IN the beach sand slope (y = -0.11f -> ZERO floating trunks!)
         List<Transform> swayingPalms = new List<Transform>();
         Vector4[] palmSpecs =
         {
@@ -334,7 +333,7 @@ public static class GirlPowerOrla3DSceneBuilder
         for (int i = 0; i < palmSpecs.Length; i++)
         {
             Vector4 p = palmSpecs[i];
-            GameObject palm = PlaceModel(root.transform, "PalmTree", "Coqueiro da Orla " + (i + 1), new Vector3(p.x, 0f, p.y), p.z, p.w, cozyMats);
+            GameObject palm = PlaceModel(root.transform, "PalmTree", "Coqueiro da Orla " + (i + 1), new Vector3(p.x, -0.11f, p.y), p.z, p.w, cozyMats);
             if (palm != null)
             {
                 palm.transform.localRotation = Quaternion.Euler(palmTilts[i] * 0.5f, p.z, palmTilts[i]);
@@ -409,13 +408,13 @@ public static class GirlPowerOrla3DSceneBuilder
         float[] umbXs = { -13.2f, 19.2f };
         for (int i = 0; i < umbXs.Length; i++)
         {
-            GameObject umbrella = PlaceModel(root.transform, "BeachUmbrella", "Guarda-Sol " + (i + 1), new Vector3(umbXs[i], -0.09f, 5.85f), -i * 30f, 0.96f, cozyMats);
+            GameObject umbrella = PlaceModel(root.transform, "BeachUmbrella", "Guarda-Sol " + (i + 1), new Vector3(umbXs[i], -0.115f, 5.85f), -i * 30f, 0.96f, cozyMats);
             if (umbrella != null) AddBlockingBox(umbrella, new Vector3(0f, 1.2f, 0f), new Vector3(0.32f, 2.4f, 0.32f), obstacles);
-            GameObject chair = PlaceModel(root.transform, "BeachChair", "Cadeira de Praia " + (i + 1), new Vector3(umbXs[i] + 1.45f, -0.09f, 5.75f), -165f, 1f, cozyMats);
+            GameObject chair = PlaceModel(root.transform, "BeachChair", "Cadeira de Praia " + (i + 1), new Vector3(umbXs[i] + 1.45f, -0.115f, 5.75f), -165f, 1f, cozyMats);
             if (chair != null) AddBlockingBox(chair, new Vector3(0f, 0.32f, 0f), new Vector3(1.12f, 0.64f, 0.78f), obstacles);
         }
         // ONE proportioned Lifeguard Tower spaced cleanly between East Umbrella and Fishing Pier!
-        GameObject towerA = PlaceModel(root.transform, "LifeguardTower", "Posto Salva-Vidas 1", new Vector3(26.0f, -0.11f, 6.2f), 180f, 0.86f, cozyMats);
+        GameObject towerA = PlaceModel(root.transform, "LifeguardTower", "Posto Salva-Vidas 1", new Vector3(26.0f, -0.135f, 6.2f), 180f, 0.86f, cozyMats);
         if (towerA != null) AddBlockingBox(towerA, new Vector3(0f, 1.15f, 0f), new Vector3(1.48f, 2.3f, 1.48f), obstacles);
 
         // 10. Feira Obstacles (Crates tucked to the sides of stalls & Florist; NPCs at border destinations off main walkway!)
@@ -477,7 +476,7 @@ public static class GirlPowerOrla3DSceneBuilder
         playerRoot.transform.SetParent(root.transform, false);
         // Hero Protagonist starts in wide-open sunlit corridor facing the player & cart with generous breathing room!
         playerRoot.transform.position = new Vector3(-1.4f, 0f, -2.0f);
-        GameObject playerVisual = PlaceModel(playerRoot.transform, "Char_Protagonist", "Visual Protagonista", Vector3.zero, 165f, 1.26f, cozyMats);
+        GameObject playerVisual = PlaceModel(playerRoot.transform, "Char_Protagonist", "Visual Protagonista", Vector3.zero, 165f, 1.34f, cozyMats);
         GameObject heldCone = PlaceModel(playerRoot.transform, "IceCreamConeLemonBasil", "Casquinha Limao Manjericao na Mao", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerSkate = PlaceModel(playerRoot.transform, "Skateboard", "Skate da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerScooter = PlaceModel(playerRoot.transform, "Scooter", "Patinete da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
@@ -557,14 +556,14 @@ public static class GirlPowerOrla3DSceneBuilder
             if (bf != null) butterflies.Add(bf.transform);
         }
 
-        // Crabs strictly along the curved wet foam strip!
+        // Crabs firmly grounded ON THE DRY/MOIST GOLDEN BEACH SAND (z = 6.95 + curve*0.45 -> y = -0.145m, NEVER over the ocean!)
         List<Transform> crabs = new List<Transform>();
         float[] crabXs = { 1.5f, 11.8f, 22.2f };
         for (int i = 0; i < crabXs.Length; i++)
         {
             float cx = crabXs[i];
-            float curve = Mathf.Sin(cx * 0.045f) * 0.95f + Mathf.Cos(cx * 0.022f) * 0.45f;
-            GameObject crab = PlaceModel(root.transform, "BeachCrab", "Caranguejo da Praia " + (i + 1), new Vector3(cx, -0.24f, 9.35f + curve * 0.75f), 0f, 1.0f, cozyMats);
+            float curve = Mathf.Sin(cx * 0.045f) * 0.65f + Mathf.Cos(cx * 0.022f) * 0.30f;
+            GameObject crab = PlaceModel(root.transform, "BeachCrab", "Caranguejo da Praia " + (i + 1), new Vector3(cx, -0.148f, 6.95f + curve * 0.45f), 0f, 1.0f, cozyMats);
             if (crab != null) crabs.Add(crab.transform);
         }
 
@@ -662,17 +661,17 @@ public static class GirlPowerOrla3DSceneBuilder
 
         // 11f. Contact / Blob Shadows anchoring every character, pet, cart, bench, stall, table & prop to the ground!
         List<GirlPowerOrla3DContactShadows.ShadowEntry> shadowEntries = new List<GirlPowerOrla3DContactShadows.ShadowEntry>();
-        AddShadow(shadowEntries, playerRoot.transform, new Vector2(1.05f, 1.05f), true);
-        if (friendNina != null) AddShadow(shadowEntries, friendNina.transform, new Vector2(1.0f, 1.0f), true);
-        if (friendBia != null) AddShadow(shadowEntries, friendBia.transform, new Vector2(1.0f, 1.0f), true);
-        if (florist != null) AddShadow(shadowEntries, florist.transform, new Vector2(1.05f, 1.05f), true);
-        if (sisterMarina != null) AddShadow(shadowEntries, sisterMarina.transform, new Vector2(1.0f, 1.0f), true);
-        if (pedBlue != null) AddShadow(shadowEntries, pedBlue.transform, new Vector2(1.0f, 1.0f), true);
-        if (pedCoral != null) AddShadow(shadowEntries, pedCoral.transform, new Vector2(1.0f, 1.0f), true);
-        if (dogObj != null) AddShadow(shadowEntries, dogObj.transform, new Vector2(0.82f, 0.82f), true);
-        if (catObj != null) AddShadow(shadowEntries, catObj.transform, new Vector2(0.75f, 0.75f), true);
-        if (thiefObj != null) AddShadow(shadowEntries, thiefObj.transform, new Vector2(1.05f, 1.05f), true);
-        if (policeOfficerObj != null) AddShadow(shadowEntries, policeOfficerObj.transform, new Vector2(1.05f, 1.05f), true);
+        AddShadow(shadowEntries, playerRoot.transform, new Vector2(1.28f, 1.28f), true);
+        if (friendNina != null) AddShadow(shadowEntries, friendNina.transform, new Vector2(1.14f, 1.14f), true);
+        if (friendBia != null) AddShadow(shadowEntries, friendBia.transform, new Vector2(1.14f, 1.14f), true);
+        if (florist != null) AddShadow(shadowEntries, florist.transform, new Vector2(1.18f, 1.18f), true);
+        if (sisterMarina != null) AddShadow(shadowEntries, sisterMarina.transform, new Vector2(1.14f, 1.14f), true);
+        if (pedBlue != null) AddShadow(shadowEntries, pedBlue.transform, new Vector2(1.14f, 1.14f), true);
+        if (pedCoral != null) AddShadow(shadowEntries, pedCoral.transform, new Vector2(1.14f, 1.14f), true);
+        if (dogObj != null) AddShadow(shadowEntries, dogObj.transform, new Vector2(0.92f, 0.92f), true);
+        if (catObj != null) AddShadow(shadowEntries, catObj.transform, new Vector2(0.84f, 0.84f), true);
+        if (thiefObj != null) AddShadow(shadowEntries, thiefObj.transform, new Vector2(1.14f, 1.14f), true);
+        if (policeOfficerObj != null) AddShadow(shadowEntries, policeOfficerObj.transform, new Vector2(1.14f, 1.14f), true);
 
         if (cart != null) AddShadow(shadowEntries, cart.transform, new Vector2(2.35f, 1.65f), false);
         if (kiosk != null) AddShadow(shadowEntries, kiosk.transform, new Vector2(4.90f, 2.55f), false);
@@ -715,12 +714,18 @@ public static class GirlPowerOrla3DSceneBuilder
         }
 
         List<Transform> beachSeagulls = new List<Transform>();
-        Vector3[] perchedGulls = { new Vector3(-9.2f, -0.14f, 7.8f), new Vector3(23.8f, -0.14f, 7.6f) };
+        Vector3[] perchedGulls = { new Vector3(-9.2f, -0.168f, 7.35f), new Vector3(23.8f, -0.165f, 7.25f) };
         for (int i = 0; i < perchedGulls.Length; i++)
         {
             GameObject bg = PlaceModel(root.transform, "Seagull3D", "Gaivota na Areia " + (i + 1), perchedGulls[i], i * 45f, 0.76f, cozyMats);
-            if (bg != null) beachSeagulls.Add(bg.transform);
+            if (bg != null)
+            {
+                beachSeagulls.Add(bg.transform);
+                AddShadow(shadowEntries, bg.transform, new Vector2(0.55f, 0.55f), false);
+            }
         }
+        foreach (Transform crabTr in crabs)
+            if (crabTr != null) AddShadow(shadowEntries, crabTr, new Vector2(0.50f, 0.50f), true);
 
         List<Transform> shallowFish = new List<Transform>();
         for (int i = 0; i < 6; i++)
@@ -1299,17 +1304,18 @@ public static class GirlPowerOrla3DSceneBuilder
         charAvoid.characterRadius = 0.45f;
         charAvoid.applyTransformSeparation = false;
 
-        // 15. CINEMATIC 3-LAYER OCEAN & HORIZON PARALLAX (Islands/Clouds 10% -> Sailboats 30% -> Looping Shore Foam!)
+        // 15. PHYSICALLY COHERENT 3D DEPTH OCEAN & HORIZON CONTROLLER (Real 3D perspective — ZERO artificial sliding!)
         GameObject parallaxObj = new GameObject("Parallax_Horizonte_Mar_3Camadas");
         parallaxObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DParallaxHorizon parallax = parallaxObj.AddComponent<GirlPowerOrla3DParallaxHorizon>();
         parallax.sceneCamera = mainCam;
+        parallax.oceanSurface = oceanSurface;
         parallax.farHorizonIslands = coastalDetails.parallaxFarIslands.ToArray();
         parallax.farHorizonClouds = coastalDetails.parallaxFarClouds.ToArray();
         parallax.midSeaSailboats = coastalDetails.parallaxMidSailboats.ToArray();
         parallax.shorelineFoamRibbons = coastalDetails.parallaxShoreFoam.ToArray();
-        parallax.farLayerFollowFactor = 0.90f;
-        parallax.midLayerFollowFactor = 0.70f;
+        parallax.farLayerFollowFactor = 0.0f;
+        parallax.midLayerFollowFactor = 0.0f;
 
         // Keep kiosk upgrade synced; stall, kiosk & florist signs are parented directly onto their solid cream plaques!
         if (kioskAwningUpgrade != null && kiosk != null) kioskAwningUpgrade.transform.position = kiosk.transform.position;
@@ -1355,14 +1361,15 @@ public static class GirlPowerOrla3DSceneBuilder
         cam.farClipPlane = 185f;
         cam.allowMSAA = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.36f, 0.68f, 0.88f);
+        cam.backgroundColor = new Color(0.46f, 0.68f, 0.88f);
         cam.depthTextureMode |= DepthTextureMode.Depth;
         camObj.AddComponent<AudioListener>();
         GirlPowerOrla3DCameraPost post = camObj.AddComponent<GirlPowerOrla3DCameraPost>();
-        post.exposure = 0.92f;
+        post.exposure = 0.94f;
         post.contrast = 1.07f;
         post.saturation = 1.10f;
         post.vignetteStrength = 0.08f;
+        post.warmTint = new Color(1.03f, 0.98f, 0.99f, 1f);
         return cam;
     }
 
@@ -1374,8 +1381,8 @@ public static class GirlPowerOrla3DSceneBuilder
         sunObj.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
         Light l = sunObj.AddComponent<Light>();
         l.type = LightType.Directional;
-        l.color = new Color(1.0f, 0.88f, 0.72f);
-        l.intensity = 0.84f;
+        l.color = new Color(1.0f, 0.90f, 0.85f);
+        l.intensity = 0.88f;
         l.shadows = LightShadows.Soft;
         l.shadowResolution = UnityEngine.Rendering.LightShadowResolution.VeryHigh;
         l.shadowStrength = 0.34f;
@@ -1625,7 +1632,7 @@ public static class GirlPowerOrla3DSceneBuilder
         {
             mat.shader = sh;
         }
-        if (mat.HasProperty("_Color")) mat.SetColor("_Color", new Color(0.14f, 0.10f, 0.24f, 0.42f));
+        if (mat.HasProperty("_Color")) mat.SetColor("_Color", new Color(0.22f, 0.10f, 0.22f, 0.52f));
         if (mat.HasProperty("_CurveStrength")) mat.SetFloat("_CurveStrength", 0.0008f);
         EditorUtility.SetDirty(mat);
         return mat;
@@ -1789,55 +1796,53 @@ public static class GirlPowerOrla3DSceneBuilder
             cozyShader = Shader.Find("Standard");
         }
 
-        // Fixed 3-Color Cohesive Coastal Palette:
-        // 1. Dominant: Coastal Turquoise (#2AC6CC)   2. Warm Secondary: Golden Sand & Light Wood (#EED2A4 / #C9996B)
-        // 3. Magical Accent: Fairy Pink-Lilac (#EC6FA4 / #C68CE0) — unified saturation across the vertical slice!
-        // Disciplined Coastal Palette:
-        // Base: Cream Sand (#F4E6C8) + Light Matte Wood (#D4AE82/#B88E62) + Soft Petrol Sea (#1D7C8F/#35A8B4)
-        // Hero Accent: Strawberry Pink (#EC5A8E) reserved for the Ice Cream Cart + Basil Green (#4D9E65) linking Cart & Florist!
+        // Opening-Pink-Harmonized Coastal Palette:
+        // Base: Warm Peach-Cream Sand (#F6E2C4) + Rosy-Cream Promenade & Plaza (#FAF0EE / #F5E5E0 / #E9D4CE)
+        // Hero Accent: Strawberry Pink (#EE5690) & Pastel Blush (#F7B4CE / #E888A6) echoing the opening screen,
+        // while the Protagonist wears Sunny Yellow (#FAD04E) + Turquoise Ribbon (#16C0CA) for instant silhouette pop!
         var palette = new (string name, string hex, float gloss, string emitHex, float emitStr)[]
         {
-            ("AC_Sand", "#F4DFB4", 0.04f, null, 0f),          // Warm Golden Coastal Sand!
-            ("AC_SandWet", "#DEC69C", 0.14f, null, 0f),
-            ("AC_Grass", "#62A876", 0.04f, null, 0f),         // Vibrant Tropical Park Grass!
+            ("AC_Sand", "#F6E2C4", 0.04f, null, 0f),          // Warm Peach-Golden Coastal Sand
+            ("AC_SandWet", "#E2C6A6", 0.14f, null, 0f),
+            ("AC_Grass", "#62A876", 0.04f, null, 0f),         // Vibrant Tropical Park Grass
             ("AC_GrassLight", "#80C08E", 0.05f, null, 0f),
-            ("AC_Ocean", "#1D7C8F", 0.44f, null, 0f),         // Soft Petrol Blue sea!
+            ("AC_Ocean", "#1D7C8F", 0.44f, null, 0f),         // Soft Petrol Blue sea
             ("AC_OceanShallow", "#35A8B4", 0.40f, null, 0f),
-            ("AC_Foam", "#F4FBFE", 0.12f, "#E2F4FA", 0.10f),
-            ("AC_HillDistant", "#8AB7CC", 0.03f, null, 0f),
-            ("AC_HillFar", "#A6CBE0", 0.03f, null, 0f),
+            ("AC_Foam", "#F8FBFE", 0.12f, "#E8F4FA", 0.10f),
+            ("AC_HillDistant", "#9BB4CC", 0.03f, null, 0f),
+            ("AC_HillFar", "#B8C8DF", 0.03f, null, 0f),
 
-            ("AC_StoneWhite", "#F4ECDC", 0.05f, null, 0f),
-            ("AC_StoneWarm", "#E6D9C2", 0.05f, null, 0f),
-            ("AC_StoneDark", "#A29584", 0.05f, null, 0f),
-            ("AC_CobbleA", "#E2D3BC", 0.05f, null, 0f),
-            ("AC_CobbleB", "#D2C0A4", 0.05f, null, 0f),
-            ("AC_PlazaTile", "#EFE4CE", 0.05f, null, 0f),
-            ("AC_PlazaAccent", "#E4D3BA", 0.05f, null, 0f),
-            ("AC_Asphalt", "#6E7884", 0.04f, null, 0f),
-            ("AC_RoadLine", "#F4E6C8", 0.05f, null, 0f),
+            ("AC_StoneWhite", "#FAF0EE", 0.05f, null, 0f),    // Soft Blush-Cream Boardwalk Stone
+            ("AC_StoneWarm", "#EFE0DA", 0.05f, null, 0f),     // Warm Rose-Beige Stone
+            ("AC_StoneDark", "#A89496", 0.05f, null, 0f),
+            ("AC_CobbleA", "#E9D4CE", 0.05f, null, 0f),       // Rosy Cobble Plaza
+            ("AC_CobbleB", "#DCC2BC", 0.05f, null, 0f),
+            ("AC_PlazaTile", "#F5E5E0", 0.05f, null, 0f),     // Blush-Ivory Plaza Tiles
+            ("AC_PlazaAccent", "#ECCCD2", 0.05f, null, 0f),   // Soft Pastel-Rose Plaza Accent
+            ("AC_Asphalt", "#747686", 0.04f, null, 0f),
+            ("AC_RoadLine", "#FAF0E8", 0.05f, null, 0f),
 
-            ("AC_WoodWarm", "#B88E62", 0.05f, null, 0f),      // Light Coastal Wood (less orange!)
-            ("AC_WoodLight", "#D4AE82", 0.05f, null, 0f),
-            ("AC_WoodDark", "#755238", 0.05f, null, 0f),
-            ("AC_Cream", "#FAF4E8", 0.06f, null, 0f),
-            ("AC_SailIvory", "#F6EFE0", 0.08f, "#FFF7E2", 0.14f), // Soft ivory sails standing out gently against petrol-blue sea!
-            ("AC_PinkBerry", "#EC5A8E", 0.08f, null, 0f),     // Hero Strawberry Pink reserved for the Ice Cream Cart!
-            ("AC_PinkSoft", "#F4B4CC", 0.07f, null, 0f),
-            ("AC_MintTeal", "#35A8B4", 0.07f, null, 0f),      // Soft Petrol-Teal
-            ("AC_MintSoft", "#9ED6C8", 0.06f, null, 0f),      // Calm Sage-Mint
-            ("AC_PurplePlum", "#48868C", 0.06f, null, 0f),
-            ("AC_Lavender", "#C9A8E2", 0.06f, null, 0f),      // Soft Lilac for calm kiosks
-            ("AC_Coral", "#DE8874", 0.07f, null, 0f),
-            ("AC_SunnyYellow", "#F4D678", 0.07f, null, 0f),
+            ("AC_WoodWarm", "#BE9068", 0.05f, null, 0f),
+            ("AC_WoodLight", "#D8B28C", 0.05f, null, 0f),
+            ("AC_WoodDark", "#7A523E", 0.05f, null, 0f),
+            ("AC_Cream", "#FCF2F0", 0.06f, null, 0f),
+            ("AC_SailIvory", "#FAF1EC", 0.08f, "#FFF5F0", 0.14f),
+            ("AC_PinkBerry", "#EE5690", 0.08f, null, 0f),     // Hero Strawberry Pink (Opening Palette Anchor!)
+            ("AC_PinkSoft", "#F7B4CE", 0.07f, null, 0f),      // Cotton-Candy Pastel Pink
+            ("AC_MintTeal", "#35A8B4", 0.07f, null, 0f),
+            ("AC_MintSoft", "#9ED6C8", 0.06f, null, 0f),
+            ("AC_PurplePlum", "#6C4C78", 0.06f, null, 0f),
+            ("AC_Lavender", "#D4AEE8", 0.06f, null, 0f),
+            ("AC_Coral", "#E48678", 0.07f, null, 0f),
+            ("AC_SunnyYellow", "#F6D87C", 0.07f, null, 0f),
             ("AC_SkyBlue", "#6EBAD2", 0.07f, null, 0f),
-            ("AC_Glass", "#CBEFF7", 0.42f, "#B4E6F2", 0.12f),
-            ("AC_MetalDark", "#3A424E", 0.12f, null, 0f),
-            ("AC_MetalSilver", "#D6DDE6", 0.34f, null, 0f),
-            ("AC_Gold", "#E6C274", 0.30f, null, 0f),
+            ("AC_Glass", "#D2EFF7", 0.42f, "#BCE6F4", 0.12f),
+            ("AC_MetalDark", "#3E3C4C", 0.12f, null, 0f),
+            ("AC_MetalSilver", "#DCE0EA", 0.34f, null, 0f),
+            ("AC_Gold", "#ECC678", 0.30f, null, 0f),
 
-            ("AC_LanternGlow", "#FFE69C", 0.10f, "#FFD26B", 1.10f),
-            ("AC_BulbWarm", "#FFF0B3", 0.10f, "#FFE082", 1.00f),
+            ("AC_LanternGlow", "#FFE6A8", 0.10f, "#FFD278", 1.10f),
+            ("AC_BulbWarm", "#FFF0BE", 0.10f, "#FFE090", 1.00f),
 
             ("AC_PalmTrunk", "#C89E72", 0.05f, null, 0f),
             ("AC_PalmRing", "#BE946A", 0.05f, null, 0f),
@@ -1845,45 +1850,55 @@ public static class GirlPowerOrla3DSceneBuilder
             ("AC_PalmLeafTip", "#7BB892", 0.08f, null, 0f),
             ("AC_Coconut", "#764E34", 0.08f, null, 0f),
             ("AC_CoconutGreen", "#6BA880", 0.10f, null, 0f),
-            ("AC_BushGreen", "#4D9E65", 0.06f, null, 0f),     // Basil Green linking Cart & Florist!
+            ("AC_BushGreen", "#4D9E65", 0.06f, null, 0f),
             ("AC_BushLight", "#7AC286", 0.06f, null, 0f),
-            ("AC_Terracotta", "#C98566", 0.06f, null, 0f),
-            ("AC_Orange", "#EA9B52", 0.12f, null, 0f),
-            ("AC_Strawberry", "#EC6FA4", 0.14f, null, 0f),
+            ("AC_Terracotta", "#D28472", 0.06f, null, 0f),
+            ("AC_Orange", "#EC9C56", 0.12f, null, 0f),
+            ("AC_Strawberry", "#F06EA6", 0.14f, null, 0f),
             ("AC_Chocolate", "#6E4632", 0.10f, null, 0f),
-            ("AC_Vanilla", "#FBF0D4", 0.10f, null, 0f),
+            ("AC_Vanilla", "#FBF0DA", 0.10f, null, 0f),
             ("AC_Waffle", "#DFAA68", 0.08f, null, 0f),
-            ("AC_FlowerPink", "#EC6FA4", 0.10f, null, 0f),
-            ("AC_FlowerYellow", "#EED286", 0.10f, null, 0f),
-            ("AC_FlowerBlue", "#68C4D6", 0.10f, null, 0f),
-            ("AC_FlowerWhite", "#FBF8F0", 0.10f, null, 0f),
-            ("AC_Starfish", "#E09282", 0.10f, null, 0f),
-            ("AC_Shell", "#F8E8DA", 0.14f, null, 0f),
+            ("AC_FlowerPink", "#F26CA4", 0.10f, null, 0f),
+            ("AC_FlowerYellow", "#F2D486", 0.10f, null, 0f),
+            ("AC_FlowerBlue", "#6CC4D8", 0.10f, null, 0f),
+            ("AC_FlowerWhite", "#FDF8F4", 0.10f, null, 0f),
+            ("AC_Starfish", "#E68E86", 0.10f, null, 0f),
+            ("AC_Shell", "#FAE8E2", 0.14f, null, 0f),
 
             ("AC_SkinWarm", "#C98862", 0.06f, null, 0f),
             ("AC_SkinLight", "#F7CAA8", 0.06f, null, 0f),
             ("AC_SkinTan", "#E2A67C", 0.06f, null, 0f),
-            ("AC_CheekBlush", "#F28FA8", 0.06f, null, 0f),
+            ("AC_CheekBlush", "#F586A8", 0.06f, null, 0f),
             ("AC_EyeDark", "#201824", 0.52f, null, 0f),
             ("AC_EyeShine", "#FFFFFF", 0.40f, "#FFFFFF", 0.65f),
-            ("AC_HairPlum", "#844894", 0.22f, null, 0f),
+            ("AC_HairPlum", "#8A4A98", 0.22f, null, 0f),
             ("AC_HairBrown", "#664028", 0.22f, null, 0f),
             ("AC_HairDark", "#2C2534", 0.22f, null, 0f),
-            ("AC_HairAuburn", "#B4563A", 0.22f, null, 0f),
+            ("AC_HairAuburn", "#B8563C", 0.22f, null, 0f),
             ("AC_Denim", "#3E6F8E", 0.04f, null, 0f),
-            ("AC_StrawHat", "#EAD09C", 0.05f, null, 0f),
-            ("AC_ShoeDark", "#463544", 0.09f, null, 0f),
-            ("AC_HouseWall", "#F7ECDC", 0.05f, null, 0f),
-            ("AC_HouseRoof", "#D99678", 0.07f, null, 0f),
-            ("AC_ProtagHero", "#F6C43C", 0.05f, null, 0f),    // Exclusive Hero Sunny Yellow (distinct from pink cart & every villager!)
-            ("AC_ProtagRibbon", "#16B8C4", 0.10f, null, 0f),  // Exclusive Hero Turquoise Bow & Backpack!
-            ("AC_ProtagShirt", "#F6C43C", 0.05f, null, 0f),
+            ("AC_StrawHat", "#EED29E", 0.05f, null, 0f),
+            ("AC_ShoeDark", "#483246", 0.09f, null, 0f),
+            ("AC_HouseWall", "#FFF1EE", 0.05f, null, 0f),     // Creamy Blush Walls
+            ("AC_HouseRoof", "#E888A6", 0.07f, null, 0f),     // Cozy Strawberry-Rose Roofs harmonizing with opening!
+            ("AC_ProtagHero", "#FAD04E", 0.05f, null, 0f),    // Exclusive Hero Sunny Yellow (pops sharply against pink scene & cart!)
+            ("AC_ProtagRibbon", "#16C0CA", 0.10f, null, 0f),  // Exclusive Hero Turquoise Bow & Backpack!
+            ("AC_ProtagShirt", "#FAD04E", 0.05f, null, 0f),
             // GPU Vertex-Animated Breeze Hair Materials (upgraded to OrlaACNHHairWind shader below!)
             ("AC_HairWind_Brown", "#664028", 0.22f, null, 0f),
-            ("AC_HairWind_Blonde", "#EAC46E", 0.22f, null, 0f),
+            ("AC_HairWind_Blonde", "#ECC66E", 0.22f, null, 0f),
             ("AC_HairWind_Dark", "#2C2534", 0.22f, null, 0f),
             ("AC_HairWind_Silver", "#D6DAE2", 0.22f, null, 0f),
-            ("AC_HairWind_Auburn", "#B4563A", 0.22f, null, 0f),
+            ("AC_HairWind_Auburn", "#B8563C", 0.22f, null, 0f),
+        };
+
+        var characterOutlineMats = new HashSet<string>
+        {
+            "AC_SkinWarm", "AC_SkinLight", "AC_SkinTan", "AC_CheekBlush",
+            "AC_HairPlum", "AC_HairBrown", "AC_HairDark", "AC_HairAuburn",
+            "AC_HairWind_Brown", "AC_HairWind_Blonde", "AC_HairWind_Dark", "AC_HairWind_Silver", "AC_HairWind_Auburn",
+            "AC_ProtagHero", "AC_ProtagRibbon", "AC_ProtagShirt",
+            "AC_Denim", "AC_StrawHat", "AC_ShoeDark",
+            "AC_PinkSoft", "AC_Lavender", "AC_Coral", "AC_SkyBlue", "AC_MintSoft", "AC_Terracotta"
         };
 
         Shader hairWindShader = Shader.Find("GirlPower/OrlaACNHHairWind");
@@ -1903,22 +1918,27 @@ public static class GirlPowerOrla3DSceneBuilder
                 mat.shader = targetShader;
             }
 
+            bool isCharMat = characterOutlineMats.Contains(item.name);
+            bool isHeroMat = item.name.StartsWith("AC_Protag");
+
             if (ColorUtility.TryParseHtmlString(item.hex, out Color baseCol))
                 mat.SetColor("_Color", baseCol);
             if (mat.HasProperty("_Glossiness"))
                 mat.SetFloat("_Glossiness", item.gloss);
             if (mat.HasProperty("_ShadowColor"))
-                mat.SetColor("_ShadowColor", new Color(0.38f, 0.34f, 0.52f, 1f));
+                mat.SetColor("_ShadowColor", new Color(0.46f, 0.34f, 0.52f, 1f));
             if (mat.HasProperty("_RimColor"))
-                mat.SetColor("_RimColor", new Color(1.0f, 0.90f, 0.72f, 1f));
+                mat.SetColor("_RimColor", new Color(1.0f, 0.90f, 0.92f, 1f));
             if (mat.HasProperty("_RimPower"))
-                mat.SetFloat("_RimPower", 4.2f);
+                mat.SetFloat("_RimPower", isCharMat ? 3.2f : 4.2f);
             if (mat.HasProperty("_RimStrength"))
-                mat.SetFloat("_RimStrength", 0.05f);
+                mat.SetFloat("_RimStrength", isHeroMat ? 0.22f : (isCharMat ? 0.14f : 0.05f));
+            if (mat.HasProperty("_OutlineSoft"))
+                mat.SetFloat("_OutlineSoft", isHeroMat ? 0.84f : (isCharMat ? 0.68f : 0.0f));
             if (mat.HasProperty("_WrapAmount"))
                 mat.SetFloat("_WrapAmount", 0.28f);
             if (mat.HasProperty("_GroundAO"))
-                mat.SetFloat("_GroundAO", 0.34f);
+                mat.SetFloat("_GroundAO", isCharMat ? 0.18f : 0.34f);
             if (mat.HasProperty("_CurveStrength"))
                 mat.SetFloat("_CurveStrength", 0.0008f);
 

@@ -591,21 +591,23 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private void EnsurePedalTitleStyles()
     {
         if (pedalGoldBtn != null) return;
-        pedalGoldBtn = MakePedalPill(new Color(0.95f, 0.74f, 0.36f, 0.98f), new Color(1.0f, 0.88f, 0.58f, 1f), new Color(0.14f, 0.12f, 0.10f), 20);
-        pedalMintBtn = MakePedalPill(new Color(0.42f, 0.78f, 0.56f, 0.98f), new Color(0.68f, 0.92f, 0.76f, 1f), new Color(0.12f, 0.18f, 0.14f), 18);
-        pedalDarkBtn = MakePedalPill(new Color(0.15f, 0.32f, 0.28f, 0.94f), new Color(0.32f, 0.54f, 0.48f, 0.9f), new Color(0.96f, 0.98f, 0.95f), 14);
-        pedalRoseBtn = MakePedalPill(new Color(0.56f, 0.24f, 0.26f, 0.96f), new Color(0.76f, 0.42f, 0.44f, 0.9f), new Color(0.98f, 0.95f, 0.95f), 14);
+        // Pink-Palette-Driven Opening Styles: Strawberry Pink Hero Play Button + Soft Blush & Rose-Glass Secondary Controls!
+        pedalGoldBtn = MakePedalPill(new Color(0.93f, 0.34f, 0.56f, 0.98f), new Color(1.0f, 0.80f, 0.88f, 1f), Color.white, 24);
+        pedalMintBtn = MakePedalPill(new Color(0.98f, 0.86f, 0.90f, 0.95f), new Color(0.93f, 0.48f, 0.66f, 0.95f), new Color(0.32f, 0.10f, 0.18f), 15);
+        pedalDarkBtn = MakePedalPill(new Color(0.24f, 0.10f, 0.18f, 0.72f), new Color(0.94f, 0.66f, 0.78f, 0.65f), new Color(1.0f, 0.94f, 0.96f), 13);
+        pedalRoseBtn = MakePedalPill(new Color(0.46f, 0.16f, 0.26f, 0.78f), new Color(0.92f, 0.54f, 0.66f, 0.72f), new Color(1.0f, 0.94f, 0.96f), 13);
 
-        // Soft left-side horizontal gradient scrim so text pops over the live 3D bay!
-        leftScrimTex = new Texture2D(64, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        // Soft rosy-plum radial/vertical atmospheric scrim so the live 3D pink coastal world shines right behind!
+        leftScrimTex = new Texture2D(2, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
         Color[] px = new Color[128];
-        for (int x = 0; x < 64; x++)
+        for (int y = 0; y < 64; y++)
         {
-            float t = x / 63f;
-            float a = Mathf.Pow(1f - t, 1.8f) * 0.62f;
-            Color c = new Color(0.06f, 0.18f, 0.18f, a);
-            px[x] = c;
-            px[x + 64] = c;
+            float t = y / 63f; // 0 = bottom, 1 = top
+            float edge = Mathf.Abs(t - 0.52f) * 1.9f;
+            float a = Mathf.Clamp01(0.18f + (1f - Mathf.Clamp01(edge)) * 0.24f + (t < 0.16f ? (0.16f - t) * 2.2f : 0f));
+            Color c = new Color(0.28f, 0.08f, 0.18f, a);
+            px[y * 2] = c;
+            px[y * 2 + 1] = c;
         }
         leftScrimTex.SetPixels(px);
         leftScrimTex.Apply();
@@ -655,151 +657,135 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         EnsurePedalTitleStyles();
 
         Rect safe = GetGuiSafeArea();
-        // Subtle left-side cozy atmospheric gradient over the live 3D orbiting Orla das Fadas!
-        GUI.DrawTexture(new Rect(0, 0, Screen.width * 0.62f, Screen.height), leftScrimTex);
+        // Soft rosy atmospheric scrim keeping the live 3D Orla das Fadas visible & luminous!
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), leftScrimTex);
 
-        float colW = Mathf.Min(350f * s, safe.width - 36f * s);
-        float lx = safe.width < 680f * s ? (safe.x + (safe.width - colW) * 0.5f) : (safe.x + 56f * s);
-        float topY = safe.y + Mathf.Max(20f * s, safe.height * 0.10f);
+        float centerX = safe.x + safe.width * 0.5f;
+        float titleW = Mathf.Min(560f * s, safe.width - 28f * s);
+        float topY = safe.y + Mathf.Clamp(safe.height * 0.16f, 32f * s, 140f * s);
 
-        // Stacked bold cream title ("ORLA / DAS FADAS") — Magical Seaside Resort & Pet-Friendly Island
+        // Centered Hero Title ("ORLA DAS FADAS") harmonized with the Opening Pink Palette!
         GUIStyle bigTitle = new GUIStyle(GirlPowerOrla3DUITheme.TitleLogoStyle)
         {
-            fontSize = Mathf.RoundToInt(52f * s),
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(56f * s, 32f, 64f)),
             alignment = TextAnchor.MiddleCenter
         };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 16f * s, topY, colW + 32f * s, 58f * s), "ORLA", bigTitle, new Color(1f, 0.98f, 0.92f), new Color(0.06f, 0.14f, 0.14f, 0.90f), 3f * s);
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 16f * s, topY + 54f * s, colW + 32f * s, 58f * s), "DAS FADAS", bigTitle, new Color(1f, 0.96f, 0.94f), new Color(0.06f, 0.14f, 0.14f, 0.90f), 3f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(
+            new Rect(centerX - titleW * 0.5f, topY, titleW, 68f * s),
+            "ORLA DAS FADAS",
+            bigTitle,
+            new Color(1f, 0.96f, 0.98f),
+            new Color(0.42f, 0.08f, 0.24f, 0.92f),
+            3.5f * s);
 
         string tagline = IsEnglish
-            ? "Magical seaside resort • Fairy Cuisine & Pets"
-            : (IsSpanish ? "Resort mágico costero • Hadas y Mascotas" : "Resort mágico à beira-mar • Fadas & Pets");
+            ? "Seaside Ice Cream Cart • Fairy Village"
+            : (IsSpanish ? "Carrito de Helados • Vila de las Hadas" : "Carrinho de Sorvete à Beira-Mar");
         GUIStyle subSt = new GUIStyle(GirlPowerOrla3DUITheme.SubtitleStyle)
         {
-            fontSize = Mathf.RoundToInt(15.5f * s),
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(18f * s, 13f, 20f)),
             wordWrap = true,
             alignment = TextAnchor.MiddleCenter
         };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 14f * s, topY + 118f * s, colW + 28f * s, 34f * s), tagline, subSt, new Color(1f, 0.95f, 0.84f), new Color(0.06f, 0.14f, 0.14f, 0.88f), 2f * s);
+        GirlPowerOrla3DUITheme.DrawShadowedLabel(
+            new Rect(centerX - titleW * 0.5f, topY + 68f * s, titleW, 32f * s),
+            tagline,
+            subSt,
+            new Color(1f, 0.90f, 0.95f),
+            new Color(0.30f, 0.06f, 0.18f, 0.88f),
+            2f * s);
 
         if (activeModal != SubModal.None) return;
 
-        float bx = lx + 14f * s;
-        float bw = colW - 28f * s;
-        float by = topY + 162f * s;
+        // CENTER STAGE: ONE prominent strawberry-pink primary "▶ JOGAR" button!
+        float bw = Mathf.Clamp(290f * s, 210f, safe.width - 48f * s);
+        float bx = centerX - bw * 0.5f;
+        float by = topY + 132f * s;
 
         bool hasSave = HasSavedProgress();
-        if (hasSave)
-        {
-            int savedChap = storyController != null ? storyController.GetCurrentChapterNumber() : 1;
-            string saveTag = GirlPowerOrla3DLocalization.T(
-                "★ Partida salva • Capítulo " + savedChap,
-                "★ Saved Game • Chapter " + savedChap,
-                "★ Partida guardada • Capítulo " + savedChap);
-            Rect saveBadge = new Rect(bx, by, bw, 28f * s);
-            GUI.Box(saveBadge, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-            GirlPowerOrla3DUITheme.DrawOutlinedLabel(saveBadge, saveTag, new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(13.5f * s) }, Color.white, new Color(0.06f, 0.14f, 0.14f, 0.92f), 1.0f);
-            by += 36f * s;
-        }
-
-        // Golden-amber Primary Pill: ▶ Continuar (when saved) or ▶ Jogar
         string playLbl = hasSave
-            ? GirlPowerOrla3DLocalization.T("▶   Continuar Partida", "▶   Continue Game", "▶   Continuar Partida")
-            : GirlPowerOrla3DLocalization.T("▶   Jogar", "▶   Play", "▶   Jugar");
-        if (GUI.Button(new Rect(bx, by, bw, 54f * s), playLbl, pedalGoldBtn))
+            ? GirlPowerOrla3DLocalization.T("▶   JOGAR", "▶   PLAY", "▶   JUGAR")
+            : GirlPowerOrla3DLocalization.T("▶   JOGAR", "▶   PLAY", "▶   JUGAR");
+        if (GUI.Button(new Rect(bx, by, bw, 62f * s), playLbl, pedalGoldBtn))
         {
             if (hasSave) StartOrContinueGame();
             else StartChapter(1);
         }
-        by += 64f * s;
+        by += 74f * s;
 
-        // Secondary Pill: Novo Jogo (with progress confirmation when a save exists!) or Continuar
-        string secondLbl = hasSave
-            ? GirlPowerOrla3DLocalization.T("Novo Jogo (Cap. 1)", "New Game (Ch. 1)", "Nueva Partida (Cap. 1)")
-            : GirlPowerOrla3DLocalization.T("Continuar", "Continue", "Continuar");
-        if (GUI.Button(new Rect(bx, by, bw, 48f * s), secondLbl, pedalMintBtn))
+        // If a save exists, show ONLY a single discreet secondary pill to restart from Chapter 1
+        if (hasSave)
         {
-            if (hasSave)
+            int savedChap = storyController != null ? storyController.GetCurrentChapterNumber() : 1;
+            string restartLbl = GirlPowerOrla3DLocalization.T(
+                "Continuando Cap. " + savedChap + "  •  Novo Jogo",
+                "Continuing Ch. " + savedChap + "  •  New Game",
+                "Siguiendo Cap. " + savedChap + "  •  Nuevo");
+            float rw = Mathf.Clamp(260f * s, 196f, safe.width - 48f * s);
+            if (GUI.Button(new Rect(centerX - rw * 0.5f, by, rw, 36f * s), restartLbl, pedalMintBtn))
             {
                 RequestConfirmation(
                     GirlPowerOrla3DLocalization.T("INICIAR NOVO JOGO?", "START NEW GAME?", "¿INICIAR NUEVA PARTIDA?"),
                     GirlPowerOrla3DLocalization.T(
-                        "Você já tem uma partida salva. Começar do Capítulo 1 vai substituir o progresso da entrega atual. Deseja continuar?",
-                        "You already have a saved game. Starting from Chapter 1 will overwrite your current delivery progress. Continue?",
-                        "Ya tienes una partida guardada. Empezar desde el Capítulo 1 reemplazará el progreso actual. ¿Deseas continuar?"),
+                        "Começar do Capítulo 1 vai substituir o progresso atual. Deseja continuar?",
+                        "Starting from Chapter 1 will overwrite your current progress. Continue?",
+                        "Empezar desde el Capítulo 1 reemplazará tu progreso actual. ¿Continuar?"),
                     () => StartChapter(1));
             }
-            else
-            {
-                StartOrContinueGame();
-            }
         }
-        by += 60f * s;
 
-        // Compact 2-Column Pills: Configurações (Dark Green) & Sair (Burgundy)
-        float halfW = (bw - 14f * s) * 0.5f;
+        // QUIET BACKGROUND FOOTER BAR: Settings, Chapters, Parents, Language & Quit tucked unobtrusively at bottom!
+        float barH = 34f * s;
+        float barY = safe.yMax - barH - 14f * s;
+        float gap = 8f * s;
+        float btnW = Mathf.Clamp(108f * s, 74f, (safe.width - 70f * s) / 5.4f);
+
         string cfgLbl = IsEnglish ? "Settings" : (IsSpanish ? "Ajustes" : "Configurações");
-        if (GUI.Button(new Rect(bx, by, halfW, 42f * s), cfgLbl, pedalDarkBtn))
-            activeModal = SubModal.Settings;
-
+        string chapLbl = GirlPowerOrla3DLocalization.T("Capítulos", "Chapters", "Capítulos");
+        string parentsLbl = GirlPowerOrla3DLocalization.T("Pais", "Parents", "Padres");
+        string credLbl = GirlPowerOrla3DLocalization.T("Créditos", "Credits", "Créditos");
+        string langLbl = LanguageIndex == 0 ? "PT" : (LanguageIndex == 1 ? "EN" : "ES");
         string quitLbl = IsEnglish ? "Quit" : (IsSpanish ? "Salir" : "Sair");
-        if (GUI.Button(new Rect(bx + halfW + 14f * s, by, halfW, 42f * s), quitLbl, pedalRoseBtn))
+
+        float langW = 48f * s;
+        float quitW = 68f * s;
+        float totalBarW = btnW * 4f + langW + quitW + gap * 5f;
+        float sx = centerX - totalBarW * 0.5f;
+
+        if (GUI.Button(new Rect(sx, barY, btnW, barH), cfgLbl, pedalDarkBtn))
+            activeModal = SubModal.Settings;
+        sx += btnW + gap;
+
+        if (GUI.Button(new Rect(sx, barY, btnW, barH), chapLbl, pedalDarkBtn))
+            activeModal = SubModal.Chapters;
+        sx += btnW + gap;
+
+        if (GUI.Button(new Rect(sx, barY, btnW, barH), parentsLbl, pedalDarkBtn))
+            activeModal = SubModal.ParentsArea;
+        sx += btnW + gap;
+
+        if (GUI.Button(new Rect(sx, barY, btnW, barH), credLbl, pedalDarkBtn))
+            activeModal = SubModal.Credits;
+        sx += btnW + gap;
+
+        if (GUI.Button(new Rect(sx, barY, langW, barH), langLbl, pedalDarkBtn))
+        {
+            LanguageIndex = (LanguageIndex + 1) % 3;
+            SaveUserPreferences();
+        }
+        sx += langW + gap;
+
+        if (GUI.Button(new Rect(sx, barY, quitW, barH), quitLbl, pedalRoseBtn))
         {
             Application.Quit();
             quitFeedback = IsEnglish ? "Close the browser tab or stop Play Mode to exit." : "Feche a aba do navegador ou pare o Play Mode para sair.";
             quitFeedbackTimer = 3.5f;
         }
-        by += 56f * s;
-
-        // Language Pill Chips: PT | EN | ES
-        float chipW = 64f * s;
-        float chipGap = 12f * s;
-        float chipStart = bx + (bw - (chipW * 3f + chipGap * 2f)) * 0.5f;
-        string[] langs = { "PT", "EN", "ES" };
-        for (int i = 0; i < 3; i++)
-        {
-            bool sel = LanguageIndex == i;
-            if (GUI.Button(new Rect(chipStart + i * (chipW + chipGap), by, chipW, 32f * s), langs[i], sel ? pedalMintBtn : pedalDarkBtn))
-            {
-                LanguageIndex = i;
-                SaveUserPreferences();
-            }
-        }
-        by += 44f * s;
-
-        // Chapters, Parents Area & Credits compact dark pills (matching Pedal no Bosque!)
-        string parentsLbl = GirlPowerOrla3DLocalization.T("Área dos Pais", "Parents Area", "Área de Padres");
-        if (GUI.Button(new Rect(bx, by, bw, 36f * s), parentsLbl, pedalDarkBtn))
-            activeModal = SubModal.ParentsArea;
-        by += 44f * s;
-
-        string chapLbl = GirlPowerOrla3DLocalization.T("Capítulos", "Chapters", "Capítulos");
-        string credLbl = GirlPowerOrla3DLocalization.T("Créditos", "Credits", "Créditos");
-        if (GUI.Button(new Rect(bx, by, halfW, 36f * s), chapLbl, pedalDarkBtn))
-            activeModal = SubModal.Chapters;
-        if (GUI.Button(new Rect(bx + halfW + 14f * s, by, halfW, 36f * s), credLbl, pedalDarkBtn))
-            activeModal = SubModal.Credits;
-        by += 48f * s;
-
-        // Bottom live stats line matching Pedal no Bosque!
-        int coins = lifeActivities != null ? lifeActivities.Coins : (megaSystems != null ? megaSystems.Data.coins : 60);
-        int deliv = megaSystems != null ? megaSystems.Data.deliveriesTotal : 0;
-        int stars = GetChapterBestStars(1) + GetChapterBestStars(2) + GetChapterBestStars(3) + GetChapterBestStars(4);
-        int prest = megaSystems != null ? megaSystems.Data.prestige : 10;
-        string statsLine = GirlPowerOrla3DLocalization.T(
-            "Moedas: " + coins + "  |  Entregas: " + deliv + "  |  Estrelas: " + stars + "  |  Prestígio: " + prest,
-            "Coins: " + coins + "  |  Deliveries: " + deliv + "  |  Stars: " + stars + "  |  Prestige: " + prest,
-            "Monedas: " + coins + "  |  Entregas: " + deliv + "  |  Estrellas: " + stars + "  |  Prestigio: " + prest);
-        GUIStyle statSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyLightStyle)
-        {
-            fontSize = Mathf.RoundToInt(14f * s),
-            alignment = TextAnchor.MiddleCenter
-        };
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(lx - 26f * s, by, colW + 52f * s, 28f * s), statsLine, statSt, new Color(1f, 0.96f, 0.86f), new Color(0.05f, 0.12f, 0.12f, 0.85f), 2f);
 
         if (quitFeedbackTimer > 0f && !string.IsNullOrEmpty(quitFeedback))
         {
-            Rect fb = new Rect(lx, by + 34f * s, colW, 34f * s);
+            float fbw = Mathf.Min(420f * s, safe.width - 32f * s);
+            Rect fb = new Rect(centerX - fbw * 0.5f, barY - 42f * s, fbw, 34f * s);
             GUI.Box(fb, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
             GUI.Label(fb, quitFeedback, GirlPowerOrla3DUITheme.BodyLightStyle);
         }

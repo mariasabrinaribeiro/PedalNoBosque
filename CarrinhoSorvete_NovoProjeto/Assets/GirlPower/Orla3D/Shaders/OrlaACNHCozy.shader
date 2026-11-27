@@ -8,6 +8,7 @@ Shader "GirlPower/OrlaACNHCozy"
         _RimColor ("Sun Rim Color", Color) = (1.0, 0.90, 0.72, 1)
         _RimPower ("Rim Sharpness", Range(1.0, 8.0)) = 4.2
         _RimStrength ("Rim Strength", Range(0.0, 1.0)) = 0.06
+        _OutlineSoft ("Character Soft Outline", Range(0.0, 1.0)) = 0.0
         _WrapAmount ("Soft Wrap Diffuse", Range(0.0, 1.0)) = 0.28
         _Glossiness ("Softness Specular", Range(0.0, 1.0)) = 0.10
         _GroundAO ("Ground Contact AO", Range(0.0, 1.0)) = 0.34
@@ -34,6 +35,7 @@ Shader "GirlPower/OrlaACNHCozy"
         fixed4 _RimColor;
         half _RimPower;
         half _RimStrength;
+        half _OutlineSoft;
         half _WrapAmount;
         half _Glossiness;
         half _GroundAO;
@@ -115,12 +117,16 @@ Shader "GirlPower/OrlaACNHCozy"
             float aoH = saturate((IN.worldPos.y + 0.16) / max(0.1, _GroundAOHeight));
             float groundAO = lerp(1.0 - _GroundAO * 0.55, 1.0, smoothstep(0.0, 1.0, aoH));
 
-            // Clean, band-free matte surface (no periodic striping or tile seams!)
-            o.Albedo = saturate(c.rgb * groundAO);
+            half rim = 1.0 - saturate(dot(normalize(IN.viewDir), o.Normal));
+            half edgeInk = smoothstep(0.44, 0.88, rim) * _OutlineSoft;
+            // Soft storybook grazing contour so characters & pets pop crisply from the floor
+            fixed3 contoured = lerp(c.rgb * groundAO, c.rgb * groundAO * fixed3(0.46, 0.38, 0.48), edgeInk);
+
+            o.Albedo = saturate(contoured);
             o.Alpha = c.a;
 
-            half rim = 1.0 - saturate(dot(normalize(IN.viewDir), o.Normal));
-            half3 rimEmit = _RimColor.rgb * pow(rim, _RimPower) * _RimStrength * groundAO;
+            half innerRim = pow(rim, _RimPower) * _RimStrength * (1.0 - edgeInk * 0.65) * groundAO;
+            half3 rimEmit = _RimColor.rgb * innerRim;
             o.Emission = _EmissionColor.rgb + rimEmit;
         }
         ENDCG

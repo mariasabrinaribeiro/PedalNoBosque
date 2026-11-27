@@ -33,6 +33,7 @@ Material:
     - _Glossiness: 0.08
     - _GroundAO: 0.34
     - _GroundAOHeight: 0.72
+    - _OutlineSoft: 0
     - _RimPower: 4.2
     - _RimStrength: 0.05
     - _TexStrength: 0
@@ -40,8 +41,8 @@ Material:
     - _UseWorldUV: 0
     - _WrapAmount: 0.28
     m_Colors:
-    - _Color: {r: 0.9647059, g: 0.9372549, b: 0.8784314, a: 1}
-    - _EmissionColor: {r: 0.14, g: 0.13560784, b: 0.12407843, a: 0.14}
-    - _RimColor: {r: 1, g: 0.9, b: 0.72, a: 1}
-    - _ShadowColor: {r: 0.38, g: 0.34, b: 0.52, a: 1}
+    - _Color: {r: 0.98039216, g: 0.94509804, b: 0.9254902, a: 1}
+    - _EmissionColor: {r: 0.14, g: 0.1345098, b: 0.13176471, a: 0.14}
+    - _RimColor: {r: 1, g: 0.9, b: 0.92, a: 1}
+    - _ShadowColor: {r: 0.46, g: 0.34, b: 0.52, a: 1}
   m_BuildTextureStacks: []

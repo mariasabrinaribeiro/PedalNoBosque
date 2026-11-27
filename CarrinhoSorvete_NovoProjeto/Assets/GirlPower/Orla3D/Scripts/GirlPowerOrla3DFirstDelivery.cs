@@ -72,12 +72,12 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public float angularSpeedDeg = 420f;
     public float interactionRadius = 3.8f;
 
-    [Header("Readable Cozy Diorama Camera (Clear Faces, Silhouettes & Sea Horizon)")]
-    public Vector3 cameraOffset = new Vector3(0f, 8.0f, -12.2f);
-    public float cameraPitch = 30.0f;
-    public float cameraSmoothTime = 0.22f;
+    [Header("Readable Cozy Diorama Camera (Hero Centered, Clear Faces & Silhouettes)")]
+    public Vector3 cameraOffset = new Vector3(0f, 7.3f, -11.0f);
+    public float cameraPitch = 29.5f;
+    public float cameraSmoothTime = 0.20f;
     public float minZoom = 0.68f;
-    public float maxZoom = 1.55f;
+    public float maxZoom = 1.50f;
 
     [Header("World Exploration Bounds (Wide Promenade, Enterable Cafe & Sunny Dry Beach)")]
     public float minWorldX = -17.5f;
@@ -1088,21 +1088,21 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         // 1. Close-Up Focus when assembling ice cream at Cart or conversing with Luna/NPCs!
         // 2. Coastal Promenade & Beach framing: keeps protagonist large & expressive while showing sea horizon behind the beach!
         float coastBlend = !closeUpFocus ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-4.5f, 3.0f, player.position.z)) : 0f;
-        Vector3 landOff = Vector3.Lerp(cameraOffset, new Vector3(0f, 6.8f, -10.8f), coastBlend);
-        float landPitch = Mathf.Lerp(cameraPitch, 28.5f, coastBlend);
+        Vector3 landOff = Vector3.Lerp(cameraOffset, new Vector3(0f, 6.4f, -10.0f), coastBlend);
+        float landPitch = Mathf.Lerp(cameraPitch, 28.0f, coastBlend);
 
-        Vector3 baseOff = closeUpFocus ? new Vector3(0f, 5.2f, -6.8f) : landOff;
-        float targetPitch = closeUpFocus ? 31.5f : landPitch;
-        float targetFov = closeUpFocus ? 40f : 43f;
+        Vector3 baseOff = closeUpFocus ? new Vector3(0f, 5.0f, -6.5f) : landOff;
+        float targetPitch = closeUpFocus ? 31.0f : landPitch;
+        float targetFov = closeUpFocus ? 39f : 42f;
 
-        // Smart framing pull when approaching the Cart or Florist so BOTH protagonist and station stay well inside the frame!
+        // Gentle framing pull when approaching Cart/Florist while keeping protagonist prominently centered!
         float arrivalLiftY = 0f;
         Vector2 servicePullXZ = Vector2.zero;
         if (!inWater)
         {
             Transform focusService = null;
-            float cartFocusRange = (phase == StoryPhase.Ch1_AtCart || phase == StoryPhase.Ch1_ChooseUpgrade || phase == StoryPhase.Ch3_PrepareFestivalTreat) ? 8.2f : 5.0f;
-            float floristFocusRange = (phase == StoryPhase.Ch1_Delivering || phase == StoryPhase.Ch2_InviteChoice) ? 7.2f : 4.8f;
+            float cartFocusRange = (phase == StoryPhase.Ch1_AtCart || phase == StoryPhase.Ch1_ChooseUpgrade || phase == StoryPhase.Ch3_PrepareFestivalTreat) ? 7.4f : 4.5f;
+            float floristFocusRange = (phase == StoryPhase.Ch1_Delivering || phase == StoryPhase.Ch2_InviteChoice) ? 6.8f : 4.5f;
             float bestRatio = 1f;
 
             if (cart != null)
@@ -1120,15 +1120,15 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             if (focusService != null)
             {
                 float blend = closeUpFocus ? 1f : Mathf.SmoothStep(0f, 1f, 1f - bestRatio);
-                arrivalLiftY = closeUpFocus ? 0f : (blend * 0.35f);
-                float pullWeight = closeUpFocus ? 0.42f : 0.34f;
+                arrivalLiftY = closeUpFocus ? 0f : (blend * 0.22f);
+                float pullWeight = closeUpFocus ? 0.28f : 0.18f;
                 servicePullXZ = new Vector2(focusService.position.x - player.position.x, focusService.position.z - player.position.z) * (blend * pullWeight);
             }
         }
 
         Vector3 scaledOffset = baseOff * (closeUpFocus ? 1f : zoomFactor);
-        float lookAheadX = closeUpFocus ? 0f : Mathf.Clamp(currentMoveVel.x * 0.24f, -1.4f, 1.4f);
-        float lookAheadZ = closeUpFocus ? 0.15f : (Mathf.Clamp(currentMoveVel.y * 0.16f, -0.8f, 0.8f) + (inWater ? -0.35f : 0.35f));
+        float lookAheadX = closeUpFocus ? 0f : Mathf.Clamp(currentMoveVel.x * 0.14f, -0.85f, 0.85f);
+        float lookAheadZ = closeUpFocus ? 0.12f : (Mathf.Clamp(currentMoveVel.y * 0.10f, -0.55f, 0.55f) + 0.20f);
         float focusX = Mathf.Clamp(player.position.x + lookAheadX + servicePullXZ.x + (closeUpFocus ? 0f : cameraPanOffsetXZ.x), minWorldX + 2.5f, maxWorldX - 2.5f);
         float focusZ = Mathf.Clamp(player.position.z + lookAheadZ + servicePullXZ.y + (closeUpFocus ? 0f : cameraPanOffsetXZ.y), minWorldZ + 1.2f, maxWorldZ - 2.0f);
         float desiredX = focusX;
@@ -2016,83 +2016,153 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     private void DrawCompactOrderCard(float s)
     {
         Rect safe = GetGuiSafeArea();
-        float maxW = Mathf.Min(318f * s, safe.width * 0.54f);
-        float cw = Mathf.Max(238f * s, maxW);
-        float ch = (gameFlow != null && gameFlow.HasActiveTimer) ? 98f * s : 82f * s;
+        float cw = Mathf.Clamp(safe.width * 0.52f, 252f * s, 336f * s);
+        bool showCh1Stepper = phase == StoryPhase.Ch1_AtCart || phase == StoryPhase.Ch1_Delivering || phase == StoryPhase.Ch1_ReturningForUpgrade || phase == StoryPhase.Ch1_ChooseUpgrade;
+        bool hasTimer = gameFlow != null && gameFlow.HasActiveTimer;
+        float ch = 76f * s + (showCh1Stepper ? 28f * s : 0f) + (hasTimer ? 18f * s : 0f);
         Rect card = new Rect(safe.x + 12f * s, safe.y + 10f * s, cw, ch);
         GUI.Box(card, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
         GetOrderVisuals(out Texture2D clientIcon, out Texture2D itemIcon, out string headline, out string subline, out string counterBadge);
 
         // Order item / portrait visual on left (high clarity on cream card)
-        float iconSz = 50f * s;
-        GUI.DrawTexture(new Rect(card.x + 10f * s, card.y + 12f * s, iconSz, iconSz), itemIcon);
-        float miniSz = 24f * s;
-        GUI.DrawTexture(new Rect(card.x + 38f * s, card.y + 38f * s, miniSz, miniSz), clientIcon);
+        float iconSz = 48f * s;
+        GUI.DrawTexture(new Rect(card.x + 10f * s, card.y + 11f * s, iconSz, iconSz), itemIcon);
+        float miniSz = 22f * s;
+        GUI.DrawTexture(new Rect(card.x + 38f * s, card.y + 37f * s, miniSz, miniSz), clientIcon);
 
-        // Optional 1-tap "Guiar" pill tucked on top-right of the card ONLY while distant (avoids competing with "Montar sorvete" when in reach!)
+        // Optional 1-tap "Guiar" pill tucked on top-right ONLY while distant (never competes with interaction button when near!)
         Transform objTarget = GetActiveObjectiveTarget();
         float rightReserve = 12f * s;
         if (objTarget != null && !NearXZ(objTarget, interactionRadius))
         {
-            float goW = 68f * s;
-            Rect goRect = new Rect(card.xMax - goW - 8f * s, card.y + 8f * s, goW, 26f * s);
+            float goW = 66f * s;
+            Rect goRect = new Rect(card.xMax - goW - 8f * s, card.y + 8f * s, goW, 25f * s);
             string goLbl = GirlPowerOrla3DLocalization.T("Guiar", "Guide", "Guiar");
             if (GUI.Button(goRect, goLbl, GirlPowerOrla3DUITheme.BtnPrimaryStyle))
                 GuideAndPerformActiveObjective();
             rightReserve = goW + 14f * s;
         }
 
-        // LINE 1: Prominent bold dark headline (e.g. "Monte o sorvete")
-        float textX = card.x + 68f * s;
-        float textW = cw - 72f * s - rightReserve;
+        // LINE 1: Short, immediate mission instruction (e.g. "Prepare o pedido")
+        float textX = card.x + 66f * s;
+        float textW = cw - 70f * s - rightReserve;
         GUIStyle headSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
         {
-            fontSize = Mathf.RoundToInt(17.5f * s),
+            fontSize = Mathf.RoundToInt(17f * s),
             fontStyle = FontStyle.Bold,
             alignment = TextAnchor.MiddleLeft,
             wordWrap = false
         };
-        headSt.normal.textColor = new Color(0.16f, 0.10f, 0.08f, 1f);
-        GUI.Label(new Rect(textX, card.y + 9f * s, textW, 26f * s), headline, headSt);
+        headSt.normal.textColor = new Color(0.20f, 0.09f, 0.13f, 1f);
+        GUI.Label(new Rect(textX, card.y + 8f * s, textW, 24f * s), headline, headSt);
 
-        // LINE 2: Clear dark subtitle directly below (e.g. "Limão + manjericão") + optional counter pill
+        // LINE 2: Concise next-action hint + progress counter pill (0/1 -> 1/1)
         GUIStyle subSt = new GUIStyle(GirlPowerOrla3DUITheme.BodyDarkStyle)
         {
-            fontSize = Mathf.RoundToInt(14.5f * s),
+            fontSize = Mathf.RoundToInt(13.5f * s),
             fontStyle = FontStyle.Normal,
             wordWrap = true,
             alignment = TextAnchor.UpperLeft
         };
-        subSt.normal.textColor = new Color(0.28f, 0.20f, 0.16f, 1f);
-        float subW = cw - 78f * s - (!string.IsNullOrEmpty(counterBadge) ? 56f * s : 0f);
-        GUI.Label(new Rect(textX, card.y + 37f * s, subW, 34f * s), subline, subSt);
+        subSt.normal.textColor = new Color(0.32f, 0.19f, 0.23f, 1f);
+        float subW = cw - 74f * s - (!string.IsNullOrEmpty(counterBadge) ? 54f * s : 0f);
+        GUI.Label(new Rect(textX, card.y + 34f * s, subW, 32f * s), subline, subSt);
 
         if (!string.IsNullOrEmpty(counterBadge))
         {
-            Rect cntRect = new Rect(card.xMax - 56f * s, card.y + 39f * s, 48f * s, 22f * s);
-            GUI.Box(cntRect, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
-            GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(13f * s) };
-            GirlPowerOrla3DUITheme.DrawOutlinedLabel(cntRect, counterBadge, badgeSt, Color.white, new Color(0.08f, 0.12f, 0.14f, 0.9f), 1.0f);
+            Rect cntRect = new Rect(card.xMax - 54f * s, card.y + 36f * s, 46f * s, 21f * s);
+            GUIStyle pillSt = counterBadge == "1/1" ? GirlPowerOrla3DUITheme.PillTealStyle : GirlPowerOrla3DUITheme.PillCoralStyle;
+            GUI.Box(cntRect, GUIContent.none, pillSt);
+            GUIStyle badgeSt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle) { fontSize = Mathf.RoundToInt(12.5f * s) };
+            GirlPowerOrla3DUITheme.DrawOutlinedLabel(cntRect, counterBadge, badgeSt, Color.white, new Color(0.16f, 0.06f, 0.10f, 0.9f), 1.0f);
         }
 
-        // Countdown timer bar ONLY during optional timed challenges (hidden on free first delivery!)
-        if (gameFlow != null && gameFlow.HasActiveTimer)
+        // VISUAL 3-STEP PROGRESS STRIP (Carrinho -> Sabores -> Luna) so anyone understands Chapter 1 at a glance!
+        if (showCh1Stepper)
+        {
+            float stepY = card.y + 68f * s;
+            float padX = 10f * s;
+            float arrowW = 14f * s;
+            float chipW = (cw - padX * 2f - arrowW * 2f) / 3f;
+            float chipH = 22f * s;
+
+            bool nearCartNow = cart != null && NearXZ(cart, interactionRadius);
+            int activeStep;
+            if (phase == StoryPhase.Ch1_AtCart)
+                activeStep = (cartOpen || nearCartNow) ? 1 : 0;
+            else if (phase == StoryPhase.Ch1_Delivering)
+                activeStep = 2;
+            else
+                activeStep = 3; // All 3 completed!
+
+            string[] labels =
+            {
+                GirlPowerOrla3DLocalization.T("Carrinho", "Cart", "Carrito"),
+                GirlPowerOrla3DLocalization.T("Sabores", "Flavors", "Sabores"),
+                GirlPowerOrla3DLocalization.T("Luna", "Luna", "Luna")
+            };
+
+            GUIStyle stepTxt = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle)
+            {
+                fontSize = Mathf.RoundToInt(11.5f * s),
+                alignment = TextAnchor.MiddleCenter
+            };
+            GUIStyle arrSt = new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle)
+            {
+                fontSize = Mathf.RoundToInt(12f * s),
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = new Color(0.56f, 0.34f, 0.42f, 0.9f) }
+            };
+
+            for (int i = 0; i < 3; i++)
+            {
+                float sx = card.x + padX + i * (chipW + arrowW);
+                Rect sr = new Rect(sx, stepY, chipW, chipH);
+                bool isDone = i < activeStep;
+                bool isCurr = i == activeStep;
+
+                if (isDone)
+                {
+                    GUI.Box(sr, GUIContent.none, GirlPowerOrla3DUITheme.PillTealStyle);
+                    stepTxt.normal.textColor = Color.white;
+                    GUI.Label(sr, "✓ " + labels[i], stepTxt);
+                }
+                else if (isCurr)
+                {
+                    GUI.Box(sr, GUIContent.none, GirlPowerOrla3DUITheme.PillCoralStyle);
+                    stepTxt.normal.textColor = Color.white;
+                    GUI.Label(sr, labels[i], stepTxt);
+                }
+                else
+                {
+                    GUI.Box(sr, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
+                    stepTxt.normal.textColor = new Color(0.36f, 0.24f, 0.28f, 0.85f);
+                    GUI.Label(sr, labels[i], stepTxt);
+                }
+
+                if (i < 2)
+                    GUI.Label(new Rect(sr.xMax, stepY, arrowW, chipH), "→", arrSt);
+            }
+        }
+
+        // Countdown timer bar
+        if (hasTimer)
         {
             float ratio = Mathf.Clamp01(gameFlow.ChapterTimeRemaining / Mathf.Max(1f, gameFlow.ChapterTimeMax));
             Color barCol = ratio > 0.45f
                 ? new Color(0.208f, 0.659f, 0.706f)
                 : (ratio > 0.22f ? new Color(0.95f, 0.76f, 0.34f) : new Color(0.925f, 0.353f, 0.557f));
-            Rect barRect = new Rect(card.x + 12f * s, card.yMax - 15f * s, cw - 74f * s, 9f * s);
+            Rect barRect = new Rect(card.x + 12f * s, card.yMax - 14f * s, cw - 74f * s, 8f * s);
             GirlPowerOrla3DUITheme.DrawProgressBar(barRect, ratio, barCol);
 
             GUIStyle tmSt = new GUIStyle(GirlPowerOrla3DUITheme.SmallMutedStyle)
             {
                 alignment = TextAnchor.MiddleRight,
-                fontSize = Mathf.RoundToInt(14f * s),
-                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.16f, 0.26f) : new Color(0.24f, 0.16f, 0.12f) }
+                fontSize = Mathf.RoundToInt(13.5f * s),
+                normal = { textColor = ratio <= 0.22f ? new Color(0.84f, 0.16f, 0.26f) : new Color(0.28f, 0.16f, 0.20f) }
             };
-            GUI.Label(new Rect(card.xMax - 60f * s, card.yMax - 21f * s, 50f * s, 20f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
+            GUI.Label(new Rect(card.xMax - 60f * s, card.yMax - 20f * s, 50f * s, 19f * s), GirlPowerOrla3DGameFlow.FormatSeconds(gameFlow.ChapterTimeRemaining), tmSt);
         }
 
         topLeftHudRect = new Rect(card.x - 6f, card.y - 6f, cw + 12f, ch + 12f);
@@ -2140,8 +2210,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
             case StoryPhase.Ch1_AtCart:
                 client = GirlPowerOrla3DUITheme.IconPortraitLuna;
                 item = GirlPowerOrla3DUITheme.IconIceCreamLemonBasil;
-                tag = GirlPowerOrla3DLocalization.T("Monte o pedido", "Make the order", "Prepara el pedido");
-                task = GirlPowerOrla3DLocalization.T("Sorvete de Limão + decore livre", "Lemon Ice Cream + free toppings", "Helado de Limón + extras");
+                tag = GirlPowerOrla3DLocalization.T("Prepare o pedido", "Prepare the order", "Prepara el pedido");
+                task = GirlPowerOrla3DLocalization.T("Limão no carrinho + adicionais livres", "Lemon at cart + free toppings", "Limón en carrito + extras");
                 counter = "0/1";
                 break;
             case StoryPhase.Ch1_Delivering:

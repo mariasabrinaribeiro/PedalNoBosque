@@ -195,15 +195,15 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 story.maxWorldZ = Mathf.Min(story.maxWorldZ, 7.85f);
             }
         }
-        // 3. Ensure anchored boats & buoys sit cleanly ON TOP of the water surface (y = -0.14f)
+        // 3. Ensure anchored boats & buoys sit cleanly SEATED IN the water surface (y = -0.22f, matching ocean y = -0.18f!)
         if (floatingBoats != null && boatBasePos != null)
         {
             for (int i = 0; i < floatingBoats.Length; i++)
             {
                 if (floatingBoats[i] == null) continue;
-                if (boatBasePos[i].y < -0.18f)
+                if (boatBasePos[i].y > -0.16f || boatBasePos[i].y < -0.28f)
                 {
-                    boatBasePos[i].y = -0.14f;
+                    boatBasePos[i].y = -0.22f;
                     floatingBoats[i].position = boatBasePos[i];
                 }
             }
@@ -213,9 +213,9 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
             for (int i = 0; i < floatingBuoys.Length; i++)
             {
                 if (floatingBuoys[i] == null) continue;
-                if (buoyBasePos[i].y < -0.18f)
+                if (buoyBasePos[i].y > -0.14f || buoyBasePos[i].y < -0.26f)
                 {
-                    buoyBasePos[i].y = -0.14f;
+                    buoyBasePos[i].y = -0.20f;
                     floatingBuoys[i].position = buoyBasePos[i];
                 }
             }
@@ -445,20 +445,20 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 SetArrayActive(fireflies, true);
                 break;
 
-            default: // FimDeTarde (Bright Golden Coastal Afternoon + Defined Azure Sky & Deep Turquoise Sea!)
+            default: // FimDeTarde (Rosy Golden-Hour Coastal Afternoon harmonizing with the Opening Pink Palette!)
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(1.0f, 0.88f, 0.72f);
-                    sunLight.intensity = 0.86f;
-                    sunLight.shadowStrength = 0.36f;
+                    sunLight.color = new Color(1.0f, 0.90f, 0.85f);
+                    sunLight.intensity = 0.88f;
+                    sunLight.shadowStrength = 0.34f;
                     sunLight.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.46f, 0.62f, 0.78f);
-                RenderSettings.ambientEquatorColor = new Color(0.68f, 0.60f, 0.52f);
-                RenderSettings.ambientGroundColor = new Color(0.36f, 0.30f, 0.30f);
-                RenderSettings.fogColor = new Color(0.48f, 0.74f, 0.88f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.36f, 0.68f, 0.88f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.93f, 1.09f, 0.08f, new Color(1.02f, 0.99f, 0.94f, 1f));
+                RenderSettings.ambientSkyColor = new Color(0.62f, 0.56f, 0.72f);
+                RenderSettings.ambientEquatorColor = new Color(0.76f, 0.62f, 0.64f);
+                RenderSettings.ambientGroundColor = new Color(0.36f, 0.26f, 0.30f);
+                RenderSettings.fogColor = new Color(0.72f, 0.74f, 0.88f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.46f, 0.68f, 0.88f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.94f, 1.10f, 0.08f, new Color(1.03f, 0.98f, 0.99f, 1f));
                 lanternScale = 0.85f;
                 SetArrayActive(butterflies, true);
                 SetArrayActive(fireflies, true);
@@ -468,33 +468,32 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
 
     private void AnimateBoatsAndBuoys(float t)
     {
+        // Sync strictly with UpdateTide's exact ocean lift (+0.06m) so boats & buoys ALWAYS sit IN the water (never floating above it!)
+        float tideY = tideBlend * 0.06f;
         if (floatingBoats != null && boatBasePos != null)
         {
-            float tideY = tideBlend * 0.24f;
-            float tideZ = -tideBlend * 1.4f;
             for (int i = 0; i < floatingBoats.Length; i++)
             {
                 Transform tr = floatingBoats[i];
                 if (tr == null) continue;
                 float phase = i * 1.85f;
-                float bob = Mathf.Sin(t * 1.55f + phase) * 0.11f;
-                float roll = Mathf.Sin(t * 1.25f + phase) * 4.5f;
-                float pitch = Mathf.Cos(t * 1.05f + phase * 1.3f) * 3.0f;
-                tr.position = boatBasePos[i] + new Vector3(Mathf.Sin(t * 0.45f + phase) * 0.22f, bob + tideY, tideZ);
+                float bob = Mathf.Sin(t * 1.45f + phase) * 0.045f;
+                float roll = Mathf.Sin(t * 1.20f + phase) * 3.4f;
+                float pitch = Mathf.Cos(t * 1.00f + phase * 1.3f) * 2.2f;
+                tr.position = boatBasePos[i] + new Vector3(Mathf.Sin(t * 0.42f + phase) * 0.14f, bob + tideY, 0f);
                 tr.localRotation = boatBaseRot[i] * Quaternion.Euler(pitch, 0f, roll);
             }
         }
 
         if (floatingBuoys != null && buoyBasePos != null)
         {
-            float tideY = tideBlend * 0.24f;
             for (int i = 0; i < floatingBuoys.Length; i++)
             {
                 Transform tr = floatingBuoys[i];
                 if (tr == null) continue;
-                float bob = Mathf.Sin(t * 2.1f + i * 1.4f) * 0.09f;
+                float bob = Mathf.Sin(t * 2.0f + i * 1.4f) * 0.040f;
                 tr.position = buoyBasePos[i] + new Vector3(0f, bob + tideY, 0f);
-                tr.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.8f + i) * 9f, 0f, Mathf.Cos(t * 1.6f + i) * 11f);
+                tr.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.7f + i) * 7f, 0f, Mathf.Cos(t * 1.5f + i) * 9f);
             }
         }
     }
@@ -732,9 +731,9 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
             else if (phase < 0.55f) { lateral = 0.9f; }
             else if (phase < 0.80f) { lateral = Mathf.SmoothStep(0.9f, -0.9f, (phase - 0.55f) / 0.25f); scuttling = true; }
             else { lateral = -0.9f; }
-            float hop = scuttling ? Mathf.Abs(Mathf.Sin(t * 14f + i)) * 0.032f : 0f;
-            float roll = scuttling ? Mathf.Sin(t * 16f + i) * 7f : 0f;
-            tr.position = crabBasePos[i] + new Vector3(lateral, hop, Mathf.Sin(t * 0.6f + i) * 0.12f);
+            float hop = scuttling ? Mathf.Abs(Mathf.Sin(t * 14f + i)) * 0.018f : 0f;
+            float roll = scuttling ? Mathf.Sin(t * 16f + i) * 6f : 0f;
+            tr.position = crabBasePos[i] + new Vector3(lateral, hop, Mathf.Sin(t * 0.6f + i) * 0.06f);
             tr.localRotation = Quaternion.Euler(0f, 0f, roll);
         }
     }

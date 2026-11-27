@@ -19,7 +19,7 @@ public sealed class GirlPowerOrla3DContactShadows : MonoBehaviour
 
     public ShadowEntry[] entries;
     public Material serializedBlobMat;
-    public Color shadowColor = new Color(0.14f, 0.10f, 0.24f, 0.42f);
+    public Color shadowColor = new Color(0.22f, 0.10f, 0.22f, 0.52f);
 
     private sealed class ShadowInstance
     {

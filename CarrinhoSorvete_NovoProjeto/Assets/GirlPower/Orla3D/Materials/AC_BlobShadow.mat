@@ -28,5 +28,5 @@ Material:
     - _CurveStrength: 0.0008
     - _Softness: 0.65
     m_Colors:
-    - _Color: {r: 0.14, g: 0.1, b: 0.24, a: 0.42}
+    - _Color: {r: 0.22, g: 0.1, b: 0.22, a: 0.52}
   m_BuildTextureStacks: []
