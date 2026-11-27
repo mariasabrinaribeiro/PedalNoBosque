@@ -629,7 +629,11 @@ def build_cute_pets(col):
 # =========================================================================
 # 2. BEAUTIFIED ENVIRONMENT BASE (Vibrant Zoning + Open Shoreline + Zero Void)
 # =========================================================================
-def build_subdivided_strip(name, x0, x1, y0, y1, z_top, thickness, segs_x, segs_y, mat, col):
+def build_subdivided_strip(name, x0, x1, z0_unity, z1_unity, y_unity_top, thickness, segs_x, segs_y, mat, col):
+    """Maps Unity (X, Y_up, Z_north) cleanly to Blender FBX export (axis_forward='-Z', axis_up='Y' => y_bl = -z_unity!)."""
+    # Convert Unity Z range [z0_unity, z1_unity] -> Blender Y range [-z1_unity, -z0_unity]
+    y0, y1 = -z1_unity, -z0_unity
+    z_top = y_unity_top
     bm = bmesh.new()
     top_grid = []
     for ix in range(segs_x + 1):
@@ -651,17 +655,16 @@ def build_subdivided_strip(name, x0, x1, y0, y1, z_top, thickness, segs_x, segs_
     return new_mesh_obj(name, bm, mat, col, smooth=False)
 
 
-def build_framed_patch(name, x0, x1, y0, y1, z_top, mat, border_mat, col, border_w=0.22):
-    """Creates a clean framed tropical lawn or cobble patio pad slightly proud of the plaza (zero Z-fighting!)."""
+def build_framed_patch(name, x0, x1, z0_unity, z1_unity, y_unity_top, mat, border_mat, col, border_w=0.22):
+    """Creates a clean framed tropical lawn or cobble patio pad in Unity (X, Z) coordinates!"""
     out = []
     sx = max(4, int((x1 - x0) / 2.2))
-    sy = max(4, int((y1 - y0) / 2.2))
-    out.append(build_subdivided_strip(name + "_Fill", x0 + border_w, x1 - border_w, y0 + border_w, y1 - border_w, z_top, 0.05, sx, sy, mat, col))
-    # Subtle low stone edging around the patch
-    out.append(build_subdivided_strip(name + "_N", x0, x1, y1 - border_w, y1, z_top + 0.010, 0.06, sx, 1, border_mat, col))
-    out.append(build_subdivided_strip(name + "_S", x0, x1, y0, y0 + border_w, z_top + 0.010, 0.06, sx, 1, border_mat, col))
-    out.append(build_subdivided_strip(name + "_W", x0, x0 + border_w, y0 + border_w, y1 - border_w, z_top + 0.010, 0.06, 1, sy, border_mat, col))
-    out.append(build_subdivided_strip(name + "_E", x1 - border_w, x1, y0 + border_w, y1 - border_w, z_top + 0.010, 0.06, 1, sy, border_mat, col))
+    sy = max(4, int((z1_unity - z0_unity) / 2.2))
+    out.append(build_subdivided_strip(name + "_Fill", x0 + border_w, x1 - border_w, z0_unity + border_w, z1_unity - border_w, y_unity_top, 0.05, sx, sy, mat, col))
+    out.append(build_subdivided_strip(name + "_N", x0, x1, z1_unity - border_w, z1_unity, y_unity_top + 0.010, 0.06, sx, 1, border_mat, col))
+    out.append(build_subdivided_strip(name + "_S", x0, x1, z0_unity, z0_unity + border_w, y_unity_top + 0.010, 0.06, sx, 1, border_mat, col))
+    out.append(build_subdivided_strip(name + "_W", x0, x0 + border_w, z0_unity + border_w, z1_unity - border_w, y_unity_top + 0.010, 0.06, 1, sy, border_mat, col))
+    out.append(build_subdivided_strip(name + "_E", x1 - border_w, x1, z0_unity + border_w, z1_unity - border_w, y_unity_top + 0.010, 0.06, 1, sy, border_mat, col))
     return out
 
 
@@ -670,8 +673,14 @@ def build_beautified_environment(col):
     x0, x1 = -120.0, 144.0
     segs_x = 96
 
-    # 1. Crisp Light-Stone Promenade (z = -3.75 .. +3.50, y = 0.00)
+    # KEEP FIRST 5 MATERIAL SLOTS IDENTICAL TO LEGACY (AC_StoneWhite, AC_StoneWarm, AC_Sand, AC_Starfish, AC_Shell)
+    # so Unity PrefabInstance material overrides never scramble slot colors!
+
+    # 1. Crisp Light-Stone Promenade (Unity Z = -3.75 .. +3.50, Y = 0.00) -> Slot 0: AC_StoneWhite
     parts.append(build_subdivided_strip("Surf_Calcadao", x0, x1, -3.75, 3.50, 0.0, 0.22, segs_x, 4, MATS["AC_StoneWhite"], col))
+
+    # 2. Warm Plaza Base (Unity Z = -24.2 .. -3.75, Y = -0.03) -> Slot 1: AC_StoneWarm
+    parts.append(build_subdivided_strip("Surf_PracaContinua", x0, x1, -24.2, -3.75, -0.03, 0.22, segs_x, 8, MATS["AC_StoneWarm"], col))
 
     # Subtle south promenade border lip with wide open passages
     for bname, bx0, bx1 in [
@@ -681,29 +690,7 @@ def build_beautified_environment(col):
     ]:
         parts.append(build_subdivided_strip(bname, bx0, bx1, -3.86, -3.72, 0.012, 0.07, max(4, int((bx1 - bx0) / 3.0)), 1, MATS["AC_StoneWarm"], col))
 
-    # 2. Warm Plaza Base (z = -24.2 .. -3.75, y = -0.03)
-    parts.append(build_subdivided_strip("Surf_PracaContinua", x0, x1, -24.2, -3.75, -0.03, 0.22, segs_x, 8, MATS["AC_StoneWarm"], col))
-
-    # 3. SOUTH COASTAL VILLAGE BACKDROP (z = -88.0 .. -24.2) -> ZERO blue sky void behind houses ever!
-    parts.append(build_subdivided_strip("Surf_RuaVilaSul", x0, x1, -33.5, -24.2, -0.04, 0.22, segs_x, 4, MATS["AC_CobbleA"], col))
-    parts.append(build_subdivided_strip("Surf_GramadoSul", x0, x1, -88.0, -33.5, -0.05, 0.22, segs_x, 12, MATS["AC_Grass"], col))
-
-    # 4. VIBRANT GREEN PARK LAWNS & COBBLE COURTYARDS (breaking the monochrome beige!)
-    # Horta & Pomar lush green garden lawn
-    parts.extend(build_framed_patch("Lawn_Horta", -11.2, 1.0, -23.0, -12.8, -0.008, MATS["AC_Grass"], MATS["AC_StoneWhite"], col))
-    # Pavilion lush park lawn (east)
-    parts.extend(build_framed_patch("Lawn_Pavilhao", 27.6, 37.8, -18.6, -7.8, -0.008, MATS["AC_Grass"], MATS["AC_StoneWhite"], col))
-    # West coastal park lawn pocket behind rest area
-    parts.extend(build_framed_patch("Lawn_Oeste", -18.2, -12.2, -11.2, -4.4, -0.008, MATS["AC_GrassLight"], MATS["AC_StoneWhite"], col))
-    # Café das Fadas warm cobblestone patio
-    parts.extend(build_framed_patch("Patio_Cafe", 2.8, 10.2, -17.6, -5.6, -0.012, MATS["AC_CobbleA"], MATS["AC_StoneWhite"], col))
-    # Feira Central warm cobblestone fairground courtyard
-    parts.extend(build_framed_patch("Patio_Feira", 10.8, 27.0, -16.6, -10.8, -0.012, MATS["AC_CobbleA"], MATS["AC_StoneWhite"], col))
-    # Lush coastal park lawns flanking far West & far East edges (replacing endless empty beige!)
-    parts.append(build_subdivided_strip("ParkFlank_West", x0, -18.6, -24.2, 3.35, -0.006, 0.16, 20, 8, MATS["AC_Grass"], col))
-    parts.append(build_subdivided_strip("ParkFlank_East", 38.4, x1, -24.2, 3.35, -0.006, 0.16, 20, 8, MATS["AC_Grass"], col))
-
-    # 5. Low coastal mureta segments flanking the 3 wide beach accesses
+    # Low coastal mureta segments flanking the 3 wide beach accesses (Unity Z = +3.40 .. +3.68)
     for mname, mx0, mx1 in [
         ("Mureta_FarWest", -116.0, -7.2),
         ("Mureta_MidWest",   -3.3,  5.3),
@@ -714,33 +701,54 @@ def build_beautified_environment(col):
         parts.append(build_subdivided_strip(mname, mx0, mx1, 3.40, 3.68, 0.13, 0.19, ms, 1, MATS["AC_StoneWhite"], col))
         parts.append(build_subdivided_strip(mname + "_Cap", mx0 - 0.02, mx1 + 0.02, 3.37, 3.71, 0.16, 0.04, ms, 1, MATS["AC_StoneWarm"], col))
 
-    # 6. WARM GOLDEN SAND BEACH sloping cleanly & steeply BELOW the ocean plane (y=-0.18) right at z ~ 8.15m!
-    # Ends cleanly at z = 14.0 (at y = -1.85m) so ZERO sand geometry ever hides or clips the turquoise ocean!
+    # 3. WARM GOLDEN SAND BEACH (Unity Z = +3.35 .. +13.8 -> Blender Y = -3.35 .. -13.8!) -> Slot 2: AC_Sand
+    # Slopes steeply BELOW the ocean plane (Y_unity = -0.18) right at Z_unity = +8.15m so turquoise water shines clearly behind the beach!
     bm = bmesh.new()
     grid = []
     for ix in range(segs_x + 1):
         u = ix / segs_x
         x = x0 + (x1 - x0) * u
         coast_curve = math.sin(x * 0.045) * 0.65 + math.cos(x * 0.022) * 0.30
-        ys = [
+        zs_unity = [
             3.35,
             5.60 + coast_curve * 0.30,
             7.85 + coast_curve * 0.72,
             8.75 + coast_curve * 0.80,
             10.80 + coast_curve * 0.85,
-            14.20,
+            13.80,
         ]
-        zs = [-0.03, -0.10, -0.18, -0.48, -1.15, -1.85]
-        grid.append([bm.verts.new((x, ys[r], zs[r])) for r in range(len(ys))])
+        ys_up = [-0.03, -0.10, -0.18, -0.52, -1.25, -1.95]
+        # Note: y_blender = -z_unity!
+        grid.append([bm.verts.new((x, -zs_unity[r], ys_up[r])) for r in range(len(zs_unity))])
     for ix in range(segs_x):
         for r in range(len(grid[0]) - 1):
-            bm.faces.new((grid[ix][r], grid[ix + 1][r], grid[ix + 1][r + 1], grid[ix][r + 1]))
+            # Winding oriented upward (+Z_blender = +Y_unity) because y_blender decreases as r increases!
+            bm.faces.new((grid[ix][r], grid[ix][r + 1], grid[ix + 1][r + 1], grid[ix + 1][r]))
     parts.append(new_mesh_obj("Surf_AreiaCreme", bm, MATS["AC_Sand"], col, smooth=True))
 
-    # Subtle coastal shells & starfish on dry sand
-    for idx, (sx, sy) in enumerate([(-3.6, 5.4), (4.2, 6.0), (13.4, 5.8), (20.8, 6.2)]):
-        parts.append(add_sphere(f"Starfish_{idx}", 0.14, MATS["AC_Starfish"], col, loc=(sx, sy, -0.08), scale=(1.1, 1.1, 0.24), u=10, v=6))
-        parts.append(add_sphere(f"Shell_{idx}", 0.10, MATS["AC_Shell"], col, loc=(sx + 0.55, sy + 0.32, -0.09), scale=(1.2, 0.9, 0.42), u=8, v=6))
+    # Subtle coastal shells & starfish on dry NORTH beach sand (Unity Z = +5.4..+6.2 -> Blender Y = -5.4..-6.2) -> Slots 3 & 4
+    for idx, (sx, sz_u) in enumerate([(-3.6, 5.4), (10.2, 6.0), (16.4, 5.8), (22.8, 6.2)]):
+        parts.append(add_sphere(f"Starfish_{idx}", 0.14, MATS["AC_Starfish"], col, loc=(sx, -sz_u, -0.08), scale=(1.1, 1.1, 0.24), u=10, v=6))
+        parts.append(add_sphere(f"Shell_{idx}", 0.10, MATS["AC_Shell"], col, loc=(sx + 0.55, -(sz_u + 0.32), -0.09), scale=(1.2, 0.9, 0.42), u=8, v=6))
+
+    # 4. SOUTH COASTAL VILLAGE BACKDROP (Unity Z = -88.0 .. -24.2 -> Blender Y = +24.2 .. +88.0) -> ZERO blue sky void behind houses!
+    parts.append(build_subdivided_strip("Surf_RuaVilaSul", x0, x1, -33.5, -24.2, -0.04, 0.22, segs_x, 4, MATS["AC_CobbleA"], col))
+    parts.append(build_subdivided_strip("Surf_GramadoSul", x0, x1, -88.0, -33.5, -0.05, 0.22, segs_x, 12, MATS["AC_Grass"], col))
+
+    # 5. VIBRANT GREEN PARK LAWNS & COBBLE COURTYARDS (Unity Z coordinates — all on SOUTH plaza side!)
+    # Horta & Pomar lush green garden lawn (Unity Z = -23.0 .. -12.8)
+    parts.extend(build_framed_patch("Lawn_Horta", -11.2, 1.0, -23.0, -12.8, -0.008, MATS["AC_Grass"], MATS["AC_StoneWhite"], col))
+    # Pavilion lush park lawn (Unity Z = -18.6 .. -7.8)
+    parts.extend(build_framed_patch("Lawn_Pavilhao", 27.6, 37.8, -18.6, -7.8, -0.008, MATS["AC_Grass"], MATS["AC_StoneWhite"], col))
+    # West coastal park lawn pocket behind rest area (Unity Z = -11.2 .. -4.4)
+    parts.extend(build_framed_patch("Lawn_Oeste", -18.2, -12.2, -11.2, -4.4, -0.008, MATS["AC_GrassLight"], MATS["AC_StoneWhite"], col))
+    # Café das Fadas warm cobblestone patio (Unity Z = -17.6 .. -5.6)
+    parts.extend(build_framed_patch("Patio_Cafe", 2.8, 10.2, -17.6, -5.6, -0.012, MATS["AC_CobbleA"], MATS["AC_StoneWhite"], col))
+    # Feira Central warm cobblestone fairground courtyard (Unity Z = -16.6 .. -10.8)
+    parts.extend(build_framed_patch("Patio_Feira", 10.8, 27.0, -16.6, -10.8, -0.012, MATS["AC_CobbleA"], MATS["AC_StoneWhite"], col))
+    # Lush coastal park lawns flanking far West & far East edges (Unity Z = -24.2 .. +3.35)
+    parts.append(build_subdivided_strip("ParkFlank_West", x0, -18.6, -24.2, 3.35, -0.006, 0.16, 20, 8, MATS["AC_Grass"], col))
+    parts.append(build_subdivided_strip("ParkFlank_East", 38.4, x1, -24.2, 3.35, -0.006, 0.16, 20, 8, MATS["AC_Grass"], col))
 
     env_obj = join_with_pivot(parts, "OrlaEnvironmentBase", (0.0, 0.0, 0.0), col)
     export_fbx([env_obj], "OrlaEnvironmentBase")

@@ -138,16 +138,16 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
     private void InitWaypointWalkers()
     {
         if (strollingNpcs == null) return;
-        // All villager stops sit strictly at the SIDES of the 5m promenade & beside lateral plaza counters
-        // (never parking in the middle of the main Cart -> Florist corridor!)
+        // All villager routes stay cleanly along the SIDES (north promenade rail, east fair, beach sand) —
+        // NEVER lingering in front of the Ice Cream Cart (x=-3..+4.5, z=-5..-1) or blocking the protagonist's corridor!
         Vector3[][] routes =
         {
-            new[] { new Vector3(-8.5f, 0f, -2.5f), new Vector3(-2.5f, 0f, -2.6f), new Vector3(4.2f, 0f, -2.5f), new Vector3(-4.5f, 0f, -5.2f) },
-            new[] { new Vector3(10.5f, 0f, -2.5f), new Vector3(16.5f, 0f, -2.5f), new Vector3(21.5f, 0f, -2.6f), new Vector3(13.5f, 0f, -5.4f) },
-            new[] { new Vector3(-12.5f, 0f, 1.8f), new Vector3(-5.5f, 0f, 2.0f), new Vector3(2.0f, 0f, 1.9f), new Vector3(-6.5f, 0f, 5.2f) },
-            new[] { new Vector3(-3.5f, 0f, 5.2f), new Vector3(2.0f, 0f, 5.4f), new Vector3(7.5f, 0f, 5.2f), new Vector3(0.5f, 0f, 2.0f) },
-            new[] { new Vector3(7.5f, 0f, 1.8f), new Vector3(14.0f, 0f, 2.0f), new Vector3(20.0f, 0f, 1.9f), new Vector3(15.5f, 0f, 5.4f) },
-            new[] { new Vector3(27.0f, 0f, 1.8f), new Vector3(29.0f, 0f, 5.2f), new Vector3(32.0f, 0f, 5.0f), new Vector3(28.5f, 0f, -2.4f) }
+            new[] { new Vector3(-13.5f, 0f, 1.8f), new Vector3(-8.5f, 0f, 2.0f), new Vector3(-10.5f, 0f, -5.2f), new Vector3(-14.2f, 0f, -2.0f) },
+            new[] { new Vector3(11.8f, 0f, 1.8f), new Vector3(17.5f, 0f, 2.0f), new Vector3(22.2f, 0f, -1.8f), new Vector3(15.2f, 0f, -5.8f) },
+            new[] { new Vector3(-13.2f, 0f, 5.2f), new Vector3(-8.2f, 0f, 5.4f), new Vector3(-5.8f, 0f, 1.9f), new Vector3(-11.8f, 0f, 2.0f) },
+            new[] { new Vector3(8.5f, 0f, 5.4f), new Vector3(14.2f, 0f, 5.6f), new Vector3(19.0f, 0f, 5.2f), new Vector3(12.8f, 0f, 2.0f) },
+            new[] { new Vector3(15.5f, 0f, -11.4f), new Vector3(20.5f, 0f, -11.2f), new Vector3(24.5f, 0f, -8.5f), new Vector3(17.5f, 0f, -8.2f) },
+            new[] { new Vector3(27.0f, 0f, 1.8f), new Vector3(29.5f, 0f, 5.2f), new Vector3(32.5f, 0f, 5.0f), new Vector3(28.5f, 0f, -2.4f) }
         };
 
         for (int i = 0; i < strollingNpcs.Length; i++)
@@ -425,12 +425,16 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
     private static void AnimateWalkerGait(WaypointWalker w, float speed, float time, float dt, bool greeting)
     {
         float stride = speed > 0.08f ? Mathf.Sin(w.gaitPhase) : 0f;
-        float swing = greeting ? Mathf.Sin(time * 3.4f + w.gaitPhase) : stride;
-        if (w.legL != null) w.legL.localRotation = Quaternion.Slerp(w.legL.localRotation, w.legLBase * Quaternion.Euler(swing * 22f, 0f, 0f), dt * 12f);
-        if (w.legR != null) w.legR.localRotation = Quaternion.Slerp(w.legR.localRotation, w.legRBase * Quaternion.Euler(-swing * 22f, 0f, 0f), dt * 12f);
-        if (w.armL != null) w.armL.localRotation = Quaternion.Slerp(w.armL.localRotation, w.armLBase * Quaternion.Euler(-swing * 13f, 0f, 0f), dt * 10f);
-        if (w.armR != null) w.armR.localRotation = Quaternion.Slerp(w.armR.localRotation, w.armRBase * Quaternion.Euler(swing * 13f, 0f, 0f), dt * 10f);
-        float bob = speed > 0.08f ? Mathf.Abs(stride) * 0.025f : Mathf.Sin(time * 2.2f + w.gaitPhase) * 0.012f;
+        float swing = greeting ? Mathf.Sin(time * 4.2f + w.gaitPhase) : stride;
+        if (w.legL != null) w.legL.localRotation = Quaternion.Slerp(w.legL.localRotation, w.legLBase * Quaternion.Euler(stride * 24f, 0f, 0f), dt * 12f);
+        if (w.legR != null) w.legR.localRotation = Quaternion.Slerp(w.legR.localRotation, w.legRBase * Quaternion.Euler(-stride * 24f, 0f, 0f), dt * 12f);
+        // Natural outward shoulder roll (+10/-10) prevents arms from ever clipping into dresses or torsos!
+        float armLAng = greeting ? -18f : (-stride * 15f);
+        float armRAng = greeting ? (-115f + swing * 22f) : (stride * 15f);
+        if (w.armL != null) w.armL.localRotation = Quaternion.Slerp(w.armL.localRotation, w.armLBase * Quaternion.Euler(armLAng, 0f, 10f), dt * 10f);
+        if (w.armR != null) w.armR.localRotation = Quaternion.Slerp(w.armR.localRotation, w.armRBase * Quaternion.Euler(armRAng, 0f, greeting ? -18f : -10f), dt * 10f);
+        // Strictly non-negative bounce so NPC shoes stay planted firmly on the ground!
+        float bob = speed > 0.08f ? Mathf.Abs(stride) * 0.022f : 0f;
         w.tr.position = new Vector3(w.tr.position.x, w.baseY + bob, w.tr.position.z);
     }
 

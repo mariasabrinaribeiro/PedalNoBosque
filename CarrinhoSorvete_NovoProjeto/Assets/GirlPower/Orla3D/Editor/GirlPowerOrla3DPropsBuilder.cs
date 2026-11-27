@@ -307,8 +307,9 @@ public static class GirlPowerOrla3DPropsBuilder
 
         var specs = new (Vector3 pos, float rotY, Material trim, Material sailMat, bool hasSail)[]
         {
-            (new Vector3(-8.0f, -0.14f, 14.8f), 28f, trimA, sail, false),
-            (new Vector3(25.6f, -0.14f, 14.4f), -32f, trimC, sail, false)
+            // Anchored well out in the turquoise sea — 100% clear of the Fishing Pier (x=31.2) and dry sand!
+            (new Vector3(-10.5f, -0.12f, 15.2f), 28f, trimA, sail, false),
+            (new Vector3(23.2f, -0.12f, 15.6f), -32f, trimC, sail, false)
         };
 
         for (int i = 0; i < specs.Length; i++)
@@ -353,9 +354,10 @@ public static class GirlPowerOrla3DPropsBuilder
 
         Vector3[] positions =
         {
-            new Vector3(-1.5f, -0.24f, 13.0f),
-            new Vector3(12.2f, -0.24f, 13.5f),
-            new Vector3(20.0f, -0.24f, 13.2f)
+            // Floating cleanly in the open turquoise sea well beyond the dry sand shoreline (z = 8.15m)!
+            new Vector3(-2.5f, -0.14f, 12.6f),
+            new Vector3(11.5f, -0.14f, 13.4f),
+            new Vector3(21.0f, -0.14f, 12.8f)
         };
 
         for (int i = 0; i < positions.Length; i++)
@@ -537,14 +539,13 @@ public static class GirlPowerOrla3DPropsBuilder
         Material coral = GetMat(mats, "AC_Coral");
         Material blue = GetMat(mats, "AC_SkyBlue");
 
-        // Open-sand relaxation zone (west & center beach) with low towels spaced in 2 calm clusters
-        // clearly contrasting with the Tower + Pier landmark cluster on the east end!
+        // Open-sand relaxation zones cleanly OUTSIDE the Beach Tennis court (x=-1..+7.5) & well back from the sea!
         var towels = new (Vector3 pos, float rotY, Material baseMat, Material stripeMat)[]
         {
-            (new Vector3(-7.6f, -0.14f, 6.45f),  14f, pink,   cream),
-            (new Vector3(-5.6f, -0.15f, 6.95f), -12f, yellow, cream),
-            (new Vector3( 6.8f, -0.14f, 6.55f),  10f, mint,   cream),
-            (new Vector3( 8.9f, -0.15f, 7.05f),  -9f, blue,   cream)
+            (new Vector3(-11.2f, -0.095f, 5.75f),  12f, pink,   cream),
+            (new Vector3( -9.2f, -0.100f, 6.05f), -10f, yellow, cream),
+            (new Vector3( 12.4f, -0.095f, 5.75f),  10f, mint,   cream),
+            (new Vector3( 14.6f, -0.100f, 6.05f),  -9f, blue,   cream)
         };
 
         for (int i = 0; i < towels.Length; i++)

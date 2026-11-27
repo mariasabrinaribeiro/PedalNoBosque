@@ -284,7 +284,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
 
         switch (chapterNumber)
         {
-            case 1: ChapterTimeMax = 0f; break; // Primeira entrega padrão livre do relógio (Montar -> Luna -> Voltar ao carrinho)
+            case 1: ChapterTimeMax = chapter1TimeLimit; break; // 2:30 para montar, decorar e entregar com calma (Modo Livre desativa o relógio!)
             case 2: ChapterTimeMax = chapter2TimeLimit; break;
             case 3: ChapterTimeMax = chapter3TimeLimit; break;
             default: ChapterTimeMax = 0f; break; // Chapter 4 Finale is free cozy celebration

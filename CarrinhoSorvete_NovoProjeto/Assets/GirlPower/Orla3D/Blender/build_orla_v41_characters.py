@@ -215,10 +215,12 @@ def join_with_pivot(parts, name, pivot_world, col):
 
 def ground_parts_exact_zero(all_objs):
     """Guarantees the lowest vertex across the character's shoes rests strictly at Z = 0.000."""
+    bpy.context.view_layer.update()
     min_z = min((o.matrix_world @ v.co).z for o in all_objs for v in o.data.vertices)
     if abs(min_z) > 0.0005:
         for o in all_objs:
             o.location.z -= min_z
+        bpy.context.view_layer.update()
 
 
 def export_fbx(objs, name):
