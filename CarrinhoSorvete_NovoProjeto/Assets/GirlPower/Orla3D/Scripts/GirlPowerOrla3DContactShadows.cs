@@ -112,14 +112,9 @@ public sealed class GirlPowerOrla3DContactShadows : MonoBehaviour
         float heightAbove = Mathf.Max(0f, p.y - groundY);
         float shrink = Mathf.Clamp(1f - heightAbove * 0.25f, 0.52f, 1.05f);
 
-        // Subtle underwater shadow when in the sea so swimming character reads submerged in water!
-        bool inWater = p.z >= 8.35f;
-        float shadowY = inWater ? -0.38f + inst.yOffset : groundY + 0.032f + inst.yOffset;
-        float scaleX = inWater ? 0.92f : 1f;
-        float scaleZ = inWater ? 1.05f : 1f;
-
+        float shadowY = groundY + 0.032f + inst.yOffset;
         inst.quad.position = new Vector3(p.x, shadowY, p.z);
-        inst.quad.localScale = new Vector3(inst.baseSize.x * shrink * scaleX, 1f, inst.baseSize.y * shrink * scaleZ);
+        inst.quad.localScale = new Vector3(inst.baseSize.x * shrink, 1f, inst.baseSize.y * shrink);
     }
 
     private static float SampleGroundY(float x, float z)

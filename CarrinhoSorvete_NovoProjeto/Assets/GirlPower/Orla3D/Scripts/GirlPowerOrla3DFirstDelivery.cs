@@ -79,11 +79,11 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
     public float minZoom = 0.72f;
     public float maxZoom = 1.65f;
 
-    [Header("World Exploration Bounds (Wide Promenade, Enterable Cafe & Open Beach!)")]
+    [Header("World Exploration Bounds (Wide Promenade, Enterable Cafe & Sunny Dry Beach)")]
     public float minWorldX = -17.5f;
     public float maxWorldX = 36.8f;
-    public float minWorldZ = -10.8f;
-    public float maxWorldZ = 21.5f;
+    public float minWorldZ = -22.2f;
+    public float maxWorldZ = 7.85f;
 
     private Vector2 currentMoveVel;
     private float actualPlanarSpeed;
@@ -333,22 +333,8 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
 
     public bool IsPointInWaterZone(Vector3 worldPos)
     {
-        if (waterSurfZone != null && waterSurfZone.enabled && waterSurfZone.gameObject.activeInHierarchy)
-        {
-            Vector3 local = waterSurfZone.transform.InverseTransformPoint(new Vector3(worldPos.x, waterSurfZone.transform.position.y + waterSurfZone.center.y, worldPos.z));
-            Vector3 half = waterSurfZone.size * 0.5f;
-            Vector3 c = waterSurfZone.center;
-            return Mathf.Abs(local.x - c.x) <= half.x && Mathf.Abs(local.z - c.z) <= half.z;
-        }
-        // Safe fallback aligned strictly to the visible ocean mesh front shoreline!
-        if (ambientController != null && ambientController.oceanSurface != null)
-        {
-            MeshFilter mf = ambientController.oceanSurface.GetComponent<MeshFilter>();
-            float halfDepth = (mf != null && mf.sharedMesh != null) ? mf.sharedMesh.bounds.extents.z : 38f;
-            float shoreZ = ambientController.oceanSurface.position.z - halfDepth + 0.45f;
-            return worldPos.z >= shoreZ;
-        }
-        return worldPos.z >= 8.65f;
+        // Surf & swimming intentionally removed: ocean is strictly scenic beyond the dry shoreline!
+        return false;
     }
 
     public void GuideAndPerformActiveObjective()
@@ -601,8 +587,7 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
                 }
                 if (keys.vKey.wasPressedThisFrame && characterAnimator != null)
                 {
-                    if (characterAnimator.IsInWater) characterAnimator.CycleWaterMode();
-                    else characterAnimator.CycleLandMode();
+                    characterAnimator.CycleLandMode();
                     if (audioController != null) audioController.PlayChime();
                     GirlPowerOrla3DUITheme.SpawnFloatingFeedback(player.position, "Modo: " + characterAnimator.GetActiveMobilityName(), new Color(0.64f, 0.96f, 0.90f), 1.2f);
                 }
@@ -954,22 +939,18 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
         bool isWheeled = characterAnimator != null && characterAnimator.CurrentLandMode != GirlPowerOrla3DCharacterAnimator.LandMode.Walk;
-        bool isSurfingNow = IsPointInWaterZone(player.position);
 
         if (characterAnimator != null)
-        {
-            characterAnimator.WaterSurfaceY = GetWaterSurfaceY();
-            characterAnimator.SetSurfing(isSurfingNow);
-        }
+            characterAnimator.SetSurfing(false);
 
         float mobMult = characterAnimator != null ? characterAnimator.GetMobilitySpeedMultiplier() : 1f;
         float upgMult = megaSystems != null ? megaSystems.GetSpeedUpgradeMultiplier() : 1f;
 
         // Terrain physics: Scooter/Skate/Patins are faster on paved promenade/street & drag realistically on soft beach sand!
-        bool onSoftSand = player.position.z >= 3.95f && !isSurfingNow;
+        bool onSoftSand = player.position.z >= 3.95f;
         float terrainMult = (onSoftSand && isWheeled) ? 0.54f : 1.0f;
 
-        float maxSpeed = (isSurfingNow ? surfSpeed : (running ? runSpeed : walkSpeed)) * mobMult * upgMult * terrainMult;
+        float maxSpeed = (running ? runSpeed : walkSpeed) * mobMult * upgMult * terrainMult;
         Vector2 desiredVel = input * maxSpeed;
 
         // Smooth acceleration & natural deceleration (no rigid snapping!)
@@ -979,12 +960,6 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         if (currentMoveVel.sqrMagnitude < 0.0005f)
         {
             actualPlanarSpeed = 0f;
-            if (isSurfingNow)
-            {
-                Vector3 p = player.position;
-                p.y = SampleGroundHeight(p.x, p.z);
-                player.position = p;
-            }
             return;
         }
 
@@ -994,24 +969,14 @@ public sealed class GirlPowerOrla3DFirstDelivery : MonoBehaviour
         Vector3 next = TryMoveAxis(current, new Vector3(move.x, 0f, 0f));
         next = TryMoveAxis(next, new Vector3(0f, 0f, move.z));
 
-        // Keep player safely inside scenic bounds; wheeled vehicles smoothly switch off at the explicit water shoreline!
+        // Keep player strictly on dry land (promenade, plaza, garden & sandy beach — never entering the ocean!)
         next.x = Mathf.Clamp(next.x, minWorldX, maxWorldX);
-        next.z = Mathf.Clamp(next.z, minWorldZ, maxWorldZ);
-        bool nextInWater = IsPointInWaterZone(next);
-        if (isWheeled && nextInWater)
-        {
-            // Auto-dismount scooter/skate cleanly at the visible shoreline when entering the ocean!
-            characterAnimator.SetLandMode(GirlPowerOrla3DCharacterAnimator.LandMode.Walk);
-            GirlPowerOrla3DUITheme.SpawnFloatingFeedback(next, "Entrando no mar! [Nadar / Surf / Canoa]", new Color(0.58f, 0.94f, 1f), 1.4f);
-        }
+        next.z = Mathf.Clamp(next.z, minWorldZ, Mathf.Min(maxWorldZ, 7.85f));
 
         next.y = SampleGroundHeight(next.x, next.z);
         player.position = next;
         Vector3 realDisp = new Vector3(next.x - current.x, 0f, next.z - current.z);
         actualPlanarSpeed = realDisp.magnitude / dt;
-
-        if (characterAnimator != null)
-            characterAnimator.SetSurfing(nextInWater);
 
         // Rotate visual strictly by REAL post-collision displacement + deadzone tolerance:
         // preserves lastValidFacingYaw whenever stopped or pressed against a wall (zero flipping / zero wall jitter!).

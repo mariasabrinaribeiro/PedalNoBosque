@@ -118,29 +118,64 @@ public static class GirlPowerOrla3DPropsBuilder
             AddSolidCarveBox(arb, Vector3.zero, Vector3.one, obstacles);
         }
 
-        // West & East map edge natural boulder/hedge borders (solid + NavMeshObstacle carve!)
+        // West & East map edge organic coastal shrub & boulder clusters (varied sizes, offsets & blossoms — NOT identical ball rows!)
+        Material bushLight = GetMat(mats, "AC_BushLight");
+        Material flowerPink = GetMat(mats, "AC_FlowerPink");
+        Material flowerYellow = GetMat(mats, "AC_FlowerYellow");
+        int edgeIdx = 0;
         foreach (float edgeX in new[] { -18.8f, 38.2f })
         {
-            for (float z = -22.0f; z <= 9.5f; z += 2.8f)
+            for (float z = -22.0f; z <= 8.2f; z += 3.2f)
             {
-                bool onBeach = z > 3.8f;
-                GameObject edgeProp = MakePrim(grp.transform, PrimitiveType.Sphere, "Limite_Lateral_" + edgeX + "_" + z,
-                    new Vector3(edgeX, onBeach ? 0.18f : 0.42f, z),
-                    onBeach ? new Vector3(1.4f, 0.85f, 1.4f) : new Vector3(1.2f, 0.95f, 1.3f),
-                    Quaternion.identity, onBeach ? stoneDark : bush, true);
-                AddSolidCarveBox(edgeProp, Vector3.zero, Vector3.one, obstacles);
+                edgeIdx++;
+                bool onBeach = z > 3.6f;
+                float xJit = Mathf.Sin(edgeIdx * 2.17f) * 0.48f;
+                float zJit = Mathf.Cos(edgeIdx * 1.73f) * 0.35f;
+                float sz = 0.88f + (edgeIdx % 3) * 0.22f;
+
+                GameObject cluster = new GameObject("Limite_Lateral_" + edgeX + "_" + z);
+                cluster.transform.SetParent(grp.transform, false);
+                cluster.transform.position = new Vector3(edgeX + xJit, 0f, z + zJit);
+
+                if (onBeach)
+                {
+                    MakePrim(cluster.transform, PrimitiveType.Sphere, "Pedra_A",
+                        new Vector3(0f, 0.22f, 0f), new Vector3(1.45f * sz, 0.72f * sz, 1.25f * sz),
+                        Quaternion.Euler(0f, edgeIdx * 28f, 0f), stoneDark, true);
+                    MakePrim(cluster.transform, PrimitiveType.Sphere, "Pedra_B",
+                        new Vector3(0.45f * (edgeX > 0 ? -1f : 1f), 0.14f, 0.38f), new Vector3(0.88f, 0.48f, 0.82f),
+                        Quaternion.identity, stoneWarm, false);
+                }
+                else
+                {
+                    Material mainBush = (edgeIdx % 2 == 0) ? bush : bushLight;
+                    Material subBush = (edgeIdx % 2 == 0) ? bushLight : bush;
+                    MakePrim(cluster.transform, PrimitiveType.Sphere, "Arbusto_A",
+                        new Vector3(0f, 0.42f * sz, 0f), new Vector3(1.32f * sz, 0.92f * sz, 1.18f * sz),
+                        Quaternion.identity, mainBush, true);
+                    MakePrim(cluster.transform, PrimitiveType.Sphere, "Arbusto_B",
+                        new Vector3(0.42f * (edgeIdx % 2 == 0 ? 1f : -1f), 0.30f, 0.46f), new Vector3(0.92f, 0.66f, 0.88f),
+                        Quaternion.identity, subBush, false);
+                    if (edgeIdx % 2 == 0)
+                    {
+                        MakePrim(cluster.transform, PrimitiveType.Sphere, "Flor_Borda",
+                            new Vector3(-0.22f, 0.72f * sz, -0.18f), new Vector3(0.22f, 0.18f, 0.22f),
+                            Quaternion.identity, (edgeIdx % 4 == 0) ? flowerPink : flowerYellow, false);
+                    }
+                }
+                AddSolidCarveBox(cluster, new Vector3(0f, 0.55f, 0f), new Vector3(1.25f, 1.1f, 1.25f), obstacles);
             }
         }
 
-        // Continuous invisible blockers close the gaps between the visible edge props (spanning wide corridor + Orchard + Sea!).
+        // Continuous invisible blockers close the gaps between edge props & keep characters strictly on dry land (no swimming/surfing!)
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Oeste",
-            new Vector3(-17.62f, 1.5f, 0.5f), new Vector3(0.24f, 4.0f, 48.0f));
+            new Vector3(-17.62f, 1.5f, -7.5f), new Vector3(0.24f, 4.0f, 34.0f));
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Leste",
-            new Vector3(36.92f, 1.5f, 0.5f), new Vector3(0.24f, 4.0f, 48.0f));
+            new Vector3(36.92f, 1.5f, -7.5f), new Vector3(0.24f, 4.0f, 34.0f));
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Sul",
             new Vector3(9.6f, 1.5f, -23.4f), new Vector3(55.0f, 4.0f, 0.28f));
         AddBoundaryBox(grp.transform, obstacles, "Parede_Invisivel_Mar",
-            new Vector3(9.6f, 1.5f, 21.8f), new Vector3(55.0f, 4.0f, 0.28f));
+            new Vector3(9.6f, 1.5f, 8.15f), new Vector3(55.0f, 4.0f, 0.32f));
     }
 
     private static void AddSolidCarveBox(GameObject go, Vector3 center, Vector3 size, List<BoxCollider> obstacles)
@@ -405,9 +440,9 @@ public static class GirlPowerOrla3DPropsBuilder
 
         var specs = new (Vector3 pos, float rotY, string label, Material boardMat)[]
         {
-            (new Vector3(-5.8f, 0f, 3.05f), 8f, "PRAIA ↓", mint),
+            (new Vector3(-6.2f, 0f, 3.05f), 6f, "PRAIA ↓", mint),
             (new Vector3(12.2f, 0f, 3.10f), -6f, "PAVILHÃO →", coral),
-            (new Vector3(26.8f, 0f, 3.05f), -12f, "SURF", mint)
+            (new Vector3(26.8f, 0f, 3.05f), -10f, "PÍER →", mint)
         };
 
         for (int i = 0; i < specs.Length; i++)
@@ -421,20 +456,23 @@ public static class GirlPowerOrla3DPropsBuilder
             MakePrim(sign.transform, PrimitiveType.Cylinder, "Haste",
                 new Vector3(0f, 0.85f, 0f), new Vector3(0.11f, 0.85f, 0.11f), Quaternion.identity, woodDark, true);
             MakePrim(sign.transform, PrimitiveType.Cube, "Quadro",
-                new Vector3(0f, 1.42f, 0f), new Vector3(1.18f, 0.42f, 0.08f), Quaternion.identity, s.boardMat, true);
+                new Vector3(0f, 1.42f, 0f), new Vector3(1.26f, 0.44f, 0.08f), Quaternion.identity, s.boardMat, true);
             MakePrim(sign.transform, PrimitiveType.Cube, "Moldura",
-                new Vector3(0f, 1.42f, 0.02f), new Vector3(1.24f, 0.48f, 0.05f), Quaternion.identity, woodLight, false);
+                new Vector3(0f, 1.42f, 0.02f), new Vector3(1.32f, 0.50f, 0.05f), Quaternion.identity, woodLight, false);
 
             GameObject txtGo = new GameObject("Texto");
             txtGo.transform.SetParent(sign.transform, false);
-            txtGo.transform.localPosition = new Vector3(0f, 1.42f, -0.055f);
+            txtGo.transform.localPosition = new Vector3(0f, 1.42f, -0.052f);
             TextMeshPro tmp = txtGo.AddComponent<TextMeshPro>();
             tmp.text = s.label;
-            tmp.fontSize = 1.35f;
+            tmp.fontSize = 1.15f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
+            tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
+            tmp.enableWordWrapping = false;
+            tmp.margin = Vector4.zero;
             tmp.color = new Color32(255, 250, 236, 255);
-            tmp.rectTransform.sizeDelta = new Vector2(1.2f, 0.36f);
+            tmp.rectTransform.sizeDelta = new Vector2(1.20f, 0.36f);
 
             BoxCollider box = sign.AddComponent<BoxCollider>();
             box.center = new Vector3(0f, 0.85f, 0f);

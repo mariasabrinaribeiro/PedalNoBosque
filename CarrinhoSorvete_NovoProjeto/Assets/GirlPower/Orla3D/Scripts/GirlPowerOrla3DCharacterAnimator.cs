@@ -90,6 +90,9 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
     private Transform waterRippleB;
     private Material waterRippleMatA;
     private Material waterRippleMatB;
+    private Transform controlRing;
+    private Material controlRingMat;
+    private bool showControlMarker = true;
 
     private void Start()
     {
@@ -249,29 +252,33 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
         else if (moving)
         {
-            // Scale stride swing smoothly by actual ground speed — calibrated for +15% longer legs (natural stride arc!)
+            // Grounded natural Animal Crossing walk/run cadence with outward shoulder clearance (zero torso clipping!)
             float speedScale = Mathf.Clamp01(lastActualSpeed / 1.35f);
-            float amp = (running ? 46f : 31f) * speedScale;
+            float amp = (running ? 40f : 28f) * speedScale;
             float s = Mathf.Sin(walkPhase);
             float frontSign = FaceForwardSign >= 0f ? -1f : 1f;
             legL = s * amp * frontSign;
             legR = -s * amp * frontSign;
-            armL = -s * (amp * 0.82f) * frontSign;
-            armR = holdingCone ? (-52f * frontSign) : (s * (amp * 0.82f) * frontSign);
-            // Natural Secondary Motion: counter-rotating shoulders/torso opposite to leg swing + gentle weight shift!
-            torsoYaw = -s * (running ? 11.5f : 7.5f) * speedScale;
-            torsoRoll = s * (running ? 3.5f : 2.2f) * speedScale;
-            torsoPitch = (running ? -5.5f : -2.0f) * frontSign * speedScale;
-            headPitch = (running ? -4f : -1.5f) * frontSign * speedScale;
-            headYaw = s * (running ? 5.0f : 3.2f) * speedScale;
+            armL = -s * (amp * 0.78f) * frontSign;
+            armR = holdingCone ? (-52f * frontSign) : (s * (amp * 0.78f) * frontSign);
+            armLRoll = 13f;
+            armRRoll = holdingCone ? -16f : -13f;
+            // Natural Secondary Motion: counter-rotating shoulders/torso opposite to leg swing
+            torsoYaw = -s * (running ? 9.5f : 6.2f) * speedScale;
+            torsoRoll = s * (running ? 2.8f : 1.8f) * speedScale;
+            torsoPitch = (running ? -4.5f : -1.8f) * frontSign * speedScale;
+            headPitch = (running ? -3.0f : -1.2f) * frontSign * speedScale;
+            headYaw = s * (running ? 4.2f : 2.8f) * speedScale;
         }
         else
         {
-            float idle = Mathf.Sin(t * 2.4f) * 3.5f;
+            float idle = Mathf.Sin(t * 2.4f) * 2.8f;
             armL = idle;
             armR = holdingCone ? -50f : -idle;
-            torsoRoll = Mathf.Sin(t * 1.4f) * 1.2f;
-            headPitch = Mathf.Sin(t * 1.6f) * 2.5f;
+            armLRoll = 11f;
+            armRRoll = holdingCone ? -15f : -11f;
+            torsoRoll = Mathf.Sin(t * 1.4f) * 0.9f;
+            headPitch = Mathf.Sin(t * 1.6f) * 2.0f;
         }
 
         float k = 1f - Mathf.Exp(-14f * dt);
@@ -318,7 +325,56 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         if (puffMat.HasProperty("_CurveStrength"))
             puffMat.SetFloat("_CurveStrength", 0.0008f);
 
-        CreateWaterRippleRings();
+        CreateControllableGroundMarker();
+    }
+
+    private void CreateControllableGroundMarker()
+    {
+        if (vfxContainer == null) return;
+        Shader ringSh = Shader.Find("GirlPower/OrlaWaterRipple");
+        if (ringSh == null) ringSh = Shader.Find("Sprites/Default");
+        if (ringSh == null) ringSh = Shader.Find("Unlit/Transparent");
+        Texture2D tex = BuildControlRingTexture(128);
+
+        controlRing = BuildRippleQuad("Protagonista_Anel_Controle", ringSh, tex, out controlRingMat);
+        if (controlRing != null)
+        {
+            controlRing.localScale = new Vector3(1.22f, 1.22f, 1f);
+            controlRing.gameObject.SetActive(showControlMarker);
+        }
+        if (controlRingMat != null)
+            controlRingMat.color = new Color(0.14f, 0.78f, 0.84f, 0.56f);
+    }
+
+    private static Texture2D BuildControlRingTexture(int sz)
+    {
+        Texture2D tex = new Texture2D(sz, sz, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        Color32[] px = new Color32[sz * sz];
+        float half = sz * 0.5f;
+        for (int y = 0; y < sz; y++)
+        {
+            for (int x = 0; x < sz; x++)
+            {
+                float dx = (x - half) / half;
+                float dy = (y - half) / half;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+                // Crisp, subtle thin halo ring around the player's feet (never a distracting solid disc!)
+                float thinRing = Mathf.Exp(-Mathf.Pow((r - 0.84f) / 0.065f, 2f));
+                float softGlow = Mathf.Exp(-Mathf.Pow((r - 0.84f) / 0.14f, 2f)) * 0.25f;
+                float a = Mathf.Clamp01(thinRing + softGlow) * (r <= 1.0f ? 1f : 0f);
+                px[y * sz + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+            }
+        }
+        tex.SetPixels32(px);
+        tex.Apply();
+        return tex;
+    }
+
+    public void SetControlMarkerVisible(bool visible)
+    {
+        showControlMarker = visible;
+        if (controlRing != null && controlRing.gameObject.activeSelf != visible)
+            controlRing.gameObject.SetActive(visible);
     }
 
     private void CreateWaterRippleRings()
@@ -387,8 +443,9 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
 
     public void SetSurfing(bool isInOcean)
     {
-        if (inWater == isInOcean) return;
-        inWater = isInOcean;
+        // Surf & swimming intentionally removed — player stays cleanly on dry land!
+        if (!inWater) return;
+        inWater = false;
         RefreshEquippedProps();
     }
 
@@ -461,11 +518,11 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
 
     private void RefreshEquippedProps()
     {
-        if (skateboardProp != null) skateboardProp.gameObject.SetActive(!inWater && CurrentLandMode == LandMode.Skate);
-        if (scooterProp != null) scooterProp.gameObject.SetActive(!inWater && CurrentLandMode == LandMode.Scooter);
-        if (rollerSkatesProp != null) rollerSkatesProp.gameObject.SetActive(!inWater && CurrentLandMode == LandMode.RollerSkates);
-        if (surfboardProp != null) surfboardProp.gameObject.SetActive(inWater && CurrentWaterMode == WaterMode.Surf);
-        if (hawaiianCanoeProp != null) hawaiianCanoeProp.gameObject.SetActive(inWater && CurrentWaterMode == WaterMode.Canoe);
+        if (skateboardProp != null) skateboardProp.gameObject.SetActive(CurrentLandMode == LandMode.Skate);
+        if (scooterProp != null) scooterProp.gameObject.SetActive(CurrentLandMode == LandMode.Scooter);
+        if (rollerSkatesProp != null) rollerSkatesProp.gameObject.SetActive(CurrentLandMode == LandMode.RollerSkates);
+        if (surfboardProp != null) surfboardProp.gameObject.SetActive(false);
+        if (hawaiianCanoeProp != null) hawaiianCanoeProp.gameObject.SetActive(false);
     }
 
     public void SetWardrobeHatVisible(bool visible)
@@ -638,15 +695,15 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
 
         if (moving && actualSpeed > 0.22f)
         {
-            // Sync footstep cadence strictly to real ground displacement — calibrated for +15% longer legs (1.70m full stride!)
+            // Grounded walk/run cadence: feet stay firmly planted on the floor with subtle natural bounce (no floating hops!)
             float stepMeters = actualSpeed * dt;
-            walkPhase += stepMeters * (Mathf.PI * 2f / 1.70f);
+            walkPhase += stepMeters * (Mathf.PI * 2f / 1.62f);
             float s = Mathf.Sin(walkPhase);
             float cadenceWeight = Mathf.Clamp01(actualSpeed / 3.2f);
-            float hop = Mathf.Abs(s) * (running ? 0.135f : 0.085f) * cadenceWeight;
-            float waddle = s * (running ? 4.2f : 2.6f) * cadenceWeight + turnTilt * 0.40f;
+            float hop = Mathf.Abs(s) * (running ? 0.068f : 0.042f) * cadenceWeight;
+            float waddle = s * (running ? 3.2f : 2.0f) * cadenceWeight + turnTilt * 0.35f;
             float frontSign = FaceForwardSign >= 0f ? -1f : 1f;
-            float forwardLean = (running ? -9.0f : -3.2f) * frontSign;
+            float forwardLean = (running ? -7.5f : -2.5f) * frontSign;
 
             float poseBlend = 1f - Mathf.Exp(-15f * dt);
             Vector3 walkPose = visualBaseLocalPos + new Vector3(0f, hop, 0f);
@@ -663,12 +720,33 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
         else
         {
-            float breathe = Mathf.Sin(t * 2.5f) * 0.025f;
+            // Strictly non-negative subtle idle breath so shoes NEVER sink below ground!
+            float breathe = Mathf.Max(0f, Mathf.Sin(t * 2.4f)) * 0.008f;
             visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, visualBaseLocalPos + new Vector3(0f, breathe, 0f), dt * 10f);
             visualRoot.localRotation = Quaternion.Slerp(visualRoot.localRotation, Quaternion.Euler(0f, yaw, 0f), dt * 10f);
         }
 
+        UpdateControlMarker(worldPos, moving, t);
         UpdateVfx(dt);
+    }
+
+    private void UpdateControlMarker(Vector3 worldPos, bool moving, float t)
+    {
+        if (controlRing == null) return;
+        if (controlRing.gameObject.activeSelf != showControlMarker)
+            controlRing.gameObject.SetActive(showControlMarker);
+        if (!showControlMarker) return;
+
+        float pulse = 1f + Mathf.Sin(t * 2.8f) * 0.045f;
+        float sc = (moving ? 1.16f : 1.24f) * pulse;
+        controlRing.position = new Vector3(worldPos.x, worldPos.y + 0.042f, worldPos.z);
+        controlRing.localScale = new Vector3(sc, sc, 1f);
+        if (controlRingMat != null)
+        {
+            // Subtle sunny-gold / turquoise accent ring matching the Hero Protagonist palette!
+            float alpha = moving ? 0.42f : 0.54f;
+            controlRingMat.color = new Color(0.14f, 0.78f, 0.84f, alpha);
+        }
     }
 
     private void UpdateWaterRipples(Vector3 worldPos, bool moving, float t)

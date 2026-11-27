@@ -1229,7 +1229,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         var rows = IsEnglish
             ? new (string key, string desc)[]
             {
-                ("W A S D / Arrows", "Walk around the promenade, fair, beach & surf the sea"),
+                ("W A S D / Arrows", "Walk around the promenade, fair & sunny beach"),
                 ("SHIFT", "Sprint faster along the coast"),
                 ("E / Click", "Interact with cart, shops, basil pot & neighbors"),
                 ("P  /  C", "Paint houses or street art  /  Change paint color"),
@@ -1239,12 +1239,12 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
             }
             : new (string key, string desc)[]
             {
-                ("W A S D / Setas", "Caminhar pela orla, feira, praia e surfar no mar"),
+                ("W A S D / Setas", "Caminhar pela orla, feira e praia"),
                 ("SHIFT", "Correr mais rápido pelo calçadão"),
                 ("E / Clique", "Interagir com carrinho, lojas, manjericão e vizinhos"),
                 ("P  /  C", "Pintar casas (rolo manual)  /  Trocar cor da tinta"),
                 ("B  /  K  /  L", "Chamar/Farejar Pipoca  /  Truques  /  Chamar Polícia (190)"),
-                ("V  /  TAB", "Skate, Patinete, Patins, Canoa  /  Abrir Cardápio"),
+                ("V  /  TAB", "Skate, Patinete, Patins  /  Abrir Cardápio"),
                 ("T  /  R  /  ESC", "Horário  /  Maré Alta e Baixa  /  Pausa")
             };
 

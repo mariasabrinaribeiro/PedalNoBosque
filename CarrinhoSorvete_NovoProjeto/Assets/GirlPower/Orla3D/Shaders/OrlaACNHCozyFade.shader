@@ -75,16 +75,24 @@ Shader "GirlPower/OrlaACNHCozyFade"
         {
             half NdotL = dot(s.Normal, lightDir);
             half wrap = saturate((NdotL + _WrapAmount) / (1.0 + _WrapAmount));
-            half lit = smoothstep(0.08, 0.74, wrap * atten);
-            half hemi = saturate(s.Normal.y * 0.5 + 0.5);
-            half3 ambientTint = lerp(UNITY_LIGHTMODEL_AMBIENT.rgb * 0.72, unity_AmbientSky.rgb * 0.62, hemi);
-            half3 shadowCol = s.Albedo * lerp(_ShadowColor.rgb, _ShadowColor.rgb * 0.75 + ambientTint * 0.45, 0.55);
-            half3 litCol = s.Albedo * (_LightColor0.rgb * 0.94 + ambientTint * 0.22);
-            half3 finalDiffuse = lerp(shadowCol, litCol, lit);
             half3 halfVec = normalize(lightDir + viewDir);
             half NdotH = saturate(dot(s.Normal, halfVec));
-            half spec = pow(NdotH, 36.0) * _Glossiness * lit * 0.14;
-            return half4(finalDiffuse + _LightColor0.rgb * spec, s.Alpha);
+
+            #ifdef UNITY_PASS_FORWARDADD
+                half addAtten = smoothstep(0.02, 0.92, atten);
+                half3 addDiffuse = s.Albedo * _LightColor0.rgb * (wrap * addAtten * 0.72);
+                half addSpec = pow(NdotH, 36.0) * _Glossiness * addAtten * 0.12;
+                return half4(addDiffuse + _LightColor0.rgb * addSpec, s.Alpha);
+            #else
+                half lit = smoothstep(0.08, 0.74, wrap * atten);
+                half hemi = saturate(s.Normal.y * 0.5 + 0.5);
+                half3 ambientTint = lerp(UNITY_LIGHTMODEL_AMBIENT.rgb * 0.72, unity_AmbientSky.rgb * 0.62, hemi);
+                half3 shadowCol = s.Albedo * lerp(_ShadowColor.rgb, _ShadowColor.rgb * 0.75 + ambientTint * 0.45, 0.55);
+                half3 litCol = s.Albedo * (_LightColor0.rgb * 0.94 + ambientTint * 0.22);
+                half3 finalDiffuse = lerp(shadowCol, litCol, lit);
+                half spec = pow(NdotH, 36.0) * _Glossiness * lit * 0.14;
+                return half4(finalDiffuse + _LightColor0.rgb * spec, s.Alpha);
+            #endif
         }
 
         void surf(Input IN, inout SurfaceOutput o)

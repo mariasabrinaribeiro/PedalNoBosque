@@ -476,42 +476,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
                 openShopIndex = -1;
         }
 
-        // Clickable Water Sports selector bar when in the sea (Nadar | Surf | Canoa + [V] shortcut!)
-        bool inSea = characterAnimator != null ? characterAnimator.IsInWater : (player.position.z >= 8.4f);
-        if (inSea && (megaSystems == null || !megaSystems.CarryingRestaurantTray))
-        {
-            float barW = 344f * s;
-            float barH = 44f * s;
-            Rect bar = new Rect((Screen.width - barW) * 0.5f, 18f * s, barW, barH);
-            GUI.Box(bar, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
-
-            float wPad = 6f * s;
-            float wGap = 6f * s;
-            float btnW = (barW - wPad * 2f - wGap * 2f) / 3f;
-            float btnH = barH - wPad * 2f;
-
-            var curMode = characterAnimator != null ? characterAnimator.CurrentWaterMode : GirlPowerOrla3DCharacterAnimator.WaterMode.Swim;
-            string[] modeNames = { "Nadar", "Surf", "Canoa" };
-            var modes = new[]
-            {
-                GirlPowerOrla3DCharacterAnimator.WaterMode.Swim,
-                GirlPowerOrla3DCharacterAnimator.WaterMode.Surf,
-                GirlPowerOrla3DCharacterAnimator.WaterMode.Canoe
-            };
-
-            for (int m = 0; m < 3; m++)
-            {
-                Rect br = new Rect(bar.x + wPad + m * (btnW + wGap), bar.y + wPad, btnW, btnH);
-                bool active = curMode == modes[m];
-                GUIStyle st = active ? GirlPowerOrla3DUITheme.BtnPrimaryStyle : GirlPowerOrla3DUITheme.BtnSecondaryStyle;
-                if (GUI.Button(br, modeNames[m], st) && characterAnimator != null)
-                {
-                    characterAnimator.SetWaterMode(modes[m]);
-                    if (audioController != null) audioController.PlayChime();
-                }
-            }
-        }
-
+        // Water sports (Surf / Nadar / Canoa) intentionally removed — ocean is purely scenic!
         if (toastTimer > 0f && !string.IsNullOrEmpty(activityToast))
         {
             Rect tr = new Rect((Screen.width - 480f * s) * 0.5f, 70f * s, 480f * s, 36f * s);

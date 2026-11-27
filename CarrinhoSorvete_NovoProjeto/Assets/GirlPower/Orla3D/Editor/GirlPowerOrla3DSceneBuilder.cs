@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v39_AguaVisivel_NadoProfundo_HUDLimpo";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v40_PersonagensACNH_SemNadar_CenarioLindo";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -82,20 +82,8 @@ public static class GirlPowerOrla3DSceneBuilder
             if (r != null) Debug.Log("[Orla3D] OrlaEnvironmentBase Bounds: " + r.bounds);
         }
         Transform oceanSurface = CreateAnimatedOcean(root.transform, oceanMat);
-        // Explicit Water Zone aligned strictly to the visible ocean mesh shoreline (moves automatically with Low/High Tide!)
+        // Surf & swimming intentionally removed — ocean is purely scenic right behind the dry sandy beach!
         BoxCollider waterSurfZone = null;
-        if (oceanSurface != null)
-        {
-            GameObject waterZoneObj = new GameObject("Zona_Agua_Mar_Surf");
-            waterZoneObj.transform.SetParent(oceanSurface, false);
-            waterZoneObj.transform.localPosition = Vector3.zero;
-            waterSurfZone = waterZoneObj.AddComponent<BoxCollider>();
-            waterSurfZone.isTrigger = true;
-            // Ocean mesh spans local Z -38..+38 (world Z = 8.2 .. 84.2 -> ZERO exposed edges, water visible behind pier & canoe!).
-            // Start water zone right past shoreline feather (-37.55 -> +38.0 = world Z 8.65 .. 84.2) so swimming triggers right in the water!
-            waterSurfZone.center = new Vector3(0f, 0.5f, 0.225f);
-            waterSurfZone.size = new Vector3(260f, 4.0f, 75.55f);
-        }
 
         // 4. Barraca Central (Quiosque Orla das Fadas) aberta para a praça (sem árvores ou muretas na frente!)
         List<BoxCollider> obstacles = new List<BoxCollider>();
@@ -213,7 +201,7 @@ public static class GirlPowerOrla3DSceneBuilder
             AddBlockingBox(cafeBase, new Vector3(0f, 0.7f, -1.25f), new Vector3(3.6f, 1.4f, 0.85f), obstacles); // Pastry counter
         }
         // Keep cafeRoof 100% opaque (ZWrite On) until the player actually enters Café das Fadas!
-        Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.55f, new Color32(255, 246, 224, 255), new Vector2(2.8f, 0.44f));
+        Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.35f, new Color32(58, 36, 26, 255), new Vector2(2.8f, 0.44f));
 
         // 6a3. Low Coastal Town Facades tucked strictly on OUTER SIDES (central foreground view into the plaza 100% OPEN!)
         float[] facadeXs = { -26.0f, 38.0f };
@@ -223,14 +211,7 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fac != null) fac.transform.localScale = new Vector3(1.04f, 0.58f, 1.0f);
         }
 
-        // 6a4. Original Tropical-Magical Props (Glowing Beach Mushrooms, Floating Lanterns & Flower Lamp Posts!)
-        Vector3[] mushroomSpots =
-        {
-            new Vector3(-8.2f, -0.10f, 5.2f), new Vector3(0.6f, -0.10f, 5.0f), new Vector3(9.4f, -0.10f, 5.4f),
-            new Vector3(19.2f, -0.10f, 5.3f), new Vector3(27.6f, -0.10f, 5.1f), new Vector3(2.0f, -0.05f, -6.2f)
-        };
-        for (int i = 0; i < mushroomSpots.Length; i++)
-            PlaceModel(root.transform, "GlowingMushroomCluster", "Cogumelo Luminoso " + (i + 1), mushroomSpots[i], i * 52f, 0.88f + (i % 3) * 0.14f, cozyMats);
+        // 6a4. Clean coastal garden ambiance (out-of-place neon mushrooms removed from sunny beach sand!)
 
         // Floating lanterns & decorative flower lamps concentrated strictly along the Lateral Plaza & Facades (ZERO crossing obstructions!)
         List<Transform> floatingLanterns = new List<Transform>();
@@ -310,7 +291,7 @@ public static class GirlPowerOrla3DSceneBuilder
         if (noticeBoard != null) AddBlockingBox(noticeBoard, new Vector3(0f, 1.1f, 0f), new Vector3(1.9f, 2.2f, 0.36f), obstacles);
 
         // Moored Kayak/Canoe resting right along the animated turquoise shoreline!
-        PlaceModel(root.transform, "HawaiianCanoe", "Canoa Havaiana na Areia", new Vector3(-5.8f, -0.18f, 8.05f), 22f, 1.0f, cozyMats);
+        // Beach canoe intentionally omitted (surf/swim/canoe water sports removed for clean dry beach!)
 
         // 6b. 3 Low-Profile Paintable Coastal Houses tucked to the LATERAL EDGES (z = -24.5 -> ZERO central roof barrier!)
         List<Transform> paintableHouses = new List<Transform>();
@@ -412,13 +393,13 @@ public static class GirlPowerOrla3DSceneBuilder
             if (bench != null) AddBlockingBox(bench, new Vector3(0f, 0.48f, 0f), new Vector3(1.80f, 0.96f, 0.65f), obstacles);
         }
 
-        // Route Signpost tucked at the corner between the open central passage and the right-hand table recess!
-        GameObject signpost = PlaceModel(root.transform, "RouteSignpost", "Placa da Bifurcacao", new Vector3(2.8f, 0f, -3.55f), 10f, 1f, cozyMats);
+        // Route Signpost placed cleanly clear of the Ice Cream Cart & aligned flat so 3D text NEVER clips inside the wood!
+        GameObject signpost = PlaceModel(root.transform, "RouteSignpost", "Placa da Bifurcacao", new Vector3(3.45f, 0f, -3.65f), 0f, 1f, cozyMats);
         if (signpost != null)
         {
             AddBlockingBox(signpost, new Vector3(0f, 0.8f, 0f), new Vector3(0.42f, 1.6f, 0.42f), obstacles);
-            Make3DText(signpost.transform, "Placa Feira", new Vector3(0.14f, 1.54f, -0.07f), "FEIRA →", 1.25f, new Color32(255, 248, 232, 255), new Vector2(1.4f, 0.35f));
-            Make3DText(signpost.transform, "Placa Orla", new Vector3(0.14f, 1.12f, -0.07f), "ORLA →", 1.25f, new Color32(255, 248, 232, 255), new Vector2(1.4f, 0.35f));
+            Make3DText(signpost.transform, "Placa Feira", new Vector3(0.14f, 1.54f, -0.068f), "FEIRA →", 0.88f, new Color32(255, 250, 236, 255), new Vector2(1.25f, 0.30f));
+            Make3DText(signpost.transform, "Placa Orla", new Vector3(0.14f, 1.12f, -0.068f), "ORLA →", 0.88f, new Color32(255, 250, 236, 255), new Vector2(1.25f, 0.30f));
         }
 
         // 9. Beach Split into TWO unmistakable visual zones:
@@ -462,11 +443,11 @@ public static class GirlPowerOrla3DSceneBuilder
         if (cart != null)
             AddBlockingBox(cart, new Vector3(0f, 0.9f, 0.05f), new Vector3(1.60f, 1.8f, 0.92f), obstacles);
 
-        // Crisp dark espresso plaque typography on the Hero Strawberry-Pink Ice Cream Cart + Choice Upgrade 2
+        // Crisp cream-white typography on the Hero Strawberry-Pink Ice Cream Cart + Choice Upgrade 2
         GameObject cartPaintedSignUpgrade = null;
         if (cart != null)
         {
-            Make3DText(cart.transform, "Placa Frontal Sorvetes", new Vector3(0.16f, 0.74f, -0.57f), "SORVETES", 0.96f, new Color32(42, 30, 26, 255), new Vector2(0.95f, 0.30f));
+            Make3DText(cart.transform, "Placa Frontal Sorvetes", new Vector3(0f, 0.88f, -0.57f), "SORVETES", 0.92f, new Color32(255, 250, 238, 255), new Vector2(1.10f, 0.30f));
             cartPaintedSignUpgrade = PlaceModel(cart.transform, "CartPaintedSignUpgrade", "Melhoria - Placa Pintada", new Vector3(0f, 1.62f, -0.52f), 0f, 0.95f, cozyMats);
             if (cartPaintedSignUpgrade != null) cartPaintedSignUpgrade.SetActive(false);
         }
@@ -497,17 +478,11 @@ public static class GirlPowerOrla3DSceneBuilder
         playerRoot.transform.position = new Vector3(-1.6f, 0f, -3.9f);
         GameObject playerVisual = PlaceModel(playerRoot.transform, "Char_Protagonist", "Visual Protagonista", Vector3.zero, 160f, 1.16f, cozyMats);
         GameObject heldCone = PlaceModel(playerRoot.transform, "IceCreamConeLemonBasil", "Casquinha Limao Manjericao na Mao", Vector3.zero, 0f, 1f, cozyMats);
-        GameObject playerSurfboard = PlaceModel(playerRoot.transform, "Surfboard", "Prancha de Surf da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerSkate = PlaceModel(playerRoot.transform, "Skateboard", "Skate da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerScooter = PlaceModel(playerRoot.transform, "Scooter", "Patinete da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerSkates = PlaceModel(playerRoot.transform, "RollerSkates", "Patins da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
-        GameObject playerCanoe = PlaceModel(playerRoot.transform, "HawaiianCanoe", "Canoa Havaiana da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerHat = PlaceModel(playerRoot.transform, "WardrobeHatProp", "Chapeu e Oculos da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
-
-        // Decorative beach surfboard grounded cleanly beside Lifeguard Tower 1 in the east landmark zone!
-        GameObject sandSurfboard = PlaceModel(root.transform, "Surfboard", "Prancha na Areia", new Vector3(27.0f, -0.02f, 7.6f), 28f, 1.0f, cozyMats);
-        if (sandSurfboard != null)
-            AddBlockingBox(sandSurfboard, new Vector3(0f, 0.45f, 0f), new Vector3(0.55f, 0.90f, 1.45f), obstacles);
+        // Surfboard & Hawaiian Canoe intentionally removed (surf & swimming eliminated from the game!)
 
         // Cute Pet Companions: Dog "Pipoca" right beside the Protagonist (ready to follow!) & Cat "Mingau"!
         GameObject dogObj = PlaceModel(root.transform, "PetDog", "Cachorro Pipoca", new Vector3(-3.85f, 0f, -4.15f), 145f, 1.05f, cozyMats);
@@ -827,7 +802,7 @@ public static class GirlPowerOrla3DSceneBuilder
         CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Lateral_Leste", new Vector3(0.6f, 0.48f, -18.0f), new Vector3(0.36f, 0.96f, 9.8f));
         CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Entrada_Oeste", new Vector3(-8.65f, 0.48f, -13.2f), new Vector3(3.9f, 0.96f, 0.36f));
         CreateGardenFencePart(root.transform, obstacles, gardenFenceMat, "Cerca_Horta_Entrada_Leste", new Vector3(-1.35f, 0.48f, -13.2f), new Vector3(3.9f, 0.96f, 0.36f));
-        Make3DText(root.transform, "Placa Horta e Pomar", new Vector3(-5.0f, 1.72f, -12.95f), "HORTA & POMAR", 1.25f, new Color32(255, 246, 224, 255), new Vector2(2.6f, 0.42f));
+        Make3DText(root.transform, "Placa Horta e Pomar", new Vector3(-5.0f, 1.72f, -12.95f), "HORTA & POMAR", 1.15f, new Color32(58, 36, 26, 255), new Vector2(2.6f, 0.42f));
 
         // PHASE 1 VERTICAL SLICE: 3 Unmistakable Vacation Guests with 3 Pets (Cachorro, Gato, Calopsita)!
         // Additional resort archetypes live cleanly in Fase2_Expansao_Conteudo for Etapa 5 expansion at 60 FPS!
@@ -958,11 +933,11 @@ public static class GirlPowerOrla3DSceneBuilder
         GirlPowerOrla3DCharacterAnimator charAnim = playerRoot.AddComponent<GirlPowerOrla3DCharacterAnimator>();
         charAnim.visualRoot = playerVisual != null ? playerVisual.transform : playerRoot.transform;
         charAnim.heldIceCreamCone = heldCone != null ? heldCone.transform : null;
-        charAnim.surfboardProp = playerSurfboard != null ? playerSurfboard.transform : null;
+        charAnim.surfboardProp = null;
         charAnim.skateboardProp = playerSkate != null ? playerSkate.transform : null;
         charAnim.scooterProp = playerScooter != null ? playerScooter.transform : null;
         charAnim.rollerSkatesProp = playerSkates != null ? playerSkates.transform : null;
-        charAnim.hawaiianCanoeProp = playerCanoe != null ? playerCanoe.transform : null;
+        charAnim.hawaiianCanoeProp = null;
         charAnim.wardrobeHatProp = playerHat != null ? playerHat.transform : null;
         charAnim.audioController = audioCtrl;
         if (petDog != null) petDog.audioController = audioCtrl;
@@ -1098,7 +1073,7 @@ public static class GirlPowerOrla3DSceneBuilder
         mission.cameraOffset = new Vector3(0f, 8.2f, -11.8f);
         mission.cameraPitch = 33.5f;
         mission.minWorldZ = -22.2f;
-        mission.maxWorldZ = 22.5f;
+        mission.maxWorldZ = 7.85f;
         mission.player = playerRoot.transform;
         mission.playerVisual = playerVisual != null ? playerVisual.transform : playerRoot.transform;
         mission.characterAnimator = charAnim;
@@ -1426,8 +1401,8 @@ public static class GirlPowerOrla3DSceneBuilder
     {
         GameObject ocean = new GameObject("Mar Estilizado - Animado");
         ocean.transform.SetParent(parent, false);
-        // Expanded 260m x 76m ocean plane keeping the shoreline at exact z = 8.2m (meeting the pier & canoe!) while closing ALL edges!
-        ocean.transform.position = new Vector3(12f, -0.20f, 46.2f);
+        // Expanded 260m x 76m ocean plane keeping the shoreline at exact z = 8.15m & y = -0.18m right behind the dry sand!
+        ocean.transform.position = new Vector3(12f, -0.18f, 46.15f);
 
         MeshFilter mf = ocean.AddComponent<MeshFilter>();
         MeshRenderer mr = ocean.AddComponent<MeshRenderer>();
@@ -1626,6 +1601,8 @@ public static class GirlPowerOrla3DSceneBuilder
         tmp.fontSize = fontSize * 1.70f;
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = TextAlignmentOptions.Center;
+        tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
+        tmp.margin = Vector4.zero;
         tmp.color = color;
         tmp.enableWordWrapping = false;
         tmp.rectTransform.sizeDelta = rectSize * 1.48f;
@@ -1819,10 +1796,10 @@ public static class GirlPowerOrla3DSceneBuilder
         // Hero Accent: Strawberry Pink (#EC5A8E) reserved for the Ice Cream Cart + Basil Green (#4D9E65) linking Cart & Florist!
         var palette = new (string name, string hex, float gloss, string emitHex, float emitStr)[]
         {
-            ("AC_Sand", "#F4E6C8", 0.04f, null, 0f),          // Cream Sand base!
-            ("AC_SandWet", "#DEC9A4", 0.14f, null, 0f),
-            ("AC_Grass", "#6FA684", 0.04f, null, 0f),
-            ("AC_GrassLight", "#88BD9B", 0.05f, null, 0f),
+            ("AC_Sand", "#F4DFB4", 0.04f, null, 0f),          // Warm Golden Coastal Sand!
+            ("AC_SandWet", "#DEC69C", 0.14f, null, 0f),
+            ("AC_Grass", "#62A876", 0.04f, null, 0f),         // Vibrant Tropical Park Grass!
+            ("AC_GrassLight", "#80C08E", 0.05f, null, 0f),
             ("AC_Ocean", "#1D7C8F", 0.44f, null, 0f),         // Soft Petrol Blue sea!
             ("AC_OceanShallow", "#35A8B4", 0.40f, null, 0f),
             ("AC_Foam", "#F4FBFE", 0.12f, "#E2F4FA", 0.10f),

@@ -131,9 +131,18 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
         }
         foreach (Transform tr in FindObjectsOfType<Transform>())
         {
-            if (tr != null && tr.name.StartsWith("Sombra_Nuvem_Movel"))
+            if (tr == null) continue;
+            if (tr.name.StartsWith("Sombra_Nuvem_Movel")
+                || tr.name == "Zona_Agua_Mar_Surf"
+                || tr.name == "Prancha na Areia"
+                || tr.name == "Canoa Havaiana na Areia"
+                || tr.name == "Prancha de Surf da Protagonista"
+                || tr.name == "Canoa Havaiana da Protagonista"
+                || tr.name.StartsWith("Cogumelo Luminoso"))
+            {
                 tr.gameObject.SetActive(false);
-            else if (tr != null && tr.name == "Terreno Costeiro - Orla das Fadas")
+            }
+            else if (tr.name == "Terreno Costeiro - Orla das Fadas")
             {
                 foreach (Renderer r in tr.GetComponentsInChildren<Renderer>(true))
                 {
@@ -176,24 +185,15 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 if (mat.HasProperty("_DeepColor")) mat.SetColor("_DeepColor", new Color(0.06f, 0.42f, 0.62f, 0.97f));
             }
 
-            // Ensure explicit Water Surf/Swim Zone collider exists and is linked to Story Controller
+            // Surf/Swim water zone intentionally disabled — ocean is strictly scenic beyond the dry sandy beach!
             Transform wzTr = oceanSurface.Find("Zona_Agua_Mar_Surf");
-            BoxCollider wzCol = wzTr != null ? wzTr.GetComponent<BoxCollider>() : null;
-            if (wzCol == null)
-            {
-                GameObject wzObj = new GameObject("Zona_Agua_Mar_Surf");
-                wzObj.transform.SetParent(oceanSurface, false);
-                wzObj.transform.localPosition = Vector3.zero;
-                wzCol = wzObj.AddComponent<BoxCollider>();
-                wzCol.isTrigger = true;
-            }
-            // Ocean mesh spans local Z -38..+38 (world Z = 8.2 .. 84.2). Water zone begins at local Z = -37.55 (world Z = 8.65).
-            wzCol.center = new Vector3(0f, 0.5f, 0.225f);
-            wzCol.size = new Vector3(260f, 4.0f, 75.55f);
-
+            if (wzTr != null) wzTr.gameObject.SetActive(false);
             GirlPowerOrla3DFirstDelivery story = FindObjectOfType<GirlPowerOrla3DFirstDelivery>();
-            if (story != null && story.waterSurfZone == null)
-                story.waterSurfZone = wzCol;
+            if (story != null)
+            {
+                story.waterSurfZone = null;
+                story.maxWorldZ = Mathf.Min(story.maxWorldZ, 7.85f);
+            }
         }
         // 3. Ensure anchored boats & buoys sit cleanly ON TOP of the water surface (y = -0.14f)
         if (floatingBoats != null && boatBasePos != null)
@@ -336,7 +336,8 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
 
     public float GetCurrentMaxWalkableZ()
     {
-        return Mathf.Lerp(10.8f, 8.2f, tideBlend);
+        // Dry sandy beach limit — ocean is purely scenic (swimming & surfing removed!)
+        return Mathf.Lerp(7.85f, 7.25f, tideBlend);
     }
 
     private void UpdateTide(float dt)

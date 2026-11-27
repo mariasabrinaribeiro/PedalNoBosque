@@ -70,24 +70,35 @@ Shader "GirlPower/OrlaACNHCozy"
         {
             half NdotL = dot(s.Normal, lightDir);
             half wrap = saturate((NdotL + _WrapAmount) / (1.0 + _WrapAmount));
-            half lit = smoothstep(0.08, 0.74, wrap * atten);
-
-            // Grounded hemisphere ambient (controlled so whites/pastels never blow out!)
-            half hemi = saturate(s.Normal.y * 0.5 + 0.5);
-            half3 ambientTint = lerp(UNITY_LIGHTMODEL_AMBIENT.rgb * 0.72, unity_AmbientSky.rgb * 0.62, hemi);
-            half3 shadowCol = s.Albedo * lerp(_ShadowColor.rgb, _ShadowColor.rgb * 0.75 + ambientTint * 0.45, 0.55);
-            half3 litCol = s.Albedo * (_LightColor0.rgb * 0.94 + ambientTint * 0.22);
-            half3 finalDiffuse = lerp(shadowCol, litCol, lit);
-
-            // Controlled matte-velvety specular (no shiny plastic glare on wood/fabric)
             half3 halfVec = normalize(lightDir + viewDir);
             half NdotH = saturate(dot(s.Normal, halfVec));
-            half spec = pow(NdotH, 36.0) * _Glossiness * lit * 0.14;
 
-            half4 c;
-            c.rgb = finalDiffuse + _LightColor0.rgb * spec;
-            c.a = s.Alpha;
-            return c;
+            #ifdef UNITY_PASS_FORWARDADD
+                // Point/Spot lights run inside a screen-space GPU scissor rectangle in ForwardAdd!
+                // Returning any non-zero ambient/shadow color when atten == 0 paints giant translucent
+                // rectangles across the entire scene. Strictly attenuate to pure black at light edges!
+                half addAtten = smoothstep(0.02, 0.92, atten);
+                half3 addDiffuse = s.Albedo * _LightColor0.rgb * (wrap * addAtten * 0.72);
+                half addSpec = pow(NdotH, 36.0) * _Glossiness * addAtten * 0.12;
+                return half4(addDiffuse + _LightColor0.rgb * addSpec, s.Alpha);
+            #else
+                half lit = smoothstep(0.08, 0.74, wrap * atten);
+
+                // Grounded hemisphere ambient (controlled so whites/pastels never blow out!)
+                half hemi = saturate(s.Normal.y * 0.5 + 0.5);
+                half3 ambientTint = lerp(UNITY_LIGHTMODEL_AMBIENT.rgb * 0.72, unity_AmbientSky.rgb * 0.62, hemi);
+                half3 shadowCol = s.Albedo * lerp(_ShadowColor.rgb, _ShadowColor.rgb * 0.75 + ambientTint * 0.45, 0.55);
+                half3 litCol = s.Albedo * (_LightColor0.rgb * 0.94 + ambientTint * 0.22);
+                half3 finalDiffuse = lerp(shadowCol, litCol, lit);
+
+                // Controlled matte-velvety specular (no shiny plastic glare on wood/fabric)
+                half spec = pow(NdotH, 36.0) * _Glossiness * lit * 0.14;
+
+                half4 c;
+                c.rgb = finalDiffuse + _LightColor0.rgb * spec;
+                c.a = s.Alpha;
+                return c;
+            #endif
         }
 
         void surf(Input IN, inout SurfaceOutput o)

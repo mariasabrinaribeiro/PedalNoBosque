@@ -197,12 +197,12 @@ public sealed class GirlPowerOrla3DNpcAI : MonoBehaviour
         if (fairyWaitresses == null) return;
         Vector3[][] fairyRoutes =
         {
-            // Fairy 1: Flies between Café das Fadas interior -> Kiosk -> Beach Umbrellas!
-            new[] { new Vector3(5.6f, 0.65f, -7.8f), new Vector3(5.6f, 0.72f, -4.2f), new Vector3(0.4f, 0.75f, 0.6f), new Vector3(-1.4f, 0.62f, 6.0f), new Vector3(4.8f, 0.68f, 5.8f) },
-            // Fairy 2: Flies between Batata & Mar Restaurant -> Restaurant Tables -> Promenade!
-            new[] { new Vector3(-14.0f, 0.72f, -4.6f), new Vector3(-11.2f, 0.68f, -1.6f), new Vector3(-15.2f, 0.68f, -1.6f), new Vector3(-7.4f, 0.76f, 0.8f) },
-            // Fairy 3: Flies between Florist -> Feira -> Beach Pavilion & East Table!
-            new[] { new Vector3(24.0f, 0.74f, 0.6f), new Vector3(31.8f, 0.68f, -1.5f), new Vector3(21.6f, 0.64f, 5.9f), new Vector3(15.6f, 0.82f, 4.4f) }
+            // Fairy 1: Glides strictly around Café das Fadas, patio tables & central plaza (NEVER clipping the Beach Tennis net!)
+            new[] { new Vector3(5.6f, 0.72f, -10.4f), new Vector3(8.6f, 0.76f, -7.8f), new Vector3(4.6f, 0.74f, -5.8f), new Vector3(1.6f, 0.78f, -8.8f) },
+            // Fairy 2: Glides between Batata & Mar Restaurant -> Restaurant Tables -> West Promenade!
+            new[] { new Vector3(-14.0f, 0.72f, -4.6f), new Vector3(-11.2f, 0.68f, -1.6f), new Vector3(-15.2f, 0.68f, -1.6f), new Vector3(-7.4f, 0.76f, -4.4f) },
+            // Fairy 3: Glides between Florist -> Feira -> Pavilion Garden!
+            new[] { new Vector3(24.0f, 0.74f, -6.2f), new Vector3(29.2f, 0.72f, -9.6f), new Vector3(21.6f, 0.72f, -11.4f), new Vector3(16.6f, 0.78f, -8.4f) }
         };
 
         for (int i = 0; i < fairyWaitresses.Length; i++)
