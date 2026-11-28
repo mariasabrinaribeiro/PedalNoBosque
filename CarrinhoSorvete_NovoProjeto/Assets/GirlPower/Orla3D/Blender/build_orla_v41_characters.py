@@ -600,17 +600,34 @@ def build_character(
         col, skin, hair, hair_style, accent, hat_style=hat_style, glasses=glasses, z_center=1.23, separate_eyes=is_protag
     )
 
-    # ARMS angled 12 deg outward with clear rounded hands (NEVER clipping torso/dress!)
+    # NATURAL COZY CHIBI ARMS & SOFT SCULPTED HANDS (relaxed gentle curve + cute mitten hand with thumb!)
     arm_l_parts, arm_r_parts = [], []
     for sx, bucket in ((-1, arm_l_parts), (1, arm_r_parts)):
-        ax = sx * 0.222
-        bucket.append(add_sphere(f"Sleeve_{sx}", 0.078, sleeve_mat, col, loc=(ax, 0.0, 0.91), scale=(0.95, 0.92, 1.12)))
+        ax = sx * 0.205
+        # Soft puff sleeve hugging shoulder smoothly
+        bucket.append(add_sphere(f"Sleeve_{sx}", 0.082, sleeve_mat, col, loc=(ax, 0.0, 0.912), scale=(1.02, 0.96, 1.14), u=16, v=12))
+        # Smooth 5-point organically curved arm (gently relaxed along the dress, zero rigid stick look!)
         bucket.append(add_curved_strand(
             f"Arm_{sx}",
-            [(ax, 0.0, 0.89), (ax + sx * 0.052, -0.015, 0.74), (ax + sx * 0.082, -0.025, 0.60)],
-            [0.052, 0.045, 0.040], skin, col, segs=12
+            [
+                (ax,               0.000, 0.895),
+                (ax + sx * 0.024, -0.004, 0.810),
+                (ax + sx * 0.036, -0.012, 0.725),
+                (ax + sx * 0.038, -0.024, 0.650),
+                (ax + sx * 0.032, -0.034, 0.602),
+            ],
+            [0.056, 0.050, 0.045, 0.040, 0.036], skin, col, segs=16
         ))
-        bucket.append(add_sphere(f"Hand_{sx}", 0.052, skin, col, loc=(ax + sx * 0.086, -0.030, 0.575), scale=(1.0, 1.08, 0.96)))
+        # Cute sculpted chibi mitten hand (palm turned gently inward + soft little thumb!)
+        hx, hy, hz = ax + sx * 0.031, -0.036, 0.576
+        bucket.append(add_sphere(
+            f"HandPalm_{sx}", 0.045, skin, col,
+            loc=(hx, hy, hz), scale=(0.82, 1.04, 1.14), rot=(0.12, -sx * 0.14, 0.0), u=16, v=12
+        ))
+        bucket.append(add_sphere(
+            f"HandThumb_{sx}", 0.023, skin, col,
+            loc=(hx - sx * 0.022, hy - 0.022, hz + 0.012), scale=(0.88, 1.12, 1.04), rot=(0.25, 0.0, sx * 0.28), u=12, v=10
+        ))
 
     # LEGS & CLEARLY VISIBLE FLAT-SOLED SHOES (grounded strictly at Z = 0.000!)
     leg_l_parts, leg_r_parts = [], []
@@ -635,8 +652,8 @@ def build_character(
         o_head = join_with_pivot(head_parts, "Protag_Head", (0.0, 0.0, 1.02), col)
         o_eyel = join_with_pivot(eye_l_parts, "Protag_EyeL", (-0.090, -0.220, 1.242), col)
         o_eyer = join_with_pivot(eye_r_parts, "Protag_EyeR", (0.090, -0.220, 1.242), col)
-        o_arml = join_with_pivot(arm_l_parts, "Protag_ArmL", (-0.222, 0.0, 0.94), col)
-        o_armr = join_with_pivot(arm_r_parts, "Protag_ArmR", (0.222, 0.0, 0.94), col)
+        o_arml = join_with_pivot(arm_l_parts, "Protag_ArmL", (-0.205, 0.0, 0.935), col)
+        o_armr = join_with_pivot(arm_r_parts, "Protag_ArmR", (0.205, 0.0, 0.935), col)
         o_legl = join_with_pivot(leg_l_parts, "Protag_LegL", (-0.098, 0.0, 0.48), col)
         o_legr = join_with_pivot(leg_r_parts, "Protag_LegR", (0.098, 0.0, 0.48), col)
         objs = [o_torso, o_head, o_eyel, o_eyer, o_arml, o_armr, o_legl, o_legr]
@@ -649,8 +666,8 @@ def build_character(
         export_fbx([o_all], fbx_name)
     else:
         o_torso = join_with_pivot(torso_parts + head_parts, "Torso", (0.0, 0.0, 0.78), col)
-        o_arml = join_with_pivot(arm_l_parts, "ArmL", (-0.222, 0.0, 0.94), col)
-        o_armr = join_with_pivot(arm_r_parts, "ArmR", (0.222, 0.0, 0.94), col)
+        o_arml = join_with_pivot(arm_l_parts, "ArmL", (-0.205, 0.0, 0.935), col)
+        o_armr = join_with_pivot(arm_r_parts, "ArmR", (0.205, 0.0, 0.935), col)
         o_legl = join_with_pivot(leg_l_parts, "LegL", (-0.098, 0.0, 0.48), col)
         o_legr = join_with_pivot(leg_r_parts, "LegR", (0.098, 0.0, 0.48), col)
         objs = [o_torso, o_arml, o_armr, o_legl, o_legr]

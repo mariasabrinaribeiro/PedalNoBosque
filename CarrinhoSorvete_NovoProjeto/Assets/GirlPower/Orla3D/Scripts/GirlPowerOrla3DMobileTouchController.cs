@@ -34,6 +34,7 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
     public GirlPowerOrla3DCardapioUI cardapioUI;
     public GirlPowerOrla3DMegaSystems megaSystems;
     public GirlPowerOrla3DLifeActivities lifeActivities;
+    public GirlPowerOrla3DFairBusinesses fairBusinesses;
     public GirlPowerOrla3DPetFriendlySystem petFriendlySystem;
     public GirlPowerOrla3DNpcAI npcAI;
 
@@ -77,6 +78,7 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
         if (cardapioUI == null) cardapioUI = FindObjectOfType<GirlPowerOrla3DCardapioUI>();
         if (megaSystems == null) megaSystems = FindObjectOfType<GirlPowerOrla3DMegaSystems>();
         if (lifeActivities == null) lifeActivities = FindObjectOfType<GirlPowerOrla3DLifeActivities>();
+        if (fairBusinesses == null) fairBusinesses = FindObjectOfType<GirlPowerOrla3DFairBusinesses>();
         if (petFriendlySystem == null) petFriendlySystem = FindObjectOfType<GirlPowerOrla3DPetFriendlySystem>();
         if (npcAI == null) npcAI = FindObjectOfType<GirlPowerOrla3DNpcAI>();
 
@@ -142,6 +144,7 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
         if (cardapioUI != null && cardapioUI.IsOpen) return true;
         if (megaSystems != null && megaSystems.IsAnyModalOpen) return true;
         if (lifeActivities != null && lifeActivities.IsShopMenuOpen) return true;
+        if (fairBusinesses != null && fairBusinesses.IsModalOpen) return true;
         if (storyController != null && storyController.HasChoiceMenuOpen) return true;
         return false;
     }
@@ -154,17 +157,29 @@ public sealed class GirlPowerOrla3DMobileTouchController : MonoBehaviour
         if (storyController != null && storyController.IsUiPointBlocked(guiPos))
             return true;
 
-        // Safe fallback guard around top-left and top-right compact HUD corners (<= 15% screen)
-        float s = Mathf.Clamp(Screen.width / 1440f, 0.72f, 1.15f);
-        Rect topLeftGuard = new Rect(0f, 0f, 286f * s, 128f * s);
+        // Protect the unified bottom-right thumb action button so tapping Interact NEVER leaks into tap-to-move!
+        if (GirlPowerOrla3DInteractionHub.Instance != null)
+        {
+            Rect hubRect = GirlPowerOrla3DInteractionHub.Instance.ActiveButtonGuiRect;
+            if (hubRect.width > 1f && hubRect.height > 1f)
+            {
+                Rect paddedHub = new Rect(hubRect.x - 10f, hubRect.y - 10f, hubRect.width + 20f, hubRect.height + 20f);
+                if (paddedHub.Contains(guiPos))
+                    return true;
+            }
+        }
+
+        // Safe fallback guard around top-left (mission + 3-step stepper) and top-right compact HUD corners
+        float s = Mathf.Clamp(Mathf.Min(Screen.width / 1440f, Screen.height / 810f), 0.68f, 1.15f);
+        Rect topLeftGuard = new Rect(0f, 0f, 348f * s, 142f * s);
         Rect topRightGuard = new Rect(Screen.width - 360f * s, 0f, 360f * s, 152f * s);
         if (topLeftGuard.Contains(guiPos) || topRightGuard.Contains(guiPos))
             return true;
 
-        // Protect contextual bottom-center [E] action pill when player is next to an interactable
+        // Protect contextual bottom-right action pill when player is next to an interactable
         if (storyController != null && storyController.HasNearbyStoryInteractable)
         {
-            Rect actionPillGuard = new Rect((Screen.width - 380f * s) * 0.5f, Screen.height - 130f * s, 380f * s, 68f * s);
+            Rect actionPillGuard = new Rect(Screen.width - 368f * s, Screen.height - 96f * s, 368f * s, 96f * s);
             if (actionPillGuard.Contains(guiPos))
                 return true;
         }

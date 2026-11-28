@@ -33,6 +33,7 @@ public sealed class GirlPowerOrla3DInteractionHub : MonoBehaviour
     public GirlPowerOrla3DPhotoOverlay photoOverlay;
     public GirlPowerOrla3DLifeActivities lifeActivities;
     public GirlPowerOrla3DMegaSystems megaSystems;
+    public GirlPowerOrla3DFairBusinesses fairBusinesses;
 
     private readonly List<Candidate> frameCandidates = new List<Candidate>(16);
     private Candidate activeCandidate;
@@ -63,6 +64,7 @@ public sealed class GirlPowerOrla3DInteractionHub : MonoBehaviour
         if (photoOverlay == null) photoOverlay = FindObjectOfType<GirlPowerOrla3DPhotoOverlay>();
         if (lifeActivities == null) lifeActivities = FindObjectOfType<GirlPowerOrla3DLifeActivities>();
         if (megaSystems == null) megaSystems = FindObjectOfType<GirlPowerOrla3DMegaSystems>();
+        if (fairBusinesses == null) fairBusinesses = FindObjectOfType<GirlPowerOrla3DFairBusinesses>();
     }
 
     public void SubmitCandidate(Candidate candidate)
@@ -135,6 +137,7 @@ public sealed class GirlPowerOrla3DInteractionHub : MonoBehaviour
         if (photoOverlay != null && photoOverlay.IsShowing) return true;
         if (lifeActivities != null && lifeActivities.IsShopMenuOpen) return true;
         if (megaSystems != null && megaSystems.IsAnyModalOpen) return true;
+        if (fairBusinesses != null && fairBusinesses.IsModalOpen) return true;
         if (storyController != null && (storyController.HasChoiceMenuOpen || storyController.IsCraftingNow)) return true;
         return false;
     }
@@ -146,73 +149,79 @@ public sealed class GirlPowerOrla3DInteractionHub : MonoBehaviour
         if (ShouldHidePromptUI()) return;
 
         GirlPowerOrla3DUITheme.EnsureInitialized();
-        float s = Mathf.Clamp(Screen.width / 1440f, 0.82f, 1.15f);
+        float s = Mathf.Clamp(Mathf.Min(Screen.width / 1440f, Screen.height / 810f), 0.68f, 1.15f);
         bool touchPrimary = storyController != null && storyController.IsTouchPrimary;
 
-        // 1. Compact diegetic marker anchored directly above the ACTIVE target so player sees clearly WHO/WHAT responds!
-        DrawActiveTargetMarker(s);
+        // 1. Contextual command anchored DIRECTLY NEAR the character/object in reach!
+        //    - Desktop/Keyboard: "E — Conversar com Luna" right next to the target (never stranded far away in a corner!)
+        //    - Mobile/Touch: clean target tag over character + matching ergonomic thumb touch button below!
+        DrawActiveTargetPrompt(s, touchPrimary);
 
-        // 2. SINGLE large, crisp bottom-right thumb action button!
-        Rect sa = Screen.safeArea;
-        float safeTop = Screen.height - (sa.y + sa.height);
-        Rect safe = new Rect(sa.x, safeTop, sa.width, sa.height);
-
-        string btnText = touchPrimary ? activeCandidate.buttonLabel : (activeCandidate.buttonLabel + "   [E]");
-        float w = Mathf.Clamp(
-            96f * s + btnText.Length * 8.4f * s,
-            activeCandidate.isPrimaryMission ? 228f * s : 204f * s,
-            Mathf.Min(346f * s, safe.width - 32f * s));
-        float h = activeCandidate.isPrimaryMission ? 58f * s : 52f * s;
-        Rect pill = new Rect(safe.xMax - w - 18f * s, safe.yMax - h - 18f * s, w, h);
-        activeButtonGuiRect = pill;
-
-        GUIStyle style = activeCandidate.isPrimaryMission
-            ? GirlPowerOrla3DUITheme.BtnPrimaryStyle
-            : GirlPowerOrla3DUITheme.BtnSecondaryStyle;
-        GUIStyle sized = new GUIStyle(style)
+        if (touchPrimary)
         {
-            fontSize = Mathf.RoundToInt((activeCandidate.isPrimaryMission ? 19f : 17.5f) * s)
-        };
-        if (GUI.Button(pill, btnText, sized))
-            activeCandidate.onExecute?.Invoke();
+            Rect sa = Screen.safeArea;
+            float safeTop = Screen.height - (sa.y + sa.height);
+            Rect safe = new Rect(sa.x, safeTop, sa.width, sa.height);
+
+            string btnText = activeCandidate.buttonLabel;
+            float w = Mathf.Clamp(
+                84f * s + btnText.Length * 8.4f * s,
+                activeCandidate.isPrimaryMission ? 216f * s : 192f * s,
+                Mathf.Min(336f * s, safe.width - 32f * s));
+            float h = activeCandidate.isPrimaryMission ? 56f * s : 50f * s;
+            Rect pill = new Rect(safe.xMax - w - 18f * s, safe.yMax - h - 18f * s, w, h);
+            activeButtonGuiRect = pill;
+
+            GUIStyle style = activeCandidate.isPrimaryMission
+                ? GirlPowerOrla3DUITheme.BtnPrimaryStyle
+                : GirlPowerOrla3DUITheme.BtnSecondaryStyle;
+            GUIStyle sized = new GUIStyle(style)
+            {
+                fontSize = Mathf.RoundToInt((activeCandidate.isPrimaryMission ? 18.5f : 17f) * s)
+            };
+            if (GUI.Button(pill, btnText, sized))
+                activeCandidate.onExecute?.Invoke();
+        }
     }
 
-    private void DrawActiveTargetMarker(float s)
+    private void DrawActiveTargetPrompt(float s, bool touchPrimary)
     {
         if (sceneCamera == null || activeCandidate.target == null) return;
         float hOff = activeCandidate.markerHeight > 0.1f ? activeCandidate.markerHeight : 1.95f;
         Vector3 sp = sceneCamera.WorldToScreenPoint(activeCandidate.target.position + Vector3.up * hOff);
         if (sp.z <= 0.25f || sp.z > 28f) return;
 
-        // Keep marker cleanly on screen right over the target (never stuck to extreme edges)
-        if (sp.x < 26f || sp.x > Screen.width - 26f || sp.y < 36f || sp.y > Screen.height - 36f) return;
+        string promptText = touchPrimary
+            ? ("● " + activeCandidate.buttonLabel)
+            : ("E  —  " + activeCandidate.buttonLabel);
 
-        string tag = string.IsNullOrEmpty(activeCandidate.targetBadgeLabel)
-            ? activeCandidate.buttonLabel
-            : activeCandidate.targetBadgeLabel;
-
-        float bob = Mathf.Sin(Time.time * 4.0f) * 3.0f * s;
-        float mw = Mathf.Clamp(44f * s + tag.Length * 7.2f * s, 94f * s, 198f * s);
-        float mh = 28f * s;
-        float mx = Mathf.Clamp(sp.x - mw * 0.5f, 12f * s, Screen.width - mw - 12f * s);
-        float my = Mathf.Clamp((Screen.height - sp.y) - mh - 10f * s + bob, 92f * s, Screen.height - 108f * s);
+        float bob = Mathf.Sin(Time.time * 3.8f) * 2.5f * s;
+        GUIStyle lbl = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle)
+        {
+            fontSize = Mathf.RoundToInt((touchPrimary ? 14f : 15.5f) * s),
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter
+        };
+        float measuredW = lbl.CalcSize(new GUIContent(promptText)).x + 30f * s;
+        float mw = Mathf.Clamp(measuredW, 136f * s, 290f * s);
+        float mh = (touchPrimary ? 30f : 38f) * s;
+        float mx = Mathf.Clamp(sp.x - mw * 0.5f, 14f * s, Screen.width - mw - 14f * s);
+        float my = Mathf.Clamp((Screen.height - sp.y) - mh - 12f * s + bob, 92f * s, Screen.height - 96f * s);
 
         Rect badgeRect = new Rect(mx, my, mw, mh);
+        if (!touchPrimary) activeButtonGuiRect = badgeRect;
+
         GUIStyle pillStyle = activeCandidate.isPrimaryMission
             ? GirlPowerOrla3DUITheme.PillCoralStyle
             : GirlPowerOrla3DUITheme.PillTealStyle;
         if (GUI.Button(badgeRect, GUIContent.none, pillStyle))
             activeCandidate.onExecute?.Invoke();
 
-        GUIStyle lbl = new GUIStyle(GirlPowerOrla3DUITheme.BadgeTextStyle)
-        {
-            fontSize = Mathf.RoundToInt(13.5f * s)
-        };
-        GirlPowerOrla3DUITheme.DrawOutlinedLabel(badgeRect, "● " + tag, lbl, Color.white, new Color(0.08f, 0.08f, 0.12f, 0.92f), 1.1f);
+        GirlPowerOrla3DUITheme.DrawOutlinedLabel(badgeRect, promptText, lbl, Color.white, new Color(0.10f, 0.06f, 0.12f, 0.92f), 1.15f);
 
-        // Small downward pointer dot connecting the tag directly to the target below it
-        float dotSz = 10f * s;
-        Rect dotRect = new Rect(sp.x - dotSz * 0.5f, badgeRect.yMax + 2f * s, dotSz, dotSz);
+        // Small downward anchor dot pointing straight to the character/object below
+        float dotSz = 9f * s;
+        Rect dotRect = new Rect(Mathf.Clamp(sp.x - dotSz * 0.5f, badgeRect.x + 12f * s, badgeRect.xMax - 12f * s - dotSz), badgeRect.yMax + 2f * s, dotSz, dotSz);
         GUI.DrawTexture(dotRect, activeCandidate.isPrimaryMission ? GirlPowerOrla3DUITheme.CircleCoralTex : GirlPowerOrla3DUITheme.CircleWhiteTex);
     }
 }

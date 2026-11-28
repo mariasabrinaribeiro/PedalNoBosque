@@ -10,6 +10,14 @@ using UnityEngine;
 public static class Orla3DParallaxVerifier
 {
     private const string ScenePath = "Assets/Scenes/Girl Power - Orla 3D (Animal Crossing).unity";
+    private const string DefaultAuditDir = @"C:\Users\wisoc\.gemini\antigravity\brain\90143dbc-a68e-4ff0-b4ef-49af1b168d56\scratch\parallax_pass1";
+
+    [MenuItem("Girl Power/Verify Parallax (Run & Capture)")]
+    public static void RunFromMenu()
+    {
+        RunPass();
+        EditorUtility.RevealInFinder(DefaultAuditDir);
+    }
 
     public static void RunPass()
     {
@@ -18,7 +26,7 @@ public static class Orla3DParallaxVerifier
         for (int i = 0; i < cliArgs.Length - 1; i++)
             if (cliArgs[i] == "-verifyOut") outDir = cliArgs[i + 1];
         if (string.IsNullOrEmpty(outDir))
-            outDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/ParallaxVerify"));
+            outDir = DefaultAuditDir;
         Directory.CreateDirectory(outDir);
 
         // 1. Rebuild the scene from latest code & assets so we test the exact current state
@@ -97,13 +105,122 @@ public static class Orla3DParallaxVerifier
             }
         }
 
+        // Capture mobile small-screen aspect (854x480) at Cart to inspect mobile legibility!
+        PositionPlayerAndCamera(player, cam, story, new Vector3(-1.4f, 0f, -2.0f));
+        StepParallaxAndShadows(parallax, contactShadows);
+        RenderToPng(cam, Path.Combine(outDir, "09_mobile_854x480_cart.png"), 854, 480);
+
         // Grounding & Water-level audit
         sb.AppendLine();
         sb.AppendLine("=== GROUNDING & WATER ALIGNMENT AUDIT ===");
         AuditGrounding(sb, ambient, parallax);
 
+        // Automated End-to-End Mission Verification (Ch1 start -> craft -> wrong recipient -> Luna delivery -> 0/1 to 1/1 -> upgrade)
+        sb.AppendLine();
+        sb.AppendLine("=== END-TO-END MISSION FLOW AUDIT ===");
+        AuditMissionEndToEnd(sb, story);
+
+        // Automated End-to-End Fairground Businesses & Upgrades Verification (Priority 4 & 5)
+        sb.AppendLine();
+        sb.AppendLine("=== END-TO-END FAIRGROUND BUSINESSES & UPGRADES AUDIT ===");
+        AuditFairBusinessesEndToEnd(sb);
+
         File.WriteAllText(Path.Combine(outDir, "report.txt"), sb.ToString());
-        Debug.Log("[Orla3DParallaxVerifier] Done! Saved screenshots & report to " + outDir);
+        Debug.Log("[Orla3DParallaxVerifier] Done! Saved 9 screenshots & full report to " + outDir);
+    }
+
+    private static void AuditFairBusinessesEndToEnd(StringBuilder sb)
+    {
+        GirlPowerOrla3DFairBusinesses fair = UnityEngine.Object.FindObjectOfType<GirlPowerOrla3DFairBusinesses>();
+        if (fair == null) { sb.AppendLine("  FAIL: GirlPowerOrla3DFairBusinesses not found in scene."); return; }
+        InvokePrivate(fair, "Start");
+
+        int startOranges = fair.OrangesStock;
+        bool harvO = fair.TryHarvestOranges();
+        bool fruitHidden = fair.orangeTreePrimaryFruitGroup != null && !fair.orangeTreePrimaryFruitGroup.activeSelf;
+        sb.AppendLine("  [1] Harvest Oranges: ok=" + harvO + ", stock " + startOranges + "->" + fair.OrangesStock + ", fruitHidden=" + fruitHidden);
+
+        int startMint = fair.MintStock;
+        bool harvM = fair.TryHarvestMint();
+        sb.AppendLine("  [2] Harvest Mint: ok=" + harvM + ", stock " + startMint + "->" + fair.MintStock);
+
+        int beforeJuice = fair.OrangesStock;
+        bool servedJuice = fair.TryServeJuiceOrder("Suco de Laranja");
+        sb.AppendLine("  [3] Serve Suco de Laranja: ok=" + servedJuice + ", oranges " + beforeJuice + "->" + fair.OrangesStock + ", orders=" + fair.FairOrdersCompleted);
+
+        bool wrongCraft = fair.TryServeCraftOrder("Brinco", "Rosa", "Estrela");
+        bool rightCraft = fair.TryServeCraftOrder("Pulseira", "Turquesa", "Concha");
+        sb.AppendLine("  [4] Craft Studio: wrongRejected=" + (!wrongCraft) + ", rightAccepted=" + rightCraft + ", orders=" + fair.FairOrdersCompleted);
+
+        bool servedCandy = fair.TryServeCandyOrder("Cocada da Praia", 2);
+        sb.AppendLine("  [5] Candy Shop (2x Cocada): ok=" + servedCandy + ", candyStock=" + fair.CandyStock + ", orders=" + fair.FairOrdersCompleted);
+
+        fair.AssignFriend("Nina", GirlPowerOrla3DFairBusinesses.StallKind.Juice);
+        fair.AssignFriend("Bia", GirlPowerOrla3DFairBusinesses.StallKind.Candy);
+        sb.AppendLine("  [6] Flexible Friends: Nina=" + fair.NinaAssignment + ", Bia=" + fair.BiaAssignment);
+
+        bool upg0 = fair.TryPurchaseUpgrade(0);
+        bool upg0Vis = fair.upgradePinkAwningsGroup != null && fair.upgradePinkAwningsGroup.activeSelf;
+        bool upg1 = fair.TryPurchaseUpgrade(1);
+        bool upg1Vis = fair.upgradeSecondOrangeTreeGroup != null && fair.upgradeSecondOrangeTreeGroup.activeSelf;
+        sb.AppendLine("  [7] Visible Upgrades: PinkAwnings(ok=" + upg0 + ", vis=" + upg0Vis + "), SecondOrangeTree(ok=" + upg1 + ", vis=" + upg1Vis + ")");
+    }
+
+    private static void AuditMissionEndToEnd(StringBuilder sb, GirlPowerOrla3DFirstDelivery story)
+    {
+        if (story == null) { sb.AppendLine("  FAIL: GirlPowerOrla3DFirstDelivery not found."); return; }
+        var t = story.GetType();
+        var fPhase = t.GetField("phase", BindingFlags.Instance | BindingFlags.NonPublic);
+        var fTreat = t.GetField("selectedTreatType", BindingFlags.Instance | BindingFlags.NonPublic);
+        var fBase = t.GetField("selectedBaseFlavor", BindingFlags.Instance | BindingFlags.NonPublic);
+        var fExtras = t.GetField("selectedExtras", BindingFlags.Instance | BindingFlags.NonPublic);
+        var fOnCraft = t.GetField("onCraftComplete", BindingFlags.Instance | BindingFlags.NonPublic);
+        var mConfirm = t.GetMethod("ConfirmConeAssembly", BindingFlags.Instance | BindingFlags.NonPublic);
+        var mWarnWrong = t.GetMethod("TryWarnWrongDeliveryRecipient", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        // 1. Reset to Chapter 1
+        story.JumpToChapter(1);
+        sb.AppendLine("  [1] JumpToChapter(1) -> phase=" + fPhase?.GetValue(story) + " (expected Ch1_AtCart)");
+
+        // 2. Reject wrong flavor (Morango)
+        fTreat?.SetValue(story, "Sorvete");
+        fBase?.SetValue(story, "Morango");
+        mConfirm?.Invoke(story, null);
+        sb.AppendLine("  [2] Wrong flavor (Morango) -> phase=" + fPhase?.GetValue(story) + " (expected Ch1_AtCart)");
+
+        // 3. Reject wrong treat (Picolé)
+        fTreat?.SetValue(story, "Picolé");
+        fBase?.SetValue(story, "Limão");
+        mConfirm?.Invoke(story, null);
+        sb.AppendLine("  [3] Wrong treat (Picolé) -> phase=" + fPhase?.GetValue(story) + " (expected Ch1_AtCart)");
+
+        // 4. Accept correct order (Sorvete + Limão + free toppings Confete + Kit Kat)
+        fTreat?.SetValue(story, "Sorvete");
+        fBase?.SetValue(story, "Limão");
+        if (fExtras?.GetValue(story) is List<string> extras)
+        {
+            extras.Clear();
+            extras.Add("Confete");
+            extras.Add("Kit Kat");
+        }
+        mConfirm?.Invoke(story, null);
+        if (fOnCraft?.GetValue(story) is Action cb) cb.Invoke();
+        sb.AppendLine("  [4] Correct order + 2 extras -> phase=" + fPhase?.GetValue(story) + " (expected Ch1_Delivering)");
+
+        // 5. Wrong customer warning check
+        bool warned = mWarnWrong != null && (bool)mWarnWrong.Invoke(story, new object[] { "Bia", story.friendBia });
+        sb.AppendLine("  [5] Wrong customer (Bia) warned=" + warned + ", phase=" + fPhase?.GetValue(story) + " (expected True, Ch1_Delivering)");
+
+        // 6. Deliver to Florist Luna
+        if (story.player != null && story.florist != null)
+        {
+            story.player.position = story.florist.position + new Vector3(0f, 0f, -1.2f);
+            story.Interact();
+        }
+        sb.AppendLine("  [6] Deliver to Luna -> phase=" + fPhase?.GetValue(story) + " (expected Ch1_ReturningForUpgrade)");
+
+        // Clean restore back to Ch1 start so saved scene stays fresh
+        story.JumpToChapter(1);
     }
 
     private static void PositionPlayerAndCamera(Transform player, Camera cam, GirlPowerOrla3DFirstDelivery story, Vector3 playerPos)

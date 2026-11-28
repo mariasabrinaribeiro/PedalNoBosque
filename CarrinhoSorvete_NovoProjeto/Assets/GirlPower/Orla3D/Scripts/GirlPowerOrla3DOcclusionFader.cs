@@ -14,9 +14,9 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
     public Transform player;
     public Camera targetCamera;
     public Transform[] occluderRoots;
-    public float cutoutRadius = 1.35f;
-    public float fadedAlpha = 0.28f;
-    public float fadeSpeed = 9.0f;
+    public float cutoutRadius = 1.45f;
+    public float fadedAlpha = 0.20f;
+    public float fadeSpeed = 10.0f;
 
     private static readonly int PropPlayerPos = Shader.PropertyToID("_BaiaPlayerPos");
     private static readonly int PropCamPos = Shader.PropertyToID("_BaiaCamPos");
@@ -32,6 +32,7 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
         public Material[] fadeMats;
         public float alpha = 1f;
         public bool usingFade;
+        public bool toggleOnly;
     }
 
     private readonly List<CoverEntry> covers = new List<CoverEntry>();
@@ -76,30 +77,31 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
             foreach (MeshRenderer mr in root.GetComponentsInChildren<MeshRenderer>(true))
             {
                 if (mr == null) continue;
-                string n = mr.gameObject.name;
-                bool isOverheadMesh = n.Contains("CanopyFade") || n.Contains("RoofFade") || n.Contains("Umb");
+                bool isTmp = mr.GetComponent<TMPro.TMP_Text>() != null;
                 Material[] shared = mr.sharedMaterials;
                 if (shared == null || shared.Length == 0) continue;
 
-                bool hasHouseRoofMat = false;
-                for (int m = 0; m < shared.Length; m++)
+                if (isTmp)
                 {
-                    if (shared[m] != null && shared[m].name.Contains("HouseRoof"))
+                    covers.Add(new CoverEntry
                     {
-                        hasHouseRoofMat = true;
-                        break;
-                    }
+                        renderer = mr,
+                        opaqueMats = shared,
+                        fadeMats = shared,
+                        alpha = 1f,
+                        usingFade = false,
+                        toggleOnly = true
+                    });
+                    continue;
                 }
 
-                if (!isOverheadMesh && !hasHouseRoofMat) continue;
-
+                // Fade ANY commercial stall, lanchonete wall, umbrella, canopy, or building standing
+                // directly between the camera and the protagonist — while keeping everything 100% opaque otherwise!
                 Material[] fadeList = new Material[shared.Length];
                 for (int m = 0; m < shared.Length; m++)
                 {
                     Material src = shared[m];
-                    if (src == null) continue;
-                    bool shouldFadeSlot = isOverheadMesh || src.name.Contains("HouseRoof");
-                    fadeList[m] = shouldFadeSlot ? GetOrCreateFadeMat(src) : src;
+                    fadeList[m] = src != null ? GetOrCreateFadeMat(src) : null;
                 }
 
                 covers.Add(new CoverEntry
@@ -108,7 +110,8 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
                     opaqueMats = shared,
                     fadeMats = fadeList,
                     alpha = 1f,
-                    usingFade = false
+                    usingFade = false,
+                    toggleOnly = false
                 });
             }
         }
@@ -145,13 +148,17 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
         if (player == null || targetCamera == null || covers.Count == 0) return;
 
         Vector3 camPos = targetCamera.transform.position;
-        Vector3 focus = player.position + Vector3.up * 0.95f;
-        Vector3 seg = focus - camPos;
-        float segLen = seg.magnitude;
-        if (segLen < 0.5f) return;
-        Vector3 rayDir = seg / segLen;
+        Vector3 focusMid = player.position + Vector3.up * 0.90f;
+        Vector3 focusHead = player.position + Vector3.up * 1.48f;
+        Vector3 segMid = focusMid - camPos;
+        float segMidLen = segMid.magnitude;
+        if (segMidLen < 0.5f) return;
+        Vector3 rayMidDir = segMid / segMidLen;
+        Vector3 segHead = focusHead - camPos;
+        float segHeadLen = segHead.magnitude;
+        Vector3 rayHeadDir = segHeadLen > 0.1f ? (segHead / segHeadLen) : rayMidDir;
 
-        Shader.SetGlobalVector(PropPlayerPos, new Vector4(focus.x, focus.y, focus.z, 1f));
+        Shader.SetGlobalVector(PropPlayerPos, new Vector4(focusMid.x, focusMid.y, focusMid.z, 1f));
         Shader.SetGlobalVector(PropCamPos, new Vector4(camPos.x, camPos.y, camPos.z, 1f));
         Shader.SetGlobalFloat(PropActive, 0f);
 
@@ -163,11 +170,19 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
             if (c.renderer == null || !c.renderer.gameObject.activeInHierarchy) continue;
 
             Bounds b = c.renderer.bounds;
-            bool blocking = IsBoundsBlockingRay(b, camPos, rayDir, segLen, cutoutRadius);
+            bool blocking = IsBoundsBlockingRay(b, camPos, rayMidDir, segMidLen, cutoutRadius)
+                         || IsBoundsBlockingRay(b, camPos, rayHeadDir, segHeadLen, cutoutRadius * 0.85f);
             float targetAlpha = blocking ? fadedAlpha : 1f;
             c.alpha = Mathf.Lerp(c.alpha, targetAlpha, blend);
             if (Mathf.Abs(c.alpha - targetAlpha) < 0.015f)
                 c.alpha = targetAlpha;
+
+            if (c.toggleOnly)
+            {
+                bool showSign = c.alpha > 0.55f;
+                if (c.renderer.enabled != showSign) c.renderer.enabled = showSign;
+                continue;
+            }
 
             if (c.alpha < 0.985f)
             {
@@ -198,13 +213,10 @@ public sealed class GirlPowerOrla3DOcclusionFader : MonoBehaviour
 
     private static bool IsBoundsBlockingRay(Bounds b, Vector3 origin, Vector3 dir, float maxLen, float pad)
     {
-        // Only treat covers physically located between the camera and the protagonist
-        Vector3 toCenter = b.center - origin;
-        float proj = Vector3.Dot(toCenter, dir);
-        if (proj < 1.2f || proj > maxLen - 0.35f) return false;
-
-        Vector3 closestOnRay = origin + dir * proj;
-        Bounds expanded = new Bounds(b.center, b.size + new Vector3(pad * 0.65f, 0.35f, pad * 0.65f));
-        return expanded.Contains(closestOnRay);
+        // Exact Ray-vs-Expanded-AABB intersection strictly between camera and protagonist!
+        Bounds expanded = new Bounds(b.center, b.size + new Vector3(pad * 0.55f, 0.30f, pad * 0.55f));
+        Ray ray = new Ray(origin, dir);
+        if (!expanded.IntersectRay(ray, out float hitDist)) return false;
+        return hitDist >= 0.35f && hitDist < (maxLen - 0.55f);
     }
 }

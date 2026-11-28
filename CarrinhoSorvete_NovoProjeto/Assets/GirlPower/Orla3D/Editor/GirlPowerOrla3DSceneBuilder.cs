@@ -22,7 +22,7 @@ public static class GirlPowerOrla3DSceneBuilder
     private const string OceanShaderName = "GirlPower/OrlaACNHOcean";
     private const string FadeShaderName = "GirlPower/OrlaACNHCozyFade";
 
-    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v44_Parallax3DReal_CamadasAlinhadas";
+    private const string BuildVersionKey = "GirlPower_Orla3D_SceneVersion_v50_CampoDeVisao_ComercioAberto_CameraLivre";
 
     static GirlPowerOrla3DSceneBuilder()
     {
@@ -51,12 +51,12 @@ public static class GirlPowerOrla3DSceneBuilder
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.62f, 0.56f, 0.72f);
-        RenderSettings.ambientEquatorColor = new Color(0.76f, 0.62f, 0.64f);
-        RenderSettings.ambientGroundColor = new Color(0.36f, 0.26f, 0.30f);
+        RenderSettings.ambientSkyColor = new Color(0.54f, 0.64f, 0.78f);
+        RenderSettings.ambientEquatorColor = new Color(0.72f, 0.68f, 0.64f);
+        RenderSettings.ambientGroundColor = new Color(0.34f, 0.30f, 0.32f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.72f, 0.74f, 0.88f);
+        RenderSettings.fogColor = new Color(0.62f, 0.78f, 0.90f);
         RenderSettings.fogStartDistance = 58f;
         RenderSettings.fogEndDistance = 135f;
 
@@ -106,51 +106,68 @@ public static class GirlPowerOrla3DSceneBuilder
         GameObject kioskAwningUpgrade = PlaceModel(root.transform, "KioskAwningUpgrade", "Melhoria - Toldo Listrado", new Vector3(-2.2f, 0f, -14.8f), 0f, 1f, cozyMats);
         if (kioskAwningUpgrade != null) kioskAwningUpgrade.SetActive(false);
 
-        // 5. Floricultura da Luna aberta diretamente para o calçadão, sem toldos azuis tampando a fachada nem a placa!
-        GameObject floristStand = PlaceModel(root.transform, "FloristStand", "Banca da Florista - Orla das Fadas", new Vector3(21.8f, 0f, -6.2f), 0f, 1f, cozyMats);
+        // 5. Floricultura da Luna proporcionada (escala 0.82, recuada em z = -5.2) com detalhes rosa da paleta da abertura e amplo espaço à frente!
+        GameObject floristStand = PlaceModel(root.transform, "FloristStand", "Banca da Florista - Orla das Fadas", new Vector3(21.8f, 0f, -5.2f), 0f, 0.82f, cozyMats);
         if (floristStand != null)
         {
-            AddBlockingBox(floristStand, new Vector3(0f, 1.9f, 0.12f), new Vector3(4.0f, 3.8f, 1.85f), obstacles);
-            Make3DText(floristStand.transform, "Titulo Florista", new Vector3(0f, 2.86f, -0.92f), "FLORES DA LUNA", 1.22f, new Color32(34, 24, 20, 255), new Vector2(2.45f, 0.38f));
+            AddBlockingBox(floristStand, new Vector3(0f, 1.9f, 0.12f), new Vector3(3.8f, 3.6f, 1.80f), obstacles);
+            Make3DText(floristStand.transform, "Titulo Florista", new Vector3(0f, 2.54f, -0.92f), "FLORES DA LUNA", 1.16f, new Color32(58, 22, 38, 255), new Vector2(2.45f, 0.38f));
         }
 
         List<Transform> breezeCurtains = new List<Transform>();
-        GameObject curtL = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Esq", new Vector3(20.15f, 2.40f, -7.05f), 0f, 0.90f, cozyMats);
-        GameObject curtR = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Dir", new Vector3(23.45f, 2.40f, -7.05f), 0f, 0.90f, cozyMats);
+        GameObject curtL = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Esq", new Vector3(20.45f, 1.96f, -5.92f), 0f, 0.74f, cozyMats);
+        GameObject curtR = PlaceModel(root.transform, "FloristCurtain", "Cortina Florista Dir", new Vector3(23.15f, 1.96f, -5.92f), 0f, 0.74f, cozyMats);
+        if (cozyMats.TryGetValue("AC_PinkSoft", out Material roseCurtMat))
+        {
+            foreach (GameObject cObj in new[] { curtL, curtR })
+            {
+                if (cObj == null) continue;
+                foreach (MeshRenderer cmr in cObj.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    Material[] sm = cmr.sharedMaterials;
+                    for (int mi = 0; mi < sm.Length; mi++) sm[mi] = roseCurtMat;
+                    cmr.sharedMaterials = sm;
+                }
+            }
+        }
         if (curtL != null) breezeCurtains.Add(curtL.transform);
         if (curtR != null) breezeCurtains.Add(curtR.transform);
 
-        // 5b. Pavilhão Orla das Fadas deslocado para a ala leste (x = 30.8) para deixar a Floricultura 100% em destaque!
-        GameObject pavilion = PlaceModel(root.transform, "PavilionBay", "Pavilhao Orla das Fadas", new Vector3(30.8f, -0.02f, -10.8f), 0f, 1f, cozyMats);
-        TextMeshPro pavilionFadedText = Make3DText(root.transform, "Letreiro Apagado Pavilhao", new Vector3(30.8f, 3.34f, -9.15f), "ORLA DAS FADAS", 1.55f, new Color32(198, 186, 166, 175), new Vector2(2.8f, 0.45f));
+        // 5b. Pavilhão Orla das Fadas (v49: aberto sem pilar central, teto com fade automático, letreiro frontal voltado à câmera!)
+        Vector3 pavilionPos = new Vector3(30.8f, -0.02f, -10.8f);
+        GameObject pavilion = PlaceModel(root.transform, "PavilionBay", "Pavilhao Orla das Fadas", pavilionPos, 0f, 1f, cozyMats);
+        GameObject pavilionRoof = PlaceModel(root.transform, "PavilionBay_RoofFade", "Pavilhao - Teto Transparente", pavilionPos, 0f, 1f, cozyMats);
+        Transform pavSignParent = pavilionRoof != null ? pavilionRoof.transform : root.transform;
+        Vector3 pavSignBase = pavilionRoof != null ? Vector3.zero : pavilionPos;
+        TextMeshPro pavilionFadedText = Make3DText(pavSignParent, "Letreiro Apagado Pavilhao", pavSignBase + new Vector3(0f, 3.58f, -2.14f), "ORLA DAS FADAS", 1.55f, new Color32(198, 186, 166, 195), new Vector2(2.8f, 0.45f));
 
         // Festival restoration props (hidden until Chapter 3/Finale restores the Pavilion!)
-        GameObject pavilionFestivalTable = PlaceModel(root.transform, "PavilionFestivalTable", "Pavilhao - Mesa Comprida", new Vector3(30.8f, 0.36f, -10.8f), 0f, 1f, cozyMats);
+        GameObject pavilionFestivalTable = PlaceModel(root.transform, "PavilionFestivalTable", "Pavilhao - Mesa Comprida", new Vector3(30.8f, 0.385f, -10.8f), 0f, 1f, cozyMats);
         if (pavilionFestivalTable != null) pavilionFestivalTable.SetActive(false);
 
-        GameObject pavilionFestivalLights = PlaceModel(root.transform, "PavilionFestivalLights", "Pavilhao - Luzes e Letreiro Restaurado", new Vector3(30.8f, -0.02f, -10.8f), 0f, 1f, cozyMats);
+        GameObject pavilionFestivalLights = PlaceModel(pavSignParent, "PavilionFestivalLights", "Pavilhao - Luzes e Letreiro Restaurado", pavSignBase, 0f, 1f, cozyMats);
         if (pavilionFestivalLights != null) pavilionFestivalLights.SetActive(false);
 
-        GameObject pavilionFestivalDishes = PlaceModel(root.transform, "FestivalDishesProp", "Pavilhao - Pratos e Vasinhos da Festa", new Vector3(30.8f, 0.36f, -10.8f), 0f, 1f, cozyMats);
+        GameObject pavilionFestivalDishes = PlaceModel(root.transform, "FestivalDishesProp", "Pavilhao - Pratos e Vasinhos da Festa", new Vector3(30.8f, 0.385f, -10.8f), 0f, 1f, cozyMats);
         if (pavilionFestivalDishes != null) pavilionFestivalDishes.SetActive(false);
 
-        TextMeshPro pavilionRestoredText = Make3DText(root.transform, "Letreiro Restaurado Pavilhao", new Vector3(30.8f, 3.36f, -9.22f), "ORLA DAS FADAS", 1.75f, new Color32(255, 245, 205, 255), new Vector2(3.0f, 0.50f));
+        TextMeshPro pavilionRestoredText = Make3DText(pavSignParent, "Letreiro Restaurado Pavilhao", pavSignBase + new Vector3(0f, 3.60f, -2.18f), "ORLA DAS FADAS", 1.75f, new Color32(255, 245, 205, 255), new Vector2(3.0f, 0.50f));
         pavilionRestoredText.gameObject.SetActive(false);
 
         List<Light> pavilionPointLights = new List<Light>();
         pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Centro", new Vector3(30.8f, 2.5f, -10.8f), 2.1f, 11.5f));
-        pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Frente", new Vector3(30.8f, 2.9f, -8.75f), 1.6f, 9.0f));
+        pavilionPointLights.Add(CreateWarmLight(root.transform, "Luz Pavilhao Frente", new Vector3(30.8f, 2.9f, -12.65f), 1.6f, 9.0f));
         foreach (Light pl in pavilionPointLights) pl.enabled = false;
 
-        // Barracas agrupadas na praça lateral (z = -14.2) abrindo uma ampla praça de circulação e deixando a Floricultura & Café em evidência!
-        GameObject stallCoco = PlaceModel(root.transform, "MarketStall_Frutas", "Barraca - Frutas e Sucos", new Vector3(11.8f, 0f, -14.2f), 0f, 0.92f, cozyMats);
-        GameObject stallArt = PlaceModel(root.transform, "MarketStall_Artesanato", "Barraca - Artesanato", new Vector3(16.0f, 0f, -14.2f), 0f, 0.92f, cozyMats);
-        GameObject stallPlantas = PlaceModel(root.transform, "MarketStall_Plantas", "Barraca - Plantas Naturais", new Vector3(20.2f, 0f, -14.2f), 0f, 0.92f, cozyMats);
-        GameObject stallSushi = PlaceModel(root.transform, "MarketStall_Sushi", "Barraca - Sushi da Baia", new Vector3(-10.6f, 0f, -14.4f), 0f, 0.92f, cozyMats);
-        GameObject stallComida = PlaceModel(root.transform, "MarketStall_Comida", "Barraca - Pastel e Caldo", new Vector3(-10.6f, 0f, -9.2f), -18f, 0.92f, cozyMats);
-        GameObject stallRoupas = PlaceModel(root.transform, "MarketStall_Roupas", "Barraca - Roupas da Orla", new Vector3(25.4f, 0f, -14.2f), 0f, 0.92f, cozyMats);
-        GameObject stallDoces = PlaceModel(root.transform, "MarketStall_Doces", "Barraca - Doces e Cupcakes", new Vector3(-20.6f, 0f, -12.6f), 0f, 0.92f, cozyMats);
-        GameObject stallSucos = PlaceModel(root.transform, "MarketStall_SucosRefri", "Barraca - Sucos, Agua e Refri", new Vector3(34.6f, 0f, -14.2f), 0f, 0.92f, cozyMats);
+        // Barracas organizadas com corredores amplos (2.4m–4.4m entre cada comércio!) para circular livremente sem bloqueio de visão!
+        GameObject stallCoco = PlaceModel(root.transform, "MarketStall_Frutas", "Barraca - Frutas e Sucos", new Vector3(13.2f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallArt = PlaceModel(root.transform, "MarketStall_Artesanato", "Barraca - Artesanato", new Vector3(18.0f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallPlantas = PlaceModel(root.transform, "MarketStall_Plantas", "Barraca - Plantas Naturais", new Vector3(22.8f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallSushi = PlaceModel(root.transform, "MarketStall_Sushi", "Barraca - Sushi da Baia", new Vector3(-11.2f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallComida = PlaceModel(root.transform, "MarketStall_Comida", "Barraca - Pastel e Caldo", new Vector3(-21.0f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallRoupas = PlaceModel(root.transform, "MarketStall_Roupas", "Barraca - Roupas da Orla", new Vector3(27.6f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallDoces = PlaceModel(root.transform, "MarketStall_Doces", "Barraca - Doces e Cupcakes", new Vector3(-25.6f, 0f, -16.6f), 0f, 0.90f, cozyMats);
+        GameObject stallSucos = PlaceModel(root.transform, "MarketStall_SucosRefri", "Barraca - Sucos, Agua e Refri", new Vector3(34.8f, 0f, -16.6f), 0f, 0.90f, cozyMats);
         var stallSigns = new (GameObject stall, string signName, string label)[]
         {
             (stallCoco,    "Placa Frutas e Sucos", "FRUTAS & SUCOS"),
@@ -170,24 +187,29 @@ public static class GirlPowerOrla3DSceneBuilder
             Make3DText(entry.stall.transform, entry.signName, new Vector3(0f, 2.34f, -0.68f), entry.label, 1.04f, new Color32(42, 30, 26, 255), new Vector2(2.15f, 0.34f));
         }
 
-        // 6a. Restaurante "Batata & Mar" na ala gastronômica esquerda (recuado atrás da pastelaria, sem invadir a passagem!)
-        GameObject restKitchen = PlaceModel(root.transform, "RestaurantFriesKitchen", "Restaurante Batata e Mar", new Vector3(-15.8f, 0f, -12.6f), 0f, 1f, cozyMats);
+        // 6a. Restaurante "Batata & Mar" alinhado na ala gastronômica oeste com corredor aberto dos dois lados (ZERO sobreposição!)
+        GameObject restKitchen = PlaceModel(root.transform, "RestaurantFriesKitchen", "Restaurante Batata e Mar", new Vector3(-16.0f, 0f, -16.6f), 0f, 1f, cozyMats);
         if (restKitchen != null)
         {
             AddBlockingBox(restKitchen, new Vector3(0f, 1.3f, 0.05f), new Vector3(3.45f, 2.6f, 1.35f), obstacles);
             Make3DText(restKitchen.transform, "Placa Restaurante", new Vector3(0f, 2.34f, -0.82f), "BATATA & MAR", 1.12f, new Color32(42, 30, 26, 255), new Vector2(2.85f, 0.36f));
         }
-        // Pavilion: 4 solid corner pillars so stairs & interior festival table remain 100% walkable!
+        // Pavilion: 4 exact corner pillars + back-right chest + solid festival table/benches collider (only active during Finale)!
         if (pavilion != null)
         {
-            AddBlockingBox(pavilion, new Vector3(-2.55f, 2.0f, -1.65f), new Vector3(0.45f, 4.0f, 0.45f), obstacles);
-            AddBlockingBox(pavilion, new Vector3( 2.55f, 2.0f, -1.65f), new Vector3(0.45f, 4.0f, 0.45f), obstacles);
-            AddBlockingBox(pavilion, new Vector3(-2.55f, 2.0f,  1.65f), new Vector3(0.45f, 4.0f, 0.45f), obstacles);
-            AddBlockingBox(pavilion, new Vector3( 2.55f, 2.0f,  1.65f), new Vector3(0.45f, 4.0f, 0.45f), obstacles);
+            AddBlockingBox(pavilion, new Vector3(-2.45f, 1.8f, -1.75f), new Vector3(0.44f, 3.6f, 0.44f), obstacles);
+            AddBlockingBox(pavilion, new Vector3( 2.45f, 1.8f, -1.75f), new Vector3(0.44f, 3.6f, 0.44f), obstacles);
+            AddBlockingBox(pavilion, new Vector3(-2.45f, 1.8f,  1.75f), new Vector3(0.44f, 3.6f, 0.44f), obstacles);
+            AddBlockingBox(pavilion, new Vector3( 2.45f, 1.8f,  1.75f), new Vector3(0.44f, 3.6f, 0.44f), obstacles);
+            AddBlockingBox(pavilion, new Vector3( 2.08f, 0.62f, 1.32f), new Vector3(0.76f, 1.1f, 0.54f), obstacles);
+        }
+        if (pavilionFestivalTable != null)
+        {
+            AddBlockingBox(pavilionFestivalTable, new Vector3(0f, 0.65f, 0f), new Vector3(3.08f, 1.3f, 2.18f), obstacles);
         }
 
-        // 6a2. Enterable "Café das Fadas" recuado atrás do recuo de mesas à direita (passagem central 100% aberta!)
-        Vector3 cafePos = new Vector3(6.4f, -0.08f, -14.2f);
+        // 6a2. Enterable "Café das Fadas" (Lanchonete) recuada em z = -15.6 com praça de 3.9m à frente e corredores largos dos dois lados!
+        Vector3 cafePos = new Vector3(5.8f, -0.08f, -15.6f);
         GameObject cafeBase = PlaceModel(root.transform, "CoastalCafe_Base", "Cafe das Fadas - Interior", cafePos, 0f, 1f, cozyMats);
         GameObject cafeRoof = PlaceModel(root.transform, "CoastalCafe_RoofFade", "Cafe das Fadas - Teto Transparente", cafePos, 0f, 1f, cozyMats);
         if (cafeBase != null)
@@ -200,8 +222,12 @@ public static class GirlPowerOrla3DSceneBuilder
             AddBlockingBox(cafeBase, new Vector3( 2.12f, 1.8f, 2.05f), new Vector3(1.85f, 3.6f, 0.35f), obstacles);
             AddBlockingBox(cafeBase, new Vector3(0f, 0.7f, -1.25f), new Vector3(3.6f, 1.4f, 0.85f), obstacles); // Pastry counter
         }
-        // Keep cafeRoof 100% opaque (ZWrite On) until the player actually enters Café das Fadas!
-        Make3DText(root.transform, "Placa Cafe das Fadas", cafePos + new Vector3(0f, 3.02f, 2.86f), "CAFÉ DAS FADAS", 1.35f, new Color32(58, 36, 26, 255), new Vector2(2.8f, 0.44f));
+        // Legible "CAFÉ DAS FADAS" signage on BOTH the boardwalk entrance (+Z, rotated 180°) AND south fascia (-Z), fading smoothly with cafeRoof!
+        Transform cafeSignParent = cafeRoof != null ? cafeRoof.transform : root.transform;
+        Vector3 cafeSignBase = cafeRoof != null ? Vector3.zero : cafePos;
+        TextMeshPro cafeFrontSign = Make3DText(cafeSignParent, "Placa Cafe das Fadas", cafeSignBase + new Vector3(0f, 3.02f, 2.88f), "CAFÉ DAS FADAS", 1.35f, new Color32(58, 36, 26, 255), new Vector2(2.8f, 0.44f));
+        if (cafeFrontSign != null) cafeFrontSign.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+        Make3DText(cafeSignParent, "Placa Cafe das Fadas Sul", cafeSignBase + new Vector3(0f, 3.02f, -2.22f), "CAFÉ DAS FADAS", 1.25f, new Color32(58, 36, 26, 255), new Vector2(2.8f, 0.44f));
 
         // 6a3. Low Coastal Town Facades placed well behind the furthest camera Z (z = -36.0) & outer flanks -> ZERO foreground camera blocking!
         float[] facadeXs = { -28.0f, 42.0f };
@@ -217,8 +243,8 @@ public static class GirlPowerOrla3DSceneBuilder
         List<Transform> floatingLanterns = new List<Transform>();
         Vector3[] lanternSpots =
         {
-            new Vector3(-7.4f, 2.95f, -8.8f), new Vector3(3.4f, 2.95f, -9.8f), new Vector3(9.0f, 2.95f, -9.8f),
-            new Vector3(15.6f, 2.95f, -8.8f), new Vector3(24.0f, 3.05f, -7.2f)
+            new Vector3(-7.4f, 2.95f, -8.8f), new Vector3(2.4f, 2.95f, -11.4f), new Vector3(9.4f, 2.95f, -11.4f),
+            new Vector3(15.6f, 2.95f, -9.8f), new Vector3(24.0f, 3.05f, -7.2f)
         };
         for (int i = 0; i < lanternSpots.Length; i++)
         {
@@ -226,25 +252,24 @@ public static class GirlPowerOrla3DSceneBuilder
             if (fl != null) floatingLanterns.Add(fl.transform);
         }
 
-        // Flower lamp posts placed back in the Lateral Plaza corners (never blocking the protagonist or delivery crossings!)
-        Vector3[] flowerLampSpots = { new Vector3(-5.8f, 0f, -8.2f), new Vector3(10.6f, 0f, -8.2f), new Vector3(21.4f, 0f, -8.2f) };
+        // Flower lamp posts placed far to outer corners — ZERO poles crossing protagonist, Cart, Florist Luna, Café, or Pavilion!
+        Vector3[] flowerLampSpots = { new Vector3(-6.4f, 0f, -9.8f), new Vector3(11.6f, 0f, -11.4f), new Vector3(24.6f, 0f, -11.8f) };
         for (int i = 0; i < flowerLampSpots.Length; i++)
         {
             GameObject flp = PlaceModel(root.transform, "FlowerLampPost", "Poste com Flores " + (i + 1), flowerLampSpots[i], i == 1 ? 180f : 0f, 0.96f, cozyMats);
             if (flp != null) AddBlockingBox(flp, new Vector3(0f, 1.6f, 0f), new Vector3(0.36f, 3.2f, 0.36f), obstacles);
         }
 
-        // Pet-Friendly Café Tables grouped cleanly in the RIGHT-HAND RECESS (x = 5.4..13.0, z = -7.6)
-        // marking Café das Fadas by its unmistakable round tables & smooth domed umbrellas while keeping central passage wide open!
+        // Pet-Friendly Café Tables nicely spaced in front of Café das Fadas (3.9m wide open plaza between doorway & tables!)
         List<Transform> restaurantTables = new List<Transform>();
         List<GameObject> restaurantCustomers = new List<GameObject>();
         Vector3[] tableCoords =
         {
-            new Vector3(5.4f, 0f, -7.6f),
-            new Vector3(9.2f, 0f, -7.6f),
-            new Vector3(13.0f, 0f, -7.6f)
+            new Vector3(2.6f, 0f, -9.6f),
+            new Vector3(6.2f, 0f, -9.6f),
+            new Vector3(9.8f, 0f, -9.6f)
         };
-        string[] umbrellaAccentMatNames = { "AC_MintTeal", "AC_Terracotta", "AC_SunnyYellow" };
+        string[] umbrellaAccentMatNames = { "AC_MintTeal", "AC_PinkSoft", "AC_Lavender" };
         for (int i = 0; i < tableCoords.Length; i++)
         {
             GameObject tbl = PlaceModel(root.transform, "RestaurantKioskTable", "Mesa Quiosque Batata Frita " + (i + 1), tableCoords[i], i * 18f, 1.04f, cozyMats);
@@ -312,10 +337,10 @@ public static class GirlPowerOrla3DSceneBuilder
         }
 
         List<Transform> swayingFestoons = new List<Transform>();
-        float[] festoonXs = { 12.2f, 16.8f, 21.2f };
+        float[] festoonXs = { 6.2f, 10.8f, 15.4f };
         for (int i = 0; i < festoonXs.Length; i++)
         {
-            GameObject fest = PlaceModel(root.transform, "FestoonLights", "Varal de Bandeirinhas " + (i + 1), new Vector3(festoonXs[i], 3.15f, -11.6f), 0f, 0.82f, cozyMats);
+            GameObject fest = PlaceModel(root.transform, "FestoonLights", "Varal de Bandeirinhas " + (i + 1), new Vector3(festoonXs[i], 3.70f, -15.4f), 0f, 0.80f, cozyMats);
             if (fest != null) swayingFestoons.Add(fest.transform);
         }
 
@@ -464,8 +489,8 @@ public static class GirlPowerOrla3DSceneBuilder
             idleCharacters.Add(friendNina.transform);
         }
 
-        // Amiga 2: Bia (relaxing in the Café das Fadas courtyard — completely clear of the Cart & signpost!)
-        GameObject friendBia = PlaceModel(root.transform, "Char_FriendBia", "Amiga 2 - Bia (Praca)", new Vector3(9.2f, 0f, -9.8f), 194f, 1.0f, cozyMats);
+        // Amiga 2: Bia cheerfully waiting near the right side of the Cart (featured in the right-side Opening Showcase, completely clear of the walkway!)
+        GameObject friendBia = PlaceModel(root.transform, "Char_FriendBia", "Amiga 2 - Bia (Praca)", new Vector3(2.45f, 0f, -3.85f), 212f, 1.0f, cozyMats);
         if (friendBia != null)
         {
             AddBlockingBox(friendBia, new Vector3(0f, 0.75f, 0f), new Vector3(0.60f, 1.5f, 0.60f), obstacles);
@@ -476,7 +501,7 @@ public static class GirlPowerOrla3DSceneBuilder
         playerRoot.transform.SetParent(root.transform, false);
         // Hero Protagonist starts in wide-open sunlit corridor facing the player & cart with generous breathing room!
         playerRoot.transform.position = new Vector3(-1.4f, 0f, -2.0f);
-        GameObject playerVisual = PlaceModel(playerRoot.transform, "Char_Protagonist", "Visual Protagonista", Vector3.zero, 165f, 1.34f, cozyMats);
+        GameObject playerVisual = PlaceModel(playerRoot.transform, "Char_Protagonist", "Visual Protagonista", Vector3.zero, 165f, 1.42f, cozyMats);
         GameObject heldCone = PlaceModel(playerRoot.transform, "IceCreamConeLemonBasil", "Casquinha Limao Manjericao na Mao", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerSkate = PlaceModel(playerRoot.transform, "Skateboard", "Skate da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
         GameObject playerScooter = PlaceModel(playerRoot.transform, "Scooter", "Patinete da Protagonista", Vector3.zero, 0f, 1f, cozyMats);
@@ -520,8 +545,8 @@ public static class GirlPowerOrla3DSceneBuilder
             petCat.followOffset = new Vector3(1.45f, 0f, -0.85f);
         }
 
-        // Florista Luna standing cleanly in front of her entrance (-Z) facing the promenade!
-        GameObject florist = PlaceModel(root.transform, "Char_Florist", "Florista Luna", new Vector3(21.8f, 0f, -7.85f), 192f, 1f, cozyMats);
+        // Florista Luna standing cleanly with 2m open space in front of her counter facing the promenade & camera (-Z)!
+        GameObject florist = PlaceModel(root.transform, "Char_Florist", "Florista Luna", new Vector3(21.8f, 0f, -7.25f), 186f, 1f, cozyMats);
         if (florist != null) idleCharacters.Add(florist.transform);
 
         // 11b. Living Sky & Coastal Wildlife (Wide 2D Horizon Clouds live in Parallax_Horizonte_3Camadas -> ZERO loose floating discs!)
@@ -605,7 +630,7 @@ public static class GirlPowerOrla3DSceneBuilder
             new Vector3(4.2f, 0.05f, -2.1f),    // Boardwalk near benches
             new Vector3(7.6f, 0.05f, 0.85f),    // Square near Bia
             new Vector3(16.4f, 0.05f, -3.1f),   // Feira cobblestone lane
-            new Vector3(26.0f, 0.14f, -7.2f)    // Pavilion entrance steps (the Sister's invitation!)
+            new Vector3(30.8f, 0.14f, -7.8f)    // Pavilion entrance steps (the Sister's invitation!)
         };
         List<GameObject> scatteredCards = new List<GameObject>();
         List<Transform> cardTransforms = new List<Transform>();
@@ -646,7 +671,7 @@ public static class GirlPowerOrla3DSceneBuilder
         // Canopy-only smooth occlusion: whenever ANY stall awning, table umbrella, cart canopy, or house roof crosses the camera-to-player ray, ONLY that overhead cover fades smoothly while counters/bases remain 100% solid!
         List<Transform> occluderRoots = new List<Transform>();
         foreach (Transform h in paintableHouses) if (h != null) occluderRoots.Add(h);
-        foreach (GameObject coverObj in new[] { kiosk, floristStand, cart, restKitchen, towerA, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
+        foreach (GameObject coverObj in new[] { kiosk, floristStand, cart, cafeBase, restKitchen, towerA, stallCoco, stallArt, stallPlantas, stallSushi, stallComida, stallRoupas, stallDoces, stallSucos })
             if (coverObj != null) occluderRoots.Add(coverObj.transform);
         foreach (Transform tbl in restaurantTables)
             if (tbl != null) occluderRoots.Add(tbl);
@@ -769,9 +794,24 @@ public static class GirlPowerOrla3DSceneBuilder
             GirlPowerOrla3DCafeRoofFade cafeFade = cafeFadeObj.AddComponent<GirlPowerOrla3DCafeRoofFade>();
             cafeFade.player = playerRoot.transform;
             cafeFade.roofObject = cafeRoof.transform;
+            cafeFade.targetCamera = mainCam;
             cafeFade.buildingCenter = cafePos;
             cafeFade.halfBoundsXZ = new Vector2(3.05f, 2.05f);
             cafeFade.interiorWallMargin = 0.50f;
+        }
+
+        // Seamless Pavilion Roof Fade Controller: stays 100% opaque outside, smoothly vanishes whenever player steps onto/behind Pavilion!
+        if (pavilionRoof != null)
+        {
+            GameObject pavFadeObj = new GameObject("Pavilhao_Teto_Fade_Automatico");
+            pavFadeObj.transform.SetParent(root.transform, false);
+            GirlPowerOrla3DCafeRoofFade pavFade = pavFadeObj.AddComponent<GirlPowerOrla3DCafeRoofFade>();
+            pavFade.player = playerRoot.transform;
+            pavFade.roofObject = pavilionRoof.transform;
+            pavFade.targetCamera = mainCam;
+            pavFade.buildingCenter = pavilionPos;
+            pavFade.halfBoundsXZ = new Vector2(3.95f, 3.65f);
+            pavFade.interiorWallMargin = 0.50f;
         }
 
         GameObject npcAiObj = new GameObject("IA_Moradores_e_Fauna_Local");
@@ -814,10 +854,10 @@ public static class GirlPowerOrla3DSceneBuilder
         // Additional resort archetypes live cleanly in Fase2_Expansao_Conteudo for Etapa 5 expansion at 60 FPS!
         var guestSpecs = new (GirlPowerOrla3DArchetypeConfig.ArchetypeKind kind, string fbx, string name, Vector3 pos, GirlPowerOrla3DArchetypeConfig.PetKind pet, bool phase1Active)[]
         {
-            // Phase 1 Active Core Trio well spaced along lateral plazas (ZERO crowding near Cart or central walkway!)
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Barbie,           "Char_Barbie",           "Turista - Estilo Barbie",        new Vector3(9.4f, 0f, -6.2f),    GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro,  true),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Japones,          "Char_Japones",          "Turista - Estilo Japones",       new Vector3(-9.2f, 0f, -6.4f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato,      true),
-            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Vovo,             "Char_Vovo",             "Turista - Vovo Carinhosa",       new Vector3(15.2f, 0f, -6.2f),   GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita, true),
+            // Phase 1 Active Core Trio well spaced along lateral plazas (ZERO crowding near Cart, Luna, or central walkway!)
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Barbie,           "Char_Barbie",           "Turista - Estilo Barbie",        new Vector3(9.4f, 0f, -8.2f),    GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro,  true),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Japones,          "Char_Japones",          "Turista - Estilo Japones",       new Vector3(-9.2f, 0f, -7.8f),   GirlPowerOrla3DArchetypeConfig.PetKind.Gato,      true),
+            (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Vovo,             "Char_Vovo",             "Turista - Vovo Carinhosa",       new Vector3(13.2f, 0f, -8.2f),   GirlPowerOrla3DArchetypeConfig.PetKind.Calopsita, true),
             // Phase 2 Resort Expansion Guests (ready to activate in Etapa 5!)
             (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Gaucho,           "Char_Gaucho",           "Turista - Gaucho do Sul",        new Vector3(-8.2f, 0f, -6.6f),   GirlPowerOrla3DArchetypeConfig.PetKind.Cachorro,  false),
             (GirlPowerOrla3DArchetypeConfig.ArchetypeKind.Espia,            "Char_Espia",            "Turista - Espia Estilosa",       new Vector3(1.4f, 0f, -7.1f),    GirlPowerOrla3DArchetypeConfig.PetKind.Gato,      false),
@@ -1078,6 +1118,8 @@ public static class GirlPowerOrla3DSceneBuilder
         // Balanced hero diorama framing: protagonist stays close & readable while ocean shoreline shows cleanly behind the pier!
         mission.cameraOffset = new Vector3(0f, 8.2f, -11.8f);
         mission.cameraPitch = 33.5f;
+        mission.minWorldX = -28.0f;
+        mission.maxWorldX = 40.5f;
         mission.minWorldZ = -22.2f;
         mission.maxWorldZ = 7.85f;
         mission.player = playerRoot.transform;
@@ -1108,8 +1150,19 @@ public static class GirlPowerOrla3DSceneBuilder
         mission.dialogueController = dialogueCtrl;
         mission.photoOverlay = photoCtrl;
         mission.lifeActivities = lifeAct;
-        mission.blockingObstacles = obstacles.ToArray();
+        BoxCollider[] obstacleArray = obstacles.ToArray();
+        mission.blockingObstacles = obstacleArray;
         mission.waterSurfZone = waterSurfZone;
+        if (petDog != null)
+        {
+            petDog.blockingObstacles = obstacleArray;
+            petDog.pavilionTransform = pavilion != null ? pavilion.transform : null;
+        }
+        if (petCat != null)
+        {
+            petCat.blockingObstacles = obstacleArray;
+            petCat.pavilionTransform = pavilion != null ? pavilion.transform : null;
+        }
 
         // One shared, oriented-box path grid drives both tap navigation and strolling residents.
         GameObject pathfinderObj = new GameObject("Navegacao_Orla_AStar_OBB");
@@ -1234,7 +1287,146 @@ public static class GirlPowerOrla3DSceneBuilder
             if (storyNpc != null)
                 GirlPowerOrla3DTouchTarget.AttachOversizedHitbox(storyNpc, GirlPowerOrla3DTouchTarget.TargetRole.StoryNpc, 0, new Vector3(0f, 0.95f, 0f), 0.85f, storyNpc.name);
 
-        // 13b. Single Unified Interaction Hub (one clear target marker + one large thumb action button!)
+        // 13b. Playable Fairground Businesses (Orange Tree, Mint, Juice Bar, Candy Shop, Craft Studio, Friends & Visible 3D Upgrades!)
+        GameObject fairBizRoot = new GameObject("Feira_Jogavel_Amigas_e_Melhorias");
+        fairBizRoot.transform.SetParent(root.transform, false);
+
+        // Primary Orange Tree tucked cleanly beside the Orchard corner (ZERO walkway obstruction!)
+        GameObject orangeTree1 = PlaceModel(fairBizRoot.transform, "OrangeTreeRipe", "Laranjeira Principal da Horta", new Vector3(-1.4f, 0f, -15.8f), 14f, 0.96f, cozyMats);
+        GameObject orangeFruit1 = null;
+        if (orangeTree1 != null)
+        {
+            AddBlockingBox(orangeTree1, new Vector3(0f, 1.3f, 0f), new Vector3(0.75f, 2.6f, 0.75f), obstacles);
+            Transform rf = FindDescendant(orangeTree1.transform, "RipeOranges");
+            if (rf != null) orangeFruit1 = rf.gameObject;
+        }
+
+        // Mint Planter right at the Orchard entrance for quick Hortelã harvesting!
+        GameObject mintPot = PlaceModel(fairBizRoot.transform, "BasilPot", "Canteiro de Hortela Fresca", new Vector3(-2.6f, 0f, -13.6f), 18f, 1.25f, cozyMats);
+
+        // 3 Visible Waiting Customers cleanly spaced at Juice Bar, Candy Shop & Craft Studio!
+        GameObject juiceCust = PlaceModel(fairBizRoot.transform, "Char_PedestrianCoral", "Cliente_Feira_Sucos", new Vector3(12.2f, 0f, -15.4f), 188f, 0.96f, cozyMats);
+        GameObject candyCust = PlaceModel(fairBizRoot.transform, "Char_FriendBia", "Cliente_Feira_Doces", new Vector3(-20.6f, 0f, -13.0f), 178f, 0.95f, cozyMats);
+        GameObject craftCust = PlaceModel(fairBizRoot.transform, "Char_Barbie", "Cliente_Feira_Artesanato", new Vector3(16.4f, 0f, -15.4f), 184f, 0.96f, cozyMats);
+
+        // 4 VISIBLE 3D WORLD-TRANSFORMING UPGRADES (hidden until purchased with fair coins!)
+        GameObject upgPinkAwnings = new GameObject("Melhoria_ToldoRosa_Feira");
+        upgPinkAwnings.transform.SetParent(fairBizRoot.transform, false);
+        Material pinkBerryM = cozyMats.TryGetValue("AC_PinkBerry", out Material pbm) ? pbm : null;
+        Material pinkSoftM = cozyMats.TryGetValue("AC_PinkSoft", out Material psm) ? psm : null;
+        Material creamM = cozyMats.TryGetValue("AC_Cream", out Material crm) ? crm : null;
+        Material tealM = cozyMats.TryGetValue("AC_MintTeal", out Material tlm) ? tlm : null;
+        Material glowM = cozyMats.TryGetValue("AC_LanternGlow", out Material glm) ? glm : null;
+        foreach (GameObject st in new[] { stallCoco, stallArt, stallDoces })
+        {
+            if (st == null) continue;
+            GameObject canopy = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            canopy.name = "ToldoRosa_" + st.name;
+            canopy.transform.SetParent(upgPinkAwnings.transform, false);
+            canopy.transform.position = st.transform.position + new Vector3(0f, 2.72f, -0.15f);
+            canopy.transform.localScale = new Vector3(2.85f, 0.14f, 1.85f);
+            Object.DestroyImmediate(canopy.GetComponent<Collider>());
+            if (pinkBerryM != null) canopy.GetComponent<Renderer>().sharedMaterial = pinkBerryM;
+
+            GameObject trim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            trim.name = "FranjaCreme_" + st.name;
+            trim.transform.SetParent(upgPinkAwnings.transform, false);
+            trim.transform.position = st.transform.position + new Vector3(0f, 2.60f, -1.04f);
+            trim.transform.localScale = new Vector3(2.88f, 0.12f, 0.08f);
+            Object.DestroyImmediate(trim.GetComponent<Collider>());
+            if (creamM != null) trim.GetComponent<Renderer>().sharedMaterial = creamM;
+        }
+        upgPinkAwnings.SetActive(false);
+
+        GameObject upgOrangeTree2 = PlaceModel(fairBizRoot.transform, "OrangeTreeRipe", "Melhoria_Segunda_Laranjeira", new Vector3(-9.4f, 0f, -15.2f), -26f, 0.94f, cozyMats);
+        GameObject orangeFruit2 = null;
+        if (upgOrangeTree2 != null)
+        {
+            Transform rf2 = FindDescendant(upgOrangeTree2.transform, "RipeOranges");
+            if (rf2 != null) orangeFruit2 = rf2.gameObject;
+            upgOrangeTree2.SetActive(false);
+        }
+
+        GameObject upgShowcase = new GameObject("Melhoria_VitrineIluminada");
+        upgShowcase.transform.SetParent(fairBizRoot.transform, false);
+        foreach (GameObject st in new[] { stallArt, stallDoces })
+        {
+            if (st == null) continue;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                GameObject lampBulb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                lampBulb.name = "VitrineLuz_" + st.name + "_" + side;
+                lampBulb.transform.SetParent(upgShowcase.transform, false);
+                lampBulb.transform.position = st.transform.position + new Vector3(side * 1.15f, 2.38f, -0.78f);
+                lampBulb.transform.localScale = Vector3.one * 0.28f;
+                Object.DestroyImmediate(lampBulb.GetComponent<Collider>());
+                if (glowM != null) lampBulb.GetComponent<Renderer>().sharedMaterial = glowM;
+            }
+            CreateWarmLight(upgShowcase.transform, "LuzVitrine_" + st.name, st.transform.position + new Vector3(0f, 2.1f, -1.0f), 1.3f, 6.5f);
+        }
+        upgShowcase.SetActive(false);
+
+        GameObject upgMeetingCorner = new GameObject("Melhoria_CantinhoEncontro");
+        upgMeetingCorner.transform.SetParent(fairBizRoot.transform, false);
+        upgMeetingCorner.transform.position = new Vector3(1.6f, 0f, -11.6f);
+        PlaceModel(upgMeetingCorner.transform, "CoastalBench", "Banco Cantinho Rosa", new Vector3(0f, 0f, 0.85f), 180f, 0.96f, cozyMats);
+        for (int side = -1; side <= 1; side += 2)
+        {
+            GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            pillar.name = "ArcoPilar_" + side;
+            pillar.transform.SetParent(upgMeetingCorner.transform, false);
+            pillar.transform.localPosition = new Vector3(side * 1.45f, 1.15f, 0.85f);
+            pillar.transform.localScale = new Vector3(0.18f, 1.15f, 0.18f);
+            Object.DestroyImmediate(pillar.GetComponent<Collider>());
+            if (creamM != null) pillar.GetComponent<Renderer>().sharedMaterial = creamM;
+
+            GameObject flowerCap = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            flowerCap.name = "ArcoFlor_" + side;
+            flowerCap.transform.SetParent(upgMeetingCorner.transform, false);
+            flowerCap.transform.localPosition = new Vector3(side * 1.45f, 2.32f, 0.85f);
+            flowerCap.transform.localScale = new Vector3(0.46f, 0.34f, 0.46f);
+            Object.DestroyImmediate(flowerCap.GetComponent<Collider>());
+            if (pinkSoftM != null) flowerCap.GetComponent<Renderer>().sharedMaterial = pinkSoftM;
+        }
+        GameObject archTop = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        archTop.name = "ArcoTopoRosa";
+        archTop.transform.SetParent(upgMeetingCorner.transform, false);
+        archTop.transform.localPosition = new Vector3(0f, 2.36f, 0.85f);
+        archTop.transform.localScale = new Vector3(3.15f, 0.18f, 0.28f);
+        Object.DestroyImmediate(archTop.GetComponent<Collider>());
+        if (tealM != null) archTop.GetComponent<Renderer>().sharedMaterial = tealM;
+        upgMeetingCorner.SetActive(false);
+
+        GirlPowerOrla3DFairBusinesses fairBiz = fairBizRoot.AddComponent<GirlPowerOrla3DFairBusinesses>();
+        fairBiz.player = playerRoot.transform;
+        fairBiz.sceneCamera = mainCam;
+        fairBiz.gameFlow = gameFlow;
+        fairBiz.storyController = mission;
+        fairBiz.lifeActivities = lifeAct;
+        fairBiz.megaSystems = megaSys;
+        fairBiz.audioController = audioCtrl;
+        fairBiz.characterAnimator = charAnim;
+        fairBiz.orangeTreePrimary = orangeTree1 != null ? orangeTree1.transform : null;
+        fairBiz.orangeTreePrimaryFruitGroup = orangeFruit1;
+        fairBiz.orangeTreeSecond = upgOrangeTree2 != null ? upgOrangeTree2.transform : null;
+        fairBiz.orangeTreeSecondFruitGroup = orangeFruit2;
+        fairBiz.mintPlanter = mintPot != null ? mintPot.transform : null;
+        fairBiz.juiceStall = stallCoco != null ? stallCoco.transform : null;
+        fairBiz.candyStall = stallDoces != null ? stallDoces.transform : null;
+        fairBiz.craftStall = stallArt != null ? stallArt.transform : null;
+        fairBiz.juiceCustomer = juiceCust != null ? juiceCust.transform : null;
+        fairBiz.candyCustomer = candyCust != null ? candyCust.transform : null;
+        fairBiz.craftCustomer = craftCust != null ? craftCust.transform : null;
+        fairBiz.friendNina = friendNina != null ? friendNina.transform : null;
+        fairBiz.friendBia = friendBia != null ? friendBia.transform : null;
+        fairBiz.upgradePinkAwningsGroup = upgPinkAwnings;
+        fairBiz.upgradeSecondOrangeTreeGroup = upgOrangeTree2;
+        fairBiz.upgradeShowcaseLightsGroup = upgShowcase;
+        fairBiz.upgradeMeetingCornerGroup = upgMeetingCorner;
+        lifeAct.fairBusinesses = fairBiz;
+        mission.fairBusinesses = fairBiz;
+
+        // 13c. Single Unified Interaction Hub (one clear target marker + one large thumb action button!)
         GameObject hubObj = new GameObject("Coordenador_Interacao_Unica_Orla");
         hubObj.transform.SetParent(root.transform, false);
         GirlPowerOrla3DInteractionHub interactionHub = hubObj.AddComponent<GirlPowerOrla3DInteractionHub>();
@@ -1245,6 +1437,7 @@ public static class GirlPowerOrla3DSceneBuilder
         interactionHub.photoOverlay = photoCtrl;
         interactionHub.lifeActivities = lifeAct;
         interactionHub.megaSystems = megaSys;
+        interactionHub.fairBusinesses = fairBiz;
 
         GameObject mobileTouchObj = new GameObject("Controle_Toque_Mobile_3Camadas");
         mobileTouchObj.transform.SetParent(root.transform, false);
@@ -1256,6 +1449,7 @@ public static class GirlPowerOrla3DSceneBuilder
         mobileTouch.photoOverlay = photoCtrl;
         mobileTouch.cardapioUI = cardapio;
         mobileTouch.megaSystems = megaSys;
+        mobileTouch.fairBusinesses = fairBiz;
         mobileTouch.lifeActivities = lifeAct;
         mobileTouch.petFriendlySystem = petFriendlySys;
         mobileTouch.npcAI = npcAi;
@@ -1361,15 +1555,15 @@ public static class GirlPowerOrla3DSceneBuilder
         cam.farClipPlane = 185f;
         cam.allowMSAA = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.46f, 0.68f, 0.88f);
+        cam.backgroundColor = new Color(0.42f, 0.72f, 0.90f);
         cam.depthTextureMode |= DepthTextureMode.Depth;
         camObj.AddComponent<AudioListener>();
         GirlPowerOrla3DCameraPost post = camObj.AddComponent<GirlPowerOrla3DCameraPost>();
         post.exposure = 0.94f;
         post.contrast = 1.07f;
-        post.saturation = 1.10f;
-        post.vignetteStrength = 0.08f;
-        post.warmTint = new Color(1.03f, 0.98f, 0.99f, 1f);
+        post.saturation = 1.08f;
+        post.vignetteStrength = 0.06f;
+        post.warmTint = new Color(1.00f, 1.00f, 1.00f, 1f);
         return cam;
     }
 
@@ -1381,8 +1575,8 @@ public static class GirlPowerOrla3DSceneBuilder
         sunObj.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
         Light l = sunObj.AddComponent<Light>();
         l.type = LightType.Directional;
-        l.color = new Color(1.0f, 0.90f, 0.85f);
-        l.intensity = 0.88f;
+        l.color = new Color(1.0f, 0.96f, 0.90f);
+        l.intensity = 0.90f;
         l.shadows = LightShadows.Soft;
         l.shadowResolution = UnityEngine.Rendering.LightShadowResolution.VeryHigh;
         l.shadowStrength = 0.34f;
@@ -1812,13 +2006,13 @@ public static class GirlPowerOrla3DSceneBuilder
             ("AC_HillDistant", "#9BB4CC", 0.03f, null, 0f),
             ("AC_HillFar", "#B8C8DF", 0.03f, null, 0f),
 
-            ("AC_StoneWhite", "#FAF0EE", 0.05f, null, 0f),    // Soft Blush-Cream Boardwalk Stone
-            ("AC_StoneWarm", "#EFE0DA", 0.05f, null, 0f),     // Warm Rose-Beige Stone
-            ("AC_StoneDark", "#A89496", 0.05f, null, 0f),
-            ("AC_CobbleA", "#E9D4CE", 0.05f, null, 0f),       // Rosy Cobble Plaza
-            ("AC_CobbleB", "#DCC2BC", 0.05f, null, 0f),
-            ("AC_PlazaTile", "#F5E5E0", 0.05f, null, 0f),     // Blush-Ivory Plaza Tiles
-            ("AC_PlazaAccent", "#ECCCD2", 0.05f, null, 0f),   // Soft Pastel-Rose Plaza Accent
+            ("AC_StoneWhite", "#FBF7F2", 0.05f, null, 0f),    // Clean Warm-Cream Boardwalk Stone (high contrast for characters!)
+            ("AC_StoneWarm", "#F0E8DE", 0.05f, null, 0f),     // Soft Warm-Cream Plaza Stone
+            ("AC_StoneDark", "#9C9296", 0.05f, null, 0f),
+            ("AC_CobbleA", "#EAE0D6", 0.05f, null, 0f),       // Subtle Cream Cobblestone
+            ("AC_CobbleB", "#DDD2C8", 0.05f, null, 0f),
+            ("AC_PlazaTile", "#F7F1EA", 0.05f, null, 0f),     // Crisp Cream Plaza Tiles
+            ("AC_PlazaAccent", "#F2D2DE", 0.05f, null, 0f),   // Subtle Pastel-Rose Plaza Accent
             ("AC_Asphalt", "#747686", 0.04f, null, 0f),
             ("AC_RoadLine", "#FAF0E8", 0.05f, null, 0f),
 

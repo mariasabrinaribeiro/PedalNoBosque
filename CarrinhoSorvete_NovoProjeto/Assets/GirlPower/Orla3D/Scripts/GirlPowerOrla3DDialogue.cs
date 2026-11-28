@@ -110,8 +110,9 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
         }
         else
         {
-            charTimer = 0f;
-            visibleChars = 0;
+            string nextLine = lines[lineIndex] ?? "";
+            charTimer = 6f;
+            visibleChars = Mathf.Min(nextLine.Length, 6);
             lastBlipChar = -1;
         }
     }
@@ -131,42 +132,45 @@ public sealed class GirlPowerOrla3DDialogue : MonoBehaviour
         EnsureStyles();
         GirlPowerOrla3DUITheme.EnsureInitialized();
         GUI.depth = -10;
+        // Guarantee full-opacity crisp colors regardless of any prior IMGUI state!
         GUI.color = Color.white;
+        GUI.contentColor = Color.white;
+        GUI.backgroundColor = Color.white;
 
-        float s = Mathf.Clamp(Screen.width / 1600f, 0.72f, 1.15f);
-        float bw = 880f * s;
-        float bh = 186f * s;
+        float s = Mathf.Clamp(Mathf.Min(Screen.width / 1600f, Screen.height / 900f), 0.72f, 1.15f);
+        float bw = Mathf.Min(860f * s, Screen.width - 28f * s);
+        float bh = 178f * s;
         float bx = (Screen.width - bw) * 0.5f;
-        float by = Screen.height - bh - 24f * s;
+        float by = Screen.height - bh - 20f * s;
 
         Rect boxRect = new Rect(bx, by, bw, bh);
         GUI.Box(boxRect, GUIContent.none, GirlPowerOrla3DUITheme.CardCreamStyle);
 
-        // 2D Illustrated Speaker Portrait on left side of dialogue bubble!
+        // 2D Illustrated Speaker Portrait on left side of dialogue bubble
         Texture2D portrait = ResolveSpeakerPortrait(speakerName);
-        float portSz = 108f * s;
-        GUI.DrawTexture(new Rect(bx + 20f * s, by + (bh - portSz) * 0.5f + 4f * s, portSz, portSz), portrait);
+        float portSz = 104f * s;
+        GUI.DrawTexture(new Rect(bx + 18f * s, by + (bh - portSz) * 0.5f + 4f * s, portSz, portSz), portrait);
 
-        // Rounded speaker badge overlapping top-left corner (+65% enlarged mobile font with crisp dark outline!)
-        Rect tagRect = new Rect(bx + 140f * s, by - 28f * s, 360f * s, 50f * s);
+        // High-contrast strawberry-rose / speaker badge overlapping top-left corner
+        Rect tagRect = new Rect(bx + 136f * s, by - 26f * s, Mathf.Min(340f * s, bw - 160f * s), 46f * s);
         GUI.color = speakerColor;
         GUI.DrawTexture(tagRect, GirlPowerOrla3DUITheme.PillWhiteTex);
         GUI.color = Color.white;
-        nameTagStyle.fontSize = Mathf.RoundToInt(27f * s);
-        GirlPowerOrla3DUITheme.DrawOutlinedLabel(tagRect, speakerName, nameTagStyle, Color.white, new Color(0.14f, 0.10f, 0.16f, 0.92f), 1.5f);
+        nameTagStyle.fontSize = Mathf.RoundToInt(24f * s);
+        GirlPowerOrla3DUITheme.DrawOutlinedLabel(tagRect, speakerName, nameTagStyle, Color.white, new Color(0.14f, 0.06f, 0.12f, 0.95f), 1.4f);
 
-        // Enlarged (+65%) high-contrast mobile-legible dialogue text!
+        // Guaranteed high-contrast dark espresso-plum text on cream card (NEVER washes out or fades!)
         string fullLine = lines[lineIndex] ?? "";
-        int shownLen = Mathf.Clamp(visibleChars, Mathf.Min(fullLine.Length, 3), fullLine.Length);
+        int shownLen = Mathf.Clamp(visibleChars, Mathf.Min(fullLine.Length, 6), fullLine.Length);
         string shown = fullLine.Substring(0, shownLen);
-        bubbleTextStyle.fontSize = Mathf.RoundToInt(31f * s);
-        bubbleTextStyle.normal.textColor = new Color(0.18f, 0.12f, 0.09f, 1f);
-        GirlPowerOrla3DUITheme.DrawShadowedLabel(new Rect(bx + 146f * s, by + 30f * s, bw - 196f * s, bh - 46f * s), shown, bubbleTextStyle, new Color(0.18f, 0.12f, 0.09f, 1f), new Color(1f, 0.99f, 0.95f, 0.9f), 1.2f);
+        bubbleTextStyle.fontSize = Mathf.RoundToInt(28f * s);
+        bubbleTextStyle.normal.textColor = new Color(0.11f, 0.055f, 0.08f, 1f);
+        GUI.Label(new Rect(bx + 140f * s, by + 28f * s, bw - 184f * s, bh - 44f * s), shown, bubbleTextStyle);
 
         if (shownLen >= fullLine.Length)
         {
             float bounce = Mathf.Sin(Time.time * 7.5f) * 4f * s;
-            Rect arrowRect = new Rect(bx + bw - 50f * s, by + bh - 40f * s + bounce, 32f * s, 28f * s);
+            Rect arrowRect = new Rect(bx + bw - 48f * s, by + bh - 38f * s + bounce, 32f * s, 28f * s);
             GUI.Label(arrowRect, "▼", arrowStyle);
         }
 

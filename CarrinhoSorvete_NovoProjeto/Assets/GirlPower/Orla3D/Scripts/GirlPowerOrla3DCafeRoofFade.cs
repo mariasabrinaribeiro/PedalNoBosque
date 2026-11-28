@@ -11,6 +11,7 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
 {
     public Transform player;
     public Transform roofObject;
+    public Camera targetCamera;
     public Vector3 buildingCenter = new Vector3(6.4f, 0f, -14.2f);
     public Vector2 halfBoundsXZ = new Vector2(3.05f, 2.05f);
     [Tooltip("Strict interior inset margin from exterior walls (minimum 0.5m) so outer sidewalk never triggers fade.")]
@@ -23,6 +24,7 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
         public Material[] opaqueMats;
         public Material[] fadeMats;
         public bool usingFade;
+        public bool toggleOnly;
     }
 
     private readonly List<RoofSlot> slots = new List<RoofSlot>();
@@ -41,6 +43,12 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
             foreach (MeshRenderer mr in roofObject.GetComponentsInChildren<MeshRenderer>(true))
             {
                 if (mr == null) continue;
+                bool isTmp = mr.GetComponent<TMPro.TMP_Text>() != null;
+                if (isTmp)
+                {
+                    slots.Add(new RoofSlot { renderer = mr, opaqueMats = mr.sharedMaterials, fadeMats = mr.sharedMaterials, usingFade = false, toggleOnly = true });
+                    continue;
+                }
                 Material[] opaque = mr.sharedMaterials;
                 Material[] fade = new Material[opaque.Length];
                 for (int i = 0; i < opaque.Length; i++)
@@ -62,7 +70,7 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
                         fade[i] = opaque[i];
                     }
                 }
-                slots.Add(new RoofSlot { renderer = mr, opaqueMats = opaque, fadeMats = fade, usingFade = false });
+                slots.Add(new RoofSlot { renderer = mr, opaqueMats = opaque, fadeMats = fade, usingFade = false, toggleOnly = false });
             }
         }
 
@@ -104,7 +112,28 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
         isInsideInterior = Mathf.Abs(p.x - buildingCenter.x) <= (innerHalfX + hyst)
                         && Mathf.Abs(p.z - buildingCenter.z) <= (innerHalfZ + hyst);
 
-        float targetAlpha = isInsideInterior ? 0.0f : 1.0f;
+        // Also fade roof smoothly if it sits physically between the camera and the protagonist
+        // (e.g. when walking right outside the Lanchonete doorway or between nearby stalls!).
+        bool blockingCameraView = false;
+        Camera cam = targetCamera != null ? targetCamera : Camera.main;
+        if (!isInsideInterior && cam != null && roofObject != null)
+        {
+            Vector3 camPos = cam.transform.position;
+            Vector3 focus = p + Vector3.up * 1.05f;
+            Vector3 seg = focus - camPos;
+            float segLen = seg.magnitude;
+            if (segLen > 0.6f)
+            {
+                Ray ray = new Ray(camPos, seg / segLen);
+                Bounds roofBounds = new Bounds(
+                    new Vector3(buildingCenter.x, buildingCenter.y + 2.4f, buildingCenter.z),
+                    new Vector3((halfBoundsXZ.x + 1.0f) * 2f, 3.6f, (halfBoundsXZ.y + 1.0f) * 2f));
+                if (roofBounds.IntersectRay(ray, out float hitDist) && hitDist > 0.35f && hitDist < segLen - 0.35f)
+                    blockingCameraView = true;
+            }
+        }
+
+        float targetAlpha = isInsideInterior ? 0.0f : (blockingCameraView ? 0.14f : 1.0f);
         float t = 1f - Mathf.Exp(-fadeSpeed * Time.deltaTime);
         currentAlpha = Mathf.Lerp(currentAlpha, targetAlpha, t);
         if (Mathf.Abs(currentAlpha - targetAlpha) < 0.01f)
@@ -117,6 +146,12 @@ public sealed class GirlPowerOrla3DCafeRoofFade : MonoBehaviour
         {
             RoofSlot s = slots[i];
             if (s.renderer == null) continue;
+            if (s.toggleOnly)
+            {
+                bool showText = currentAlpha > 0.35f;
+                if (s.renderer.enabled != showText) s.renderer.enabled = showText;
+                continue;
+            }
             if (s.renderer.enabled != visible) s.renderer.enabled = visible;
             if (!visible) continue;
 

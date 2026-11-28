@@ -287,13 +287,15 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
 
         if (dist < 1.15f)
         {
+            bool playerNearOrchard = player != null && Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(cur.x, cur.z)) < 11.5f;
             if (!camponesaCarryingToKitchen)
             {
                 string crop = OrchardCrops[orchardIdx % OrchardCrops.Length];
                 camponesaCarryingToKitchen = true;
                 camponesaWait = 2.6f;
-                if (storyController != null)
-                    storyController.ShowDiscreteNotice("Horta: " + crop + " colhido para a cozinha", 2.4f);
+                // Only show brief secondary orchard toast when player is actually near the Orchard (never competing with Luna/Marina missions!)
+                if (storyController != null && playerNearOrchard)
+                    storyController.ShowDiscreteNotice("Horta: " + crop + " colhido", 1.8f);
             }
             else
             {
@@ -302,8 +304,8 @@ public sealed class GirlPowerOrla3DPetFriendlySystem : MonoBehaviour
                 camponesaWait = 2.2f;
                 OrchardHarvestedTotal++;
                 if (megaSystems != null) megaSystems.Data.organicHerbs++;
-                if (storyController != null)
-                    storyController.ShowDiscreteNotice("✓ Cozinha abastecida pela horta", 2.4f);
+                if (storyController != null && playerNearOrchard)
+                    storyController.ShowDiscreteNotice("✓ Cozinha abastecida", 1.8f);
             }
             return;
         }

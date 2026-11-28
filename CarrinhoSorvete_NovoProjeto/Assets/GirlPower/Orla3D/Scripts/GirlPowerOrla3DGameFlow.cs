@@ -133,6 +133,11 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private void Awake()
     {
         LoadUserPreferences();
+        // Smooth thermal-friendly 60 FPS cap for Android/iOS mobile play
+        if (Application.isMobilePlatform)
+            QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+        Screen.sleepTimeout = SleepTimeout.NeverSleep;
     }
 
     private void Start()
@@ -436,18 +441,28 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private void UpdateTitleOrbitCamera(float dt)
     {
         if (sceneCamera == null) return;
-        menuOrbitClock += dt * 0.20f;
-        float cx = 11.5f + Mathf.Sin(menuOrbitClock) * 10.5f;
-        float cz = -9.2f + Mathf.Cos(menuOrbitClock * 0.7f) * 2.2f;
-        float cy = 7.8f + Mathf.Sin(menuOrbitClock * 1.1f) * 0.75f;
+        menuOrbitClock += dt * 0.18f;
+        // Close, vivid showcase placing Protagonist + Strawberry-Pink Ice Cream Cart + Customer cleanly on the RIGHT HALF of the screen,
+        // leaving the LEFT column open for Title + Tagline + Primary Button!
+        Vector3 heroMid = new Vector3(0.0f, 0.90f, -2.75f);
+        if (storyController != null && storyController.cart != null && storyController.player != null)
+        {
+            Vector3 mid = (storyController.player.position + storyController.cart.position) * 0.5f;
+            heroMid = new Vector3(mid.x, 0.90f, mid.z + 0.10f);
+        }
+        // Shift lookAt slightly LEFT of heroMid so the Hero & Pink Cart naturally frame on the RIGHT side!
+        Vector3 lookAt = new Vector3(heroMid.x - 1.55f, 0.92f, heroMid.z);
+        float cx = lookAt.x + Mathf.Sin(menuOrbitClock) * 1.45f;
+        float cz = heroMid.z - 5.35f + Mathf.Cos(menuOrbitClock * 0.7f) * 0.35f;
+        float cy = 3.15f + Mathf.Sin(menuOrbitClock * 1.1f) * 0.18f;
         Vector3 targetPos = new Vector3(cx, cy, cz);
-        Vector3 lookAt = new Vector3(11.5f + Mathf.Sin(menuOrbitClock * 0.5f) * 4.5f, 1.0f, 3.2f);
-        sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, targetPos, 1f - Mathf.Exp(-2.2f * dt));
+        sceneCamera.transform.position = Vector3.Lerp(sceneCamera.transform.position, targetPos, 1f - Mathf.Exp(-2.8f * dt));
+        sceneCamera.fieldOfView = Mathf.Lerp(sceneCamera.fieldOfView, 38f, 1f - Mathf.Exp(-3.0f * dt));
         Vector3 toLook = lookAt - sceneCamera.transform.position;
         if (toLook.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(toLook.normalized, Vector3.up);
-            sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRot, 1f - Mathf.Exp(-2.4f * dt));
+            sceneCamera.transform.rotation = Quaternion.Slerp(sceneCamera.transform.rotation, targetRot, 1f - Mathf.Exp(-2.8f * dt));
         }
     }
 
@@ -531,7 +546,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
             whitePx.Apply();
         }
 
-        float s = Mathf.Clamp(Screen.width / 1600f, 0.68f, 1.15f);
+        float s = Mathf.Clamp(Mathf.Min(Screen.width / 1600f, Screen.height / 900f), 0.68f, 1.15f);
         GUI.depth = -30;
 
         switch (CurrentState)
@@ -591,23 +606,22 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
     private void EnsurePedalTitleStyles()
     {
         if (pedalGoldBtn != null) return;
-        // Pink-Palette-Driven Opening Styles: Strawberry Pink Hero Play Button + Soft Blush & Rose-Glass Secondary Controls!
-        pedalGoldBtn = MakePedalPill(new Color(0.93f, 0.34f, 0.56f, 0.98f), new Color(1.0f, 0.80f, 0.88f, 1f), Color.white, 24);
-        pedalMintBtn = MakePedalPill(new Color(0.98f, 0.86f, 0.90f, 0.95f), new Color(0.93f, 0.48f, 0.66f, 0.95f), new Color(0.32f, 0.10f, 0.18f), 15);
-        pedalDarkBtn = MakePedalPill(new Color(0.24f, 0.10f, 0.18f, 0.72f), new Color(0.94f, 0.66f, 0.78f, 0.65f), new Color(1.0f, 0.94f, 0.96f), 13);
-        pedalRoseBtn = MakePedalPill(new Color(0.46f, 0.16f, 0.26f, 0.78f), new Color(0.92f, 0.54f, 0.66f, 0.72f), new Color(1.0f, 0.94f, 0.96f), 13);
+        // Pink-Palette Identity: Vivid Strawberry-Pink Hero CTA + Crisp Cream/Blush Secondary + High-Contrast Rose-Plum Menu Pills
+        pedalGoldBtn = MakePedalPill(new Color(0.92f, 0.28f, 0.52f, 0.99f), new Color(1.0f, 0.84f, 0.90f, 1f), Color.white, 22);
+        pedalMintBtn = MakePedalPill(new Color(0.99f, 0.93f, 0.95f, 0.96f), new Color(0.90f, 0.36f, 0.58f, 0.95f), new Color(0.32f, 0.08f, 0.18f), 16);
+        pedalDarkBtn = MakePedalPill(new Color(0.22f, 0.08f, 0.16f, 0.82f), new Color(0.96f, 0.72f, 0.82f, 0.78f), new Color(1.0f, 0.96f, 0.98f), 14);
+        pedalRoseBtn = MakePedalPill(new Color(0.50f, 0.14f, 0.26f, 0.86f), new Color(0.96f, 0.60f, 0.72f, 0.82f), new Color(1.0f, 0.96f, 0.98f), 14);
 
-        // Soft rosy-plum radial/vertical atmospheric scrim so the live 3D pink coastal world shines right behind!
-        leftScrimTex = new Texture2D(2, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        // Soft LEFT-ONLY horizontal gradient strictly behind the title & buttons -> right-side 3D Hero & Cart stay 100% vivid & uncovered!
+        leftScrimTex = new Texture2D(64, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
         Color[] px = new Color[128];
-        for (int y = 0; y < 64; y++)
+        for (int x = 0; x < 64; x++)
         {
-            float t = y / 63f; // 0 = bottom, 1 = top
-            float edge = Mathf.Abs(t - 0.52f) * 1.9f;
-            float a = Mathf.Clamp01(0.18f + (1f - Mathf.Clamp01(edge)) * 0.24f + (t < 0.16f ? (0.16f - t) * 2.2f : 0f));
-            Color c = new Color(0.28f, 0.08f, 0.18f, a);
-            px[y * 2] = c;
-            px[y * 2 + 1] = c;
+            float t = x / 63f; // 0 = left edge, 1 = middle-right (completely transparent!)
+            float a = Mathf.Pow(1f - t, 2.2f) * 0.56f;
+            Color c = new Color(0.18f, 0.06f, 0.14f, a);
+            px[x] = c;
+            px[x + 64] = c;
         }
         leftScrimTex.SetPixels(px);
         leftScrimTex.Apply();
@@ -657,125 +671,129 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         EnsurePedalTitleStyles();
 
         Rect safe = GetGuiSafeArea();
-        // Soft rosy atmospheric scrim keeping the live 3D Orla das Fadas visible & luminous!
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), leftScrimTex);
+        // Soft left-only scrim behind texts ONLY — the right half (Hero + Strawberry-Pink Cart + Sea) stays 100% vivid & clear!
+        GUI.DrawTexture(new Rect(0, 0, Screen.width * 0.56f, Screen.height), leftScrimTex);
 
-        float centerX = safe.x + safe.width * 0.5f;
-        float titleW = Mathf.Min(560f * s, safe.width - 28f * s);
-        float topY = safe.y + Mathf.Clamp(safe.height * 0.16f, 32f * s, 140f * s);
+        // TOP-RIGHT QUICK BAR: Settings + Language (crisp & easy to tap, zero clutter)
+        if (activeModal == SubModal.None)
+        {
+            float topBtnH = 38f * s;
+            float topYBar = safe.y + 14f * s;
+            float langW = 62f * s;
+            float cfgW = Mathf.Clamp(142f * s, 112f, 168f);
+            string langLbl = LanguageIndex == 0 ? "PT" : (LanguageIndex == 1 ? "EN" : "ES");
+            string cfgLbl = IsEnglish ? "Settings" : (IsSpanish ? "Ajustes" : "Configurações");
 
-        // Centered Hero Title ("ORLA DAS FADAS") harmonized with the Opening Pink Palette!
+            Rect langRect = new Rect(safe.xMax - langW - 14f * s, topYBar, langW, topBtnH);
+            Rect cfgRect = new Rect(langRect.x - cfgW - 10f * s, topYBar, cfgW, topBtnH);
+            if (GUI.Button(cfgRect, cfgLbl, pedalDarkBtn))
+                activeModal = SubModal.Settings;
+            if (GUI.Button(langRect, langLbl, pedalDarkBtn))
+            {
+                LanguageIndex = (LanguageIndex + 1) % 3;
+                SaveUserPreferences();
+            }
+        }
+
+        // LEFT COLUMN: Title + Explicit Action Proposal + Primary & Secondary Buttons
+        float colW = Mathf.Clamp(safe.width * 0.40f, 270f * s, 430f * s);
+        float lx = safe.x + Mathf.Clamp(safe.width * 0.045f, 18f * s, 54f * s);
+        float topY = safe.y + Mathf.Clamp(safe.height * 0.14f, 28f * s, 108f * s);
+
         GUIStyle bigTitle = new GUIStyle(GirlPowerOrla3DUITheme.TitleLogoStyle)
         {
-            fontSize = Mathf.RoundToInt(Mathf.Clamp(56f * s, 32f, 64f)),
-            alignment = TextAnchor.MiddleCenter
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(52f * s, 30f, 60f)),
+            alignment = TextAnchor.MiddleLeft
         };
         GirlPowerOrla3DUITheme.DrawShadowedLabel(
-            new Rect(centerX - titleW * 0.5f, topY, titleW, 68f * s),
-            "ORLA DAS FADAS",
+            new Rect(lx, topY, colW + 40f * s, 60f * s),
+            "Orla das Fadas",
             bigTitle,
-            new Color(1f, 0.96f, 0.98f),
-            new Color(0.42f, 0.08f, 0.24f, 0.92f),
-            3.5f * s);
+            new Color(1f, 0.98f, 0.99f),
+            new Color(0.42f, 0.08f, 0.24f, 0.94f),
+            3.2f * s);
 
         string tagline = IsEnglish
-            ? "Seaside Ice Cream Cart • Fairy Village"
-            : (IsSpanish ? "Carrito de Helados • Vila de las Hadas" : "Carrinho de Sorvete à Beira-Mar");
+            ? "Make ice creams, explore the bay and help the villagers."
+            : (IsSpanish
+                ? "Prepara helados, explora la costa y ayuda a las vecinas."
+                : "Prepare sorvetes, explore a orla e ajude as moradoras.");
         GUIStyle subSt = new GUIStyle(GirlPowerOrla3DUITheme.SubtitleStyle)
         {
-            fontSize = Mathf.RoundToInt(Mathf.Clamp(18f * s, 13f, 20f)),
+            fontSize = Mathf.RoundToInt(Mathf.Clamp(18.5f * s, 13.5f, 21f)),
+            fontStyle = FontStyle.Bold,
             wordWrap = true,
-            alignment = TextAnchor.MiddleCenter
+            alignment = TextAnchor.UpperLeft
         };
         GirlPowerOrla3DUITheme.DrawShadowedLabel(
-            new Rect(centerX - titleW * 0.5f, topY + 68f * s, titleW, 32f * s),
+            new Rect(lx, topY + 66f * s, colW, 56f * s),
             tagline,
             subSt,
-            new Color(1f, 0.90f, 0.95f),
-            new Color(0.30f, 0.06f, 0.18f, 0.88f),
-            2f * s);
+            new Color(1f, 0.96f, 0.97f),
+            new Color(0.24f, 0.06f, 0.14f, 0.92f),
+            2.0f * s);
 
         if (activeModal != SubModal.None) return;
 
-        // CENTER STAGE: ONE prominent strawberry-pink primary "▶ JOGAR" button!
-        float bw = Mathf.Clamp(290f * s, 210f, safe.width - 48f * s);
-        float bx = centerX - bw * 0.5f;
-        float by = topY + 132f * s;
-
         bool hasSave = HasSavedProgress();
-        string playLbl = hasSave
-            ? GirlPowerOrla3DLocalization.T("▶   JOGAR", "▶   PLAY", "▶   JUGAR")
-            : GirlPowerOrla3DLocalization.T("▶   JOGAR", "▶   PLAY", "▶   JUGAR");
-        if (GUI.Button(new Rect(bx, by, bw, 62f * s), playLbl, pedalGoldBtn))
+        float bw = Mathf.Clamp(286f * s, 210f, colW);
+        float by = topY + 138f * s;
+
+        // Primary Pink CTA: "▶ Continuar" (when saved) or "▶ Começar aventura" (when new!)
+        string primaryLbl = hasSave
+            ? GirlPowerOrla3DLocalization.T("▶   Continuar", "▶   Continue", "▶   Continuar")
+            : GirlPowerOrla3DLocalization.T("▶   Começar aventura", "▶   Start adventure", "▶   Empezar aventura");
+        if (GUI.Button(new Rect(lx, by, bw, 60f * s), primaryLbl, pedalGoldBtn))
         {
             if (hasSave) StartOrContinueGame();
             else StartChapter(1);
         }
-        by += 74f * s;
+        by += 72f * s;
 
-        // If a save exists, show ONLY a single discreet secondary pill to restart from Chapter 1
+        // Separate, unmistakable "Novo jogo" secondary button ONLY when saved progress exists (with confirmation!)
         if (hasSave)
         {
-            int savedChap = storyController != null ? storyController.GetCurrentChapterNumber() : 1;
-            string restartLbl = GirlPowerOrla3DLocalization.T(
-                "Continuando Cap. " + savedChap + "  •  Novo Jogo",
-                "Continuing Ch. " + savedChap + "  •  New Game",
-                "Siguiendo Cap. " + savedChap + "  •  Nuevo");
-            float rw = Mathf.Clamp(260f * s, 196f, safe.width - 48f * s);
-            if (GUI.Button(new Rect(centerX - rw * 0.5f, by, rw, 36f * s), restartLbl, pedalMintBtn))
+            string newGameLbl = GirlPowerOrla3DLocalization.T("Novo jogo", "New game", "Nueva partida");
+            if (GUI.Button(new Rect(lx, by, Mathf.Min(210f * s, bw), 44f * s), newGameLbl, pedalMintBtn))
             {
                 RequestConfirmation(
                     GirlPowerOrla3DLocalization.T("INICIAR NOVO JOGO?", "START NEW GAME?", "¿INICIAR NUEVA PARTIDA?"),
                     GirlPowerOrla3DLocalization.T(
-                        "Começar do Capítulo 1 vai substituir o progresso atual. Deseja continuar?",
-                        "Starting from Chapter 1 will overwrite your current progress. Continue?",
-                        "Empezar desde el Capítulo 1 reemplazará tu progreso actual. ¿Continuar?"),
+                        "Iniciar um novo jogo vai reiniciar o seu progresso salvo a partir do Capítulo 1. Deseja continuar?",
+                        "Starting a new game will reset your saved progress back to Chapter 1. Continue?",
+                        "Iniciar una nueva partida reiniciará tu progreso guardado al Capítulo 1. ¿Continuar?"),
                     () => StartChapter(1));
             }
         }
 
-        // QUIET BACKGROUND FOOTER BAR: Settings, Chapters, Parents, Language & Quit tucked unobtrusively at bottom!
-        float barH = 34f * s;
-        float barY = safe.yMax - barH - 14f * s;
-        float gap = 8f * s;
-        float btnW = Mathf.Clamp(108f * s, 74f, (safe.width - 70f * s) / 5.4f);
+        // ORGANIZED BOTTOM-LEFT SECONDARY MENU (readable pill sizes, never tiny/scattered; Quit omitted on mobile!)
+        float barH = 40f * s;
+        float barY = safe.yMax - barH - 18f * s;
+        float gap = 10f * s;
+        bool showQuit = !Application.isMobilePlatform;
+        int itemCount = showQuit ? 4 : 3;
+        float maxBarW = safe.width - (lx - safe.x) - 20f * s;
+        float secW = Mathf.Clamp(136f * s, 96f, (maxBarW - gap * (itemCount - 1)) / itemCount);
 
-        string cfgLbl = IsEnglish ? "Settings" : (IsSpanish ? "Ajustes" : "Configurações");
         string chapLbl = GirlPowerOrla3DLocalization.T("Capítulos", "Chapters", "Capítulos");
-        string parentsLbl = GirlPowerOrla3DLocalization.T("Pais", "Parents", "Padres");
+        string parentsLbl = GirlPowerOrla3DLocalization.T("Área dos Pais", "Parents Area", "Área de Padres");
         string credLbl = GirlPowerOrla3DLocalization.T("Créditos", "Credits", "Créditos");
-        string langLbl = LanguageIndex == 0 ? "PT" : (LanguageIndex == 1 ? "EN" : "ES");
         string quitLbl = IsEnglish ? "Quit" : (IsSpanish ? "Salir" : "Sair");
 
-        float langW = 48f * s;
-        float quitW = 68f * s;
-        float totalBarW = btnW * 4f + langW + quitW + gap * 5f;
-        float sx = centerX - totalBarW * 0.5f;
-
-        if (GUI.Button(new Rect(sx, barY, btnW, barH), cfgLbl, pedalDarkBtn))
-            activeModal = SubModal.Settings;
-        sx += btnW + gap;
-
-        if (GUI.Button(new Rect(sx, barY, btnW, barH), chapLbl, pedalDarkBtn))
+        float sx = lx;
+        if (GUI.Button(new Rect(sx, barY, secW, barH), chapLbl, pedalDarkBtn))
             activeModal = SubModal.Chapters;
-        sx += btnW + gap;
+        sx += secW + gap;
 
-        if (GUI.Button(new Rect(sx, barY, btnW, barH), parentsLbl, pedalDarkBtn))
+        if (GUI.Button(new Rect(sx, barY, secW, barH), parentsLbl, pedalDarkBtn))
             activeModal = SubModal.ParentsArea;
-        sx += btnW + gap;
+        sx += secW + gap;
 
-        if (GUI.Button(new Rect(sx, barY, btnW, barH), credLbl, pedalDarkBtn))
+        if (GUI.Button(new Rect(sx, barY, secW, barH), credLbl, pedalDarkBtn))
             activeModal = SubModal.Credits;
-        sx += btnW + gap;
+        sx += secW + gap;
 
-        if (GUI.Button(new Rect(sx, barY, langW, barH), langLbl, pedalDarkBtn))
-        {
-            LanguageIndex = (LanguageIndex + 1) % 3;
-            SaveUserPreferences();
-        }
-        sx += langW + gap;
-
-        if (GUI.Button(new Rect(sx, barY, quitW, barH), quitLbl, pedalRoseBtn))
+        if (showQuit && GUI.Button(new Rect(sx, barY, Mathf.Min(100f * s, secW), barH), quitLbl, pedalRoseBtn))
         {
             Application.Quit();
             quitFeedback = IsEnglish ? "Close the browser tab or stop Play Mode to exit." : "Feche a aba do navegador ou pare o Play Mode para sair.";
@@ -785,7 +803,7 @@ public sealed class GirlPowerOrla3DGameFlow : MonoBehaviour
         if (quitFeedbackTimer > 0f && !string.IsNullOrEmpty(quitFeedback))
         {
             float fbw = Mathf.Min(420f * s, safe.width - 32f * s);
-            Rect fb = new Rect(centerX - fbw * 0.5f, barY - 42f * s, fbw, 34f * s);
+            Rect fb = new Rect(lx, barY - 44f * s, fbw, 36f * s);
             GUI.Box(fb, GUIContent.none, GirlPowerOrla3DUITheme.CardGlassStyle);
             GUI.Label(fb, quitFeedback, GirlPowerOrla3DUITheme.BodyLightStyle);
         }

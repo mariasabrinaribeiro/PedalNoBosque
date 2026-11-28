@@ -46,9 +46,8 @@ public static class GirlPowerOrla3DPropsBuilder
 
         BuildCoastalRocks(propsRoot.transform, mats, obstacles);
         BuildSouthNeighborhoodGroundAndBoundaries(propsRoot.transform, mats, obstacles);
-        // Single iconic pier (FishingPierDock on the east beach) -> duplicate west pier intentionally omitted!
+        // Single iconic pier (FishingPierDock on the east beach) -> duplicate west pier & stray isolated sea buoys omitted!
         BuildAnchoredBoats(propsRoot.transform, mats, res.floatingBoats);
-        BuildFloatingBuoys(propsRoot.transform, mats, res.floatingBuoys);
         BuildPromenadeTrashBins(propsRoot.transform, mats, obstacles, res.extraShadows);
         BuildBeachSigns(propsRoot.transform, mats, obstacles, res.extraShadows);
         // Keep the player and route destinations readable: coastal lamps remain, overhead wires do not cross the play space.
@@ -439,13 +438,13 @@ public static class GirlPowerOrla3DPropsBuilder
         Material woodDark = GetMat(mats, "AC_WoodDark");
         Material woodLight = GetMat(mats, "AC_WoodLight");
         Material mint = GetMat(mats, "AC_MintTeal");
-        Material coral = GetMat(mats, "AC_Coral");
+        Material pinkBerry = GetMat(mats, "AC_PinkBerry");
 
         var specs = new (Vector3 pos, float rotY, string label, Material boardMat)[]
         {
-            (new Vector3(-6.2f, 0f, 3.05f), 6f, "PRAIA ↓", mint),
-            (new Vector3(12.2f, 0f, 3.10f), -6f, "PAVILHÃO →", coral),
-            (new Vector3(26.8f, 0f, 3.05f), -10f, "PÍER →", mint)
+            (new Vector3(-6.2f, 0f, 3.05f), 4f, "PRAIA ↓", mint),
+            (new Vector3(13.8f, 0f, 3.05f), -4f, "LUNA →", pinkBerry),
+            (new Vector3(27.2f, 0f, 3.05f), -6f, "PÍER →", mint)
         };
 
         for (int i = 0; i < specs.Length; i++)
@@ -457,25 +456,25 @@ public static class GirlPowerOrla3DPropsBuilder
             sign.transform.rotation = Quaternion.Euler(0f, s.rotY, 0f);
 
             MakePrim(sign.transform, PrimitiveType.Cylinder, "Haste",
-                new Vector3(0f, 0.85f, 0f), new Vector3(0.11f, 0.85f, 0.11f), Quaternion.identity, woodDark, true);
+                new Vector3(0f, 0.88f, 0f), new Vector3(0.12f, 0.88f, 0.12f), Quaternion.identity, woodDark, true);
             MakePrim(sign.transform, PrimitiveType.Cube, "Quadro",
-                new Vector3(0f, 1.42f, 0f), new Vector3(1.26f, 0.44f, 0.08f), Quaternion.identity, s.boardMat, true);
+                new Vector3(0f, 1.48f, 0f), new Vector3(1.56f, 0.54f, 0.09f), Quaternion.identity, s.boardMat, true);
             MakePrim(sign.transform, PrimitiveType.Cube, "Moldura",
-                new Vector3(0f, 1.42f, 0.02f), new Vector3(1.32f, 0.50f, 0.05f), Quaternion.identity, woodLight, false);
+                new Vector3(0f, 1.48f, 0.025f), new Vector3(1.64f, 0.62f, 0.05f), Quaternion.identity, woodLight, false);
 
             GameObject txtGo = new GameObject("Texto");
             txtGo.transform.SetParent(sign.transform, false);
-            txtGo.transform.localPosition = new Vector3(0f, 1.42f, -0.052f);
+            txtGo.transform.localPosition = new Vector3(0f, 1.48f, -0.058f);
             TextMeshPro tmp = txtGo.AddComponent<TextMeshPro>();
             tmp.text = s.label;
-            tmp.fontSize = 1.15f;
+            tmp.fontSize = 1.65f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
             tmp.enableWordWrapping = false;
             tmp.margin = Vector4.zero;
-            tmp.color = new Color32(255, 250, 236, 255);
-            tmp.rectTransform.sizeDelta = new Vector2(1.20f, 0.36f);
+            tmp.color = new Color32(255, 252, 246, 255);
+            tmp.rectTransform.sizeDelta = new Vector2(1.48f, 0.44f);
 
             BoxCollider box = sign.AddComponent<BoxCollider>();
             box.center = new Vector3(0f, 0.85f, 0f);
@@ -540,13 +539,11 @@ public static class GirlPowerOrla3DPropsBuilder
         Material coral = GetMat(mats, "AC_Coral");
         Material blue = GetMat(mats, "AC_SkyBlue");
 
-        // Open-sand relaxation zones seated flush on the sand slope (z=5.75..6.05 -> y=-0.112..-0.120) & clear of Beach Tennis!
+        // Two purposeful relaxation spots tucked neatly beside the West & East beach umbrellas (zero scattered balls or clutter!)
         var towels = new (Vector3 pos, float rotY, Material baseMat, Material stripeMat)[]
         {
-            (new Vector3(-11.2f, -0.112f, 5.75f),  12f, pink,   cream),
-            (new Vector3( -9.2f, -0.120f, 6.05f), -10f, yellow, cream),
-            (new Vector3( 12.4f, -0.112f, 5.75f),  10f, mint,   cream),
-            (new Vector3( 14.6f, -0.120f, 6.05f),  -9f, blue,   cream)
+            (new Vector3(-11.0f, -0.114f, 5.85f),  8f, pink, cream),
+            (new Vector3( 17.6f, -0.114f, 5.85f), -8f, mint, cream)
         };
 
         for (int i = 0; i < towels.Length; i++)
@@ -563,20 +560,6 @@ public static class GirlPowerOrla3DPropsBuilder
                 new Vector3(0f, 0.01f, -0.52f), new Vector3(1.16f, 0.025f, 0.22f), Quaternion.identity, t.stripeMat, false);
             MakePrim(towel.transform, PrimitiveType.Cube, "Listra2",
                 new Vector3(0f, 0.01f, 0.52f), new Vector3(1.16f, 0.025f, 0.22f), Quaternion.identity, t.stripeMat, false);
-
-            // Cute pastel beach ball beside towels 1 & 3
-            if (i == 0 || i == 2)
-            {
-                GameObject ball = MakePrim(grp.transform, PrimitiveType.Sphere, "Bola_Praia_" + (i + 1),
-                    t.pos + new Vector3(0.95f, 0.22f, 0.35f),
-                    Vector3.one * 0.44f, Quaternion.identity, i == 0 ? coral : blue, true);
-                shadows.Add(new GirlPowerOrla3DContactShadows.ShadowEntry
-                {
-                    target = ball.transform,
-                    sizeXZ = new Vector2(0.58f, 0.58f),
-                    isDynamic = false
-                });
-            }
         }
     }
 

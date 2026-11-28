@@ -44,6 +44,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
     public GirlPowerOrla3DFirstDelivery storyController;
     public GirlPowerOrla3DMegaSystems megaSystems;
     public GirlPowerOrla3DCardapioUI cardapioUI;
+    public GirlPowerOrla3DFairBusinesses fairBusinesses;
 
     [Header("Shops & Friends")]
     public ShopStall[] shops;
@@ -74,6 +75,7 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         if (storyController == null) storyController = FindObjectOfType<GirlPowerOrla3DFirstDelivery>();
         if (megaSystems == null) megaSystems = FindObjectOfType<GirlPowerOrla3DMegaSystems>();
         if (cardapioUI == null) cardapioUI = FindObjectOfType<GirlPowerOrla3DCardapioUI>();
+        if (fairBusinesses == null) fairBusinesses = FindObjectOfType<GirlPowerOrla3DFairBusinesses>();
 
         if (friends != null)
         {
@@ -170,6 +172,9 @@ public sealed class GirlPowerOrla3DLifeActivities : MonoBehaviour
         if (hub == null || shops == null || player == null) return;
         int nearShop = FindNearestShop(2.8f);
         if (nearShop < 0 || shops[nearShop].stallTransform == null) return;
+        // Let GirlPowerOrla3DFairBusinesses own the interactive Juice Bar, Candy Shop & Craft Studio!
+        if (fairBusinesses != null && fairBusinesses.OwnsStallTransform(shops[nearShop].stallTransform))
+            return;
         float dist = Vector2.Distance(
             new Vector2(player.position.x, player.position.z),
             new Vector2(shops[nearShop].stallTransform.position.x, shops[nearShop].stallTransform.position.z));

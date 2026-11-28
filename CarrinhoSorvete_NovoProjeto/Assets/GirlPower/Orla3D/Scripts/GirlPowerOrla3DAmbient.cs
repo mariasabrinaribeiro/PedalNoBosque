@@ -445,20 +445,20 @@ public sealed class GirlPowerOrla3DAmbient : MonoBehaviour
                 SetArrayActive(fireflies, true);
                 break;
 
-            default: // FimDeTarde (Rosy Golden-Hour Coastal Afternoon harmonizing with the Opening Pink Palette!)
+            default: // FimDeTarde (Crisp Clear Coastal Daylight — Rosa/Creme/Turquesa/Lilás live in the art, ZERO pink veil over screen!)
                 if (sunLight != null)
                 {
-                    sunLight.color = new Color(1.0f, 0.90f, 0.85f);
-                    sunLight.intensity = 0.88f;
+                    sunLight.color = new Color(1.0f, 0.96f, 0.90f);
+                    sunLight.intensity = 0.90f;
                     sunLight.shadowStrength = 0.34f;
                     sunLight.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
                 }
-                RenderSettings.ambientSkyColor = new Color(0.62f, 0.56f, 0.72f);
-                RenderSettings.ambientEquatorColor = new Color(0.76f, 0.62f, 0.64f);
-                RenderSettings.ambientGroundColor = new Color(0.36f, 0.26f, 0.30f);
-                RenderSettings.fogColor = new Color(0.72f, 0.74f, 0.88f);
-                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.46f, 0.68f, 0.88f);
-                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.94f, 1.10f, 0.08f, new Color(1.03f, 0.98f, 0.99f, 1f));
+                RenderSettings.ambientSkyColor = new Color(0.54f, 0.64f, 0.78f);
+                RenderSettings.ambientEquatorColor = new Color(0.72f, 0.68f, 0.64f);
+                RenderSettings.ambientGroundColor = new Color(0.34f, 0.30f, 0.32f);
+                RenderSettings.fogColor = new Color(0.62f, 0.78f, 0.90f);
+                if (targetCamera != null) targetCamera.backgroundColor = new Color(0.42f, 0.72f, 0.90f);
+                if (cameraPost != null) cameraPost.ApplyAtmosphere(0.94f, 1.08f, 0.06f, new Color(1.00f, 1.00f, 1.00f, 1f));
                 lanternScale = 0.85f;
                 SetArrayActive(butterflies, true);
                 SetArrayActive(fireflies, true);

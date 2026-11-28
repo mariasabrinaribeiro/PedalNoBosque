@@ -24,6 +24,8 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
     public bool isCat;
     public Transform followTarget;
     public Transform guardPoint;
+    public Transform pavilionTransform;
+    public BoxCollider[] blockingObstacles;
     public Transform bandanaProp;
     public Transform detectiveHatProp;
     public GirlPowerOrla3DAudio audioController;
@@ -457,8 +459,9 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
             Vector2 dir = deltaXZ / Mathf.Max(0.001f, dist);
             float spd = followSpeed * paceMult;
             float step = Mathf.Min(dist, spd * dt);
-            float nx = current.x + dir.x * step;
-            float nz = current.z + dir.y * step;
+            Vector2 safeXZ = ResolvePetMoveXZ(current.x, current.z, dir.x * step, dir.y * step);
+            float nx = safeXZ.x;
+            float nz = safeXZ.y;
             hopClock += dt * (isCat ? 10.5f : 13.5f) * Mathf.Clamp(paceMult, 0.55f, 1.35f);
             float hop = Mathf.Abs(Mathf.Sin(hopClock)) * (isCat ? 0.12f : 0.17f) * Mathf.Clamp01(paceMult);
             float baseY = SampleCompanionGroundY(nx, nz);
@@ -476,20 +479,83 @@ public sealed class GirlPowerOrla3DPetCompanion : MonoBehaviour
         }
         else
         {
-            float baseY = SampleCompanionGroundY(current.x, current.z);
+            Vector2 safeIdleXZ = PushOutOfObstaclesXZ(current.x, current.z);
+            float baseY = SampleCompanionGroundY(safeIdleXZ.x, safeIdleXZ.y);
             float idle = Mathf.Abs(Mathf.Sin(t * 3.0f)) * 0.035f;
-            transform.position = Vector3.Lerp(current, new Vector3(current.x, baseY + idle, current.z), dt * 10f);
+            transform.position = Vector3.Lerp(current, new Vector3(safeIdleXZ.x, baseY + idle, safeIdleXZ.y), dt * 10f);
             Quaternion flatCur = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
             transform.rotation = Quaternion.Slerp(flatCur, lastValidRot, 1f - Mathf.Exp(-8f * dt));
         }
     }
 
-    private static float SampleCompanionGroundY(float x, float z)
+    private Vector2 ResolvePetMoveXZ(float cx, float cz, float dx, float dz)
     {
-        if (x >= 23.2f && x <= 28.8f && z >= -11.9f && z <= -7.6f)
+        Vector2 p = new Vector2(cx, cz);
+        Vector2 tryX = new Vector2(p.x + dx, p.y);
+        if (!IsBlockedXZ(tryX.x, tryX.y, p.x, p.y)) p = tryX;
+        Vector2 tryZ = new Vector2(p.x, p.y + dz);
+        if (!IsBlockedXZ(tryZ.x, tryZ.y, p.x, p.y)) p = tryZ;
+        return PushOutOfObstaclesXZ(p.x, p.y);
+    }
+
+    private bool IsBlockedXZ(float candX, float candZ, float origX, float origZ)
+    {
+        if (blockingObstacles == null) return false;
+        const float petRadius = 0.42f;
+        float minSq = petRadius * petRadius;
+        Vector3 candProbe = new Vector3(candX, 0.5f, candZ);
+        Vector3 origProbe = new Vector3(origX, 0.5f, origZ);
+        for (int i = 0; i < blockingObstacles.Length; i++)
         {
-            if (z > -8.3f) return Mathf.Lerp(0f, 0.34f, (-7.6f - z) / 0.7f);
-            return 0.34f;
+            BoxCollider box = blockingObstacles[i];
+            if (box == null || !box.enabled || box.isTrigger || !box.gameObject.activeInHierarchy) continue;
+            float candDistSq = GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ(candProbe, box);
+            if (candDistSq < minSq)
+            {
+                float origDistSq = GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ(origProbe, box);
+                if (candDistSq <= origDistSq)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private Vector2 PushOutOfObstaclesXZ(float x, float z)
+    {
+        if (blockingObstacles == null) return new Vector2(x, z);
+        const float petRadius = 0.44f;
+        float minSq = petRadius * petRadius;
+        for (int i = 0; i < blockingObstacles.Length; i++)
+        {
+            BoxCollider box = blockingObstacles[i];
+            if (box == null || !box.enabled || box.isTrigger || !box.gameObject.activeInHierarchy) continue;
+            Vector3 probe = new Vector3(x, 0.5f, z);
+            if (GirlPowerOrla3DPathfinder.DistanceSqToOrientedBoxXZ(probe, box) < minSq)
+            {
+                Vector3 center = box.transform.TransformPoint(box.center);
+                Vector2 outDir = new Vector2(x - center.x, z - center.z);
+                if (outDir.sqrMagnitude < 0.0001f) outDir = new Vector2(0f, -1f);
+                outDir.Normalize();
+                x += outDir.x * 0.14f;
+                z += outDir.y * 0.14f;
+            }
+        }
+        return new Vector2(x, z);
+    }
+
+    private float SampleCompanionGroundY(float x, float z)
+    {
+        Vector3 pavPos = pavilionTransform != null ? pavilionTransform.position : new Vector3(30.8f, -0.02f, -10.8f);
+        float pavDx = Mathf.Abs(x - pavPos.x);
+        float pavDz = Mathf.Abs(z - pavPos.z);
+        if (pavDx <= 2.95f && pavDz <= 2.25f)
+        {
+            return 0.39f;
+        }
+        if (pavDx <= 1.58f && pavDz > 2.25f && pavDz <= 3.12f)
+        {
+            float stepT = Mathf.Clamp01((3.12f - pavDz) / 0.87f);
+            return Mathf.Lerp(0f, 0.39f, stepT);
         }
         // Synced cleanly with ContinuousBoardwalk (z = -15.6..+3.45 at y = 0.0) and Beach slope!
         if (z <= 3.45f) return 0f;

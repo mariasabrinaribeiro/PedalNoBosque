@@ -259,10 +259,10 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
             float frontSign = FaceForwardSign >= 0f ? -1f : 1f;
             legL = s * amp * frontSign;
             legR = -s * amp * frontSign;
-            armL = -s * (amp * 0.78f) * frontSign;
-            armR = holdingCone ? (-52f * frontSign) : (s * (amp * 0.78f) * frontSign);
-            armLRoll = 13f;
-            armRRoll = holdingCone ? -16f : -13f;
+            armL = -s * (amp * 0.72f) * frontSign;
+            armR = holdingCone ? (-52f * frontSign) : (s * (amp * 0.72f) * frontSign);
+            armLRoll = 4.5f;
+            armRRoll = holdingCone ? -10f : -4.5f;
             // Natural Secondary Motion: counter-rotating shoulders/torso opposite to leg swing
             torsoYaw = -s * (running ? 9.5f : 6.2f) * speedScale;
             torsoRoll = s * (running ? 2.8f : 1.8f) * speedScale;
@@ -272,11 +272,11 @@ public sealed class GirlPowerOrla3DCharacterAnimator : MonoBehaviour
         }
         else
         {
-            float idle = Mathf.Sin(t * 2.4f) * 2.8f;
+            float idle = Mathf.Sin(t * 2.4f) * 2.4f;
             armL = idle;
             armR = holdingCone ? -50f : -idle;
-            armLRoll = 11f;
-            armRRoll = holdingCone ? -15f : -11f;
+            armLRoll = 3.5f;
+            armRRoll = holdingCone ? -10f : -3.5f;
             torsoRoll = Mathf.Sin(t * 1.4f) * 0.9f;
             headPitch = Mathf.Sin(t * 1.6f) * 2.0f;
         }
